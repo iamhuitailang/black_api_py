@@ -9,12 +9,30 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
+from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.common.sqlite.db import get_db
+
+
+def migrate_database():
+    print("Running database migrations...")
+    
+    migrated = BannerModel.migrate_remove_aspect_ratio()
+    if migrated:
+        print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
 
 
 def init_database():
     db = get_db()
     HelloWorldModel.create_table()
+    BannerModel.create_table()
+    BannerConfigModel.create_table()
+    TabModel.create_table()
+    TabDetailModel.create_table()
+    CommercialModel.create_table()
+    ProductModel.create_table()
+    
+    migrate_database()
+    
     print("Database initialized successfully")
 
 
