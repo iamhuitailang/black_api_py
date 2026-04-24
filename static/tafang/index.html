@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q版塔防游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🏰</span>
+                <span class="logo-text">Q版塔防</span>
+            </div>
+            <ul class="nav-links">
+                <li class="active"><a href="#" onclick="return false;">游戏</a></li>
+            </ul>
+            <div class="nav-status">
+                <span id="nav-gold">💰 <span id="nav-gold-value">50</span></span>
+                <span id="nav-hp">❤️ <span id="nav-hp-value">10</span></span>
+                <span id="nav-wave">🌊 第<span id="nav-wave-value">1</span>波</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-title fade-in">
+                <h1>🎮 塔防大作战 🎮</h1>
+                <p class="subtitle">放置防御塔，阻止怪物入侵！</p>
+            </div>
+
+            <div class="game-info fade-in">
+                <div class="info-item">
+                    <div class="label">💰 金币</div>
+                    <div class="value" id="gold-display">50</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">❤️ 生命值</div>
+                    <div class="value" id="hp-display">10</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">🌊 当前波次</div>
+                    <div class="value" id="wave-display">1</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">👾 剩余怪物</div>
+                    <div class="value" id="monster-display">0</div>
+                </div>
+            </div>
+
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h2 class="card-title">📍 游戏地图</h2>
+                </div>
+                <div class="card-body">
+                    <div class="game-grid" id="game-grid">
+                    </div>
+                    <div class="game-container" id="game-container">
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-controls fade-in">
+                <button class="btn btn-primary" id="start-btn">🎯 开始游戏</button>
+                <button class="btn btn-secondary" id="restart-btn">🔄 重新开始</button>
+            </div>
+
+            <div class="card fade-in mt-20">
+                <div class="card-header">
+                    <h2 class="card-title">📖 游戏说明</h2>
+                </div>
+                <div class="card-body">
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div class="status-label">🏗️ 放置防御塔</div>
+                            <div class="status-value"><small>点击绿色草地放置</small></div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">💰 塔价格</div>
+                            <div class="status-value">50 金币</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">⬆️ 升级价格</div>
+                            <div class="status-value">100 金币</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">🎯 击杀奖励</div>
+                            <div class="status-value">10 金币/只</div>
+                        </div>
+                    </div>
+                    <div class="mt-20" style="font-size: 14px; color: #666; line-height: 1.8;">
+                        <p><strong>🎮 操作说明：</strong></p>
+                        <p>• 点击绿色草地（<span style="background: #a8e6cf; padding: 2px 8px; border-radius: 4px;">草地</span>）可以放置防御塔</p>
+                        <p>• 点击已放置的塔可以查看详情和升级</p>
+                        <p>• 棕色路径（<span style="background: #d4a574; padding: 2px 8px; border-radius: 4px; color: white;">路径</span>）是怪物行走路线</p>
+                        <p>• 紫色起点（<span style="background: #667eea; padding: 2px 8px; border-radius: 4px; color: white;">起点</span>）→ 红色终点（<span style="background: #f5576c; padding: 2px 8px; border-radius: 4px; color: white;">终点</span>）</p>
+                        <p>• 升级后的塔会变成紫色，攻击力和攻速提升！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="tower-panel" id="tower-panel">
+        <div class="tower-panel-header">
+            <h3 class="tower-panel-title" id="tower-panel-title">🏰 防御塔信息</h3>
+            <div class="tower-panel-close" id="tower-panel-close">✕</div>
+        </div>
+        <div class="tower-info">
+            <div class="tower-info-item">
+                <span class="tower-info-label">等级</span>
+                <span class="tower-info-value" id="tower-level">1</span>
+            </div>
+            <div class="tower-info-item">
+                <span class="tower-info-label">攻击力</span>
+                <span class="tower-info-value" id="tower-damage">20</span>
+            </div>
+            <div class="tower-info-item">
+                <span class="tower-info-label">攻击范围</span>
+                <span class="tower-info-value" id="tower-range">2格</span>
+            </div>
+            <div class="tower-info-item">
+                <span class="tower-info-label">攻击频率</span>
+                <span class="tower-info-value" id="tower-speed">1秒/次</span>
+            </div>
+        </div>
+        <div class="tower-panel-actions">
+            <button class="btn btn-success" id="upgrade-btn">⬆️ 升级 (100💰)</button>
+            <button class="btn btn-danger" id="sell-btn">💰 出售 (25💰)</button>
+        </div>
+    </div>
+
+    <div class="game-over-modal" id="game-over-modal">
+        <div class="game-over-content">
+            <div class="game-over-icon">😢</div>
+            <h2 class="game-over-title">游戏结束</h2>
+            <div class="game-over-stats">
+                <p>坚持了 <strong id="final-waves">0</strong> 波</p>
+                <p>累计获得 <strong id="final-gold">0</strong> 金币</p>
+                <p>击杀了 <strong id="final-kills">0</strong> 只怪物</p>
+            </div>
+            <button class="btn btn-primary" id="retry-btn">🔄 再来一局</button>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

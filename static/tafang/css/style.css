@@ -1,0 +1,1094 @@
+/* ============================================================================
+   《Q版塔防》公共样式文件
+   Q版可爱风格样式 - 所有页面通用
+   ============================================================================ */
+
+/* ============================================================================
+   一、基础样式重置和全局设置
+   ============================================================================ */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 200, 100, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+a {
+    color: #667eea;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+a:hover {
+    color: #764ba2;
+}
+
+button {
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+    outline: none;
+}
+
+ul, ol {
+    list-style: none;
+}
+
+/* ============================================================================
+   二、导航栏样式
+   ============================================================================ */
+
+.nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    box-shadow: 0 4px 20px rgba(255, 154, 158, 0.4);
+    border-bottom: 4px solid #fff;
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-icon {
+    font-size: 32px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.logo-text {
+    font-size: 24px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 2px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-links li {
+    position: relative;
+}
+
+.nav-links a {
+    display: block;
+    padding: 10px 22px;
+    color: #667eea;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.nav-links a:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.5);
+}
+
+.nav-links li.active a {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.nav-status {
+    display: flex;
+    gap: 15px;
+    font-size: 14px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.nav-status span {
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* ============================================================================
+   三、主内容区域样式
+   ============================================================================ */
+
+.main-content {
+    padding-top: 90px;
+    padding-bottom: 40px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 25px;
+}
+
+.page-title h1 {
+    font-size: 36px;
+    background: linear-gradient(135deg, #fff 0%, #fecfef 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.page-title .subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 2px;
+}
+
+/* ============================================================================
+   四、卡片组件样式
+   ============================================================================ */
+
+.card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    padding: 25px;
+    margin-bottom: 25px;
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    position: relative;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px dashed rgba(102, 126, 234, 0.3);
+}
+
+.card-title {
+    font-size: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+}
+
+.card-body {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================================
+   五、按钮组件样式
+   ============================================================================ */
+
+.btn {
+    display: inline-block;
+    padding: 14px 32px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s ease;
+}
+
+.btn:hover::after {
+    left: 100%;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(240, 147, 251, 0.5);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(240, 147, 251, 0.6);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(79, 172, 254, 0.5);
+}
+
+.btn-success:hover {
+    transform: translateY(-3px);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(250, 112, 154, 0.5);
+}
+
+.btn-warning:hover {
+    transform: translateY(-3px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(245, 87, 108, 0.5);
+}
+
+.btn-danger:hover {
+    transform: translateY(-3px);
+}
+
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn-sm {
+    padding: 10px 20px;
+    font-size: 13px;
+}
+
+/* ============================================================================
+   六、进度条样式
+   ============================================================================ */
+
+.progress-bar {
+    width: 100%;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 14px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progress-fill.hp {
+    background: linear-gradient(90deg, #ff6b6b 0%, #ee5a24 50%, #ff6b6b 100%);
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.progress-fill.gold {
+    background: linear-gradient(90deg, #ffd32a 0%, #ffc048 50%, #ffd32a 100%);
+    box-shadow: 0 0 10px rgba(255, 211, 42, 0.5);
+}
+
+.progress-fill.exp {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
+    box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+
+.progress-container {
+    margin-bottom: 18px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* ============================================================================
+   七、状态显示样式
+   ============================================================================ */
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 18px;
+}
+
+.status-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+    padding: 18px 20px;
+    border-radius: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.status-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.status-label {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.status-value {
+    font-size: 28px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.status-value .unit {
+    font-size: 14px;
+    color: #999;
+    margin-left: 5px;
+}
+
+/* ============================================================================
+   八、消息提示样式
+   ============================================================================ */
+
+.message-box {
+    padding: 16px 20px;
+    border-radius: 16px;
+    margin-bottom: 15px;
+    border: 2px solid;
+    font-weight: 500;
+}
+
+.message-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-color: #28a745;
+    color: #155724;
+}
+
+.message-error {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.message-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.message-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+/* ============================================================================
+   九、游戏网格样式
+   ============================================================================ */
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    border-radius: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.grid-cell {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.grid-cell.grass {
+    background: linear-gradient(135deg, #a8e6cf 0%, #88d8b0 100%);
+}
+
+.grid-cell.path {
+    background: linear-gradient(135deg, #d4a574 0%, #c49a6c 100%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.grid-cell.start {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.grid-cell.end {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+}
+
+.grid-cell.tower {
+    background: linear-gradient(135deg, #ffd32a 0%, #ffc048 100%);
+}
+
+.grid-cell.tower.level-2 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.6);
+}
+
+.grid-cell:hover {
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+.grid-cell.grass:hover {
+    background: linear-gradient(135deg, #b9f7d0 0%, #99e9c1 100%);
+    box-shadow: 0 0 15px rgba(168, 230, 207, 0.6);
+}
+
+.grid-cell.tower:hover {
+    box-shadow: 0 0 20px rgba(255, 211, 42, 0.8);
+}
+
+.cell-icon {
+    font-size: 22px;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   十、怪物样式
+   ============================================================================ */
+
+.monster {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    z-index: 50;
+    transition: left 0.05s linear, top 0.05s linear;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.monster.hp-bar {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.monster.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+    transition: width 0.2s ease;
+}
+
+.monster.normal {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+}
+
+.monster.fast {
+    background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+}
+
+.monster.tank {
+    background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+    width: 38px;
+    height: 38px;
+    font-size: 24px;
+}
+
+/* ============================================================================
+   十一、子弹样式
+   ============================================================================ */
+
+.bullet {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd32a 0%, #ff9f1a 100%);
+    box-shadow: 0 0 10px rgba(255, 211, 42, 0.8);
+    z-index: 60;
+}
+
+.bullet.level-2 {
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.9);
+}
+
+/* ============================================================================
+   十二、游戏控制区样式
+   ============================================================================ */
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.game-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px 20px;
+    border-radius: 14px;
+    text-align: center;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.info-item .label {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 5px;
+}
+
+.info-item .value {
+    font-size: 24px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============================================================================
+   十三、游戏结束弹窗样式
+   ============================================================================ */
+
+.game-over-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.game-over-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.game-over-content {
+    background: linear-gradient(135deg, #fff 0%, #fecfef 100%);
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+}
+
+.game-over-modal.show .game-over-content {
+    transform: scale(1);
+}
+
+.game-over-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.game-over-title {
+    font-size: 32px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 15px;
+}
+
+.game-over-stats {
+    margin: 25px 0;
+}
+
+.game-over-stats p {
+    font-size: 16px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.game-over-stats strong {
+    color: #667eea;
+    font-size: 18px;
+}
+
+/* ============================================================================
+   十四、塔信息面板样式
+   ============================================================================ */
+
+.tower-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.98);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+    z-index: 1500;
+    min-width: 280px;
+    display: none;
+}
+
+.tower-panel.show {
+    display: block;
+    animation: panelPop 0.3s ease;
+}
+
+@keyframes panelPop {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.tower-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px dashed rgba(102, 126, 234, 0.3);
+}
+
+.tower-panel-title {
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tower-panel-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.tower-panel-close:hover {
+    background: #ff6b6b;
+    color: #fff;
+}
+
+.tower-info {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tower-info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 10px;
+}
+
+.tower-info-label {
+    color: #666;
+    font-size: 14px;
+}
+
+.tower-info-value {
+    font-weight: bold;
+    color: #667eea;
+}
+
+.tower-panel-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.tower-panel-actions .btn {
+    flex: 1;
+}
+
+/* ============================================================================
+   十五、响应式设计
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+    .nav-container {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 12px 20px;
+    }
+    
+    .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .main-content {
+        padding-top: 140px;
+    }
+    
+    .game-grid {
+        grid-template-columns: repeat(10, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-status {
+        gap: 8px;
+        font-size: 12px;
+    }
+    
+    .nav-status span {
+        padding: 4px 10px;
+    }
+    
+    .logo-text {
+        font-size: 20px;
+    }
+    
+    .page-title h1 {
+        font-size: 28px;
+    }
+    
+    .card {
+        padding: 18px;
+    }
+    
+    .game-grid {
+        grid-template-columns: repeat(8, 1fr);
+        padding: 8px;
+    }
+    
+    .cell-icon {
+        font-size: 18px;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        font-size: 14px;
+    }
+    
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-links a {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+    
+    .nav-status {
+        display: none;
+    }
+    
+    .game-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+    
+    .cell-icon {
+        font-size: 16px;
+    }
+    
+    .game-info {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .info-item .value {
+        font-size: 20px;
+    }
+}
+
+/* ============================================================================
+   十六、动画效果
+   ============================================================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.5s ease;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.sparkle {
+    animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes coinFloat {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-40px) scale(1.2);
+    }
+}
+
+.coin-float {
+    position: absolute;
+    font-size: 20px;
+    animation: coinFloat 0.8s ease forwards;
+    pointer-events: none;
+    z-index: 100;
+}
+
+@keyframes damageFlash {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.5);
+    }
+}
+
+.damage-flash {
+    animation: damageFlash 0.2s ease;
+}
+
+@keyframes towerAttack {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+.tower-attack {
+    animation: towerAttack 0.2s ease;
+}
+
+/* ============================================================================
+   十七、工具类
+   ============================================================================ */
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-10 { margin-top: 10px; }
+.mt-20 { margin-top: 20px; }
+.mt-30 { margin-top: 30px; }
+
+.mb-10 { margin-bottom: 10px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-30 { margin-bottom: 30px; }
+
+.p-10 { padding: 10px; }
+.p-20 { padding: 20px; }
+.p-30 { padding: 30px; }
+
+.hidden { display: none !important; }
+.visible { display: block !important; }
+
+.flex { display: flex; }
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.flex-wrap { flex-wrap: wrap; }
+.gap-10 { gap: 10px; }
+.gap-20 { gap: 20px; }
