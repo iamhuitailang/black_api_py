@@ -1,0 +1,223 @@
+:root {
+    --ice-blue: #87CEEB;
+    --deep-blue: #4169E1;
+    --light-blue: #B0E0E6;
+    --white: #FFFFFF;
+    --light-pink: #FFB6C1;
+    --dark-blue: #191970;
+    --snow: #F0F8FF;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(180deg, var(--deep-blue) 0%, var(--ice-blue) 50%, var(--light-blue) 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+    overflow: hidden;
+}
+
+.game-container {
+    position: relative;
+    background: var(--dark-blue);
+    border: 4px solid var(--white);
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(135, 206, 235, 0.5),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.game-header {
+    background: linear-gradient(90deg, var(--deep-blue), var(--dark-blue));
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--ice-blue);
+}
+
+.stats {
+    display: flex;
+    gap: 30px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--white);
+}
+
+.stat-item .label {
+    font-size: 12px;
+    color: var(--light-blue);
+    margin-bottom: 2px;
+}
+
+.stat-item span:last-child {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--white);
+    text-shadow: 0 0 10px var(--ice-blue);
+}
+
+.powerup-status {
+    display: flex;
+    gap: 10px;
+}
+
+.powerup-status .powerup-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
+
+#game-canvas {
+    display: block;
+    background: linear-gradient(180deg, #1a1a4a 0%, #2a2a6a 50%, #1a1a4a 100%);
+}
+
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(25, 25, 112, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.overlay-content {
+    text-align: center;
+    color: var(--white);
+}
+
+.overlay-content h1,
+.overlay-content h2 {
+    font-size: 36px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px var(--ice-blue),
+                 0 0 40px var(--deep-blue);
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 20px var(--ice-blue), 0 0 40px var(--deep-blue); }
+    to { text-shadow: 0 0 30px var(--ice-blue), 0 0 60px var(--deep-blue), 0 0 80px var(--white); }
+}
+
+.overlay-content .subtitle {
+    font-size: 18px;
+    color: var(--light-pink);
+    margin-bottom: 30px;
+}
+
+.controls-info {
+    background: rgba(135, 206, 235, 0.2);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border: 2px solid var(--ice-blue);
+}
+
+.controls-info p {
+    margin: 8px 0;
+    color: var(--snow);
+    font-size: 16px;
+}
+
+.buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.game-btn {
+    background: linear-gradient(180deg, var(--ice-blue), var(--deep-blue));
+    color: var(--white);
+    border: 3px solid var(--white);
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 1px 1px 2px var(--dark-blue);
+}
+
+.game-btn:hover {
+    background: linear-gradient(180deg, var(--light-blue), var(--ice-blue));
+    transform: scale(1.05);
+    box-shadow: 0 0 20px var(--ice-blue);
+}
+
+.game-btn:active {
+    transform: scale(0.98);
+}
+
+.final-score {
+    font-size: 24px;
+    margin: 20px 0;
+    color: var(--light-pink);
+}
+
+.level-clear {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    pointer-events: none;
+}
+
+.level-clear h2 {
+    font-size: 32px;
+    color: var(--light-pink);
+    text-shadow: 0 0 20px var(--white),
+                 0 0 40px var(--light-pink);
+    animation: bounce 0.5s ease infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+}
+
+.snowflake {
+    position: absolute;
+    color: var(--white);
+    font-size: 20px;
+    pointer-events: none;
+    animation: fall linear infinite;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0.3;
+    }
+}

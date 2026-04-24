@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雪人大冒险</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="label">关卡</span>
+                    <span id="level-display">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">房间</span>
+                    <span id="room-display">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">生命</span>
+                    <span id="hearts-display">❤️❤️❤️</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">分数</span>
+                    <span id="score-display">0</span>
+                </div>
+            </div>
+            <div class="powerup-status" id="powerup-status"></div>
+        </div>
+        
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        
+        <div class="game-overlay" id="start-screen">
+            <div class="overlay-content">
+                <h1>⛄ 雪人大冒险 ⛄</h1>
+                <p class="subtitle">世嘉雪人兄弟风格</p>
+                <div class="controls-info">
+                    <p><strong>操作说明：</strong></p>
+                    <p>🎮 A/D 左右移动</p>
+                    <p>🦘 W 跳跃</p>
+                    <p>❄️ J 发射雪花</p>
+                    <p>⏸️ P 暂停</p>
+                </div>
+                <div class="buttons">
+                    <button class="game-btn" id="btn-new-game">开始新游戏</button>
+                    <button class="game-btn" id="btn-continue" style="display:none;">继续游戏</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-overlay" id="pause-screen" style="display:none;">
+            <div class="overlay-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <div class="buttons">
+                    <button class="game-btn" id="btn-resume">继续游戏</button>
+                    <button class="game-btn" id="btn-restart">重新开始</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-overlay" id="gameover-screen" style="display:none;">
+            <div class="overlay-content">
+                <h2>💀 游戏结束</h2>
+                <p class="final-score">最终得分: <span id="final-score">0</span></p>
+                <div class="buttons">
+                    <button class="game-btn" id="btn-gameover-restart">重新开始</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-overlay" id="victory-screen" style="display:none;">
+            <div class="overlay-content">
+                <h2>🎉 恭喜通关！</h2>
+                <p class="final-score">最终得分: <span id="victory-score">0</span></p>
+                <div class="buttons">
+                    <button class="game-btn" id="btn-victory-restart">重新开始</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="level-clear" id="level-clear" style="display:none;">
+            <h2>✨ 房间清除！ ✨</h2>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/particle.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/projectile.js"></script>
+    <script src="js/snowball.js"></script>
+    <script src="js/powerup.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
