@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星际射手 - 飞机射击游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 游戏画布 -->
+        <canvas id="gameCanvas" width="480" height="720"></canvas>
+        
+        <!-- UI层 -->
+        <div class="ui-layer" id="uiLayer">
+            <!-- 顶部状态栏 -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="label">分数:</span>
+                    <span class="value" id="scoreDisplay">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">生命:</span>
+                    <span class="value" id="livesDisplay">❤️❤️❤️</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">波次:</span>
+                    <span class="value" id="waveDisplay">1</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">关卡:</span>
+                    <span class="value" id="levelDisplay">1</span>
+                </div>
+            </div>
+            
+            <!-- 道具状态显示 -->
+            <div class="powerup-status" id="powerupStatus">
+                <div class="powerup-item" id="shieldStatus">
+                    <span class="icon">🛡️</span>
+                    <span class="time" id="shieldTime"></span>
+                </div>
+                <div class="powerup-item" id="doubleBulletStatus">
+                    <span class="icon">⚡</span>
+                    <span class="time" id="doubleBulletTime"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 开始界面 -->
+        <div class="overlay" id="startScreen">
+            <div class="overlay-content">
+                <h1 class="game-title">🚀 星际射手 🚀</h1>
+                <p class="game-subtitle">Q萌飞机射击游戏</p>
+                <div class="controls-info">
+                    <p>🎮 控制方式：</p>
+                    <p>鼠标移动 或 WASD/方向键</p>
+                    <p>自动射击 - 每秒8发</p>
+                </div>
+                <button class="btn btn-primary" id="startBtn">开始游戏</button>
+            </div>
+        </div>
+        
+        <!-- 暂停界面 -->
+        <div class="overlay hidden" id="pauseScreen">
+            <div class="overlay-content">
+                <h2 class="overlay-title">游戏暂停</h2>
+                <button class="btn btn-primary" id="resumeBtn">继续游戏</button>
+                <button class="btn btn-secondary" id="restartFromPauseBtn">重新开始</button>
+            </div>
+        </div>
+        
+        <!-- 游戏结束界面 -->
+        <div class="overlay hidden" id="gameOverScreen">
+            <div class="overlay-content">
+                <h2 class="overlay-title">游戏结束</h2>
+                <div class="result-info">
+                    <p>最终得分: <span id="finalScore">0</span></p>
+                    <p>最终波次: <span id="finalWave">1</span></p>
+                    <p>最终关卡: <span id="finalLevel">1</span></p>
+                </div>
+                <button class="btn btn-primary" id="restartBtn">重新开始</button>
+            </div>
+        </div>
+        
+        <!-- 关卡完成界面 -->
+        <div class="overlay hidden" id="levelCompleteScreen">
+            <div class="overlay-content">
+                <h2 class="overlay-title">🎉 关卡完成！🎉</h2>
+                <div class="result-info">
+                    <p>恭喜完成第 <span id="completedLevel">1</span> 关</p>
+                </div>
+                <button class="btn btn-primary" id="nextLevelBtn">进入下一关</button>
+            </div>
+        </div>
+        
+        <!-- 全部通关界面 -->
+        <div class="overlay hidden" id="victoryScreen">
+            <div class="overlay-content">
+                <h2 class="overlay-title">🏆 恭喜通关！🏆</h2>
+                <div class="result-info">
+                    <p>最终得分: <span id="victoryScore">0</span></p>
+                    <p>你是真正的星际射手！</p>
+                </div>
+                <button class="btn btn-primary" id="victoryRestartBtn">再来一局</button>
+            </div>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div class="control-buttons" id="controlButtons">
+            <button class="btn btn-sm" id="pauseBtn">暂停</button>
+            <button class="btn btn-sm" id="restartGameBtn">重新开始</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/particle.js"></script>
+    <script src="js/bullet.js"></script>
+    <script src="js/powerup.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
