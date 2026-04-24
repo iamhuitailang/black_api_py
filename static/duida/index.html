@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水墨对决 - 双人对打</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 角色选择界面 -->
+    <div id="character-select" class="screen active">
+        <div class="ink-bg"></div>
+        <div class="title-container">
+            <h1 class="game-title">水墨对决</h1>
+            <p class="game-subtitle">双人同屏对战</p>
+        </div>
+        
+        <div class="character-select-container">
+            <!-- 玩家1选择 -->
+            <div class="player-select" id="player1-select">
+                <h2 class="player-label">玩家一</h2>
+                <div class="character-cards">
+                    <div class="character-card qinglong" data-character="qinglong">
+                        <div class="card-icon">🐉</div>
+                        <h3>青龙</h3>
+                        <p class="card-stats">血量:1200 攻:80 防:60</p>
+                        <p class="card-desc">平衡型战士，攻守兼备</p>
+                    </div>
+                    <div class="character-card luosha" data-character="luosha">
+                        <div class="card-icon">👹</div>
+                        <h3>罗刹</h3>
+                        <p class="card-stats">血量:900 攻:120 防:40</p>
+                        <p class="card-desc">爆发型刺客，高攻低防</p>
+                    </div>
+                    <div class="character-card xuannv" data-character="xuannv">
+                        <div class="card-icon">🌸</div>
+                        <h3>玄女</h3>
+                        <p class="card-stats">血量:1500 攻:60 防:80</p>
+                        <p class="card-desc">坦克型辅助，高血高防</p>
+                    </div>
+                </div>
+                <p class="control-hint">WASD选择 | F确认</p>
+            </div>
+            
+            <!-- 玩家2选择 -->
+            <div class="player-select" id="player2-select">
+                <h2 class="player-label">玩家二</h2>
+                <div class="character-cards">
+                    <div class="character-card qinglong" data-character="qinglong">
+                        <div class="card-icon">🐉</div>
+                        <h3>青龙</h3>
+                        <p class="card-stats">血量:1200 攻:80 防:60</p>
+                        <p class="card-desc">平衡型战士，攻守兼备</p>
+                    </div>
+                    <div class="character-card luosha" data-character="luosha">
+                        <div class="card-icon">👹</div>
+                        <h3>罗刹</h3>
+                        <p class="card-stats">血量:900 攻:120 防:40</p>
+                        <p class="card-desc">爆发型刺客，高攻低防</p>
+                    </div>
+                    <div class="character-card xuannv" data-character="xuannv">
+                        <div class="card-icon">🌸</div>
+                        <h3>玄女</h3>
+                        <p class="card-stats">血量:1500 攻:60 防:80</p>
+                        <p class="card-desc">坦克型辅助，高血高防</p>
+                    </div>
+                </div>
+                <p class="control-hint">方向键选择 | 8确认</p>
+            </div>
+        </div>
+        
+        <button id="start-battle" class="start-btn" disabled>选择角色后开始</button>
+    </div>
+    
+    <!-- 战斗界面 -->
+    <div id="battle-screen" class="screen">
+        <div class="battle-bg">
+            <div class="ink-splatter"></div>
+            <div class="mountains"></div>
+        </div>
+        
+        <!-- 玩家1区域 -->
+        <div class="player-area player1-area">
+            <div class="player-ui">
+                <div class="health-bar-container">
+                    <div class="health-bar-bg">
+                        <div class="health-bar-fill" id="p1-health-fill"></div>
+                    </div>
+                    <div class="health-text">
+                        <span id="p1-health">1200</span> / <span id="p1-max-health">1200</span>
+                    </div>
+                    <div class="player-name">玩家一 - <span id="p1-char-name">青龙</span></div>
+                </div>
+                
+                <div class="skill-bar">
+                    <div class="skill-btn" id="p1-skill-attack" title="普攻 - F">
+                        <div class="skill-icon">爪</div>
+                        <div class="skill-cd" id="p1-cd-attack"></div>
+                        <div class="skill-key">F</div>
+                    </div>
+                    <div class="skill-btn" id="p1-skill-small" title="小技能 - G">
+                        <div class="skill-icon">裂</div>
+                        <div class="skill-cd" id="p1-cd-small"></div>
+                        <div class="skill-key">G</div>
+                    </div>
+                    <div class="skill-btn" id="p1-skill-ultimate" title="大招 - H">
+                        <div class="skill-icon">龙</div>
+                        <div class="skill-cd" id="p1-cd-ultimate"></div>
+                        <div class="skill-key">H</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="character-container" id="p1-character">
+                <div class="character-sprite-container" id="p1-sprite-container">
+                    <div class="character qinglong" id="p1-sprite">
+                        <div class="char-ink-bg"></div>
+                        <div class="char-aura"></div>
+                        
+                        <div class="char-robe">
+                            <div class="robe-outer"></div>
+                            <div class="robe-inner"></div>
+                            <div class="robe-sash"></div>
+                            <div class="robe-flow-left"></div>
+                            <div class="robe-flow-right"></div>
+                        </div>
+                        
+                        <div class="char-head">
+                            <div class="char-hair-back"></div>
+                            <div class="char-hair-top"></div>
+                            <div class="char-hair-sides"></div>
+                            <div class="char-face"></div>
+                            <div class="char-eyebrows"></div>
+                            <div class="char-eyes"></div>
+                            <div class="char-mouth"></div>
+                            <div class="char-decoration"></div>
+                        </div>
+                        
+                        <div class="char-body">
+                            <div class="char-chest"></div>
+                            <div class="char-waist"></div>
+                            <div class="char-belt"></div>
+                            <div class="char-belt-ornament"></div>
+                        </div>
+                        
+                        <div class="char-limbs">
+                            <div class="char-sleeve-left">
+                                <div class="sleeve-inner"></div>
+                                <div class="sleeve-flow"></div>
+                            </div>
+                            <div class="char-sleeve-right">
+                                <div class="sleeve-inner"></div>
+                                <div class="sleeve-flow"></div>
+                            </div>
+                            <div class="char-arm-left"></div>
+                            <div class="char-arm-right"></div>
+                            <div class="char-hand-left"></div>
+                            <div class="char-hand-right"></div>
+                            <div class="char-boots">
+                                <div class="boot-left"></div>
+                                <div class="boot-right"></div>
+                            </div>
+                            <div class="char-leg-left"></div>
+                            <div class="char-leg-right"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 玩家2区域 -->
+        <div class="player-area player2-area">
+            <div class="player-ui">
+                <div class="health-bar-container">
+                    <div class="health-bar-bg">
+                        <div class="health-bar-fill" id="p2-health-fill"></div>
+                    </div>
+                    <div class="health-text">
+                        <span id="p2-health">1200</span> / <span id="p2-max-health">1200</span>
+                    </div>
+                    <div class="player-name">玩家二 - <span id="p2-char-name">青龙</span></div>
+                </div>
+                
+                <div class="skill-bar">
+                    <div class="skill-btn" id="p2-skill-attack" title="普攻 - 8">
+                        <div class="skill-icon">爪</div>
+                        <div class="skill-cd" id="p2-cd-attack"></div>
+                        <div class="skill-key">8</div>
+                    </div>
+                    <div class="skill-btn" id="p2-skill-small" title="小技能 - 9">
+                        <div class="skill-icon">裂</div>
+                        <div class="skill-cd" id="p2-cd-small"></div>
+                        <div class="skill-key">9</div>
+                    </div>
+                    <div class="skill-btn" id="p2-skill-ultimate" title="大招 - 0">
+                        <div class="skill-icon">龙</div>
+                        <div class="skill-cd" id="p2-cd-ultimate"></div>
+                        <div class="skill-key">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="character-container" id="p2-character">
+                <div class="character-sprite-container flipped" id="p2-sprite-container">
+                    <div class="character qinglong" id="p2-sprite">
+                        <div class="char-ink-bg"></div>
+                        <div class="char-aura"></div>
+                        
+                        <div class="char-robe">
+                            <div class="robe-outer"></div>
+                            <div class="robe-inner"></div>
+                            <div class="robe-sash"></div>
+                            <div class="robe-flow-left"></div>
+                            <div class="robe-flow-right"></div>
+                        </div>
+                        
+                        <div class="char-head">
+                            <div class="char-hair-back"></div>
+                            <div class="char-hair-top"></div>
+                            <div class="char-hair-sides"></div>
+                            <div class="char-face"></div>
+                            <div class="char-eyebrows"></div>
+                            <div class="char-eyes"></div>
+                            <div class="char-mouth"></div>
+                            <div class="char-decoration"></div>
+                        </div>
+                        
+                        <div class="char-body">
+                            <div class="char-chest"></div>
+                            <div class="char-waist"></div>
+                            <div class="char-belt"></div>
+                            <div class="char-belt-ornament"></div>
+                        </div>
+                        
+                        <div class="char-limbs">
+                            <div class="char-sleeve-left">
+                                <div class="sleeve-inner"></div>
+                                <div class="sleeve-flow"></div>
+                            </div>
+                            <div class="char-sleeve-right">
+                                <div class="sleeve-inner"></div>
+                                <div class="sleeve-flow"></div>
+                            </div>
+                            <div class="char-arm-left"></div>
+                            <div class="char-arm-right"></div>
+                            <div class="char-hand-left"></div>
+                            <div class="char-hand-right"></div>
+                            <div class="char-boots">
+                                <div class="boot-left"></div>
+                                <div class="boot-right"></div>
+                            </div>
+                            <div class="char-leg-left"></div>
+                            <div class="char-leg-right"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 特效层 -->
+        <div id="effects-layer"></div>
+        
+        <!-- 飘字层 -->
+        <div id="float-text-layer"></div>
+        
+        <!-- 招式大字层 -->
+        <div id="skill-name-layer"></div>
+        
+        <!-- 战斗结果弹窗 -->
+        <div id="result-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="result-title">战斗结束</h2>
+                <p id="result-message">玩家一获胜！</p>
+                <button id="restart-btn" class="modal-btn">重新开始</button>
+                <button id="back-to-select-btn" class="modal-btn secondary">返回选择</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/game.js"></script>
+</body>
+</html>

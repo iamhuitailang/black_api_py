@@ -1,0 +1,1783 @@
+/* 基础样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 字体设置 */
+@font-face {
+    font-family: 'ShuFa';
+    src: local('KaiTi'), local('STKaiti'), local('SimKai');
+}
+
+body {
+    font-family: 'ShuFa', 'KaiTi', 'STKaiti', 'SimKai', serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* 水墨背景效果 */
+.ink-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at 20% 80%, rgba(50, 50, 50, 0.8) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(40, 40, 40, 0.6) 0%, transparent 50%),
+        linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #262626 100%);
+    z-index: -1;
+}
+
+/* 水墨飞溅效果 */
+.ink-splatter {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 10% 90%, rgba(60, 60, 60, 0.3) 0%, transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(50, 50, 50, 0.25) 0%, transparent 25%),
+        radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.15) 0%, transparent 40%);
+    pointer-events: none;
+}
+
+/* 远山背景 */
+.mountains {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background: linear-gradient(to top, rgba(40, 40, 40, 0.4) 0%, transparent 100%);
+    opacity: 0.6;
+}
+
+/* 屏幕切换 */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* 角色选择界面 */
+#character-select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.title-container {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+}
+
+.game-title {
+    font-size: 4rem;
+    color: #d4af37;
+    text-shadow: 
+        0 0 10px rgba(212, 175, 55, 0.5),
+        2px 2px 4px rgba(0, 0, 0, 0.8);
+    margin-bottom: 10px;
+    letter-spacing: 10px;
+    font-weight: bold;
+}
+
+.game-subtitle {
+    font-size: 1.2rem;
+    color: #b0b0b0;
+    letter-spacing: 5px;
+}
+
+/* 角色选择容器 */
+.character-select-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 1400px;
+    padding: 0 40px;
+}
+
+.player-select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 45%;
+}
+
+.player-label {
+    font-size: 1.8rem;
+    color: #d4af37;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    letter-spacing: 3px;
+}
+
+.character-cards {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* 角色卡片 */
+.character-card {
+    width: 180px;
+    padding: 20px;
+    background: linear-gradient(145deg, rgba(40, 40, 40, 0.9), rgba(20, 20, 20, 0.95));
+    border: 2px solid #555;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.character-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(212, 175, 55, 0.1) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+}
+
+.character-card:hover::before,
+.character-card.selected::before {
+    transform: translateX(100%);
+}
+
+.character-card:hover {
+    border-color: #d4af37;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+}
+
+.character-card.selected {
+    border-color: #d4af37;
+    border-width: 3px;
+    background: linear-gradient(145deg, rgba(60, 60, 40, 0.9), rgba(30, 30, 20, 0.95));
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+}
+
+.character-card.confirmed {
+    border-color: #4caf50;
+    box-shadow: 0 0 25px rgba(76, 175, 80, 0.5);
+}
+
+.card-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.character-card h3 {
+    font-size: 1.5rem;
+    color: #d4af37;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+.card-stats {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+
+.card-desc {
+    font-size: 0.8rem;
+    color: #888;
+    line-height: 1.4;
+}
+
+.control-hint {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+/* 开始按钮 */
+.start-btn {
+    margin-top: 40px;
+    padding: 15px 60px;
+    font-size: 1.3rem;
+    font-family: inherit;
+    background: linear-gradient(145deg, #d4af37, #b8941f);
+    color: #1a1a1a;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 5px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.start-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(212, 175, 55, 0.5);
+}
+
+.start-btn:disabled {
+    background: linear-gradient(145deg, #555, #333);
+    color: #777;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* 战斗界面 */
+#battle-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.battle-bg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at 50% 50%, rgba(40, 40, 40, 0.8) 0%, rgba(13, 13, 13, 1) 100%);
+}
+
+/* 玩家区域 */
+.player-area {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.player1-area {
+    left: 0;
+    border-right: 2px solid rgba(100, 100, 100, 0.3);
+}
+
+.player2-area {
+    right: 0;
+    border-left: 2px solid rgba(100, 100, 100, 0.3);
+}
+
+/* 玩家UI */
+.player-ui {
+    width: 90%;
+    max-width: 400px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.8));
+    border: 2px solid #666;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 血条 */
+.health-bar-container {
+    margin-bottom: 15px;
+}
+
+.health-bar-bg {
+    width: 100%;
+    height: 30px;
+    background: linear-gradient(180deg, #333, #222);
+    border: 2px solid #555;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.health-bar-fill {
+    height: 100%;
+    background: linear-gradient(180deg, #4caf50, #388e3c);
+    transition: width 0.3s ease;
+    width: 100%;
+}
+
+.health-bar-fill.low {
+    background: linear-gradient(180deg, #ff5722, #e64a19);
+    animation: health-pulse 0.5s ease infinite alternate;
+}
+
+.health-bar-fill.medium {
+    background: linear-gradient(180deg, #ff9800, #f57c00);
+}
+
+@keyframes health-pulse {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
+
+.health-text {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 1rem;
+    color: #e0e0e0;
+}
+
+.player-name {
+    text-align: center;
+    font-size: 1.1rem;
+    color: #d4af37;
+    margin-top: 5px;
+    letter-spacing: 2px;
+}
+
+/* 技能条 */
+.skill-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.skill-btn {
+    flex: 1;
+    height: 60px;
+    background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+    border: 2px solid #555;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.skill-btn:hover {
+    border-color: #d4af37;
+}
+
+.skill-btn.active {
+    border-color: #4caf50;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.skill-icon {
+    font-size: 1.2rem;
+    color: #d4af37;
+    font-weight: bold;
+}
+
+.skill-key {
+    font-size: 0.8rem;
+    color: #888;
+    position: absolute;
+    bottom: 3px;
+}
+
+.skill-cd {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #ff5722;
+    font-weight: bold;
+}
+
+.skill-cd.active {
+    display: flex;
+}
+
+/* ==================== 角色容器 ==================== */
+.character-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* 角色精灵容器 - 用于位置控制 */
+.character-sprite-container {
+    transition: all 0.1s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.character-sprite-container.flipped {
+    transform: scaleX(-1);
+}
+
+/* ==================== 角色基础样式 - 秦时明月风格 ==================== */
+.character {
+    width: 160px;
+    height: 280px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* 水墨背景效果 */
+.char-ink-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 320px;
+    background: 
+        radial-gradient(ellipse at 30% 70%, rgba(100, 100, 100, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 30%, rgba(80, 80, 80, 0.1) 0%, transparent 40%);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 角色光环效果 */
+.char-aura {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    height: 340px;
+    border-radius: 50%;
+    opacity: 0.25;
+    animation: aura-pulse 2.5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes aura-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.25; }
+    50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.4; }
+}
+
+/* ==================== 古风长袍 - 秦时明月风格 ==================== */
+.char-robe {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 200px;
+    z-index: 3;
+}
+
+/* 外袍 */
+.robe-outer {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 180px;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        transparent 20%,
+        currentColor 20%,
+        currentColor 100%
+    );
+    clip-path: polygon(
+        30% 0%, 
+        70% 0%, 
+        85% 20%, 
+        95% 50%, 
+        90% 100%, 
+        10% 100%, 
+        5% 50%, 
+        15% 20%
+    );
+    opacity: 0.9;
+    z-index: 3;
+}
+
+/* 内袍 */
+.robe-inner {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 150px;
+    background: linear-gradient(180deg, 
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(0, 0, 0, 0.1) 100%
+    );
+    clip-path: polygon(
+        35% 0%, 
+        65% 0%, 
+        80% 25%, 
+        88% 60%, 
+        85% 100%, 
+        15% 100%, 
+        12% 60%, 
+        20% 25%
+    );
+    z-index: 4;
+}
+
+/* 腰带 */
+.robe-sash {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 15px;
+    background: linear-gradient(180deg, 
+        rgba(212, 175, 55, 0.9),
+        rgba(184, 148, 31, 0.9)
+    );
+    border-radius: 2px;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    z-index: 5;
+}
+
+.robe-sash::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, #ffd700 0%, #b8860b 100%);
+    border-radius: 50%;
+    border: 2px solid rgba(139, 105, 20, 0.5);
+    box-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+/* 袍飘带 */
+.robe-flow-left,
+.robe-flow-right {
+    position: absolute;
+    top: 100px;
+    width: 25px;
+    height: 90px;
+    background: linear-gradient(180deg, 
+        currentColor 0%,
+        transparent 100%
+    );
+    opacity: 0.7;
+    z-index: 2;
+}
+
+.robe-flow-left {
+    left: 10px;
+    clip-path: polygon(0% 0%, 100% 0%, 80% 100%, 20% 100%);
+    transform: rotate(-5deg);
+    animation: robe-flow-left 3s ease-in-out infinite;
+}
+
+.robe-flow-right {
+    right: 10px;
+    clip-path: polygon(0% 0%, 100% 0%, 80% 100%, 20% 100%);
+    transform: rotate(5deg);
+    animation: robe-flow-right 3s ease-in-out infinite;
+    animation-delay: 0.5s;
+}
+
+@keyframes robe-flow-left {
+    0%, 100% { transform: rotate(-5deg) skewX(-2deg); }
+    50% { transform: rotate(-10deg) skewX(-5deg); }
+}
+
+@keyframes robe-flow-right {
+    0%, 100% { transform: rotate(5deg) skewX(2deg); }
+    50% { transform: rotate(10deg) skewX(5deg); }
+}
+
+/* ==================== 头部样式 - 秦时明月风格 ==================== */
+.char-head {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 75px;
+    height: 80px;
+    z-index: 10;
+}
+
+/* 后发 */
+.char-hair-back {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 60px;
+    background: #1a1a2e;
+    border-radius: 50% 50% 40% 40%;
+    z-index: 8;
+}
+
+/* 顶发 */
+.char-hair-top {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 65px;
+    height: 45px;
+    background: linear-gradient(180deg, #2d2d44 0%, #1a1a2e 100%);
+    border-radius: 50% 50% 30% 30%;
+    z-index: 11;
+}
+
+/* 侧发 */
+.char-hair-sides {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 75px;
+    height: 40px;
+    z-index: 10;
+}
+
+.char-hair-sides::before,
+.char-hair-sides::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 18px;
+    height: 50px;
+    background: #1a1a2e;
+    border-radius: 0 0 10px 10px;
+}
+
+.char-hair-sides::before {
+    left: 0;
+    transform: rotate(-5deg);
+}
+
+.char-hair-sides::after {
+    right: 0;
+    transform: rotate(5deg);
+}
+
+/* 脸部 - 秦时明月风格 */
+.char-face {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 45px;
+    background: linear-gradient(180deg, 
+        #fef3e2 0%, 
+        #fdedda 30%,
+        #fcdbc1 100%
+    );
+    border-radius: 50% 50% 45% 45%;
+    box-shadow: 
+        inset 2px -8px 15px rgba(0, 0, 0, 0.08),
+        0 3px 10px rgba(0, 0, 0, 0.15);
+    z-index: 12;
+}
+
+/* 眉毛 */
+.char-eyebrows {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 10px;
+    z-index: 13;
+}
+
+.char-eyebrows::before,
+.char-eyebrows::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 16px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #2d3436, #2d3436, transparent);
+    border-radius: 2px;
+}
+
+.char-eyebrows::before {
+    left: 8px;
+    transform: rotate(-8deg);
+}
+
+.char-eyebrows::after {
+    right: 8px;
+    transform: rotate(8deg);
+}
+
+/* 眼睛 - 秦时明月风格（细长凤眼） */
+.char-eyes {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 12px;
+    z-index: 13;
+}
+
+.char-eyes::before,
+.char-eyes::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 7px;
+    background: #1a1a2e;
+    border-radius: 0 0 50% 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.char-eyes::before {
+    left: 10px;
+}
+
+.char-eyes::after {
+    right: 10px;
+}
+
+/* 眼睛高光 */
+.char-eyes::before {
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.2),
+        inset 4px 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.char-eyes::after {
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.2),
+        inset 4px 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+/* 嘴巴 */
+.char-mouth {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 6px;
+    z-index: 13;
+}
+
+.char-mouth::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 3px;
+    background: linear-gradient(180deg, #e57373, #c62828);
+    border-radius: 0 0 10px 10px;
+    opacity: 0.8;
+}
+
+/* 装饰（龙角、尖角、发饰） */
+.char-decoration {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 40px;
+    z-index: 15;
+}
+
+/* ==================== 身体样式 ==================== */
+.char-body {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 120px;
+    z-index: 5;
+}
+
+.char-chest {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85px;
+    height: 60px;
+    clip-path: polygon(
+        25% 0%, 
+        75% 0%, 
+        85% 30%, 
+        90% 100%, 
+        10% 100%, 
+        15% 30%
+    );
+    opacity: 0.95;
+    z-index: 5;
+}
+
+.char-waist {
+    position: absolute;
+    top: 55px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 50px;
+    clip-path: polygon(
+        20% 0%, 
+        80% 0%, 
+        85% 40%, 
+        80% 100%, 
+        20% 100%, 
+        15% 40%
+    );
+    opacity: 0.95;
+    z-index: 5;
+}
+
+/* 腰带装饰 */
+.char-belt {
+    position: absolute;
+    top: 95px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 12px;
+    background: linear-gradient(180deg, 
+        rgba(180, 140, 100, 0.9),
+        rgba(150, 110, 70, 0.9)
+    );
+    border-radius: 2px;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    z-index: 6;
+}
+
+.char-belt-ornament {
+    position: absolute;
+    top: 92px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 20px;
+    background: linear-gradient(180deg, #d4af37, #b8860b);
+    clip-path: polygon(
+        50% 0%, 
+        100% 25%, 
+        100% 75%, 
+        50% 100%, 
+        0% 75%, 
+        0% 25%
+    );
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        0 0 15px rgba(212, 175, 55, 0.4);
+    z-index: 7;
+}
+
+/* ==================== 四肢和宽袖 ==================== */
+.char-limbs {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 200px;
+    z-index: 6;
+}
+
+/* 宽袖 - 秦时明月古风 */
+.char-sleeve-left,
+.char-sleeve-right {
+    position: absolute;
+    top: 5px;
+    width: 45px;
+    height: 100px;
+    z-index: 6;
+    transition: all 0.2s ease;
+}
+
+.char-sleeve-left {
+    left: 10px;
+}
+
+.char-sleeve-right {
+    right: 10px;
+}
+
+.sleeve-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(
+        30% 0%, 
+        70% 0%, 
+        85% 30%, 
+        95% 100%, 
+        5% 100%, 
+        15% 30%
+    );
+    opacity: 0.9;
+}
+
+.sleeve-flow {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 40px;
+    background: linear-gradient(180deg, 
+        currentColor 0%,
+        transparent 100%
+    );
+    clip-path: polygon(
+        20% 0%, 
+        80% 0%, 
+        90% 50%, 
+        70% 100%, 
+        30% 100%, 
+        10% 50%
+    );
+    opacity: 0.6;
+    animation: sleeve-flow 2.5s ease-in-out infinite;
+}
+
+@keyframes sleeve-flow {
+    0%, 100% { transform: translateX(-50%) rotate(-2deg) skewX(-1deg); }
+    50% { transform: translateX(-50%) rotate(2deg) skewX(1deg); }
+}
+
+/* 手臂 */
+.char-arm-left,
+.char-arm-right {
+    position: absolute;
+    top: 15px;
+    width: 18px;
+    height: 50px;
+    border-radius: 10px;
+    z-index: 7;
+    transform-origin: top center;
+    transition: all 0.15s ease;
+}
+
+.char-arm-left {
+    left: 25px;
+}
+
+.char-arm-right {
+    right: 25px;
+}
+
+/* 手 */
+.char-hand-left,
+.char-hand-right {
+    position: absolute;
+    top: 60px;
+    width: 20px;
+    height: 22px;
+    background: linear-gradient(180deg, #fef3e2, #fcdbc1);
+    border-radius: 50%;
+    z-index: 8;
+    box-shadow: 
+        inset 0 -3px 8px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.char-hand-left {
+    left: 24px;
+}
+
+.char-hand-right {
+    right: 24px;
+}
+
+/* 靴子 */
+.char-boots {
+    position: absolute;
+    top: 165px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 35px;
+    z-index: 6;
+}
+
+.boot-left,
+.boot-right {
+    position: absolute;
+    bottom: 0;
+    width: 32px;
+    height: 30px;
+    clip-path: polygon(
+        20% 0%, 
+        80% 0%, 
+        90% 30%, 
+        95% 100%, 
+        5% 100%, 
+        10% 30%
+    );
+}
+
+.boot-left {
+    left: 25px;
+}
+
+.boot-right {
+    right: 25px;
+}
+
+/* 腿部 */
+.char-leg-left,
+.char-leg-right {
+    position: absolute;
+    top: 120px;
+    width: 24px;
+    height: 50px;
+    z-index: 5;
+    transition: all 0.15s ease;
+}
+
+.char-leg-left {
+    left: 30px;
+}
+
+.char-leg-right {
+    right: 30px;
+}
+
+/* ==================== 角色颜色主题 - 秦时明月风格 ==================== */
+
+/* 青龙 - 青蓝色系 */
+.character.qinglong .char-aura {
+    background: radial-gradient(circle, rgba(41, 182, 246, 0.5) 0%, transparent 70%);
+    box-shadow: 0 0 50px rgba(33, 150, 243, 0.3);
+}
+
+.character.qinglong .char-hair-back,
+.character.qinglong .char-hair-top {
+    background: linear-gradient(180deg, #1a237e 0%, #0d1b4d 100%);
+}
+
+.character.qinglong .char-hair-sides::before,
+.character.qinglong .char-hair-sides::after {
+    background: linear-gradient(180deg, #1a237e 0%, #0d1b4d 100%);
+}
+
+/* 青龙 - 龙角 */
+.character.qinglong .char-decoration::before,
+.character.qinglong .char-decoration::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    width: 15px;
+    height: 40px;
+    background: linear-gradient(180deg, 
+        #e1f5fe 0%, 
+        #81d4fa 30%,
+        #29b6f6 70%,
+        #039be5 100%
+    );
+    border-radius: 10px 10px 3px 3px;
+    box-shadow: 
+        0 0 20px rgba(33, 150, 243, 0.6),
+        inset 0 2px 6px rgba(255, 255, 255, 0.4);
+}
+
+.character.qinglong .char-decoration::before {
+    left: 22px;
+    transform: rotate(-30deg);
+}
+
+.character.qinglong .char-decoration::after {
+    right: 22px;
+    transform: rotate(30deg);
+}
+
+/* 青龙 - 服饰颜色 */
+.character.qinglong .robe-outer {
+    color: #1565c0;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        transparent 20%,
+        #1565c0 20%,
+        #0d47a1 60%,
+        #0a3d91 100%
+    );
+}
+
+.character.qinglong .sleeve-inner {
+    background: linear-gradient(180deg, #1976d2 0%, #1565c0 100%);
+}
+
+.character.qinglong .sleeve-flow {
+    color: #1565c0;
+}
+
+.character.qinglong .char-chest {
+    background: linear-gradient(180deg, #1976d2 0%, #1565c0 50%, #0d47a1 100%);
+}
+
+.character.qinglong .char-waist {
+    background: linear-gradient(180deg, #0d47a1 0%, #0a3d91 100%);
+}
+
+.character.qinglong .char-arm-left,
+.character.qinglong .char-arm-right {
+    background: linear-gradient(180deg, #1976d2 0%, #1565c0 100%);
+}
+
+.character.qinglong .char-leg-left,
+.character.qinglong .char-leg-right {
+    background: linear-gradient(180deg, #0d47a1 0%, #0a3d91 100%);
+}
+
+.character.qinglong .boot-left,
+.character.qinglong .boot-right {
+    background: linear-gradient(180deg, #0a3d91 0%, #072a6d 100%);
+}
+
+.character.qinglong .robe-flow-left,
+.character.qinglong .robe-flow-right {
+    color: #0d47a1;
+}
+
+/* 罗刹 - 暗红色系 */
+.character.luosha .char-aura {
+    background: radial-gradient(circle, rgba(244, 67, 54, 0.5) 0%, transparent 70%);
+    box-shadow: 0 0 50px rgba(244, 67, 54, 0.3);
+}
+
+.character.luosha .char-hair-back,
+.character.luosha .char-hair-top {
+    background: linear-gradient(180deg, #4a0000 0%, #2d0000 100%);
+}
+
+.character.luosha .char-hair-sides::before,
+.character.luosha .char-hair-sides::after {
+    background: linear-gradient(180deg, #4a0000 0%, #2d0000 100%);
+}
+
+/* 罗刹 - 尖角/魔角 */
+.character.luosha .char-decoration::before,
+.character.luosha .char-decoration::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 45px solid;
+    border-bottom-color: #e53935;
+    filter: drop-shadow(0 0 15px rgba(244, 67, 54, 0.7));
+}
+
+.character.luosha .char-decoration::before {
+    left: 18px;
+    transform: rotate(-35deg);
+}
+
+.character.luosha .char-decoration::after {
+    right: 18px;
+    transform: rotate(35deg);
+}
+
+/* 罗刹 - 服饰颜色 */
+.character.luosha .robe-outer {
+    color: #c62828;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        transparent 20%,
+        #c62828 20%,
+        #b71c1c 60%,
+        #8e0000 100%
+    );
+}
+
+.character.luosha .sleeve-inner {
+    background: linear-gradient(180deg, #e53935 0%, #c62828 100%);
+}
+
+.character.luosha .sleeve-flow {
+    color: #c62828;
+}
+
+.character.luosha .char-chest {
+    background: linear-gradient(180deg, #e53935 0%, #c62828 50%, #b71c1c 100%);
+}
+
+.character.luosha .char-waist {
+    background: linear-gradient(180deg, #b71c1c 0%, #8e0000 100%);
+}
+
+.character.luosha .char-arm-left,
+.character.luosha .char-arm-right {
+    background: linear-gradient(180deg, #e53935 0%, #c62828 100%);
+}
+
+.character.luosha .char-leg-left,
+.character.luosha .char-leg-right {
+    background: linear-gradient(180deg, #b71c1c 0%, #8e0000 100%);
+}
+
+.character.luosha .boot-left,
+.character.luosha .boot-right {
+    background: linear-gradient(180deg, #8e0000 0%, #6a0000 100%);
+}
+
+.character.luosha .robe-flow-left,
+.character.luosha .robe-flow-right {
+    color: #b71c1c;
+}
+
+/* 玄女 - 紫粉色系 */
+.character.xuannv .char-aura {
+    background: radial-gradient(circle, rgba(156, 39, 176, 0.5) 0%, transparent 70%);
+    box-shadow: 0 0 50px rgba(156, 39, 176, 0.3);
+}
+
+.character.xuannv .char-hair-back,
+.character.xuannv .char-hair-top {
+    background: linear-gradient(180deg, #4a148c 0%, #311b92 100%);
+}
+
+.character.xuannv .char-hair-sides::before,
+.character.xuannv .char-hair-sides::after {
+    background: linear-gradient(180deg, #4a148c 0%, #311b92 100%);
+}
+
+/* 玄女 - 发饰 */
+.character.xuannv .char-decoration::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 16px;
+    background: linear-gradient(90deg, 
+        #fce4ec 0%, 
+        #f8bbd9 25%,
+        #f48fb1 50%,
+        #f8bbd9 75%,
+        #fce4ec 100%
+    );
+    border-radius: 12px;
+    box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.25),
+        0 0 25px rgba(244, 143, 177, 0.5);
+}
+
+.character.xuannv .char-decoration::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 22px;
+    background: radial-gradient(circle, #fff 0%, #fce4ec 40%, #f48fb1 100%);
+    border-radius: 50%;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.25),
+        0 0 20px rgba(244, 143, 177, 0.6);
+}
+
+/* 玄女 - 服饰颜色 */
+.character.xuannv .robe-outer {
+    color: #7b1fa2;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        transparent 20%,
+        #7b1fa2 20%,
+        #6a1b9a 60%,
+        #4a148c 100%
+    );
+}
+
+.character.xuannv .sleeve-inner {
+    background: linear-gradient(180deg, #9c27b0 0%, #7b1fa2 100%);
+}
+
+.character.xuannv .sleeve-flow {
+    color: #7b1fa2;
+}
+
+.character.xuannv .char-chest {
+    background: linear-gradient(180deg, #9c27b0 0%, #7b1fa2 50%, #6a1b9a 100%);
+}
+
+.character.xuannv .char-waist {
+    background: linear-gradient(180deg, #6a1b9a 0%, #4a148c 100%);
+}
+
+.character.xuannv .char-arm-left,
+.character.xuannv .char-arm-right {
+    background: linear-gradient(180deg, #9c27b0 0%, #7b1fa2 100%);
+}
+
+.character.xuannv .char-leg-left,
+.character.xuannv .char-leg-right {
+    background: linear-gradient(180deg, #6a1b9a 0%, #4a148c 100%);
+}
+
+.character.xuannv .boot-left,
+.character.xuannv .boot-right {
+    background: linear-gradient(180deg, #4a148c 0%, #311b92 100%);
+}
+
+.character.xuannv .robe-flow-left,
+.character.xuannv .robe-flow-right {
+    color: #6a1b9a;
+}
+
+/* ==================== 整体发光效果 ==================== */
+.character {
+    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.2));
+}
+
+.character.qinglong {
+    filter: drop-shadow(0 0 35px rgba(33, 150, 243, 0.6));
+}
+
+.character.luosha {
+    filter: drop-shadow(0 0 35px rgba(244, 67, 54, 0.6));
+}
+
+.character.xuannv {
+    filter: drop-shadow(0 0 35px rgba(156, 39, 176, 0.6));
+}
+
+/* ==================== 状态动画 ==================== */
+
+/* 受击状态 */
+.character-sprite-container.hit {
+    animation: hit-shake 0.2s ease;
+}
+
+.character-sprite-container.hit .character {
+    filter: brightness(1.8) drop-shadow(0 0 50px rgba(255, 255, 255, 0.9));
+}
+
+@keyframes hit-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-12px); }
+    75% { transform: translateX(12px); }
+}
+
+/* 跳跃状态 */
+.character-sprite-container.jumping {
+    animation: jump-animation 0.5s ease;
+}
+
+@keyframes jump-animation {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-140px); }
+}
+
+/* 蹲下状态 - 自然姿势 */
+.character-sprite-container.crouching .char-head {
+    transform: translateX(-50%) translateY(40px);
+}
+
+.character-sprite-container.crouching .char-body {
+    transform: translateX(-50%) translateY(50px) scaleY(0.7);
+}
+
+.character-sprite-container.crouching .char-limbs {
+    transform: translateX(-50%) translateY(40px);
+}
+
+.character-sprite-container.crouching .char-leg-left,
+.character-sprite-container.crouching .char-leg-right {
+    transform: scaleY(0.5);
+    transform-origin: bottom center;
+}
+
+.character-sprite-container.crouching .char-robe {
+    transform: translateX(-50%) translateY(40px) scaleY(0.7);
+}
+
+.character-sprite-container.crouching .sleeve-inner {
+    transform: translateY(30px);
+}
+
+/* 移动状态 - 腿部和宽袖动画 */
+.character-sprite-container.moving-left .char-leg-left,
+.character-sprite-container.moving-right .char-leg-left {
+    animation: leg-move-left 0.25s ease infinite;
+}
+
+.character-sprite-container.moving-left .char-leg-right,
+.character-sprite-container.moving-right .char-leg-right {
+    animation: leg-move-right 0.25s ease infinite;
+}
+
+@keyframes leg-move-left {
+    0%, 100% { transform: rotate(-25deg) translateY(0); }
+    50% { transform: rotate(25deg) translateY(-8px); }
+}
+
+@keyframes leg-move-right {
+    0%, 100% { transform: rotate(25deg) translateY(-8px); }
+    50% { transform: rotate(-25deg) translateY(0); }
+}
+
+/* 移动时宽袖飘动 */
+.character-sprite-container.moving-left .char-sleeve-right,
+.character-sprite-container.moving-right .char-sleeve-right {
+    animation: sleeve-swing 0.3s ease infinite;
+}
+
+.character-sprite-container.moving-left .char-sleeve-left,
+.character-sprite-container.moving-right .char-sleeve-left {
+    animation: sleeve-swing-reverse 0.3s ease infinite;
+}
+
+@keyframes sleeve-swing {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(10deg); }
+}
+
+@keyframes sleeve-swing-reverse {
+    0%, 100% { transform: rotate(5deg); }
+    50% { transform: rotate(-10deg); }
+}
+
+/* 攻击状态 - 手臂前伸和宽袖展开 */
+.character-sprite-container.attacking .char-arm-right {
+    animation: attack-arm 0.35s ease;
+}
+
+@keyframes attack-arm {
+    0%, 100% { transform: rotate(0deg) translateX(0) scaleY(1); }
+    50% { transform: rotate(60deg) translateX(35px) scaleY(1.2); }
+}
+
+/* 攻击时宽袖展开 */
+.character-sprite-container.attacking .char-sleeve-right .sleeve-inner {
+    animation: attack-sleeve 0.35s ease;
+}
+
+@keyframes attack-sleeve {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.15) rotate(15deg); }
+}
+
+/* 攻击时身体前倾 */
+.character-sprite-container.attacking .char-chest {
+    animation: attack-chest 0.35s ease;
+}
+
+@keyframes attack-chest {
+    0%, 100% { transform: translateX(-50%) rotate(0deg); }
+    50% { transform: translateX(-42%) rotate(10deg); }
+}
+
+/* 特效层 */
+#effects-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 飘字层 */
+#float-text-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.float-text {
+    position: absolute;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff5722;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    animation: float-up 1.5s ease-out forwards;
+    pointer-events: none;
+}
+
+.float-text.heal {
+    color: #4caf50;
+}
+
+@keyframes float-up {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) scale(1.5);
+    }
+}
+
+/* 招式大字层 */
+#skill-name-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.skill-name-text {
+    font-size: 5rem;
+    color: #d4af37;
+    text-shadow: 
+        0 0 20px rgba(212, 175, 55, 0.8),
+        4px 4px 8px rgba(0, 0, 0, 0.8);
+    animation: skill-name-appear 1s ease-out forwards;
+    letter-spacing: 10px;
+    font-weight: bold;
+}
+
+@keyframes skill-name-appear {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+}
+
+/* 攻击特效 */
+.attack-effect {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    animation: attack-burst 0.4s ease-out forwards;
+}
+
+.attack-effect.qinglong {
+    background: radial-gradient(circle, rgba(21, 101, 192, 0.8) 0%, transparent 70%);
+    box-shadow: 0 0 30px rgba(21, 101, 192, 0.8);
+}
+
+.attack-effect.luosha {
+    background: radial-gradient(circle, rgba(198, 40, 40, 0.8) 0%, transparent 70%);
+    box-shadow: 0 0 30px rgba(198, 40, 40, 0.8);
+}
+
+.attack-effect.xuannv {
+    background: radial-gradient(circle, rgba(123, 31, 162, 0.8) 0%, transparent 70%);
+    box-shadow: 0 0 30px rgba(123, 31, 162, 0.8);
+}
+
+@keyframes attack-burst {
+    0% {
+        opacity: 1;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+/* 全屏特效 */
+.fullscreen-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    animation: fullscreen-flash 1s ease-out forwards;
+    pointer-events: none;
+}
+
+.fullscreen-effect.qinglong {
+    background: radial-gradient(circle, rgba(21, 101, 192, 0.3) 0%, transparent 70%);
+}
+
+.fullscreen-effect.luosha {
+    background: radial-gradient(circle, rgba(198, 40, 40, 0.3) 0%, transparent 70%);
+}
+
+.fullscreen-effect.xuannv {
+    background: radial-gradient(circle, rgba(123, 31, 162, 0.3) 0%, transparent 70%);
+}
+
+@keyframes fullscreen-flash {
+    0% {
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* 模态框 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: linear-gradient(145deg, rgba(40, 40, 40, 0.95), rgba(20, 20, 20, 0.98));
+    border: 3px solid #d4af37;
+    border-radius: 12px;
+    padding: 40px 60px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.3);
+}
+
+#result-title {
+    font-size: 2.5rem;
+    color: #d4af37;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    letter-spacing: 5px;
+}
+
+#result-message {
+    font-size: 1.8rem;
+    color: #e0e0e0;
+    margin-bottom: 30px;
+}
+
+.modal-btn {
+    padding: 12px 40px;
+    font-size: 1.1rem;
+    font-family: inherit;
+    background: linear-gradient(145deg, #d4af37, #b8941f);
+    color: #1a1a1a;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 0 10px;
+    letter-spacing: 3px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.5);
+}
+
+.modal-btn.secondary {
+    background: linear-gradient(145deg, #555, #333);
+    color: #e0e0e0;
+}
+
+.modal-btn.secondary:hover {
+    background: linear-gradient(145deg, #666, #444);
+    box-shadow: 0 4px 15px rgba(100, 100, 100, 0.5);
+}
+
+/* 低血量预警 */
+.low-health-warning {
+    animation: warning-pulse 0.3s ease infinite;
+}
+
+@keyframes warning-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .character-select-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 40px;
+    }
+    
+    .player-select {
+        width: 100%;
+    }
+    
+    .character-cards {
+        gap: 10px;
+    }
+    
+    .character-card {
+        width: 150px;
+        padding: 15px;
+    }
+    
+    .game-title {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 2rem;
+    }
+    
+    .character-card {
+        width: 120px;
+        padding: 10px;
+    }
+    
+    .card-icon {
+        font-size: 2rem;
+    }
+    
+    .character-card h3 {
+        font-size: 1.2rem;
+    }
+}
