@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹弹球</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="label">分数</span>
+                    <span class="value" id="score">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">关卡</span>
+                    <span class="value" id="level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">生命</span>
+                    <span class="value" id="lives">3</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <button id="pauseBtn" class="btn btn-secondary">暂停</button>
+                <button id="resetBtn" class="btn btn-danger">重置</button>
+            </div>
+        </div>
+        
+        <div class="game-canvas-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div class="overlay" id="overlay">
+                <div class="overlay-content">
+                    <h2 id="overlayTitle">弹弹球</h2>
+                    <p id="overlayMessage">点击"开始游戏"开始挑战！</p>
+                    <p class="instruction">使用鼠标或方向键 ← → 控制挡板</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
