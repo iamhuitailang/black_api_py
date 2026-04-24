@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商店 - 文字修仙</title>
+    
+    <!-- 引入公共样式 -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- 引入全局数据和方法 -->
+    <script src="js/data.js"></script>
+</head>
+<body>
+    <!-- 导航栏（由 JavaScript 动态生成） -->
+    <div id="navigation"></div>
+    
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="page-title">
+                <h1>🏪 修仙商店</h1>
+                <p class="subtitle">购买装备、道具和丹药，提升你的修仙实力</p>
+            </div>
+            
+            <!-- 当前金币显示 -->
+            <div class="card mb-20">
+                <div class="card-body flex-center">
+                    <div style="font-size: 24px; margin-right: 20px;">💰</div>
+                    <div>
+                        <div style="font-size: 14px; color: #8b7355;">当前金币</div>
+                        <div style="font-size: 32px; font-weight: bold; color: #d4af37;" id="current-gold">50</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 消耗品区域 -->
+            <div class="card mb-20">
+                <div class="card-header">
+                    <h2 class="card-title">💊 消耗品</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-10" style="font-size: 13px; color: #8b7355;">
+                        灵石可以恢复生命值，在战斗中或战斗前使用，确保你能持续战斗。
+                    </p>
+                    <div class="item-list" id="consumable-items">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 武器装备区域 -->
+            <div class="card mb-20">
+                <div class="card-header">
+                    <h2 class="card-title">⚔️ 武器装备</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-10" style="font-size: 13px; color: #8b7355;">
+                        装备购买后立即生效，永久提升你的攻击力。每件装备只能购买一次。
+                    </p>
+                    <div class="item-list" id="weapon-items">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 防具装备区域 -->
+            <div class="card mb-20">
+                <div class="card-header">
+                    <h2 class="card-title">🛡️ 防具装备</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-10" style="font-size: 13px; color: #8b7355;">
+                        防具购买后立即生效，永久提升你的最大生命值。每件装备只能购买一次。
+                    </p>
+                    <div class="item-list" id="armor-items">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 永久丹药区域 -->
+            <div class="card mb-20">
+                <div class="card-header">
+                    <h2 class="card-title">✨ 永久丹药</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-10" style="font-size: 13px; color: #8b7355;">
+                        丹药可以永久提升你的属性。可重复购买，效果叠加。
+                    </p>
+                    <div class="item-list" id="permanent-items">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 购买历史/提示 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📖 购物说明</h2>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" style="max-height: 150px;">
+                        <div style="line-height: 2; font-size: 14px;">
+                            <div><strong>💰 金币获取：</strong>通过战斗击败怪物获得金币</div>
+                            <div><strong>💎 消耗品：</strong>灵石可以恢复生命值，战斗必备</div>
+                            <div><strong>⚔️ 武器：</strong>提升攻击力，让你更快击败敌人</div>
+                            <div><strong>🛡️ 防具：</strong>提升最大生命值，让你更耐打</div>
+                            <div><strong>✨ 丹药：</strong>永久提升属性，可重复购买</div>
+                            <div><strong>💡 小贴士：</strong>优先购买装备，再考虑丹药，最后备足灵石</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 页面脚本 -->
+    <script>
+        // ============================================================================
+        // 页面初始化
+        // ============================================================================
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            // 生成导航栏
+            document.getElementById('navigation').innerHTML = generateNavigation('shop');
+            
+            // 更新页面显示
+            updateAllDisplay();
+        });
+        
+        // ============================================================================
+        // 显示更新函数
+        // ============================================================================
+        
+        /**
+         * 更新所有显示内容
+         */
+        function updateAllDisplay() {
+            updateGoldDisplay();
+            renderAllItems();
+            updateNavigationStatus();
+        }
+        
+        /**
+         * 更新金币显示
+         */
+        function updateGoldDisplay() {
+            if (!gameData) return;
+            document.getElementById('current-gold').textContent = gameData.player.gold;
+        }
+        
+        /**
+         * 渲染所有商品
+         */
+        function renderAllItems() {
+            renderItemList('consumable', 'consumable-items');
+            renderItemList('equipment', 'weapon-items', item => item.effect.type === 'attack');
+            renderItemList('equipment', 'armor-items', item => item.effect.type === 'maxHp');
+            renderItemList('permanent', 'permanent-items');
+        }
+        
+        /**
+         * 渲染商品列表
+         * @param {string} type - 商品类型
+         * @param {string} containerId - 容器ID
+         * @param {function} filter - 额外筛选函数
+         */
+        function renderItemList(type, containerId, filter = null) {
+            if (!gameData) return;
+            
+            const container = document.getElementById(containerId);
+            const player = gameData.player;
+            
+            // 筛选商品
+            let items = GAME_CONFIG.shopItems.filter(item => item.type === type);
+            
+            // 应用额外筛选
+            if (filter) {
+                items = items.filter(filter);
+            }
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p class="text-center" style="color: #8b7355;">暂无此类商品</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            for (const item of items) {
+                // 检查是否已拥有（装备类型）
+                const isOwned = type === 'equipment' && player.ownedEquipment.includes(item.id);
+                
+                // 检查金币是否足够
+                const canAfford = player.gold >= item.price;
+                
+                // 获取背包数量（消耗品）
+                const inventoryCount = type === 'consumable' 
+                    ? (player.inventory[item.id] || 0) 
+                    : 0;
+                
+                // 生成商品卡片
+                html += `
+                    <div class="item-card ${isOwned ? 'item-owned-card' : ''}">
+                        ${isOwned ? '<div class="item-owned">已拥有</div>' : ''}
+                        <div class="item-icon">${getItemIcon(item.id)}</div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-description">${item.description}</div>
+                        ${inventoryCount > 0 ? `<div style="text-align: center; color: #4682b4; font-size: 13px; margin-bottom: 10px;">背包: ${inventoryCount}个</div>` : ''}
+                        <div class="item-price">${item.price}</div>
+                        <div class="item-footer">
+                            <button 
+                                class="btn ${canAfford && !isOwned ? 'btn-primary' : 'btn-secondary'}"
+                                ${canAfford && !isOwned ? '' : 'disabled'}
+                                onclick="buyItem(${item.id})"
+                            >
+                                ${isOwned ? '已拥有' : (canAfford ? '购买' : '金币不足')}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        /**
+         * 获取物品图标
+         */
+        function getItemIcon(itemId) {
+            const icons = {
+                1: '💎',   // 下品灵石
+                2: '💠',   // 中品灵石
+                3: '🔷',   // 上品灵石
+                4: '🗡️',   // 铁剑
+                5: '⚔️',   // 精钢剑
+                6: '✨',   // 灵剑
+                7: '👕',   // 布衣
+                8: '🛡️',   // 铁甲
+                9: '👘',   // 法袍
+                10: '💊',  // 力量丹
+                11: '💊'   // 体魄丹
+            };
+            return icons[itemId] || '📦';
+        }
+        
+        // ============================================================================
+        // 购买功能
+        // ============================================================================
+        
+        /**
+         * 购买物品
+         */
+        function buyItem(itemId) {
+            const result = buyShopItem(itemId);
+            
+            if (result.success) {
+                showMessage('success', result.message);
+            } else {
+                showMessage('error', result.message);
+            }
+            
+            // 更新显示
+            updateAllDisplay();
+        }
+        
+        /**
+         * 显示消息提示
+         */
+        function showMessage(type, text) {
+            // 创建临时消息元素
+            const messageEl = document.createElement('div');
+            messageEl.className = `message-box message-${type}`;
+            messageEl.style.cssText = `
+                position: fixed;
+                top: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                max-width: 400px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            `;
+            messageEl.textContent = text;
+            
+            document.body.appendChild(messageEl);
+            
+            // 3秒后移除
+            setTimeout(function() {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+    </script>
+    
+    <style>
+        /* 商店页面额外样式 */
+        .item-owned-card {
+            opacity: 0.7;
+        }
+        
+        .item-owned-card:hover {
+            transform: none !important;
+            border-color: #e8dfc5 !important;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色 - 文字修仙</title>
+    
+    <!-- 引入公共样式 -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- 引入全局数据和方法 -->
+    <script src="js/data.js"></script>
+</head>
+<body>
+    <!-- 导航栏（由 JavaScript 动态生成） -->
+    <div id="navigation"></div>
+    
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="page-title">
+                <h1>👤 角色信息</h1>
+                <p class="subtitle">查看角色属性、背包和游戏进度</p>
+            </div>
+            
+            <!-- 两栏布局 -->
+            <div class="two-column">
+                <!-- 左侧：角色属性 -->
+                <div class="left-column">
+                    <!-- 角色基本信息卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📋 基本信息</h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- 角色头像和名称 -->
+                            <div class="text-center mb-20">
+                                <div style="font-size: 80px; margin-bottom: 10px;">🧙‍♂️</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #6b4423;" id="char-name">
+                                    修仙者
+                                </div>
+                                <div style="font-size: 16px; color: #d4af37; margin-top: 5px;" id="char-realm">
+                                    【凡人】
+                                </div>
+                            </div>
+                            
+                            <!-- 状态网格 -->
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-label">等级</div>
+                                    <div class="status-value" id="char-level">1</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">当前经验</div>
+                                    <div class="status-value" id="char-exp">0</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">升级需</div>
+                                    <div class="status-value" id="char-exp-need">100</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">金币</div>
+                                    <div class="status-value" id="char-gold">50</div>
+                                </div>
+                            </div>
+                            
+                            <!-- 经验进度条 -->
+                            <div class="progress-container mt-20">
+                                <div class="progress-label">
+                                    <span>⭐ 经验进度</span>
+                                    <span id="char-exp-percent">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill exp" id="char-exp-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 升级按钮 -->
+                            <div class="text-center mt-20">
+                                <button class="btn btn-primary btn-lg" id="btn-level-up" onclick="tryLevelUp()" disabled>
+                                    ⬆️ 手动升级
+                                </button>
+                                <p class="mt-10" style="font-size: 13px; color: #8b7355;" id="level-up-hint">
+                                    经验不足，无法升级
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 详细属性卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">⚔️ 战斗属性</h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- 生命值 -->
+                            <div class="mb-20">
+                                <div class="flex-between mb-10">
+                                    <span style="font-weight: bold; color: #6b4423;">❤️ 生命值</span>
+                                    <span id="char-hp-text">100 / 100</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill hp" id="char-hp-bar" style="width: 100%"></div>
+                                    <span class="progress-text" id="char-hp-percent">100%</span>
+                                </div>
+                                <div class="mt-10" style="font-size: 13px; color: #8b7355;">
+                                    基础: <span id="hp-base">100</span> + 
+                                    等级加成: <span id="hp-level">0</span> + 
+                                    装备加成: <span id="hp-equip">0</span> + 
+                                    永久加成: <span id="hp-perm">0</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 攻击力 -->
+                            <div>
+                                <div class="flex-between mb-10">
+                                    <span style="font-weight: bold; color: #6b4423;">⚔️ 攻击力</span>
+                                    <span id="char-attack">10</span>
+                                </div>
+                                <div class="mt-10" style="font-size: 13px; color: #8b7355;">
+                                    基础: <span id="atk-base">10</span> + 
+                                    等级加成: <span id="atk-level">0</span> + 
+                                    装备加成: <span id="atk-equip">0</span> + 
+                                    永久加成: <span id="atk-perm">0</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 恢复按钮 -->
+                            <div class="mt-20">
+                                <button class="btn btn-success" id="btn-heal-low" onclick="useHealItem(1)" disabled>
+                                    💎 使用下品灵石 (0)
+                                </button>
+                                <button class="btn btn-success" id="btn-heal-mid" onclick="useHealItem(2)" disabled>
+                                    💠 使用中品灵石 (0)
+                                </button>
+                                <button class="btn btn-success" id="btn-heal-high" onclick="useHealItem(3)" disabled>
+                                    🔷 使用上品灵石 (0)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧：背包和统计 -->
+                <div class="right-column">
+                    <!-- 背包卡片 -->
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <h2 class="card-title">🎒 背包物品</h2>
+                        </div>
+                        <div class="card-body" id="inventory-list">
+                            <p class="text-center" style="color: #8b7355;">
+                                背包空空如也...
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- 已装备卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🛡️ 已装备</h2>
+                        </div>
+                        <div class="card-body" id="equipment-list">
+                            <p class="text-center" style="color: #8b7355;">
+                                暂无装备，去商店购买吧！
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- 游戏统计卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📊 游戏统计</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-label">击杀怪物</div>
+                                    <div class="status-value" id="stat-kills">0</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">战斗胜利</div>
+                                    <div class="status-value" id="stat-wins">0</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">累计经验</div>
+                                    <div class="status-value" id="stat-total-exp">0</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">累计金币</div>
+                                    <div class="status-value" id="stat-total-gold">0</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-20" style="padding: 15px; background-color: #faf8f3; border-radius: 8px;">
+                                <div class="flex-between">
+                                    <span style="color: #8b7355;">游戏创建时间</span>
+                                    <span id="stat-created">-</span>
+                                </div>
+                                <div class="flex-between mt-10">
+                                    <span style="color: #8b7355;">上次保存时间</span>
+                                    <span id="stat-saved">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 境界说明卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📖 境界说明</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="log-container" style="max-height: 200px;">
+                                <div style="line-height: 2;">
+                                    <div><strong>1级</strong> - 凡人</div>
+                                    <div><strong>2-4级</strong> - 炼气期（初/中/后）</div>
+                                    <div><strong>5-7级</strong> - 筑基期（初/中/后）</div>
+                                    <div><strong>8-10级</strong> - 金丹期（初/中/后）</div>
+                                    <div><strong>11-13级</strong> - 元婴期（初/中/后）</div>
+                                    <div><strong>14-16级</strong> - 化神期（初/中/后）</div>
+                                    <div><strong>17-19级</strong> - 合体期（初/中/后）</div>
+                                    <div><strong>20级</strong> - 大乘期</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 页面脚本 -->
+    <script>
+        // ============================================================================
+        // 页面初始化
+        // ============================================================================
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            // 生成导航栏
+            document.getElementById('navigation').innerHTML = generateNavigation('character');
+            
+            // 更新页面显示
+            updateAllDisplay();
+        });
+        
+        // ============================================================================
+        // 显示更新函数
+        // ============================================================================
+        
+        /**
+         * 更新所有显示内容
+         */
+        function updateAllDisplay() {
+            updateBasicInfo();
+            updateBattleStats();
+            updateInventory();
+            updateEquipment();
+            updateStats();
+            updateNavigationStatus();
+        }
+        
+        /**
+         * 更新基本信息
+         */
+        function updateBasicInfo() {
+            if (!gameData) return;
+            
+            const player = gameData.player;
+            const realm = getPlayerRealm();
+            const expPercent = getLevelProgress();
+            const expToNext = getExpToNextLevel();
+            
+            // 基本信息
+            document.getElementById('char-name').textContent = player.name;
+            document.getElementById('char-realm').textContent = `【${realm}】`;
+            document.getElementById('char-level').textContent = player.level;
+            document.getElementById('char-exp').textContent = player.exp;
+            document.getElementById('char-exp-need').textContent = expToNext > 0 ? expToNext : '已满';
+            document.getElementById('char-gold').textContent = player.gold;
+            
+            // 经验进度条
+            document.getElementById('char-exp-percent').textContent = `${Math.round(expPercent)}%`;
+            document.getElementById('char-exp-bar').style.width = `${expPercent}%`;
+            
+            // 升级按钮状态
+            const canUp = canLevelUp();
+            const btnLevelUp = document.getElementById('btn-level-up');
+            const levelUpHint = document.getElementById('level-up-hint');
+            
+            if (canUp) {
+                btnLevelUp.disabled = false;
+                btnLevelUp.classList.add('pulse');
+                levelUpHint.textContent = '✨ 经验已满，可以升级！';
+                levelUpHint.style.color = '#32cd32';
+            } else {
+                btnLevelUp.disabled = true;
+                btnLevelUp.classList.remove('pulse');
+                if (expToNext > 0) {
+                    levelUpHint.textContent = `还需 ${expToNext} 经验可升级`;
+                } else {
+                    levelUpHint.textContent = '已达到最高等级';
+                }
+                levelUpHint.style.color = '#8b7355';
+            }
+        }
+        
+        /**
+         * 更新战斗属性
+         */
+        function updateBattleStats() {
+            if (!gameData) return;
+            
+            const player = gameData.player;
+            const maxHp = getPlayerMaxHp();
+            const currentHp = player.currentHp;
+            const totalAttack = getPlayerTotalAttack();
+            
+            // 生命值进度条
+            const hpPercent = (currentHp / maxHp) * 100;
+            document.getElementById('char-hp-text').textContent = `${currentHp} / ${maxHp}`;
+            document.getElementById('char-hp-bar').style.width = `${hpPercent}%`;
+            document.getElementById('char-hp-percent').textContent = `${Math.round(hpPercent)}%`;
+            
+            // 生命值详细组成
+            document.getElementById('hp-base').textContent = player.baseMaxHp;
+            document.getElementById('hp-level').textContent = (player.level - 1) * 15;
+            document.getElementById('hp-equip').textContent = player.equipmentMaxHp;
+            document.getElementById('hp-perm').textContent = player.permanentMaxHp;
+            
+            // 攻击力
+            document.getElementById('char-attack').textContent = totalAttack;
+            document.getElementById('atk-base').textContent = player.baseAttack;
+            document.getElementById('atk-level').textContent = (player.level - 1) * 2;
+            document.getElementById('atk-equip').textContent = player.equipmentAttack;
+            document.getElementById('atk-perm').textContent = player.permanentAttack;
+            
+            // 更新恢复按钮状态
+            updateHealButtons();
+        }
+        
+        /**
+         * 更新恢复按钮状态
+         */
+        function updateHealButtons() {
+            if (!gameData) return;
+            
+            const inventory = gameData.player.inventory;
+            
+            // 下品灵石 (ID: 1)
+            const lowCount = inventory[1] || 0;
+            const btnLow = document.getElementById('btn-heal-low');
+            btnLow.textContent = `💎 使用下品灵石 (${lowCount})`;
+            btnLow.disabled = lowCount <= 0;
+            
+            // 中品灵石 (ID: 2)
+            const midCount = inventory[2] || 0;
+            const btnMid = document.getElementById('btn-heal-mid');
+            btnMid.textContent = `💠 使用中品灵石 (${midCount})`;
+            btnMid.disabled = midCount <= 0;
+            
+            // 上品灵石 (ID: 3)
+            const highCount = inventory[3] || 0;
+            const btnHigh = document.getElementById('btn-heal-high');
+            btnHigh.textContent = `🔷 使用上品灵石 (${highCount})`;
+            btnHigh.disabled = highCount <= 0;
+        }
+        
+        /**
+         * 更新背包显示
+         */
+        function updateInventory() {
+            if (!gameData) return;
+            
+            const inventory = gameData.player.inventory;
+            const container = document.getElementById('inventory-list');
+            
+            // 查找所有消耗品
+            const consumables = GAME_CONFIG.shopItems.filter(item => item.type === 'consumable');
+            let hasItems = false;
+            
+            let html = '';
+            
+            for (const item of consumables) {
+                const count = inventory[item.id] || 0;
+                if (count > 0) {
+                    hasItems = true;
+                    html += `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background-color: #faf8f3; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">${getItemIcon(item.id)}</span>
+                                <div>
+                                    <div style="font-weight: bold; color: #6b4423;">${item.name}</div>
+                                    <div style="font-size: 12px; color: #8b7355;">${item.description}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-weight: bold; color: #d4af37;">x${count}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (!hasItems) {
+                html = '<p class="text-center" style="color: #8b7355;">背包空空如也...</p>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        /**
+         * 更新已装备显示
+         */
+        function updateEquipment() {
+            if (!gameData) return;
+            
+            const ownedEquipment = gameData.player.ownedEquipment;
+            const container = document.getElementById('equipment-list');
+            
+            if (ownedEquipment.length === 0) {
+                container.innerHTML = '<p class="text-center" style="color: #8b7355;">暂无装备，去商店购买吧！</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            for (const itemId of ownedEquipment) {
+                const item = GAME_CONFIG.shopItems.find(i => i.id === itemId);
+                if (item) {
+                    html += `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background-color: #faf8f3; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #32cd32;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">${getItemIcon(item.id)}</span>
+                                <div>
+                                    <div style="font-weight: bold; color: #6b4423;">${item.name}</div>
+                                    <div style="font-size: 12px; color: #8b7355;">${item.description}</div>
+                                </div>
+                            </div>
+                            <span style="font-size: 12px; color: #32cd32; font-weight: bold;">已装备</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        /**
+         * 获取物品图标
+         */
+        function getItemIcon(itemId) {
+            const icons = {
+                1: '💎',   // 下品灵石
+                2: '💠',   // 中品灵石
+                3: '🔷',   // 上品灵石
+                4: '🗡️',   // 铁剑
+                5: '⚔️',   // 精钢剑
+                6: '✨',   // 灵剑
+                7: '👕',   // 布衣
+                8: '🛡️',   // 铁甲
+                9: '👘',   // 法袍
+                10: '💊',  // 力量丹
+                11: '💊'   // 体魄丹
+            };
+            return icons[itemId] || '📦';
+        }
+        
+        /**
+         * 更新统计信息
+         */
+        function updateStats() {
+            if (!gameData) return;
+            
+            const player = gameData.player;
+            const settings = gameData.settings;
+            
+            document.getElementById('stat-kills').textContent = player.monstersKilled;
+            document.getElementById('stat-wins').textContent = player.battlesWon;
+            document.getElementById('stat-total-exp').textContent = player.totalExpEarned;
+            document.getElementById('stat-total-gold').textContent = player.totalGoldEarned;
+            
+            // 时间格式化
+            document.getElementById('stat-created').textContent = formatDateTime(settings.creationTime);
+            document.getElementById('stat-saved').textContent = formatDateTime(settings.lastSaveTime);
+        }
+        
+        /**
+         * 格式化日期时间
+         */
+        function formatDateTime(timestamp) {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN');
+        }
+        
+        // ============================================================================
+        // 操作函数
+        // ============================================================================
+        
+        /**
+         * 尝试升级
+         */
+        function tryLevelUp() {
+            if (!canLevelUp()) {
+                showMessage('warning', '经验不足，无法升级');
+                return;
+            }
+            
+            const result = performLevelUp();
+            
+            if (result.success) {
+                showMessage('success', result.message);
+                updateAllDisplay();
+            } else {
+                showMessage('error', result.message);
+            }
+        }
+        
+        /**
+         * 使用恢复物品
+         */
+        function useHealItem(itemId) {
+            const result = useConsumable(itemId);
+            
+            if (result.success) {
+                showMessage('success', `使用了 ${result.itemName}，${result.message}`);
+            } else {
+                showMessage('error', result.message);
+            }
+            
+            updateAllDisplay();
+        }
+        
+        /**
+         * 显示消息提示
+         */
+        function showMessage(type, text) {
+            // 创建临时消息元素
+            const messageEl = document.createElement('div');
+            messageEl.className = `message-box message-${type}`;
+            messageEl.style.cssText = `
+                position: fixed;
+                top: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                max-width: 400px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            `;
+            messageEl.textContent = text;
+            
+            document.body.appendChild(messageEl);
+            
+            // 3秒后移除
+            setTimeout(function() {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

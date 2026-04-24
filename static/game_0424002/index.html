@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战斗 - 文字修仙</title>
+    
+    <!-- 引入公共样式 -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- 引入全局数据和方法 -->
+    <script src="js/data.js"></script>
+</head>
+<body>
+    <!-- 导航栏（由 JavaScript 动态生成） -->
+    <div id="navigation"></div>
+    
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="page-title">
+                <h1>⚔️ 战斗历练</h1>
+                <p class="subtitle">斩妖除魔，积累修为，踏上修仙之路</p>
+            </div>
+            
+            <!-- 两栏布局 -->
+            <div class="two-column">
+                <!-- 左侧：战斗区域 -->
+                <div class="left-column">
+                    <!-- 玩家状态卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">👤 我的状态</h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- 生命值进度条 -->
+                            <div class="progress-container">
+                                <div class="progress-label">
+                                    <span>❤️ 生命值</span>
+                                    <span id="player-hp-text">100 / 100</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill hp" id="player-hp-bar" style="width: 100%"></div>
+                                    <span class="progress-text" id="player-hp-percent">100%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 经验值进度条 -->
+                            <div class="progress-container">
+                                <div class="progress-label">
+                                    <span>⭐ 经验值</span>
+                                    <span id="player-exp-text">0 / 100</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill exp" id="player-exp-bar" style="width: 0%"></div>
+                                    <span class="progress-text" id="player-exp-percent">0%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 快速信息 -->
+                            <div class="status-grid mt-20">
+                                <div class="status-item">
+                                    <div class="status-label">攻击力</div>
+                                    <div class="status-value" id="player-attack">10</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">等级</div>
+                                    <div class="status-value" id="player-level">1</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">金币</div>
+                                    <div class="status-value" id="player-gold">50</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">击杀数</div>
+                                    <div class="status-value" id="player-kills">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 战斗区域卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">⚔️ 战斗区域</h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- 怪物显示区域 -->
+                            <div id="monster-area" class="text-center mb-20">
+                                <div class="character-avatar" id="monster-avatar">👹</div>
+                                <div class="character-name" id="monster-name">暂无战斗</div>
+                                <div class="mt-10" id="monster-stats" style="display: none;">
+                                    <div class="progress-container">
+                                        <div class="progress-label">
+                                            <span>怪物生命值</span>
+                                            <span id="monster-hp-text">0 / 0</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill hp" id="monster-hp-bar" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="status-grid" style="grid-template-columns: 1fr 1fr;">
+                                        <div class="status-item" style="padding: 10px;">
+                                            <div class="status-label">攻击力</div>
+                                            <div class="status-value" style="font-size: 18px;" id="monster-attack">0</div>
+                                        </div>
+                                        <div class="status-item" style="padding: 10px;">
+                                            <div class="status-label">经验奖励</div>
+                                            <div class="status-value" style="font-size: 18px;" id="monster-exp">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 战斗控制按钮 -->
+                            <div class="btn-group flex-center mt-20">
+                                <button class="btn btn-primary" id="btn-start-battle" onclick="startNewBattle()">
+                                    🗡️ 开始战斗
+                                </button>
+                                <button class="btn btn-secondary" id="btn-attack" onclick="performAttack()" style="display: none;">
+                                    ⚔️ 攻击
+                                </button>
+                                <button class="btn btn-danger" id="btn-auto-toggle" onclick="toggleAutoBattle()">
+                                    🔄 自动战斗：开
+                                </button>
+                            </div>
+                            
+                            <!-- 消息提示区域 -->
+                            <div id="battle-message" class="mt-20" style="display: none;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 快捷道具卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🎒 快捷道具</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="inventory-display">
+                                <div class="btn-group flex-center">
+                                    <button class="btn btn-success" id="btn-use-low" onclick="useItem(1)" disabled>
+                                        💎 下品灵石 (0)
+                                    </button>
+                                    <button class="btn btn-success" id="btn-use-mid" onclick="useItem(2)" disabled>
+                                        💠 中品灵石 (0)
+                                    </button>
+                                    <button class="btn btn-success" id="btn-use-high" onclick="useItem(3)" disabled>
+                                        🔷 上品灵石 (0)
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-center mt-10" style="font-size: 13px; color: #8b7355;">
+                                提示：在商店购买灵石，战斗中可以快速恢复生命值
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧：战斗日志 -->
+                <div class="right-column">
+                    <div class="card">
+                        <div class="card-header flex-between">
+                            <h2 class="card-title">📜 战斗日志</h2>
+                            <button class="btn btn-secondary" style="padding: 5px 15px; font-size: 12px;" onclick="clearBattleLog()">
+                                清空
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- 日志容器 -->
+                            <div class="log-container" id="battle-log">
+                                <div class="log-entry" style="color: #8b7355; text-align: center;">
+                                    欢迎来到《文字修仙》！<br>
+                                    点击「开始战斗」开始你的修仙之旅...<br><br>
+                                    📖 游戏说明：<br>
+                                    • 战斗胜利可获得经验和金币<br>
+                                    • 经验积累足够后自动升级<br>
+                                    • 金币可以在商店购买装备和道具<br>
+                                    • 开启自动战斗可以挂机打怪<br>
+                                    • 所有进度会自动保存
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 统计信息卡片 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📊 游戏统计</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-label">当前境界</div>
+                                    <div class="status-value" style="font-size: 18px;" id="stat-realm">凡人</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">累计经验</div>
+                                    <div class="status-value" id="stat-total-exp">0</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">累计金币</div>
+                                    <div class="status-value" id="stat-total-gold">0</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">战斗胜率</div>
+                                    <div class="status-value" id="stat-win-rate">0%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-20 btn-group flex-center">
+                                <button class="btn btn-secondary" onclick="manualSave()">
+                                    💾 手动保存
+                                </button>
+                                <button class="btn btn-danger" onclick="confirmReset()">
+                                    🔄 重新开始
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 页面脚本 -->
+    <script>
+        // ============================================================================
+        // 页面全局变量
+        // ============================================================================
+        
+        let autoBattleTimer = null;           // 自动战斗定时器
+        let isAutoBattleEnabled = true;       // 是否开启自动战斗
+        
+        // ============================================================================
+        // 页面初始化
+        // ============================================================================
+        
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+            // 生成导航栏
+            document.getElementById('navigation').innerHTML = generateNavigation('battle');
+            
+            // 从全局数据恢复自动战斗状态（解决跨页面问题）
+            if (gameData && gameData.battle) {
+                isAutoBattleEnabled = gameData.battle.autoBattleEnabled;
+            }
+            
+            // 更新页面显示
+            updateAllDisplay();
+            
+            // 检查是否有进行中的战斗
+            if (gameData.battle.isFighting && gameData.battle.currentMonster) {
+                // 恢复战斗状态显示
+                showBattleState();
+            }
+            
+            // 【重要】如果自动战斗是开启状态，无论是否有战斗，都重启定时器
+            // 这样可以解决：跨页面切换后，自动战斗停止的问题
+            if (isAutoBattleEnabled) {
+                // 检查生命值，不能为0
+                if (gameData.player.currentHp > 0) {
+                    startAutoBattle();
+                    addLogEntry('🔄 页面已恢复，自动战斗继续进行...', 'highlight');
+                } else {
+                    // 生命值为0，自动关闭自动战斗
+                    isAutoBattleEnabled = false;
+                    gameData.battle.autoBattleEnabled = false;
+                    saveGameData();
+                    updateAutoBattleButton();
+                    addLogEntry('⚠️ 生命值为0，自动战斗已关闭', 'danger');
+                }
+            }
+        });
+        
+        // ============================================================================
+        // 显示更新函数
+        // ============================================================================
+        
+        /**
+         * 更新所有显示内容
+         */
+        function updateAllDisplay() {
+            updatePlayerDisplay();
+            updateInventoryDisplay();
+            updateStatsDisplay();
+            updateNavigationStatus();
+            updateAutoBattleButton();  // 添加：确保自动战斗按钮状态正确
+        }
+        
+        /**
+         * 更新玩家状态显示
+         */
+        function updatePlayerDisplay() {
+            if (!gameData) return;
+            
+            const player = gameData.player;
+            const maxHp = getPlayerMaxHp();
+            const currentHp = player.currentHp;
+            const totalAttack = getPlayerTotalAttack();
+            
+            // 生命值
+            const hpPercent = (currentHp / maxHp) * 100;
+            document.getElementById('player-hp-text').textContent = `${currentHp} / ${maxHp}`;
+            document.getElementById('player-hp-bar').style.width = `${hpPercent}%`;
+            document.getElementById('player-hp-percent').textContent = `${Math.round(hpPercent)}%`;
+            
+            // 经验值
+            const expPercent = getLevelProgress();
+            const expToNext = getExpToNextLevel();
+            document.getElementById('player-exp-text').textContent = expToNext > 0 
+                ? `${player.exp} / ${GAME_CONFIG.levelExp[player.level + 1] || player.exp}`
+                : `${player.exp} (已满)`;
+            document.getElementById('player-exp-bar').style.width = `${expPercent}%`;
+            document.getElementById('player-exp-percent').textContent = `${Math.round(expPercent)}%`;
+            
+            // 其他属性
+            document.getElementById('player-attack').textContent = totalAttack;
+            document.getElementById('player-level').textContent = player.level;
+            document.getElementById('player-gold').textContent = player.gold;
+            document.getElementById('player-kills').textContent = player.monstersKilled;
+        }
+        
+        /**
+         * 更新背包显示
+         */
+        function updateInventoryDisplay() {
+            if (!gameData) return;
+            
+            const inventory = gameData.player.inventory;
+            
+            // 下品灵石 (ID: 1)
+            const lowCount = inventory[1] || 0;
+            const btnLow = document.getElementById('btn-use-low');
+            btnLow.textContent = `💎 下品灵石 (${lowCount})`;
+            btnLow.disabled = lowCount <= 0;
+            
+            // 中品灵石 (ID: 2)
+            const midCount = inventory[2] || 0;
+            const btnMid = document.getElementById('btn-use-mid');
+            btnMid.textContent = `💠 中品灵石 (${midCount})`;
+            btnMid.disabled = midCount <= 0;
+            
+            // 上品灵石 (ID: 3)
+            const highCount = inventory[3] || 0;
+            const btnHigh = document.getElementById('btn-use-high');
+            btnHigh.textContent = `🔷 上品灵石 (${highCount})`;
+            btnHigh.disabled = highCount <= 0;
+        }
+        
+        /**
+         * 更新统计显示
+         */
+        function updateStatsDisplay() {
+            if (!gameData) return;
+            
+            const player = gameData.player;
+            
+            document.getElementById('stat-realm').textContent = getPlayerRealm();
+            document.getElementById('stat-total-exp').textContent = player.totalExpEarned;
+            document.getElementById('stat-total-gold').textContent = player.totalGoldEarned;
+            
+            // 计算胜率
+            const totalBattles = player.monstersKilled;
+            const winRate = totalBattles > 0 
+                ? Math.round((player.battlesWon / totalBattles) * 100) 
+                : 0;
+            document.getElementById('stat-win-rate').textContent = `${winRate}%`;
+        }
+        
+        // ============================================================================
+        // 战斗相关函数
+        // ============================================================================
+        
+        /**
+         * 开始新战斗
+         */
+        function startNewBattle() {
+            // 检查生命值
+            if (gameData.player.currentHp <= 0) {
+                showMessage('error', '生命值为0！请先使用灵石恢复生命值');
+                return;
+            }
+            
+            // 开始战斗
+            const result = startBattle();
+            
+            if (result.success) {
+                showBattleState();
+                addLogEntry(`📍 ${result.message}`, 'highlight');
+                
+                // 如果开启了自动战斗，开始自动攻击
+                if (isAutoBattleEnabled) {
+                    startAutoBattle();
+                }
+            } else {
+                showMessage('error', result.message);
+            }
+            
+            updateAllDisplay();
+        }
+        
+        /**
+         * 显示战斗状态
+         */
+        function showBattleState() {
+            if (!gameData.battle.currentMonster) return;
+            
+            const monster = gameData.battle.currentMonster;
+            
+            // 显示怪物信息
+            document.getElementById('monster-avatar').textContent = getMonsterEmoji(monster.id);
+            document.getElementById('monster-name').textContent = monster.name;
+            document.getElementById('monster-stats').style.display = 'block';
+            
+            // 更新怪物生命值
+            updateMonsterHpDisplay();
+            
+            // 更新怪物属性
+            document.getElementById('monster-attack').textContent = monster.attack;
+            document.getElementById('monster-exp').textContent = monster.exp;
+            
+            // 切换按钮显示
+            document.getElementById('btn-start-battle').style.display = 'none';
+            document.getElementById('btn-attack').style.display = 'inline-block';
+        }
+        
+        /**
+         * 获取怪物表情符号
+         */
+        function getMonsterEmoji(monsterId) {
+            const emojis = {
+                1: '🐰',  // 野兔
+                2: '🐺',  // 野狼
+                3: '🗡️',  // 山贼
+                4: '👹',  // 土匪头目
+                5: '🐍',  // 青蛇
+                6: '🦊',  // 赤狐
+                7: '🧙',  // 邪修弟子
+                8: '👴',  // 邪修长老
+                9: '👻',  // 鬼将
+                10: '💀', // 鬼王
+                11: '😈', // 天魔
+                12: '👿', // 魔尊
+                13: '🐉', // 远古妖圣
+                14: '⚡'  // 天道守护者
+            };
+            return emojis[monsterId] || '👹';
+        }
+        
+        /**
+         * 更新怪物生命值显示
+         */
+        function updateMonsterHpDisplay() {
+            if (!gameData.battle.currentMonster) return;
+            
+            const monster = gameData.battle.currentMonster;
+            const hpPercent = (monster.currentHp / monster.maxHp) * 100;
+            
+            document.getElementById('monster-hp-text').textContent = 
+                `${Math.max(0, monster.currentHp)} / ${monster.maxHp}`;
+            document.getElementById('monster-hp-bar').style.width = `${Math.max(0, hpPercent)}%`;
+        }
+        
+        /**
+         * 执行一次攻击
+         */
+        function performAttack() {
+            if (!gameData.battle.isFighting) {
+                showMessage('warning', '没有进行中的战斗');
+                return;
+            }
+            
+            const result = performBattleRound();
+            
+            if (result.battleEnded) {
+                // 战斗结束
+                if (result.playerWon) {
+                    addLogEntry(`🎉 胜利！击败了 ${result.monster.name}！`, 'success');
+                    addLogEntry(`💰 获得经验 +${result.expReward}，金币 +${result.goldReward}`, 'highlight');
+                    
+                    // 检查升级
+                    if (canLevelUp()) {
+                        const levelUpResult = performLevelUp();
+                        addLogEntry(`🌟 ${levelUpResult.message}`, 'highlight');
+                    }
+                } else {
+                    addLogEntry(`💀 战败！你被 ${result.monster.name} 击败了...`, 'danger');
+                    addLogEntry(`💡 提示：使用灵石恢复生命值，或去商店强化装备`, 'highlight');
+                    
+                    // 战败时关闭自动战斗，并同步保存状态
+                    stopAutoBattle();
+                    isAutoBattleEnabled = false;
+                    gameData.battle.autoBattleEnabled = false;
+                    saveGameData();
+                    updateAutoBattleButton();
+                }
+                
+                // 隐藏战斗状态
+                hideBattleState();
+            } else {
+                // 战斗继续
+                if (result.isPlayerCritical) {
+                    addLogEntry(`💥 暴击！你对怪物造成了 ${result.playerDamage} 点伤害！`, 'highlight');
+                } else {
+                    addLogEntry(`⚔️ 你对怪物造成了 ${result.playerDamage} 点伤害`);
+                }
+                
+                if (result.isMonsterCritical) {
+                    addLogEntry(`💥 怪物暴击！对你造成了 ${result.monsterDamage} 点伤害！`, 'danger');
+                } else {
+                    addLogEntry(`👊 怪物对你造成了 ${result.monsterDamage} 点伤害`);
+                }
+                
+                updateMonsterHpDisplay();
+            }
+            
+            updateAllDisplay();
+        }
+        
+        /**
+         * 隐藏战斗状态
+         */
+        function hideBattleState() {
+            document.getElementById('monster-avatar').textContent = '👹';
+            document.getElementById('monster-name').textContent = '暂无战斗';
+            document.getElementById('monster-stats').style.display = 'none';
+            
+            document.getElementById('btn-start-battle').style.display = 'inline-block';
+            document.getElementById('btn-attack').style.display = 'none';
+        }
+        
+        // ============================================================================
+        // 自动战斗相关
+        // ============================================================================
+        
+        /**
+         * 切换自动战斗开关
+         */
+        function toggleAutoBattle() {
+            isAutoBattleEnabled = !isAutoBattleEnabled;
+            
+            // 同步更新到全局数据（解决跨页面问题）
+            if (gameData && gameData.battle) {
+                gameData.battle.autoBattleEnabled = isAutoBattleEnabled;
+                saveGameData();  // 立即保存
+            }
+            
+            updateAutoBattleButton();
+            
+            if (isAutoBattleEnabled && gameData.battle.isFighting) {
+                startAutoBattle();
+                addLogEntry('🔄 自动战斗已开启', 'highlight');
+            } else if (!isAutoBattleEnabled) {
+                stopAutoBattle();
+                addLogEntry('⏸️ 自动战斗已暂停', 'highlight');
+            }
+        }
+        
+        /**
+         * 更新自动战斗按钮显示
+         */
+        function updateAutoBattleButton() {
+            const btn = document.getElementById('btn-auto-toggle');
+            if (isAutoBattleEnabled) {
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-success');
+                btn.textContent = '🔄 自动战斗：开';
+            } else {
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-secondary');
+                btn.textContent = '⏸️ 自动战斗：关';
+            }
+        }
+        
+        /**
+         * 开始自动战斗
+         */
+        function startAutoBattle() {
+            if (autoBattleTimer) return;
+            
+            autoBattleTimer = setInterval(function() {
+                if (!gameData.battle.isFighting) {
+                    // 当前没有战斗，检查生命值
+                    if (gameData.player.currentHp > 0) {
+                        // 生命值足够，开始新战斗
+                        const result = startBattle();
+                        if (result.success) {
+                            showBattleState();
+                            addLogEntry(`📍 自动寻敌：遭遇 ${result.monster.name}`, 'highlight');
+                        }
+                    } else {
+                        // 生命值不足，尝试使用灵石
+                        tryAutoHeal();
+                    }
+                } else {
+                    // 战斗中，继续攻击
+                    performAttack();
+                }
+            }, GAME_CONFIG.battle.autoBattleInterval);
+        }
+        
+        /**
+         * 停止自动战斗
+         */
+        function stopAutoBattle() {
+            if (autoBattleTimer) {
+                clearInterval(autoBattleTimer);
+                autoBattleTimer = null;
+            }
+        }
+        
+        /**
+         * 尝试自动使用灵石恢复
+         */
+        function tryAutoHeal() {
+            const inventory = gameData.player.inventory;
+            
+            // 优先使用低级灵石
+            if (inventory[1] && inventory[1] > 0) {
+                useItem(1);
+                addLogEntry('💎 自动使用下品灵石恢复生命值', 'highlight');
+            } else if (inventory[2] && inventory[2] > 0) {
+                useItem(2);
+                addLogEntry('💠 自动使用中品灵石恢复生命值', 'highlight');
+            } else if (inventory[3] && inventory[3] > 0) {
+                useItem(3);
+                addLogEntry('🔷 自动使用上品灵石恢复生命值', 'highlight');
+            } else {
+                // 没有恢复道具，停止自动战斗，并同步保存状态
+                stopAutoBattle();
+                isAutoBattleEnabled = false;
+                gameData.battle.autoBattleEnabled = false;
+                saveGameData();
+                updateAutoBattleButton();
+                addLogEntry('⚠️ 生命值耗尽且没有恢复道具，自动战斗已停止', 'danger');
+            }
+        }
+        
+        // ============================================================================
+        // 道具使用
+        // ============================================================================
+        
+        /**
+         * 使用消耗品
+         */
+        function useItem(itemId) {
+            const result = useConsumable(itemId);
+            
+            if (result.success) {
+                showMessage('success', `使用了 ${result.itemName}，${result.message}`);
+                addLogEntry(`💊 使用 ${result.itemName}，${result.message}`, 'success');
+            } else {
+                showMessage('error', result.message);
+            }
+            
+            updateAllDisplay();
+        }
+        
+        // ============================================================================
+        // 日志和消息
+        // ============================================================================
+        
+        /**
+         * 添加日志条目
+         */
+        function addLogEntry(message, type = 'normal') {
+            const logContainer = document.getElementById('battle-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            // 添加时间戳
+            const time = new Date().toLocaleTimeString();
+            let html = `<span class="time">[${time}]</span> `;
+            
+            // 根据类型添加样式
+            switch (type) {
+                case 'highlight':
+                    html += `<span class="highlight">${message}</span>`;
+                    break;
+                case 'danger':
+                    html += `<span class="danger">${message}</span>`;
+                    break;
+                case 'success':
+                    html += `<span class="success">${message}</span>`;
+                    break;
+                default:
+                    html += message;
+            }
+            
+            entry.innerHTML = html;
+            logContainer.appendChild(entry);
+            
+            // 自动滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // 限制日志数量
+            const entries = logContainer.querySelectorAll('.log-entry');
+            if (entries.length > 100) {
+                for (let i = 0; i < entries.length - 100; i++) {
+                    logContainer.removeChild(entries[i]);
+                }
+            }
+        }
+        
+        /**
+         * 清空战斗日志
+         */
+        function clearBattleLog() {
+            const logContainer = document.getElementById('battle-log');
+            logContainer.innerHTML = '<div class="log-entry" style="color: #8b7355; text-align: center;">日志已清空</div>';
+        }
+        
+        /**
+         * 显示消息提示
+         */
+        function showMessage(type, text) {
+            const messageBox = document.getElementById('battle-message');
+            messageBox.style.display = 'block';
+            messageBox.className = `message-box message-${type}`;
+            messageBox.textContent = text;
+            
+            // 3秒后隐藏
+            setTimeout(function() {
+                messageBox.style.display = 'none';
+            }, 3000);
+        }
+        
+        // ============================================================================
+        // 保存和重置
+        // ============================================================================
+        
+        /**
+         * 手动保存
+         */
+        function manualSave() {
+            saveGameData();
+            showMessage('success', '游戏已保存！');
+            addLogEntry('💾 手动保存成功', 'success');
+        }
+        
+        /**
+         * 确认重置
+         */
+        function confirmReset() {
+            if (confirm('确定要重新开始吗？所有进度将被清除，此操作无法撤销！')) {
+                if (confirm('再次确认：真的要删除所有存档吗？')) {
+                    resetGameData();
+                    updateAllDisplay();
+                    hideBattleState();
+                    stopAutoBattle();
+                    isAutoBattleEnabled = true;
+                    updateAutoBattleButton();
+                    addLogEntry('🔄 游戏已重置，重新开始修仙之旅！', 'highlight');
+                    showMessage('success', '游戏已重置！');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

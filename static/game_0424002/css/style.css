@@ -1,0 +1,859 @@
+/* ============================================================================
+   《文字修仙》公共样式文件
+   简约古风样式 - 所有页面通用
+   ============================================================================ */
+
+/* ============================================================================
+   一、基础样式重置和全局设置
+   ============================================================================ */
+
+/* 全局选择器，统一设置 */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 页面基础设置 */
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    /* 古风配色 - 米黄色背景，深棕色文字 */
+    background-color: #f5f0e6;
+    color: #4a3728;
+    
+    /* 字体设置 - 使用优雅的衬线字体 */
+    font-family: "STKaiti", "KaiTi", "楷体", "Microsoft YaHei", sans-serif;
+    line-height: 1.8;
+    
+    /* 最小高度，确保页面充满视口 */
+    min-height: 100vh;
+    
+    /* 平滑的文字渲染 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 链接样式 */
+a {
+    color: #8b5a2b;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #cd853f;
+}
+
+/* 按钮样式基础 */
+button {
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+    outline: none;
+}
+
+/* 列表样式 */
+ul, ol {
+    list-style: none;
+}
+
+/* ============================================================================
+   二、导航栏样式
+   ============================================================================ */
+
+.nav-bar {
+    /* 固定在顶部 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    
+    /* 古风配色 - 深棕色背景，金色文字 */
+    background: linear-gradient(135deg, #6b4423 0%, #8b5a2b 50%, #6b4423 100%);
+    box-shadow: 0 4px 15px rgba(107, 68, 35, 0.4);
+    
+    /* 底部装饰线 */
+    border-bottom: 3px solid #d4af37;
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+}
+
+/* Logo 区域 */
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-icon {
+    font-size: 28px;
+    animation: rotateSlow 10s linear infinite;
+}
+
+.logo-text {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffd700;  /* 金色 */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 3px;
+}
+
+/* 导航链接 */
+.nav-links {
+    display: flex;
+    gap: 5px;
+}
+
+.nav-links li {
+    position: relative;
+}
+
+.nav-links a {
+    display: block;
+    padding: 10px 20px;
+    color: #f5f0e6;  /* 米白色 */
+    font-size: 16px;
+    letter-spacing: 2px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-links a:hover {
+    background-color: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+}
+
+/* 当前活动页面 */
+.nav-links li.active a {
+    background-color: rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+    border-bottom: 2px solid #ffd700;
+}
+
+/* 状态栏（金币、等级） */
+.nav-status {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: #f5f0e6;
+}
+
+.nav-status span {
+    padding: 5px 12px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* Logo 旋转动画 */
+@keyframes rotateSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   三、主内容区域样式
+   ============================================================================ */
+
+.main-content {
+    /* 为顶部导航栏留出空间 */
+    padding-top: 90px;
+    padding-bottom: 40px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* 页面标题 */
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+}
+
+.page-title h1 {
+    font-size: 32px;
+    color: #6b4423;
+    letter-spacing: 5px;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.page-title .subtitle {
+    font-size: 14px;
+    color: #8b7355;
+    letter-spacing: 2px;
+}
+
+/* ============================================================================
+   四、卡片组件样式
+   ============================================================================ */
+
+.card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(107, 68, 35, 0.15);
+    padding: 25px;
+    margin-bottom: 25px;
+    
+    /* 古风边框装饰 */
+    border: 2px solid #e8dfc5;
+    position: relative;
+}
+
+/* 卡片装饰角 */
+.card::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 1px dashed #d4c4a8;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+.card-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e8dfc5;
+}
+
+.card-title {
+    font-size: 20px;
+    color: #6b4423;
+    letter-spacing: 3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-body {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================================
+   五、按钮组件样式
+   ============================================================================ */
+
+.btn {
+    display: inline-block;
+    padding: 12px 30px;
+    font-size: 16px;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-align: center;
+    
+    /* 古风按钮效果 */
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::after {
+    left: 100%;
+}
+
+/* 主要按钮 - 金色 */
+.btn-primary {
+    background: linear-gradient(135deg, #d4af37 0%, #ffd700 50%, #d4af37 100%);
+    color: #4a3728;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* 次要按钮 - 棕色 */
+.btn-secondary {
+    background: linear-gradient(135deg, #8b5a2b 0%, #a0522d 50%, #8b5a2b 100%);
+    color: #f5f0e6;
+    box-shadow: 0 4px 15px rgba(139, 90, 43, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 90, 43, 0.4);
+}
+
+/* 成功按钮 - 绿色 */
+.btn-success {
+    background: linear-gradient(135deg, #556b2f 0%, #6b8e23 50%, #556b2f 100%);
+    color: #f5f0e6;
+    box-shadow: 0 4px 15px rgba(85, 107, 47, 0.3);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+}
+
+/* 危险按钮 - 红色 */
+.btn-danger {
+    background: linear-gradient(135deg, #8b0000 0%, #b22222 50%, #8b0000 100%);
+    color: #f5f0e6;
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+}
+
+/* 禁用状态 */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* 按钮组 */
+.btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================================
+   六、进度条样式
+   ============================================================================ */
+
+.progress-bar {
+    width: 100%;
+    height: 24px;
+    background-color: #e8dfc5;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+/* 不同类型的进度条 */
+.progress-fill.hp {
+    background: linear-gradient(90deg, #cd5c5c 0%, #dc143c 50%, #cd5c5c 100%);
+}
+
+.progress-fill.exp {
+    background: linear-gradient(90deg, #4682b4 0%, #1e90ff 50%, #4682b4 100%);
+}
+
+.progress-fill.gold {
+    background: linear-gradient(90deg, #daa520 0%, #ffd700 50%, #daa520 100%);
+}
+
+/* 进度条文字 */
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+
+/* 进度条容器 */
+.progress-container {
+    margin-bottom: 15px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #6b4423;
+}
+
+/* ============================================================================
+   七、状态显示样式
+   ============================================================================ */
+
+/* 状态网格 */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.status-item {
+    background-color: #faf8f3;
+    padding: 15px 20px;
+    border-radius: 10px;
+    border-left: 4px solid #d4af37;
+}
+
+.status-label {
+    font-size: 13px;
+    color: #8b7355;
+    margin-bottom: 5px;
+}
+
+.status-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #6b4423;
+}
+
+.status-value .unit {
+    font-size: 14px;
+    color: #8b7355;
+    margin-left: 5px;
+}
+
+/* ============================================================================
+   八、消息提示样式
+   ============================================================================ */
+
+.message-box {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid;
+}
+
+/* 成功消息 */
+.message-success {
+    background-color: #f0fff0;
+    border-color: #32cd32;
+    color: #228b22;
+}
+
+/* 错误消息 */
+.message-error {
+    background-color: #fff5f5;
+    border-color: #dc143c;
+    color: #8b0000;
+}
+
+/* 警告消息 */
+.message-warning {
+    background-color: #fffaf0;
+    border-color: #ffa500;
+    color: #8b4513;
+}
+
+/* 信息消息 */
+.message-info {
+    background-color: #f0f8ff;
+    border-color: #4682b4;
+    color: #1e90ff;
+}
+
+/* ============================================================================
+   九、日志/文本区域样式
+   ============================================================================ */
+
+.log-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #faf8f3;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #e8dfc5;
+}
+
+/* 滚动条美化 */
+.log-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-container::-webkit-scrollbar-track {
+    background: #e8dfc5;
+    border-radius: 4px;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+    background: #c4b59d;
+    border-radius: 4px;
+}
+
+.log-container::-webkit-scrollbar-thumb:hover {
+    background: #a08b6e;
+}
+
+/* 日志条目 */
+.log-entry {
+    padding: 8px 0;
+    border-bottom: 1px dashed #e8dfc5;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-entry.time {
+    color: #a08b6e;
+    margin-right: 8px;
+}
+
+.log-entry.highlight {
+    color: #d4af37;
+    font-weight: bold;
+}
+
+.log-entry.danger {
+    color: #dc143c;
+}
+
+.log-entry.success {
+    color: #228b22;
+}
+
+/* ============================================================================
+   十、战斗区域样式
+   ============================================================================ */
+
+.battle-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+/* 战斗角色卡片 */
+.battle-character {
+    text-align: center;
+    padding: 20px;
+}
+
+.character-avatar {
+    font-size: 80px;
+    margin-bottom: 15px;
+}
+
+.character-name {
+    font-size: 20px;
+    font-weight: bold;
+    color: #6b4423;
+    margin-bottom: 10px;
+}
+
+.character-stats {
+    margin-top: 15px;
+}
+
+/* VS 符号 */
+.battle-vs {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+    font-weight: bold;
+    color: #d4af37;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 战斗区域容器 */
+.battle-container {
+    position: relative;
+}
+
+/* ============================================================================
+   十一、商店/列表样式
+   ============================================================================ */
+
+.item-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.item-card {
+    background-color: #faf8f3;
+    border-radius: 10px;
+    padding: 20px;
+    border: 2px solid #e8dfc5;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.item-card:hover {
+    border-color: #d4af37;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
+}
+
+.item-icon {
+    font-size: 40px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.item-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #6b4423;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.item-description {
+    font-size: 13px;
+    color: #8b7355;
+    margin-bottom: 15px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.item-price {
+    text-align: center;
+    font-size: 16px;
+    color: #d4af37;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.item-price::before {
+    content: "💰 ";
+}
+
+.item-footer {
+    text-align: center;
+}
+
+/* 已拥有标记 */
+.item-owned {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #32cd32;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+}
+
+/* ============================================================================
+   十二、两栏布局样式
+   ============================================================================ */
+
+.two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+@media (max-width: 900px) {
+    .two-column {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   十三、响应式设计
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+    .nav-container {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 20px;
+    }
+    
+    .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .main-content {
+        padding-top: 130px;
+    }
+    
+    .battle-area {
+        grid-template-columns: 1fr;
+    }
+    
+    .battle-vs {
+        position: static;
+        transform: none;
+        text-align: center;
+        margin: 10px 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .logo-text {
+        font-size: 18px;
+    }
+    
+    .nav-status {
+        gap: 10px;
+        font-size: 12px;
+    }
+    
+    .nav-status span {
+        padding: 3px 8px;
+    }
+    
+    .page-title h1 {
+        font-size: 24px;
+    }
+    
+    .card {
+        padding: 15px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    .item-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   十四、动画效果
+   ============================================================================ */
+
+/* 淡入动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* 闪烁动画（用于强调） */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* 伤害闪烁 */
+@keyframes damageFlash {
+    0%, 100% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(220, 20, 60, 0.3);
+    }
+}
+
+.damage-flash {
+    animation: damageFlash 0.3s ease;
+}
+
+/* 治愈闪烁 */
+@keyframes healFlash {
+    0%, 100% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(50, 205, 50, 0.3);
+    }
+}
+
+.heal-flash {
+    animation: healFlash 0.5s ease;
+}
+
+/* ============================================================================
+   十五、工具类
+   ============================================================================ */
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-10 { margin-top: 10px; }
+.mt-20 { margin-top: 20px; }
+.mt-30 { margin-top: 30px; }
+
+.mb-10 { margin-bottom: 10px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-30 { margin-bottom: 30px; }
+
+.p-10 { padding: 10px; }
+.p-20 { padding: 20px; }
+.p-30 { padding: 30px; }
+
+.hidden { display: none !important; }
+.visible { display: block !important; }
+
+.flex { display: flex; }
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}

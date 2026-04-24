@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修炼 - 文字修仙</title>
+    
+    <!-- 引入公共样式 -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- 引入全局数据和方法 -->
+    <script src="js/data.js"></script>
+</head>
+<body>
+    <!-- 导航栏（由 JavaScript 动态生成） -->
+    <div id="navigation"></div>
+    
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="page-title">
+                <h1>🧘 闭关修炼</h1>
+                <p class="subtitle">静心修炼，提升修为，挂机也能变强</p>
+            </div>
+            
+            <!-- 当前修炼状态卡片 -->
+            <div class="card mb-20">
+                <div class="card-header">
+                    <h2 class="card-title">📊 当前状态</h2>
+                </div>
+                <div class="card-body">
+                    <div class="two-column" style="gap: 20px;">
+                        <!-- 左侧：角色信息 -->
+                        <div>
+                            <div class="text-center mb-20">
+                                <div style="font-size: 60px;" id="cultivation-avatar">🧙‍♂️</div>
+                                <div style="font-size: 20px; font-weight: bold; color: #6b4423; margin-top: 10px;" id="cultivation-realm">
+                                    凡人
+                                </div>
+                            </div>
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-label">等级</div>
+                                    <div class="status-value" id="cultivation-level">1</div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">金币</div>
+                                    <div class="status-value" id="cultivation-gold">50</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧：修炼信息 -->
+                        <div>
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-label">修炼状态</div>
+                                    <div class="status-value" id="cultivation-status">
+                                        <span style="color: #8b7355;">未修炼</span>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">修炼时长</div>
+                                    <div class="status-value" id="cultivation-duration">
+                                        <span style="color: #8b7355;">-</span>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">累计经验</div>
+                                    <div class="status-value" id="cultivation-exp">
+                                        <span style="color: #4682b4;">+0</span>
+                                    </div>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-label">累计金币</div>
+                                    <div class="status-value" id="cultivation-gold-earned">
+                                        <span style="color: #d4af37;">+0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 每秒收益 -->
+                            <div class="mt-20" style="padding: 15px; background-color: #faf8f3; border-radius: 8px;">
+                                <div style="font-weight: bold; color: #6b4423; margin-bottom: 10px;">每秒收益</div>
+                                <div class="flex-between">
+                                    <span style="color: #8b7355;">经验:</span>
+                                    <span id="exp-per-second" style="color: #4682b4; font-weight: bold;">+0/秒</span>
+                                </div>
+                                <div class="flex-between mt-5">
+                                    <span style="color: #8b7355;">金币:</span>
+                                    <span id="gold-per-second" style="color: #d4af37; font-weight: bold;">+0/秒</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 修炼控制按钮 -->
+                    <div class="mt-20 text-center">
+                        <button class="btn btn-primary btn-lg" id="btn-start-cultivation" onclick="toggleCultivation()">
+                            🌟 开始修炼
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 修炼效率选择卡片 -->
+            <div class="card mb-20">
+                <div class="card-header">
+                    <h2 class="card-title">⚡ 修炼效率</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-15" style="font-size: 13px; color: #8b7355;">
+                        选择不同的修炼效率，效率越高，每秒获得的经验和金币越多。
+                    </p>
+                    
+                    <div class="item-list" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                        <!-- 普通修炼 -->
+                        <div class="item-card" id="efficiency-1" onclick="selectEfficiency(1)">
+                            <div class="item-icon">🧘</div>
+                            <div class="item-name">普通修炼</div>
+                            <div class="item-description">基础效率，适合悠闲挂机</div>
+                            <div class="item-price" style="margin-bottom: 10px;">1倍效率</div>
+                            <div style="text-align: center;">
+                                <span class="efficiency-tag" id="tag-1">已选择</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 聚气修炼 -->
+                        <div class="item-card" id="efficiency-2" onclick="selectEfficiency(2)">
+                            <div class="item-icon">💨</div>
+                            <div class="item-name">聚气修炼</div>
+                            <div class="item-description">双倍效率，快速提升</div>
+                            <div class="item-price" style="margin-bottom: 10px;">2倍效率</div>
+                            <div style="text-align: center;">
+                                <span class="efficiency-tag efficiency-tag-inactive" id="tag-2">选择</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 闭关修炼 -->
+                        <div class="item-card" id="efficiency-5" onclick="selectEfficiency(5)">
+                            <div class="item-icon">🔥</div>
+                            <div class="item-name">闭关修炼</div>
+                            <div class="item-description">五倍效率，全力冲刺</div>
+                            <div class="item-price" style="margin-bottom: 10px;">5倍效率</div>
+                            <div style="text-align: center;">
+                                <span class="efficiency-tag efficiency-tag-inactive" id="tag-5">选择</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 修炼说明卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📖 修炼说明</h2>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" style="max-height: 250px;">
+                        <div style="line-height: 2.2; font-size: 14px;">
+                            <div>
+                                <strong style="color: #6b4423;">🧘 什么是修炼？</strong><br>
+                                修炼是一种挂机玩法，开启后每秒自动获得经验和金币，不需要手动战斗。
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #6b4423;">⚡ 修炼效率</strong><br>
+                                • <strong>普通修炼</strong>：基础效率，每秒 +2 经验，+1 金币<br>
+                                • <strong>聚气修炼</strong>：双倍效率，每秒 +4 经验，+2 金币<br>
+                                • <strong>闭关修炼</strong>：五倍效率，每秒 +10 经验，+5 金币
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #6b4423;">💡 小贴士</strong><br>
+                                • 修炼过程中可以切换页面，收益会持续计算<br>
+                                • 关闭浏览器前请确保修炼已停止，收益会自动结算<br>
+                                • 修炼和战斗不能同时进行，请选择一种方式提升<br>
+                                • 经验达到升级要求时，停止修炼会自动升级
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #6b4423;">⚔️ 战斗 vs 修炼</strong><br>
+                                • <strong>战斗</strong>：获得更多金币，可以挑战更强的怪物<br>
+                                • <strong>修炼</strong>：更稳定的收益，适合挂机时使用<br>
+                                建议：战斗积累金币购买装备，修炼稳定提升等级
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 页面脚本 -->
+    <script>
+        // ============================================================================
+        // 全局变量
+        // ============================================================================
+        
+        let currentEfficiency = 1;      // 当前选择的修炼效率
+        let updateTimer = null;          // 更新显示的定时器
+        
+        // ============================================================================
+        // 页面初始化
+        // ============================================================================
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            // 生成导航栏
+            document.getElementById('navigation').innerHTML = generateNavigation('cultivation');
+            
+            // 检查是否有进行中的修炼
+            if (gameData && gameData.cultivation.isCultivating) {
+                currentEfficiency = gameData.cultivation.efficiency;
+            }
+            
+            // 更新效率选择显示
+            updateEfficiencyDisplay();
+            
+            // 更新页面显示
+            updateAllDisplay();
+            
+            // 启动实时更新定时器
+            startUpdateTimer();
+        });
+        
+        // ============================================================================
+        // 定时器
+        // ============================================================================
+        
+        /**
+         * 启动更新定时器
+         */
+        function startUpdateTimer() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+            }
+            
+            // 每秒更新一次显示
+            updateTimer = setInterval(function() {
+                updateCultivationProgress();
+            }, 1000);
+        }
+        
+        /**
+         * 更新修炼进度显示
+         */
+        function updateCultivationProgress() {
+            if (!gameData) return;
+            
+            // 如果正在修炼，更新实时显示
+            if (gameData.cultivation.isCultivating) {
+                const progress = getCurrentCultivationProgress();
+                if (progress) {
+                    document.getElementById('cultivation-duration').innerHTML = 
+                        `<span style="color: #4682b4;">${progress.durationFormatted}</span>`;
+                    document.getElementById('cultivation-exp').innerHTML = 
+                        `<span style="color: #4682b4;">+${progress.currentExp}</span>`;
+                    document.getElementById('cultivation-gold-earned').innerHTML = 
+                        `<span style="color: #d4af37;">+${progress.currentGold}</span>`;
+                    document.getElementById('exp-per-second').textContent = `+${progress.expPerSecond}/秒`;
+                    document.getElementById('gold-per-second').textContent = `+${progress.goldPerSecond}/秒`;
+                }
+            }
+        }
+        
+        // ============================================================================
+        // 显示更新函数
+        // ============================================================================
+        
+        /**
+         * 更新所有显示内容
+         */
+        function updateAllDisplay() {
+            updateBasicInfo();
+            updateCultivationStatus();
+            updatePerSecondDisplay();
+            updateNavigationStatus();
+        }
+        
+        /**
+         * 更新基本信息
+         */
+        function updateBasicInfo() {
+            if (!gameData) return;
+            
+            document.getElementById('cultivation-realm').textContent = getPlayerRealm();
+            document.getElementById('cultivation-level').textContent = gameData.player.level;
+            document.getElementById('cultivation-gold').textContent = gameData.player.gold;
+        }
+        
+        /**
+         * 更新修炼状态
+         */
+        function updateCultivationStatus() {
+            if (!gameData) return;
+            
+            const isCultivating = gameData.cultivation.isCultivating;
+            const btn = document.getElementById('btn-start-cultivation');
+            const statusEl = document.getElementById('cultivation-status');
+            const avatarEl = document.getElementById('cultivation-avatar');
+            
+            if (isCultivating) {
+                // 正在修炼
+                btn.textContent = '⏹️ 停止修炼';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-danger');
+                
+                statusEl.innerHTML = '<span style="color: #32cd32;">修炼中...</span>';
+                avatarEl.classList.add('pulse');
+                
+                // 更新进度
+                updateCultivationProgress();
+            } else {
+                // 未修炼
+                btn.textContent = '🌟 开始修炼';
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-primary');
+                
+                statusEl.innerHTML = '<span style="color: #8b7355;">未修炼</span>';
+                avatarEl.classList.remove('pulse');
+                
+                // 重置进度显示
+                document.getElementById('cultivation-duration').innerHTML = '<span style="color: #8b7355;">-</span>';
+                document.getElementById('cultivation-exp').innerHTML = '<span style="color: #4682b4;">+0</span>';
+                document.getElementById('cultivation-gold-earned').innerHTML = '<span style="color: #d4af37;">+0</span>';
+            }
+        }
+        
+        /**
+         * 更新每秒收益显示
+         */
+        function updatePerSecondDisplay() {
+            const baseExp = GAME_CONFIG.cultivation.baseExpPerSecond;
+            const baseGold = GAME_CONFIG.cultivation.baseGoldPerSecond;
+            
+            document.getElementById('exp-per-second').textContent = `+${baseExp * currentEfficiency}/秒`;
+            document.getElementById('gold-per-second').textContent = `+${baseGold * currentEfficiency}/秒`;
+        }
+        
+        // ============================================================================
+        // 效率选择
+        // ============================================================================
+        
+        /**
+         * 选择修炼效率
+         */
+        function selectEfficiency(efficiency) {
+            // 如果正在修炼，提示需要先停止
+            if (gameData && gameData.cultivation.isCultivating) {
+                showMessage('warning', '请先停止当前修炼，再切换效率');
+                return;
+            }
+            
+            currentEfficiency = efficiency;
+            updateEfficiencyDisplay();
+            updatePerSecondDisplay();
+        }
+        
+        /**
+         * 更新效率选择显示
+         */
+        function updateEfficiencyDisplay() {
+            const efficiencies = [1, 2, 5];
+            
+            for (const eff of efficiencies) {
+                const card = document.getElementById(`efficiency-${eff}`);
+                const tag = document.getElementById(`tag-${eff}`);
+                
+                if (eff === currentEfficiency) {
+                    // 选中状态
+                    card.style.borderColor = '#d4af37';
+                    card.style.boxShadow = '0 8px 25px rgba(212, 175, 55, 0.3)';
+                    tag.className = 'efficiency-tag';
+                    tag.textContent = '已选择';
+                } else {
+                    // 未选中状态
+                    card.style.borderColor = '#e8dfc5';
+                    card.style.boxShadow = 'none';
+                    tag.className = 'efficiency-tag efficiency-tag-inactive';
+                    tag.textContent = '选择';
+                }
+            }
+        }
+        
+        // ============================================================================
+        // 修炼控制
+        // ============================================================================
+        
+        /**
+         * 切换修炼状态（开始/停止）
+         */
+        function toggleCultivation() {
+            if (!gameData) return;
+            
+            if (gameData.cultivation.isCultivating) {
+                // 停止修炼
+                const result = stopCultivation();
+                
+                if (result.success) {
+                    showMessage('success', result.message);
+                    
+                    // 显示升级消息
+                    if (result.levelUpMessage) {
+                        setTimeout(function() {
+                            showMessage('success', result.levelUpMessage);
+                        }, 500);
+                    }
+                } else {
+                    showMessage('error', result.message);
+                }
+            } else {
+                // 检查是否正在战斗
+                if (gameData.battle.isFighting) {
+                    showMessage('warning', '战斗中无法修炼，请先结束战斗');
+                    return;
+                }
+                
+                // 开始修炼
+                const result = startCultivation(currentEfficiency);
+                
+                if (result.success) {
+                    showMessage('success', result.message);
+                } else {
+                    showMessage('error', result.message);
+                }
+            }
+            
+            // 更新显示
+            updateAllDisplay();
+        }
+        
+        // ============================================================================
+        // 消息提示
+        // ============================================================================
+        
+        /**
+         * 显示消息提示
+         */
+        function showMessage(type, text) {
+            // 创建临时消息元素
+            const messageEl = document.createElement('div');
+            messageEl.className = `message-box message-${type}`;
+            messageEl.style.cssText = `
+                position: fixed;
+                top: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                max-width: 400px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            `;
+            messageEl.textContent = text;
+            
+            document.body.appendChild(messageEl);
+            
+            // 3秒后移除
+            setTimeout(function() {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+    </script>
+    
+    <style>
+        /* 修炼页面额外样式 */
+        .efficiency-tag {
+            display: inline-block;
+            padding: 5px 15px;
+            background-color: #32cd32;
+            color: #fff;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .efficiency-tag-inactive {
+            background-color: #c4b59d;
+            cursor: pointer;
+        }
+        
+        .efficiency-tag-inactive:hover {
+            background-color: #d4af37;
+        }
+        
+        .item-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+    </style>
+</body>
+</html>
