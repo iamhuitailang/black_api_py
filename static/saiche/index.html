@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>萌车冲冲冲</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="hud">
+                <div class="hud-item">
+                    <span class="label">距离</span>
+                    <span id="distance" class="value">0m</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">时间</span>
+                    <span id="timer" class="value">30s</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">分数</span>
+                    <span id="score" class="value">0</span>
+                </div>
+            </div>
+            
+            <div id="bars">
+                <div class="bar-container">
+                    <div class="bar-label">燃料</div>
+                    <div class="bar-bg">
+                        <div id="fuel-bar" class="bar-fill fuel"></div>
+                    </div>
+                    <div class="bar-count">
+                        <span id="fuel-count">0</span>/5
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-label">氮气</div>
+                    <div class="bar-bg">
+                        <div id="nitro-bar" class="bar-fill nitro"></div>
+                    </div>
+                    <div class="bar-count">
+                        <span id="nitro-count">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="pause-btn" class="game-btn hidden">暂停</button>
+        </div>
+        
+        <div id="menu-screen" class="screen active">
+            <div class="menu-content">
+                <h1 class="game-title">萌车冲冲冲</h1>
+                <div class="title-subtitle">可爱又刺激的赛车冒险</div>
+                <div class="high-score">
+                    <span>最佳记录: </span>
+                    <span id="best-distance">0m</span>
+                </div>
+                <button id="start-btn" class="menu-btn primary">开始游戏</button>
+                <button id="resume-saved-btn" class="menu-btn secondary hidden">继续游戏</button>
+                <div id="saved-game-info" class="hidden">
+                    <div class="saved-stats">
+                        <span>已跑距离: </span>
+                        <span id="saved-distance">0m</span>
+                    </div>
+                </div>
+                <div class="controls-info">
+                    <div class="control-item">
+                        <span class="key">A/D</span>
+                        <span>左右移动</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">鼠标按住</span>
+                        <span>加速</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">鼠标松开</span>
+                        <span>刹车</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="screen hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">游戏暂停</h2>
+                <button id="resume-btn" class="menu-btn primary">继续游戏</button>
+                <button id="restart-btn" class="menu-btn secondary">重新开始</button>
+                <button id="quit-btn" class="menu-btn danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="gameover-screen" class="screen hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">游戏结束</h2>
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">本次距离</span>
+                        <span id="final-distance" class="stat-value">0m</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">本次分数</span>
+                        <span id="final-score" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item highlight">
+                        <span class="stat-label">最佳记录</span>
+                        <span id="final-best" class="stat-value">0m</span>
+                    </div>
+                </div>
+                <button id="retry-btn" class="menu-btn primary">再来一局</button>
+                <button id="menu-btn" class="menu-btn secondary">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/objects.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
