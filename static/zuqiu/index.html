@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萌星足球</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-header">
+            <div id="score-display">
+                <span id="player-score">0</span>
+                <span class="score-separator">:</span>
+                <span id="enemy-score">0</span>
+            </div>
+            <div id="game-time">
+                <span id="time-display">01:30</span>
+            </div>
+            <div id="weather-display">
+                <span id="weather-icon">☀️</span>
+            </div>
+        </div>
+        
+        <div id="stamina-container">
+            <div class="stamina-bar">
+                <span class="stamina-label">玩家体力</span>
+                <div class="stamina-bar-bg">
+                    <div id="player-stamina" class="stamina-bar-fill" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="stamina-bar">
+                <span class="stamina-label">对手体力</span>
+                <div class="stamina-bar-bg">
+                    <div id="enemy-stamina" class="stamina-bar-fill" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="power-bar-container">
+            <span class="power-label">射门力度</span>
+            <div class="power-bar-bg">
+                <div id="power-bar" class="power-bar-fill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <canvas id="game-canvas" width="800" height="500"></canvas>
+        
+        <div id="game-controls">
+            <button id="start-btn" class="control-btn">开始游戏</button>
+            <button id="pause-btn" class="control-btn" disabled>暂停</button>
+            <button id="restart-btn" class="control-btn">重新开始</button>
+        </div>
+        
+        <div id="skill-hint">
+            <span id="skill-status">必杀技: 按K键发动(需50%以上体力)</span>
+        </div>
+        
+        <div id="item-display">
+            <div class="item-slot">
+                <span id="speed-boots-count">0</span>
+                <span>加速鞋</span>
+            </div>
+            <div class="item-slot">
+                <span id="golden-ball-count">0</span>
+                <span>黄金球</span>
+            </div>
+            <div class="item-slot">
+                <span id="coins-count">0</span>
+                <span>金币</span>
+            </div>
+        </div>
+        
+        <div id="game-overlay" class="hidden">
+            <div class="overlay-content">
+                <h2 id="overlay-title">游戏开始</h2>
+                <p id="overlay-message">点击"开始游戏"按钮开始比赛</p>
+                <div id="overlay-buttons" class="hidden">
+                    <button id="overlay-btn-1" class="overlay-btn"></button>
+                    <button id="overlay-btn-2" class="overlay-btn"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
