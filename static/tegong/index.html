@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>特工射击 - 狙击精英Q版</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- 游戏画布 -->
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- 游戏UI覆盖层 -->
+        <div id="gameUI" class="hidden">
+            <!-- 顶部状态栏 -->
+            <div id="topBar">
+                <div class="stat-item">
+                    <span class="label">得分</span>
+                    <span id="score" class="value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">时间</span>
+                    <span id="timer" class="value">60</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">生命值</span>
+                    <span id="health" class="value">10</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">连击</span>
+                    <span id="combo" class="value">x1</span>
+                </div>
+            </div>
+            
+            <!-- 武器信息 -->
+            <div id="weaponInfo">
+                <span id="weaponName">手枪</span>
+                <span id="ammo">6/6</span>
+            </div>
+            
+            <!-- 方向指示器容器 -->
+            <div id="directionIndicators"></div>
+        </div>
+        
+        <!-- 开始界面 -->
+        <div id="startScreen" class="screen">
+            <h1>特工射击</h1>
+            <p class="subtitle">狙击精英Q版</p>
+            <div class="stats-display">
+                <p>最高分数: <span id="highScore">0</span></p>
+                <p>当前积分: <span id="credits">0</span></p>
+            </div>
+            <div class="weapon-select">
+                <p>选择武器:</p>
+                <button id="pistolBtn" class="weapon-btn selected">
+                    手枪 (伤害:40, 弹夹:6)
+                </button>
+                <button id="sniperBtn" class="weapon-btn locked">
+                    狙击枪 (伤害:100, 弹夹:6) - 100积分解锁
+                </button>
+            </div>
+            <button id="startBtn" class="primary-btn">开始游戏</button>
+        </div>
+        
+        <!-- 暂停界面 -->
+        <div id="pauseScreen" class="screen hidden">
+            <h2>游戏暂停</h2>
+            <button id="resumeBtn" class="primary-btn">继续游戏</button>
+            <button id="restartBtn" class="secondary-btn">重新开始</button>
+        </div>
+        
+        <!-- 游戏结束界面 -->
+        <div id="gameOverScreen" class="screen hidden">
+            <h2>游戏结束</h2>
+            <div class="result-display">
+                <p>最终得分: <span id="finalScore">0</span></p>
+                <p>获得积分: <span id="earnedCredits">0</span></p>
+                <p id="newRecord" class="hidden">🎉 新纪录!</p>
+            </div>
+            <button id="playAgainBtn" class="primary-btn">再来一局</button>
+            <button id="backToMenuBtn" class="secondary-btn">返回主菜单</button>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div id="controlButtons" class="hidden">
+            <button id="pauseBtn">暂停</button>
+            <button id="switchWeaponBtn">切换武器</button>
+            <button id="reloadBtn">装弹</button>
+        </div>
+    </div>
+    
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

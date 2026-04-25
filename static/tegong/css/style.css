@@ -1,0 +1,414 @@
+/* 颜色变量 */
+:root {
+    --tactical-black: #0a0a0a;
+    --dark-gray: #1a1a1a;
+    --medium-gray: #2a2a2a;
+    --neon-green: #39ff14;
+    --neon-green-dim: #1a6600;
+    --orange-crosshair: #ff6600;
+    --orange-bright: #ff8833;
+    --warning-red: #ff3333;
+    --text-color: #ffffff;
+    --text-muted: #888888;
+}
+
+/* 基础样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background-color: var(--tactical-black);
+    color: var(--text-color);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* 游戏容器 */
+#gameContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--tactical-black);
+}
+
+/* 游戏画布 */
+#gameCanvas {
+    display: block;
+    cursor: none;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 隐藏类 */
+.hidden {
+    display: none !important;
+}
+
+/* UI覆盖层 */
+#gameUI {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* 顶部状态栏 */
+#topBar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 40px;
+    padding: 15px 30px;
+    background-color: rgba(10, 10, 10, 0.8);
+    border: 2px solid var(--neon-green);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-item .label {
+    font-size: 12px;
+    color: var(--neon-green);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-item .value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-color);
+    text-shadow: 0 0 10px var(--neon-green);
+}
+
+.stat-item:last-child .value {
+    color: var(--orange-crosshair);
+    text-shadow: 0 0 10px var(--orange-crosshair);
+}
+
+/* 武器信息 */
+#weaponInfo {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    padding: 15px 25px;
+    background-color: rgba(10, 10, 10, 0.8);
+    border: 2px solid var(--neon-green);
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
+}
+
+#weaponName {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--neon-green);
+    margin-right: 20px;
+}
+
+#ammo {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--orange-crosshair);
+}
+
+/* 控制按钮 */
+#controlButtons {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+#controlButtons button {
+    padding: 10px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    background-color: var(--dark-gray);
+    color: var(--neon-green);
+    border: 2px solid var(--neon-green);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#controlButtons button:hover {
+    background-color: var(--neon-green);
+    color: var(--tactical-black);
+    box-shadow: 0 0 20px var(--neon-green);
+}
+
+/* 屏幕覆盖层（开始/暂停/结束） */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(10, 10, 10, 0.95);
+    z-index: 100;
+}
+
+/* 标题样式 */
+.screen h1 {
+    font-size: 64px;
+    color: var(--neon-green);
+    text-shadow: 0 0 30px var(--neon-green), 0 0 60px var(--neon-green-dim);
+    margin-bottom: 10px;
+    letter-spacing: 5px;
+}
+
+.screen h2 {
+    font-size: 48px;
+    color: var(--neon-green);
+    text-shadow: 0 0 20px var(--neon-green);
+    margin-bottom: 40px;
+}
+
+.screen .subtitle {
+    font-size: 24px;
+    color: var(--orange-crosshair);
+    margin-bottom: 40px;
+    letter-spacing: 3px;
+}
+
+/* 统计信息显示 */
+.stats-display {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.stats-display p {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.stats-display span {
+    color: var(--neon-green);
+    font-weight: bold;
+    font-size: 24px;
+}
+
+/* 武器选择 */
+.weapon-select {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.weapon-select p {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.weapon-btn {
+    padding: 15px 30px;
+    margin: 0 10px 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    background-color: var(--dark-gray);
+    color: var(--text-muted);
+    border: 2px solid var(--medium-gray);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 300px;
+}
+
+.weapon-btn.selected {
+    background-color: rgba(57, 255, 20, 0.1);
+    color: var(--neon-green);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+.weapon-btn.locked {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.weapon-btn:not(.locked):hover {
+    background-color: rgba(57, 255, 20, 0.2);
+}
+
+/* 主要按钮 */
+.primary-btn {
+    padding: 20px 60px;
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: var(--neon-green);
+    color: var(--tactical-black);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 0 30px var(--neon-green);
+    margin-bottom: 15px;
+}
+
+.primary-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 50px var(--neon-green);
+}
+
+/* 次要按钮 */
+.secondary-btn {
+    padding: 15px 50px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    background-color: transparent;
+    color: var(--text-muted);
+    border: 2px solid var(--medium-gray);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.secondary-btn:hover {
+    color: var(--neon-green);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.3);
+}
+
+/* 结果显示 */
+.result-display {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.result-display p {
+    font-size: 20px;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+}
+
+.result-display span {
+    color: var(--orange-crosshair);
+    font-weight: bold;
+    font-size: 32px;
+}
+
+#newRecord {
+    font-size: 24px;
+    color: var(--neon-green);
+    text-shadow: 0 0 20px var(--neon-green);
+    margin-top: 20px;
+}
+
+/* 方向指示器 */
+#directionIndicators {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.direction-indicator {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    color: var(--warning-red);
+    text-shadow: 0 0 20px var(--warning-red);
+    animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from {
+        opacity: 0.5;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    #topBar {
+        gap: 20px;
+        padding: 10px 15px;
+    }
+    
+    .stat-item .label {
+        font-size: 10px;
+    }
+    
+    .stat-item .value {
+        font-size: 18px;
+    }
+    
+    .screen h1 {
+        font-size: 42px;
+    }
+    
+    .screen h2 {
+        font-size: 32px;
+    }
+    
+    .primary-btn {
+        padding: 15px 40px;
+        font-size: 16px;
+    }
+    
+    .weapon-btn {
+        min-width: 200px;
+        padding: 12px 20px;
+        font-size: 12px;
+    }
+}
+
+/* 特殊效果 */
+.screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: -1;
+}
