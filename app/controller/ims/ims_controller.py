@@ -529,6 +529,44 @@ class ImsController:
         """
         return self.statistics_business.get_range_statistics(start_date, end_date)
 
+    def ActionImsStatisticsTrendGet(self, request: Request,
+                                     start_date: str = Query(..., description="开始日期，格式: YYYY-MM-DD"),
+                                     end_date: str = Query(..., description="结束日期，格式: YYYY-MM-DD")):
+        """
+        获取趋势图表数据接口
+        GET /api/ims/statistics/trend/get
+        返回每日进货、销售、利润趋势数据，用于折线图展示
+        """
+        return self.statistics_business.get_trend_chart_data(start_date, end_date)
+
+    def ActionImsStatisticsPurchaseVarietyGet(self, request: Request,
+                                                start_date: str = Query(default=None, description="开始日期，格式: YYYY-MM-DD"),
+                                                end_date: str = Query(default=None, description="结束日期，格式: YYYY-MM-DD")):
+        """
+        获取进货品种分布图表数据接口
+        GET /api/ims/statistics/purchase_variety/get
+        返回各品种进货金额和数量统计，用于柱状图和饼图展示
+        """
+        return self.statistics_business.get_purchase_variety_chart(start_date, end_date)
+
+    def ActionImsStatisticsSaleVarietyGet(self, request: Request,
+                                            start_date: str = Query(default=None, description="开始日期，格式: YYYY-MM-DD"),
+                                            end_date: str = Query(default=None, description="结束日期，格式: YYYY-MM-DD")):
+        """
+        获取销售品种分布图表数据接口
+        GET /api/ims/statistics/sale_variety/get
+        返回各品种销售金额和数量统计，用于柱状图和饼图展示
+        """
+        return self.statistics_business.get_sale_variety_chart(start_date, end_date)
+
+    def ActionImsStatisticsInventoryDistributionGet(self, request: Request):
+        """
+        获取库存品种分布图表数据接口
+        GET /api/ims/statistics/inventory_distribution/get
+        返回各品种库存数量和成本分布，用于饼图展示
+        """
+        return self.statistics_business.get_inventory_distribution_chart()
+
     def ActionImsLogListGet(self, request: Request,
                              page: int = Query(default=1, ge=1, description="页码"),
                              page_size: int = Query(default=10, ge=1, le=100, description="每页数量"),

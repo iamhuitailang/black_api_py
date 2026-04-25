@@ -138,6 +138,47 @@ class SaleModel:
         result = self.db.fetch_one(sql, (start_date, end_date))
         return result['total'] if result and result['total'] else 0
 
+    def get_daily_stats(self, start_date: str, end_date: str) -> List[Dict[str, Any]]:
+        sql = f"""
+            SELECT 
+                sale_date as date,
+                COUNT(*) as count,
+                SUM(total_price) as total_amount,
+                SUM(quantity) as total_quantity
+            FROM {self.TABLE_NAME}
+            WHERE sale_date >= ? AND sale_date <= ?
+            GROUP BY sale_date
+            ORDER BY sale_date ASC
+        """
+        return self.db.fetch_all(sql, (start_date, end_date))
+
+    def get_variety_stats(self, start_date: str = None, end_date: str = None) -> List[Dict[str, Any]]:
+        conditions = []
+        params = []
+        
+        if start_date:
+            conditions.append("sale_date >= ?")
+            params.append(start_date)
+        if end_date:
+            conditions.append("sale_date <= ?")
+            params.append(end_date)
+        
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        
+        sql = f"""
+            SELECT 
+                variety_id,
+                variety_name,
+                COUNT(*) as count,
+                SUM(total_price) as total_amount,
+                SUM(quantity) as total_quantity
+            FROM {self.TABLE_NAME}
+            WHERE {where_clause}
+            GROUP BY variety_id, variety_name
+            ORDER BY total_amount DESC
+        """
+        return self.db.fetch_all(sql, tuple(params) if params else None)
+
     def paginate(self, page: int = 1, page_size: int = 10,
                  variety_id: int = None, customer_id: int = None,
                  start_date: str = None, end_date: str = None,

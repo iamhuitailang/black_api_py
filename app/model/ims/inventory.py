@@ -152,6 +152,21 @@ class InventoryModel:
         result = self.db.fetch_one(sql)
         return result['total'] if result and result['total'] else 0.0
 
+    def get_variety_distribution(self) -> List[Dict[str, Any]]:
+        sql = f"""
+            SELECT 
+                variety_id,
+                variety_name,
+                current_quantity,
+                total_cost,
+                avg_cost_price,
+                warning_threshold,
+                (current_quantity <= warning_threshold) as is_warning
+            FROM {self.TABLE_NAME}
+            ORDER BY current_quantity DESC
+        """
+        return self.db.fetch_all(sql)
+
     def paginate(self, page: int = 1, page_size: int = 10,
                  variety_id: int = None, show_warning: bool = False,
                  keyword: str = None) -> Dict[str, Any]:
