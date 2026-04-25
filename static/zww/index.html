@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>抓抓乐 - 抓娃娃游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 游戏头部信息 -->
+        <div class="game-header">
+            <div class="score-board">
+                <div class="score-item">
+                    <span class="label">分数</span>
+                    <span class="value" id="score">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">时间</span>
+                    <span class="value" id="time">60</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">娃娃</span>
+                    <span class="value" id="dolls">0/20</span>
+                </div>
+            </div>
+            <div class="collected-dolls" id="collected-dolls">
+                <div class="doll-icon" data-type="bear">🐻 <span id="bear-count">0</span></div>
+                <div class="doll-icon" data-type="rabbit">🐰 <span id="rabbit-count">0</span></div>
+                <div class="doll-icon" data-type="dino">🦖 <span id="dino-count">0</span></div>
+                <div class="doll-icon" data-type="octopus">🐙 <span id="octopus-count">0</span></div>
+                <div class="doll-icon" data-type="unicorn">🦄 <span id="unicorn-count">0</span></div>
+            </div>
+        </div>
+
+        <!-- 游戏画布 -->
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas"></canvas>
+            <!-- 玻璃反射效果层 -->
+            <div class="glass-reflection"></div>
+            <!-- 彩灯层 -->
+            <div class="lights-layer" id="lights-layer"></div>
+        </div>
+
+        <!-- 虚拟按钮（移动端） -->
+        <div class="controls">
+            <div class="control-row">
+                <button class="btn-control" id="btn-left">◀</button>
+                <button class="btn-control" id="btn-right">▶</button>
+            </div>
+            <div class="control-row">
+                <button class="btn-control" id="btn-down">▼</button>
+                <button class="btn-control btn-action" id="btn-grab">抓</button>
+            </div>
+        </div>
+
+        <!-- 游戏控制按钮 -->
+        <div class="game-controls">
+            <button class="btn-game" id="btn-start">开始游戏</button>
+            <button class="btn-game btn-secondary" id="btn-pause">暂停</button>
+            <button class="btn-game btn-secondary" id="btn-restart">重新开始</button>
+        </div>
+
+        <!-- 开始/结束/暂停 弹窗 -->
+        <div class="modal" id="start-modal">
+            <div class="modal-content">
+                <h1>🎀 抓抓乐 🎀</h1>
+                <p class="subtitle">可爱娃娃等你来抓</p>
+                <div class="modal-dolls">
+                    <div class="modal-doll">🐻 小熊</div>
+                    <div class="modal-doll">🐰 兔子</div>
+                    <div class="modal-doll">🦖 恐龙</div>
+                    <div class="modal-doll">🐙 章鱼</div>
+                    <div class="modal-doll">🦄 独角兽</div>
+                </div>
+                <p class="instructions">
+                    操作说明：<br>
+                    ◀ ▶ 左右移动抓爪<br>
+                    ▼ 下降抓爪<br>
+                    空格 抓取/上升<br>
+                    （手机端点击虚拟按钮）
+                </p>
+                <button class="btn-modal" id="btn-start-game">开始抓娃娃</button>
+            </div>
+        </div>
+
+        <div class="modal hidden" id="pause-modal">
+            <div class="modal-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <button class="btn-modal" id="btn-resume">继续游戏</button>
+            </div>
+        </div>
+
+        <div class="modal hidden" id="end-modal">
+            <div class="modal-content">
+                <h2 id="end-title">游戏结束</h2>
+                <p class="end-score">最终得分：<span id="final-score">0</span></p>
+                <p class="end-dolls">抓到娃娃：<span id="final-dolls">0</span>/20</p>
+                <div class="end-collection" id="end-collection"></div>
+                <button class="btn-modal" id="btn-play-again">再玩一次</button>
+            </div>
+        </div>
+
+        <!-- 成功抓取弹窗 -->
+        <div class="ding-dong-modal hidden" id="ding-dong-modal">
+            <div class="ding-dong-content">
+                <span class="ding-dong-text">叮咚！</span>
+                <span class="ding-dong-doll" id="ding-dong-doll">🐻</span>
+                <span class="ding-dong-score" id="ding-dong-score">+10分</span>
+                <span class="ding-dong-time" id="ding-dong-time">+3秒</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
