@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷你网球</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎾</span>
+                <span class="logo-text">迷你网球</span>
+            </div>
+            <div class="nav-status">
+                <span>⏱️ <span id="nav-time" class="highlight">00:00</span></span>
+                <span>🎯 连击: <span id="nav-rally" class="highlight">0</span></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="start-screen" id="start-screen">
+        <div class="start-content">
+            <div class="tennis-icon">🎾</div>
+            <h2>迷你网球</h2>
+            <div class="description">
+                <p>🎮 操作方式：</p>
+                <p>← → 方向键 或 鼠标移动控制球员</p>
+                <p>点击鼠标左键 击球</p>
+                <p>长按左键 蓄力扣杀</p>
+            </div>
+            <div class="start-buttons">
+                <button class="btn btn-primary" id="new-game-btn">🎾 开始新游戏</button>
+                <button class="btn btn-secondary" id="continue-btn" style="display: none;">▶️ 继续游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pause-overlay hidden" id="pause-overlay">
+        <div class="pause-content">
+            <h2>⏸️ 游戏暂停</h2>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="resume-btn">▶️ 继续游戏</button>
+                <button class="btn btn-secondary" id="restart-btn">🔄 重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-title fade-in">
+                <h1>🎾 迷你网球 🎾</h1>
+                <p class="subtitle">挥动球拍，赢得比赛！</p>
+            </div>
+
+            <div class="game-info fade-in">
+                <div class="info-item">
+                    <div class="label">你 (街头小子)</div>
+                    <div class="score-display">
+                        <span class="player-score" id="player-score">0</span>
+                        <span class="separator">:</span>
+                        <span class="opponent-score" id="opponent-score">0</span>
+                    </div>
+                </div>
+                <div class="info-item opponent">
+                    <div class="label">对手</div>
+                    <div class="value" id="opponent-name">🤖 机器人</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">局数</div>
+                    <div class="value">
+                        <span id="player-games">0</span> - <span id="opponent-games">0</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="label">比赛时间</div>
+                    <div class="value" id="game-time">00:00</div>
+                </div>
+            </div>
+
+            <div class="game-canvas-container fade-in" id="canvas-container">
+                <canvas id="gameCanvas" width="600" height="400"></canvas>
+                
+                <div class="charge-bar-container" id="charge-bar-container">
+                    <div class="charge-bar-fill" id="charge-bar-fill"></div>
+                </div>
+                
+                <div class="opponent-info" id="opponent-info">
+                    <span class="opponent-emoji" id="opponent-emoji">🤖</span>
+                    <span class="opponent-name" id="opponent-info-name">机器人</span>
+                </div>
+            </div>
+
+            <div class="game-controls fade-in">
+                <button class="btn btn-primary" id="start-btn">▶️ 开始游戏</button>
+                <button class="btn btn-warning" id="pause-btn" disabled>⏸️ 暂停</button>
+                <button class="btn btn-danger" id="restart-main-btn">🔄 重新开始</button>
+            </div>
+
+            <div class="instructions fade-in">
+                <h3>📖 操作说明</h3>
+                <div class="instructions-grid">
+                    <div class="instruction-item">
+                        <span class="key">← →</span> 或 鼠标移动
+                        <br><small>左右移动球员</small>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="key">左键</span> 点击
+                        <br><small>击球</small>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="key">长按左键</span>
+                        <br><small>蓄力扣杀</small>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="key">⚡ 扣杀</span>
+                        <br><small>蓄力满格时击球</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="game-over-modal" id="game-over-modal">
+        <div class="game-over-content">
+            <div class="game-over-icon" id="game-over-icon">🏆</div>
+            <h2 class="game-over-title" id="game-over-title">比赛结束</h2>
+            <div class="game-over-stats">
+                <p>最终比分: <strong id="final-score">0 - 0</strong></p>
+                <p>比赛用时: <strong id="final-time">00:00</strong></p>
+                <p>最高连击: <strong id="final-rally">0</strong></p>
+            </div>
+            <button class="btn btn-primary" id="play-again-btn">🎾 再来一局</button>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
