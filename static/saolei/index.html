@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萌萌哒扫雷</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>💣 萌萌哒扫雷 🚩</h1>
+        </header>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <span class="info-label">剩余地雷</span>
+                <span class="info-value" id="mine-count">10</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">用时</span>
+                <span class="info-value" id="timer">00:00</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">分数</span>
+                <span class="info-value" id="score">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">最高分</span>
+                <span class="info-value" id="high-score">0</span>
+            </div>
+        </div>
+        
+        <div class="difficulty-selector" id="difficulty-selector">
+            <h2>选择难度</h2>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn easy" data-difficulty="easy">
+                    🌟 简单<br>
+                    <small>9×9 10雷</small>
+                </button>
+                <button class="difficulty-btn medium" data-difficulty="medium">
+                    🌙 中等<br>
+                    <small>16×16 40雷</small>
+                </button>
+                <button class="difficulty-btn hard" data-difficulty="hard">
+                    🌠 困难<br>
+                    <small>16×30 99雷</small>
+                </button>
+            </div>
+        </div>
+        
+        <div class="game-canvas-container" id="game-canvas-container" style="display: none;">
+            <canvas id="game-canvas"></canvas>
+        </div>
+        
+        <div class="control-buttons" id="control-buttons" style="display: none;">
+            <button class="control-btn" id="btn-pause">⏸️ 暂停</button>
+            <button class="control-btn" id="btn-restart">🔄 重新开始</button>
+            <button class="control-btn" id="btn-new">🎮 新游戏</button>
+        </div>
+        
+        <div class="virtual-controls" id="virtual-controls" style="display: none;">
+            <h3>虚拟操作</h3>
+            <div class="virtual-buttons">
+                <button class="virtual-btn" id="btn-flag" title="插旗">🚩 插旗</button>
+                <button class="virtual-btn" id="btn-quick-open" title="快速翻开">⚡ 快速翻开</button>
+                <button class="virtual-btn" id="btn-cancel" title="取消模式">❌ 取消</button>
+            </div>
+            <p class="hint">当前模式: <span id="current-mode">普通点击</span></p>
+        </div>
+        
+        <div class="game-over-modal" id="game-over-modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="game-over-title">游戏结束</h2>
+                <p id="game-over-message"></p>
+                <p>用时: <span id="final-time"></span></p>
+                <p>得分: <span id="final-score"></span></p>
+                <button class="control-btn" id="btn-play-again">再来一局</button>
+                <button class="control-btn" id="btn-change-difficulty">换个难度</button>
+            </div>
+        </div>
+        
+        <div class="pause-modal" id="pause-modal" style="display: none;">
+            <div class="modal-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <button class="control-btn" id="btn-resume">▶️ 继续游戏</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/game.js"></script>
+</body>
+</html>
