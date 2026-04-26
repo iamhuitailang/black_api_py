@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>宠物闹钟</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🐾 宠物闹钟</h1>
+        </header>
+
+        <div class="pet-container">
+            <canvas id="petCanvas"></canvas>
+            <div class="pet-info">
+                <button id="switchPet" class="btn-small">切换宠物</button>
+            </div>
+        </div>
+
+        <div class="mode-selector">
+            <button id="countdownBtn" class="mode-btn active">倒计时</button>
+            <button id="alarmBtn" class="mode-btn">定时闹钟</button>
+        </div>
+
+        <div id="countdownPanel" class="panel active">
+            <div class="picker-container">
+                <div class="picker-column">
+                    <label>小时</label>
+                    <div class="picker-wrapper">
+                        <div class="picker" id="hourPicker"></div>
+                    </div>
+                </div>
+                <div class="picker-column">
+                    <label>分钟</label>
+                    <div class="picker-wrapper">
+                        <div class="picker" id="minutePicker"></div>
+                    </div>
+                </div>
+                <div class="picker-column">
+                    <label>秒</label>
+                    <div class="picker-wrapper">
+                        <div class="picker" id="secondPicker"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preset-buttons">
+                <button class="preset-btn" data-time="60">1分钟</button>
+                <button class="preset-btn" data-time="300">5分钟</button>
+                <button class="preset-btn" data-time="900">15分钟</button>
+                <button class="preset-btn" data-time="1800">30分钟</button>
+                <button class="preset-btn" data-time="3600">1小时</button>
+            </div>
+
+            <div class="repeat-settings">
+                <label>
+                    <input type="checkbox" id="enableRepeat"> 重复
+                </label>
+                <div id="repeatOptions" class="hidden">
+                    <label>
+                        <input type="radio" name="repeatType" value="infinite" checked> 无限次
+                    </label>
+                    <label>
+                        <input type="radio" name="repeatType" value="fixed"> 指定次数:
+                        <input type="number" id="repeatCount" min="1" max="100" value="3">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div id="alarmPanel" class="panel">
+            <div class="time-input-container">
+                <label>设置闹钟时间</label>
+                <input type="time" id="alarmTime" class="time-input">
+            </div>
+        </div>
+
+        <div class="timer-display hidden" id="timerDisplay">
+            <div class="time-text" id="timeText">00:00:00</div>
+            <div class="timer-status" id="timerStatus">倒计时中...</div>
+        </div>
+
+        <div class="control-buttons">
+            <button id="startBtn" class="btn-primary">开始</button>
+            <button id="pauseBtn" class="btn-secondary hidden">暂停</button>
+            <button id="stopBtn" class="btn-danger hidden">停止</button>
+        </div>
+
+        <div id="alarmOverlay" class="overlay hidden">
+            <div class="alarm-content">
+                <canvas id="alarmPetCanvas" class="alarm-canvas"></canvas>
+                <div class="alarm-message" id="alarmMessage">喵～时间到啦！</div>
+                <button id="dismissBtn" class="btn-primary">点击停止</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
