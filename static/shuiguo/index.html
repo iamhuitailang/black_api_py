@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水果小忍者 - 星球大战版</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- UI 界面 -->
+        <div id="ui-overlay">
+            <!-- 顶部状态栏 -->
+            <div id="top-bar">
+                <div class="stat-item">
+                    <span class="stat-label">分数</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">连击</span>
+                    <span class="stat-value" id="combo">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">时间</span>
+                    <span class="stat-value" id="timer">60</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">最高分</span>
+                    <span class="stat-value" id="highScore">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">生命</span>
+                    <div class="lives-container" id="lives">
+                        <div class="life-icon active"></div>
+                        <div class="life-icon active"></div>
+                        <div class="life-icon active"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 控制按钮 -->
+            <div id="controls">
+                <button id="pauseBtn" class="control-btn" style="display: none;">暂停</button>
+                <button id="resumeBtn" class="control-btn" style="display: none;">继续</button>
+                <button id="restartBtn" class="control-btn" style="display: none;">重新开始</button>
+            </div>
+        </div>
+        
+        <!-- 开始界面 -->
+        <div id="start-screen" class="game-screen">
+            <h1 class="game-title">水果小忍者</h1>
+            <h2 class="game-subtitle">星球大战版</h2>
+            <button id="startBtn" class="main-btn">开始游戏</button>
+            <div class="instructions">
+                <p>• 鼠标/手指划过水果进行切割</p>
+                <p>• 每个水果 +10 分</p>
+                <p>• 连续切割 3 个以上水果触发连击加分</p>
+                <p>• 避开黑色炸弹,切到炸弹扣 1 格生命</p>
+                <p>• 每局 60 秒,3 格生命耗尽则游戏结束</p>
+            </div>
+        </div>
+        
+        <!-- 游戏结束界面 -->
+        <div id="game-over-screen" class="game-screen" style="display: none;">
+            <h1 class="game-title">游戏结束</h1>
+            <div class="final-stats">
+                <div class="final-stat">
+                    <span class="final-label">最终得分</span>
+                    <span class="final-value" id="finalScore">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="final-label">最高连击</span>
+                    <span class="final-value" id="maxCombo">0</span>
+                </div>
+                <div class="final-stat" id="newHighScore" style="display: none;">
+                    <span class="final-label">新纪录!</span>
+                </div>
+            </div>
+            <button id="playAgainBtn" class="main-btn">再玩一次</button>
+        </div>
+        
+        <!-- 暂停界面 -->
+        <div id="pause-screen" class="game-screen" style="display: none;">
+            <h1 class="game-title">游戏暂停</h1>
+            <button id="resumeFromPauseBtn" class="main-btn">继续游戏</button>
+            <button id="quitBtn" class="main-btn secondary">退出游戏</button>
+        </div>
+    </div>
+    
+    <script src="js/game.js"></script>
+    <script src="js/objects.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>
