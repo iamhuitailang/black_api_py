@@ -1,0 +1,545 @@
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+:root {
+    --ink-black: #1a1a1a;
+    --ink-dark: #2d2d2d;
+    --ink-gray: #4a4a4a;
+    --ink-light: #6b6b6b;
+    --paper: #f5f0e6;
+    --paper-dark: #e8e0d0;
+    --red-chinese: #c41e3a;
+    --red-dark: #8b0000;
+    --green-win: #228b22;
+    --green-light: #32cd32;
+    --gold: #daa520;
+    --font-brush: 'Ma Shan Zheng', cursive;
+    --font-serif: 'Noto Serif SC', serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-serif);
+    background: linear-gradient(135deg, var(--paper) 0%, var(--paper-dark) 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--ink-black);
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(ellipse at 20% 30%, rgba(139, 139, 139, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(139, 139, 139, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.game-container {
+    position: relative;
+    z-index: 1;
+    max-width: 500px;
+    width: 100%;
+    padding: 20px;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.game-title {
+    font-family: var(--font-brush);
+    font-size: 4rem;
+    color: var(--ink-black);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 10px;
+    margin-bottom: 10px;
+}
+
+.game-subtitle {
+    font-size: 1.1rem;
+    color: var(--ink-light);
+    letter-spacing: 5px;
+}
+
+.start-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.start-content {
+    text-align: center;
+    position: relative;
+}
+
+.ink-splash {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 30px;
+    background: radial-gradient(ellipse at center, 
+        var(--ink-black) 0%, 
+        var(--ink-dark) 20%, 
+        var(--ink-gray) 40%, 
+        transparent 60%);
+    border-radius: 50%;
+    position: relative;
+}
+
+.ink-splash::before,
+.ink-splash::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: var(--ink-dark);
+    opacity: 0.6;
+}
+
+.ink-splash::before {
+    width: 40px;
+    height: 40px;
+    top: 10px;
+    right: 20px;
+}
+
+.ink-splash::after {
+    width: 30px;
+    height: 30px;
+    bottom: 20px;
+    left: 30px;
+}
+
+.intro-text {
+    font-size: 1.2rem;
+    color: var(--ink-dark);
+    line-height: 2;
+    margin-bottom: 30px;
+}
+
+.difficulty-selector {
+    margin-bottom: 20px;
+}
+
+.difficulty-label {
+    font-size: 1rem;
+    color: var(--ink-dark);
+    display: block;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.difficulty-options {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.difficulty-option {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.difficulty-option input[type="radio"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--ink-dark);
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.difficulty-option input[type="radio"]:checked {
+    background: var(--red-chinese);
+    border-color: var(--red-chinese);
+}
+
+.difficulty-option input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+}
+
+.difficulty-text {
+    font-size: 1rem;
+    color: var(--ink-dark);
+}
+
+.difficulty-option:hover .difficulty-text {
+    color: var(--red-chinese);
+}
+
+.difficulty-hint {
+    font-size: 0.85rem;
+    color: var(--ink-light);
+    margin-bottom: 30px;
+    font-style: italic;
+}
+
+.btn {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    padding: 12px 30px;
+    border: 2px solid var(--ink-dark);
+    background: transparent;
+    color: var(--ink-dark);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: var(--ink-dark);
+    transition: left 0.3s ease;
+    z-index: -1;
+}
+
+.btn:hover::before {
+    left: 0;
+}
+
+.btn:hover {
+    color: var(--paper);
+}
+
+.btn-primary {
+    border-color: var(--red-chinese);
+    color: var(--red-chinese);
+}
+
+.btn-primary::before {
+    background: var(--red-chinese);
+}
+
+.btn-secondary {
+    border-color: var(--ink-gray);
+    color: var(--ink-gray);
+}
+
+.btn-secondary::before {
+    background: var(--ink-gray);
+}
+
+.btn-large {
+    font-size: 1.3rem;
+    padding: 15px 50px;
+    letter-spacing: 3px;
+}
+
+.btn-icon {
+    margin-right: 8px;
+}
+
+.game-info {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--ink-light);
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.score-board {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.score-item {
+    text-align: center;
+    flex: 1;
+}
+
+.score-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--ink-light);
+    margin-bottom: 5px;
+}
+
+.score-value {
+    font-family: var(--font-brush);
+    font-size: 2.5rem;
+    color: var(--ink-dark);
+}
+
+.player-x .score-value {
+    color: var(--red-chinese);
+}
+
+.player-o .score-value {
+    color: var(--ink-black);
+}
+
+.draws .score-value {
+    color: var(--ink-light);
+}
+
+.game-stats {
+    display: flex;
+    justify-content: space-around;
+    padding-top: 15px;
+    border-top: 1px dashed var(--ink-light);
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--ink-light);
+    margin-bottom: 3px;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--ink-dark);
+}
+
+.turn-indicator {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--ink-light);
+    border-radius: 4px;
+}
+
+.turn-text {
+    font-size: 1rem;
+    color: var(--ink-dark);
+}
+
+.turn-player {
+    font-family: var(--font-brush);
+    font-size: 2rem;
+    color: var(--red-chinese);
+    margin: 0 10px;
+    font-weight: bold;
+}
+
+.canvas-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+#gameCanvas {
+    background: rgba(255, 255, 255, 0.3);
+    border: 3px solid var(--ink-dark);
+    cursor: pointer;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.1),
+        inset 0 0 20px rgba(0, 0, 0, 0.02);
+}
+
+.pause-overlay {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 400px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid var(--ink-dark);
+}
+
+.pause-content {
+    text-align: center;
+    color: var(--paper);
+}
+
+.pause-title {
+    font-family: var(--font-brush);
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+}
+
+.control-panel {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.control-panel .btn {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: var(--paper);
+    border: 3px solid var(--ink-dark);
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: slideIn 0.4s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5rem;
+}
+
+.modal-icon.win {
+    background: linear-gradient(135deg, var(--green-win), var(--green-light));
+    color: white;
+}
+
+.modal-icon.lose {
+    background: linear-gradient(135deg, var(--red-dark), var(--red-chinese));
+    color: white;
+}
+
+.modal-icon.draw {
+    background: linear-gradient(135deg, var(--ink-gray), var(--ink-light));
+    color: white;
+}
+
+.modal-title {
+    font-family: var(--font-brush);
+    font-size: 2.2rem;
+    color: var(--ink-dark);
+    margin-bottom: 15px;
+}
+
+.modal-message {
+    font-size: 1.1rem;
+    color: var(--ink-light);
+    margin-bottom: 30px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.modal-actions .btn {
+    padding: 10px 25px;
+}
+
+@media (max-width: 480px) {
+    .game-container {
+        padding: 10px;
+    }
+
+    .game-title {
+        font-size: 3rem;
+    }
+
+    #gameCanvas {
+        width: 320px;
+        height: 320px;
+    }
+
+    .pause-overlay {
+        width: 320px;
+        height: 320px;
+    }
+
+    .control-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .control-panel .btn {
+        width: 100%;
+    }
+
+    .score-value {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 360px) {
+    #gameCanvas {
+        width: 280px;
+        height: 280px;
+    }
+
+    .pause-overlay {
+        width: 280px;
+        height: 280px;
+    }
+}

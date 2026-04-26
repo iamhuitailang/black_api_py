@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋 - 水墨丹青</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1 class="game-title">井字棋</h1>
+            <p class="game-subtitle">水墨丹青 · 对弈人生</p>
+        </header>
+
+        <div class="start-screen" id="startScreen">
+            <div class="start-content">
+                <div class="ink-splash"></div>
+                <p class="intro-text">以水墨为媒，以棋盘为界<br>与君对弈一局，共赏东方雅韵</p>
+                
+                <div class="difficulty-selector">
+                    <label class="difficulty-label">选择难度：</label>
+                    <div class="difficulty-options">
+                        <label class="difficulty-option">
+                            <input type="radio" name="difficulty" value="easy">
+                            <span class="difficulty-text">简单</span>
+                        </label>
+                        <label class="difficulty-option">
+                            <input type="radio" name="difficulty" value="medium">
+                            <span class="difficulty-text">中等</span>
+                        </label>
+                        <label class="difficulty-option">
+                            <input type="radio" name="difficulty" value="hard" checked>
+                            <span class="difficulty-text">困难</span>
+                        </label>
+                    </div>
+                </div>
+                <p class="difficulty-hint">困难模式：电脑不会输，最多平局</p>
+                
+                <button class="btn btn-primary btn-large" id="startBtn">
+                    <span class="btn-text">开始游戏</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="game-main" id="gameMain" style="display: none;">
+            <div class="game-info">
+                <div class="score-board">
+                    <div class="score-item player-x">
+                        <span class="score-label">玩家 (X)</span>
+                        <span class="score-value" id="scoreX">0</span>
+                    </div>
+                    <div class="score-item draws">
+                        <span class="score-label">平局</span>
+                        <span class="score-value" id="scoreDraws">0</span>
+                    </div>
+                    <div class="score-item player-o">
+                        <span class="score-label">电脑 (O)</span>
+                        <span class="score-value" id="scoreO">0</span>
+                    </div>
+                </div>
+
+                <div class="game-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">比赛时间</span>
+                        <span class="stat-value" id="gameTime">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">难度</span>
+                        <span class="stat-value" id="difficultyIndicator">困难</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最高连胜</span>
+                        <span class="stat-value" id="winStreak">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="turn-indicator" id="turnIndicator">
+                <span class="turn-text">轮到</span>
+                <span class="turn-player" id="currentPlayer">X</span>
+                <span class="turn-text">落子</span>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+                <div class="pause-overlay" id="pauseOverlay" style="display: none;">
+                    <div class="pause-content">
+                        <h2 class="pause-title">游戏暂停</h2>
+                        <button class="btn btn-primary" id="resumeBtn">继续游戏</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <button class="btn btn-secondary" id="pauseBtn">
+                    <span class="btn-icon">⏸</span>
+                    <span class="btn-text">暂停</span>
+                </button>
+                <button class="btn btn-primary" id="restartBtn">
+                    <span class="btn-icon">↺</span>
+                    <span class="btn-text">重新开始</span>
+                </button>
+                <button class="btn btn-secondary" id="newGameBtn">
+                    <span class="btn-icon">🏠</span>
+                    <span class="btn-text">返回主菜单</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="resultModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-icon" id="modalIcon"></div>
+                <h2 class="modal-title" id="modalTitle">X赢了！</h2>
+                <p class="modal-message" id="modalMessage">恭喜获胜！</p>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="modalNewGameBtn">返回主菜单</button>
+                    <button class="btn btn-secondary" id="modalRestartBtn">再来一局</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
