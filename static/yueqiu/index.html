@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式3D月球模型</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="control-panel">
+        <div class="panel-section">
+            <h3>视角控制</h3>
+            <button id="reset-view" class="control-btn">复位视角</button>
+            <button id="toggle-markers" class="control-btn">显示标记点</button>
+        </div>
+        
+        <div class="panel-section">
+            <h3>标记点管理</h3>
+            <button id="add-marker-mode" class="control-btn">添加标记点模式</button>
+            <div class="marker-controls">
+                <label>颜色: <input type="color" id="marker-color" value="#ff4444"></label>
+                <label>大小: <input type="range" id="marker-size" min="1" max="10" value="3"></label>
+            </div>
+        </div>
+    </div>
+    
+    <div id="marker-info" class="marker-info-panel hidden">
+        <h4>标记点信息</h4>
+        <div class="info-content">
+            <p><strong>坐标:</strong> <span id="info-coords">-</span></p>
+            <p><strong>名称:</strong> <input type="text" id="info-name" placeholder="输入标记点名称"></p>
+            <p><strong>描述:</strong> <textarea id="info-desc" placeholder="输入描述"></textarea></p>
+        </div>
+        <div class="info-actions">
+            <button id="save-marker" class="action-btn">保存</button>
+            <button id="delete-marker" class="action-btn danger">删除</button>
+            <button id="close-info" class="action-btn">关闭</button>
+        </div>
+    </div>
+    
+    <div id="add-marker-panel" class="marker-info-panel hidden">
+        <h4>添加标记点</h4>
+        <div class="info-content">
+            <p><strong>坐标:</strong> <span id="add-coords">-</span></p>
+            <p><strong>名称:</strong> <input type="text" id="add-name" placeholder="输入标记点名称"></p>
+            <p><strong>描述:</strong> <textarea id="add-desc" placeholder="输入描述"></textarea></p>
+        </div>
+        <div class="info-actions">
+            <button id="confirm-add" class="action-btn">确认添加</button>
+            <button id="cancel-add" class="action-btn">取消</button>
+        </div>
+    </div>
+    
+    <div id="mode-indicator" class="mode-indicator hidden">
+        <span>添加标记点模式 - 点击月球表面添加标记</span>
+        <button id="exit-mode">退出</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

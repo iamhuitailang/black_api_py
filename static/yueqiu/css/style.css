@@ -1,0 +1,280 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #000;
+    overflow: hidden;
+    color: #fff;
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.control-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    z-index: 100;
+    min-width: 250px;
+    backdrop-filter: blur(10px);
+}
+
+.panel-section {
+    margin-bottom: 15px;
+}
+
+.panel-section:last-child {
+    margin-bottom: 0;
+}
+
+.panel-section h3 {
+    font-size: 14px;
+    color: #88ccff;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-btn {
+    width: 100%;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 1px solid rgba(136, 204, 255, 0.3);
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+    background: linear-gradient(135deg, #16213e, #0f3460);
+    border-color: rgba(136, 204, 255, 0.6);
+    transform: translateY(-1px);
+}
+
+.control-btn.active {
+    background: linear-gradient(135deg, #0f3460, #e94560);
+    border-color: #e94560;
+}
+
+.control-btn:last-child {
+    margin-bottom: 0;
+}
+
+.marker-controls {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+.marker-controls label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #aaa;
+}
+
+.marker-controls label:last-child {
+    margin-bottom: 0;
+}
+
+.marker-controls input[type="color"] {
+    width: 40px;
+    height: 25px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.marker-controls input[type="range"] {
+    flex: 1;
+    height: 5px;
+    border-radius: 3px;
+    background: #333;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.marker-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #88ccff;
+    cursor: pointer;
+}
+
+.marker-info-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 200;
+    min-width: 350px;
+    max-width: 400px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(136, 204, 255, 0.2);
+}
+
+.marker-info-panel.hidden {
+    display: none;
+}
+
+.marker-info-panel h4 {
+    font-size: 16px;
+    color: #88ccff;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.info-content {
+    margin-bottom: 15px;
+}
+
+.info-content p {
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.info-content strong {
+    color: #fff;
+}
+
+.info-content input[type="text"],
+.info-content textarea {
+    width: 100%;
+    margin-top: 5px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+}
+
+.info-content textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.info-content input[type="text"]:focus,
+.info-content textarea:focus {
+    outline: none;
+    border-color: #88ccff;
+    background: rgba(136, 204, 255, 0.15);
+}
+
+.info-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.action-btn:not(.danger) {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 1px solid rgba(136, 204, 255, 0.3);
+    color: #fff;
+}
+
+.action-btn:not(.danger):hover {
+    background: linear-gradient(135deg, #16213e, #0f3460);
+    border-color: rgba(136, 204, 255, 0.6);
+}
+
+.action-btn.danger {
+    background: linear-gradient(135deg, #e94560, #c73e54);
+    color: #fff;
+}
+
+.action-btn.danger:hover {
+    background: linear-gradient(135deg, #ff5a75, #e94560);
+}
+
+.mode-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(233, 69, 96, 0.9);
+    border-radius: 25px;
+    padding: 12px 25px;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+}
+
+.mode-indicator.hidden {
+    display: none;
+}
+
+.mode-indicator span {
+    font-size: 14px;
+    color: #fff;
+}
+
+.mode-indicator button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 5px 15px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.mode-indicator button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.help-text {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #aaa;
+    z-index: 50;
+}
+
+.help-text span {
+    color: #88ccff;
+}
