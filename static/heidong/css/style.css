@@ -1,0 +1,307 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #fff;
+    overflow: hidden;
+}
+
+.container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #000000 0%, #1a0033 50%, #330000 100%);
+}
+
+#simulator {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+#simulator:active {
+    cursor: grabbing;
+}
+
+/* 控制面板 */
+.control-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    max-height: 90vh;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(128, 0, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(128, 0, 255, 0.2);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: linear-gradient(90deg, rgba(128, 0, 255, 0.3), rgba(255, 0, 64, 0.3));
+    border-bottom: 1px solid rgba(128, 0, 255, 0.3);
+}
+
+.panel-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(90deg, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #a855f7;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.3s ease;
+}
+
+.toggle-btn:hover {
+    color: #ec4899;
+    transform: scale(1.1);
+}
+
+.panel-content {
+    padding: 15px;
+    max-height: calc(90vh - 60px);
+    overflow-y: auto;
+}
+
+.control-panel.collapsed .panel-content {
+    display: none;
+}
+
+.control-panel.collapsed {
+    width: auto;
+}
+
+/* 滚动条样式 */
+.panel-content::-webkit-scrollbar {
+    width: 5px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: rgba(128, 0, 255, 0.5);
+    border-radius: 3px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group h4 {
+    font-size: 14px;
+    color: #a855f7;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(128, 0, 255, 0.2);
+}
+
+.control-item {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.control-item label {
+    font-size: 13px;
+    color: #ccc;
+}
+
+/* 复选框样式 */
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #a855f7;
+}
+
+/* 滑块样式 */
+input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+    transition: transform 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* 按钮样式 */
+.btn {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: rgba(128, 0, 255, 0.2);
+    border: 1px solid rgba(128, 0, 255, 0.3);
+    border-radius: 5px;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background: rgba(128, 0, 255, 0.4);
+    border-color: rgba(128, 0, 255, 0.5);
+    box-shadow: 0 0 15px rgba(128, 0, 255, 0.3);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #9333ea, #db2777);
+}
+
+/* 标记列表 */
+.markers-list {
+    margin-top: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.marker-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.marker-item .marker-name {
+    color: #a855f7;
+    cursor: pointer;
+}
+
+.marker-item .marker-name:hover {
+    color: #ec4899;
+}
+
+.marker-item .marker-delete {
+    color: #ff4444;
+    cursor: pointer;
+    padding: 2px 5px;
+}
+
+.marker-item .marker-delete:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border-radius: 3px;
+}
+
+/* 提示信息 */
+.tips {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(128, 0, 255, 0.3);
+    backdrop-filter: blur(5px);
+    z-index: 100;
+}
+
+.tips p {
+    font-size: 13px;
+    color: #aaa;
+    text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .control-panel {
+        width: calc(100% - 40px);
+        max-height: 50vh;
+    }
+    
+    .tips {
+        bottom: 10px;
+        font-size: 12px;
+        padding: 8px 15px;
+    }
+}
+
+/* 动画效果 */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(128, 0, 255, 0.2); }
+    50% { box-shadow: 0 0 30px rgba(128, 0, 255, 0.4); }
+}
+
+.control-panel {
+    animation: glow 3s ease-in-out infinite;
+}
+
+/* 标记样式 */
+.marker-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #a855f7;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #fff;
+    pointer-events: none;
+    z-index: 1000;
+    transform: translate(-50%, -100%);
+    margin-top: -10px;
+}
+
+.marker-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #a855f7;
+}
