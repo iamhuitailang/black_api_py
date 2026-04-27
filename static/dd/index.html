@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>任务接单平台</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <header class="header">
+            <button class="header-btn header-btn-back hidden" onclick="Router.back()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <span class="header-title">任务广场</span>
+            <div class="header-actions">
+                <button class="header-btn" onclick="app.refreshCurrentPage()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M23 4v6h-6"/>
+                        <path d="M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="page-login" class="page">
+                <div class="auth-page">
+                    <div class="auth-header fade-in">
+                        <div class="auth-logo">
+                            <svg width="40" height="40" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </div>
+                        <h1 class="auth-title">任务接单平台</h1>
+                        <p class="auth-subtitle">科技赋能，高效对接</p>
+                    </div>
+
+                    <form id="login-form" class="auth-form fade-in animate-delay-1">
+                        <div class="form-group">
+                            <label class="form-label">手机号</label>
+                            <input type="tel" id="login-phone" class="form-input" placeholder="请输入手机号" maxlength="11">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">密码</label>
+                            <input type="password" id="login-password" class="form-input" placeholder="请输入密码">
+                        </div>
+                        <div class="mt-xl">
+                            <button type="submit" id="btn-login" class="btn btn-primary btn-lg btn-block">
+                                登录
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="auth-footer fade-in animate-delay-2">
+                        <span class="text-secondary">还没有账号？</span>
+                        <span class="auth-link" data-route="register">立即注册</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-register" class="page">
+                <div class="auth-page">
+                    <div class="auth-header fade-in">
+                        <div class="auth-logo">
+                            <svg width="40" height="40" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="8.5" cy="7" r="4"/>
+                                <path d="M20 8v6M23 11h-6"/>
+                            </svg>
+                        </div>
+                        <h1 class="auth-title">注册账号</h1>
+                        <p class="auth-subtitle">加入我们，开始接单之旅</p>
+                    </div>
+
+                    <form id="register-form" class="auth-form fade-in animate-delay-1">
+                        <div class="form-group">
+                            <label class="form-label">手机号</label>
+                            <input type="tel" id="register-phone" class="form-input" placeholder="请输入手机号" maxlength="11">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">设置密码</label>
+                            <input type="password" id="register-password" class="form-input" placeholder="请输入密码（至少6位）">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">确认密码</label>
+                            <input type="password" id="register-confirm-password" class="form-input" placeholder="请再次输入密码">
+                        </div>
+                        <div class="mt-xl">
+                            <button type="submit" id="btn-register" class="btn btn-primary btn-lg btn-block">
+                                注册
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="auth-footer fade-in animate-delay-2">
+                        <span class="text-secondary">已有账号？</span>
+                        <span class="auth-link" data-route="login">立即登录</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-tasks" class="page">
+                <div class="search-bar">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" class="text-muted" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="task-search-input" placeholder="搜索任务..." autocomplete="off">
+                </div>
+
+                <div class="filter-tabs" id="task-filter-tabs">
+                    <span class="filter-tab active" data-category="">全部</span>
+                    <span class="filter-tab" data-category="跑腿">跑腿</span>
+                    <span class="filter-tab" data-category="搬家">搬家</span>
+                    <span class="filter-tab" data-category="家政">家政</span>
+                    <span class="filter-tab" data-category="维修">维修</span>
+                    <span class="filter-tab" data-category="其他">其他</span>
+                </div>
+
+                <div id="tasks-list"></div>
+            </div>
+
+            <div id="page-my-tasks" class="page">
+                <div class="filter-tabs" id="my-tasks-filter-tabs">
+                    <span class="filter-tab active" data-type="published">我发布的</span>
+                    <span class="filter-tab" data-type="received">我接单的</span>
+                </div>
+                <div id="my-tasks-list"></div>
+            </div>
+
+            <div id="page-task-detail" class="page">
+                <div id="task-detail-container"></div>
+            </div>
+
+            <div id="page-publish-task" class="page">
+                <form id="publish-task-form">
+                    <div class="form-group">
+                        <label class="form-label">任务标题 <span class="text-danger">*</span></label>
+                        <input type="text" id="task-title" class="form-input" placeholder="请输入任务标题" maxlength="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">任务分类 <span class="text-danger">*</span></label>
+                        <select id="task-category" class="form-select">
+                            <option value="">请选择分类</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">详细描述</label>
+                        <textarea id="task-description" class="form-textarea" placeholder="请详细描述任务内容..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">预算金额</label>
+                        <input type="number" id="task-budget" class="form-input" placeholder="请输入预算金额" min="0" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">任务地址</label>
+                        <input type="text" id="task-address" class="form-input" placeholder="请输入任务地址">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">约定时间</label>
+                        <select id="task-scheduled-hours" class="form-select">
+                            <option value="1">1小时内</option>
+                            <option value="2">2小时内</option>
+                            <option value="4">4小时内</option>
+                            <option value="6" selected>6小时内</option>
+                            <option value="12">12小时内</option>
+                            <option value="24">24小时内</option>
+                        </select>
+                    </div>
+
+                    <div class="mt-xl">
+                        <button type="submit" id="btn-submit-task" class="btn btn-primary btn-lg btn-block">
+                            发布任务
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="page-profile" class="page">
+                <div id="profile-container"></div>
+            </div>
+
+            <div id="page-edit-profile" class="page">
+                <form id="edit-profile-form">
+                    <div class="form-group">
+                        <label class="form-label">昵称</label>
+                        <input type="text" id="edit-nickname" class="form-input" placeholder="请输入昵称" maxlength="20">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">头像URL</label>
+                        <input type="url" id="edit-avatar-url" class="form-input" placeholder="请输入头像图片链接">
+                    </div>
+
+                    <div class="mt-xl">
+                        <button type="submit" id="btn-submit-edit" class="btn btn-primary btn-lg btn-block">
+                            保存修改
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="page-contact-settings" class="page">
+                <form id="contact-settings-form">
+                    <div class="form-group">
+                        <label class="form-label">联系电话</label>
+                        <input type="tel" id="contact-phone" class="form-input" placeholder="请输入联系电话" maxlength="11">
+                        <div class="form-hint">抢单成功后，对方可看到此电话</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">微信二维码URL</label>
+                        <input type="url" id="wechat-qrcode-url" class="form-input" placeholder="请输入微信二维码图片链接">
+                        <div class="form-hint">上传微信二维码，方便对方添加好友</div>
+                    </div>
+
+                    <div class="mt-xl">
+                        <button type="submit" id="btn-submit-contact" class="btn btn-primary btn-lg btn-block">
+                            保存设置
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="page-change-password" class="page">
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label class="form-label">原密码</label>
+                        <input type="password" id="old-password" class="form-input" placeholder="请输入原密码">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">新密码</label>
+                        <input type="password" id="new-password" class="form-input" placeholder="请输入新密码（至少6位）">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">确认新密码</label>
+                        <input type="password" id="confirm-password" class="form-input" placeholder="请再次输入新密码">
+                    </div>
+
+                    <div class="mt-xl">
+                        <button type="submit" id="btn-submit-password" class="btn btn-primary btn-lg btn-block">
+                            确认修改
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="page-my-reports" class="page">
+                <div id="my-reports-list"></div>
+            </div>
+        </main>
+
+        <nav class="tab-bar">
+            <div class="tab-item active" data-page="tasks">
+                <svg class="tab-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span class="tab-label">任务广场</span>
+            </div>
+            <div class="tab-item" data-page="myTasks">
+                <svg class="tab-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <span class="tab-label">我的任务</span>
+            </div>
+            <div class="tab-item" data-page="publishTask">
+                <svg class="tab-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="16"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                <span class="tab-label">发布任务</span>
+            </div>
+            <div class="tab-item" data-page="profile">
+                <svg class="tab-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span class="tab-label">个人中心</span>
+            </div>
+        </nav>
+
+        <div id="contact-modal" class="modal-overlay" onclick="app.handleModalClick(event, 'contact-modal')">
+            <div class="modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 class="modal-title">联系方式</h3>
+                    <button class="modal-close" onclick="TaskModule.hideModal('contact-modal')">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body"></div>
+            </div>
+        </div>
+
+        <div id="report-modal" class="modal-overlay" onclick="app.handleModalClick(event, 'report-modal')">
+            <div class="modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 class="modal-title">举报用户</h3>
+                    <button class="modal-close" onclick="TaskModule.hideModal('report-modal')">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="report-form">
+                        <div class="form-group">
+                            <label class="form-label">举报原因</label>
+                            <textarea id="report-reason" class="form-textarea" placeholder="请详细描述举报原因..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger btn-lg btn-block">
+                            提交举报
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/task.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
