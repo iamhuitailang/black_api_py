@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇大作战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="score-board">
+                <div class="score-item">
+                    <span class="label">当前分数</span>
+                    <span class="value" id="current-score">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">最高分</span>
+                    <span class="value" id="high-score">0</span>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="pause-btn" class="btn btn-secondary" disabled>暂停</button>
+                <button id="restart-btn" class="btn btn-warning">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="game-wrapper">
+            <canvas id="game-canvas" width="600" height="450"></canvas>
+            
+            <div id="start-overlay" class="overlay">
+                <div class="overlay-content">
+                    <h1>🐍 贪吃蛇大作战 🐍</h1>
+                    <div class="instructions">
+                        <p><strong>操作方式：</strong></p>
+                        <p>↑ ↓ ← → / W A S D - 控制方向</p>
+                        <p>空格 / R - 重新开始</p>
+                        <p><strong>游戏规则：</strong></p>
+                        <p>吃到草莓 🍓 得分 +10，身体 +1 节</p>
+                        <p>碰到墙壁、自己或其他蛇的身体即失败</p>
+                        <p>电脑蛇死亡后 3 秒复活</p>
+                    </div>
+                    <button id="overlay-start-btn" class="btn btn-primary btn-large">开始游戏</button>
+                </div>
+            </div>
+            
+            <div id="gameover-overlay" class="overlay hidden">
+                <div class="overlay-content">
+                    <h1>💀 游戏结束 💀</h1>
+                    <div class="final-score">
+                        <p>最终得分</p>
+                        <p class="score-value" id="final-score">0</p>
+                    </div>
+                    <button id="overlay-restart-btn" class="btn btn-primary btn-large">再来一局</button>
+                </div>
+            </div>
+            
+            <div id="pause-overlay" class="overlay hidden">
+                <div class="overlay-content">
+                    <h1>⏸️ 游戏暂停</h1>
+                    <button id="overlay-resume-btn" class="btn btn-primary btn-large">继续游戏</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-footer">
+            <p>提示：吃掉红色草莓 🍓 来增长身体，躲避墙壁和其他蛇！</p>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/snake.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
