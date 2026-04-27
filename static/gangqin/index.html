@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>钢琴模拟器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>钢琴模拟器</h1>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="volume">音量</label>
+                    <input type="range" id="volume" min="0" max="100" value="70">
+                    <span id="volume-value">70%</span>
+                </div>
+                <div class="control-group">
+                    <button id="sustain-btn" class="toggle-btn">
+                        <span>延音踏板</span>
+                        <div class="switch"></div>
+                    </button>
+                </div>
+                <div class="control-group">
+                    <button id="notation-btn" class="toggle-btn">
+                        <span>简谱模式</span>
+                        <div class="switch"></div>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="piano-wrapper">
+                <canvas id="piano-canvas"></canvas>
+            </div>
+            
+            <div class="demo-section">
+                <h3>示范曲</h3>
+                <div class="demo-buttons">
+                    <button class="demo-btn" data-demo="xiaoxingxing">小星星</button>
+                    <button class="demo-btn" data-demo="liangzhilaohu">两只老虎</button>
+                    <button class="demo-btn" data-demo="tianshangde">天上的星星不说话</button>
+                    <button class="demo-btn" data-demo="stop" id="stop-demo-btn">停止</button>
+                </div>
+            </div>
+
+            <div class="metronome-section">
+                <h3>节拍器</h3>
+                <div class="metronome-controls">
+                    <div class="control-group">
+                        <label for="bpm">BPM</label>
+                        <input type="range" id="bpm" min="40" max="200" value="120">
+                        <span id="bpm-value">120</span>
+                    </div>
+                    <button id="metronome-btn" class="toggle-btn">
+                        <span>节拍器</span>
+                        <div class="switch"></div>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="keyboard-map">
+                <h4>键盘映射 (第一八度)</h4>
+                <div class="key-map">
+                    <span class="key-item"><kbd>A</kbd> C4</span>
+                    <span class="key-item"><kbd>W</kbd> C#4</span>
+                    <span class="key-item"><kbd>S</kbd> D4</span>
+                    <span class="key-item"><kbd>E</kbd> D#4</span>
+                    <span class="key-item"><kbd>D</kbd> E4</span>
+                    <span class="key-item"><kbd>F</kbd> F4</span>
+                    <span class="key-item"><kbd>T</kbd> F#4</span>
+                    <span class="key-item"><kbd>G</kbd> G4</span>
+                    <span class="key-item"><kbd>Y</kbd> G#4</span>
+                    <span class="key-item"><kbd>H</kbd> A4</span>
+                    <span class="key-item"><kbd>U</kbd> A#4</span>
+                    <span class="key-item"><kbd>J</kbd> B4</span>
+                    <span class="key-item"><kbd>K</kbd> C5</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <script src="js/audio.js"></script>
+    <script src="js/keys.js"></script>
+    <script src="js/demo.js"></script>
+    <script src="js/metronome.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
