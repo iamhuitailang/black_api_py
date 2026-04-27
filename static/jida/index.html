@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音律冲击 - 节奏快打</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 游戏画布 -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- 开始菜单 -->
+        <div id="start-menu" class="menu-overlay">
+            <div class="menu-content">
+                <h1 class="game-title">音律冲击</h1>
+                <p class="game-subtitle">节奏快打</p>
+                
+                <div class="mode-select">
+                    <p class="select-label">选择模式:</p>
+                    <div class="mode-buttons">
+                        <button class="mode-btn active" data-mode="4">4键模式</button>
+                        <button class="mode-btn" data-mode="6">6键模式</button>
+                    </div>
+                </div>
+                
+                <div id="restore-section" class="start-buttons hidden">
+                    <button id="restore-btn" class="primary-btn">继续上次游戏</button>
+                    <button id="new-game-btn" class="secondary-btn">开始新游戏</button>
+                </div>
+                
+                <div id="normal-start-section" class="start-buttons">
+                    <button id="start-btn" class="primary-btn">开始游戏</button>
+                    <button id="endless-btn" class="secondary-btn">无尽模式 (60秒)</button>
+                </div>
+                
+                <div class="high-score">
+                    <span>最高分: <span id="menu-high-score">0</span></span>
+                </div>
+                
+                <div class="key-hint">
+                    <p>4键: D F J K</p>
+                    <p>6键: S D F J K L</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 暂停菜单 -->
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">游戏暂停</h2>
+                <div class="pause-buttons">
+                    <button id="resume-btn" class="primary-btn">继续游戏</button>
+                    <button id="restart-btn" class="secondary-btn">重新开始</button>
+                    <button id="menu-btn" class="secondary-btn">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 游戏结束菜单 -->
+        <div id="gameover-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">游戏结束</h2>
+                <div class="game-over-stats">
+                    <p>最终分数: <span id="final-score">0</span></p>
+                    <p>最高连击: <span id="final-combo">0</span></p>
+                    <p>最大Perfect: <span id="final-perfect">0</span></p>
+                    <p>新纪录: <span id="new-record" class="hidden">是!</span><span id="not-record">否</span></p>
+                </div>
+                <div class="gameover-buttons">
+                    <button id="play-again-btn" class="primary-btn">再来一局</button>
+                    <button id="back-menu-btn" class="secondary-btn">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 游戏UI -->
+        <div id="game-ui" class="game-ui hidden">
+            <!-- 分数 -->
+            <div class="score-display">
+                <span class="score-label">分数</span>
+                <span id="score" class="score-value">0</span>
+            </div>
+            
+            <!-- 时间 -->
+            <div id="timer-display" class="timer-display hidden">
+                <span class="timer-label">剩余时间</span>
+                <span id="timer" class="timer-value">60</span>
+            </div>
+            
+            <!-- 连击 -->
+            <div class="combo-display">
+                <span id="combo" class="combo-value">0</span>
+                <span class="combo-label">Combo</span>
+            </div>
+            
+            <!-- 血条 -->
+            <div class="health-bar-container">
+                <div class="health-bar">
+                    <div id="health-fill" class="health-fill" style="width: 100%"></div>
+                </div>
+                <span class="health-label">HP</span>
+            </div>
+            
+            <!-- 判定显示 -->
+            <div id="judgment-display" class="judgment-display"></div>
+            
+            <!-- 暂停按钮 -->
+            <button id="pause-btn" class="pause-btn">
+                <span>⏸</span>
+            </button>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/note.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
