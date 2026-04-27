@@ -13,6 +13,7 @@ from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
 from app.model.ims import ContactModel, VarietyModel, PurchaseModel, SaleModel, InventoryModel, OperationLogModel
+from app.model.dd import UserModel as DdUserModel, TaskModel, TaskClaimModel, ReviewModel, ReportModel, DdTokenModel
 from app.common.sqlite.db import get_db
 
 
@@ -42,6 +43,13 @@ def init_database():
     SaleModel.create_table()
     InventoryModel.create_table()
     OperationLogModel.create_table()
+    
+    DdUserModel.create_table()
+    DdTokenModel.create_table()
+    TaskModel.create_table()
+    TaskClaimModel.create_table()
+    ReviewModel.create_table()
+    ReportModel.create_table()
     
     migrate_database()
     
