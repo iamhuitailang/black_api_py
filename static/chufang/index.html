@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>厨房大作战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 开始界面 -->
+        <div id="start-screen" class="screen active">
+            <div class="start-content">
+                <h1 class="game-title">🍳 厨房大作战 🍳</h1>
+                <p class="game-desc">按照订单要求，点击正确的食材完成料理！</p>
+                <div class="how-to-play">
+                    <h3>🎮 如何玩</h3>
+                    <ul>
+                        <li>👆 点击开始游戏</li>
+                        <li>📋 查看订单需求</li>
+                        <li>🥬 按顺序点击食材</li>
+                        <li>⏱️ 限时内获得高分！</li>
+                    </ul>
+                </div>
+                <button id="continue-btn" class="btn-secondary" style="display: none;">继续游戏</button>
+                <button id="start-btn" class="btn-primary">开始游戏</button>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="game-screen" class="screen">
+            <!-- 顶部信息栏 -->
+            <div class="top-bar">
+                <div class="score-display">
+                    <span class="label">得分</span>
+                    <span id="score" class="value">0</span>
+                </div>
+                <div class="combo-display">
+                    <span class="label">连击</span>
+                    <span id="combo" class="value">×1</span>
+                </div>
+                <div class="time-display">
+                    <span class="label">时间</span>
+                    <span id="time" class="value">60</span>
+                </div>
+            </div>
+
+            <!-- 订单区域 -->
+            <div class="order-section">
+                <div class="order-card">
+                    <div class="customer">
+                        <div class="customer-emoji">😊</div>
+                        <div class="customer-bubble">
+                            <span id="order-text">请给我来一份...</span>
+                        </div>
+                    </div>
+                    <div class="dish-display">
+                        <div id="dish-emoji" class="dish-emoji">🍔</div>
+                        <div id="dish-name" class="dish-name">汉堡</div>
+                    </div>
+                    <div class="ingredients-list">
+                        <div id="ingredients-required" class="ingredients-required"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 烹饪区 -->
+            <div class="cooking-section">
+                <div class="cooking-area">
+                    <div class="cooking-label">烹饪中</div>
+                    <div id="cooking-ingredients" class="cooking-ingredients"></div>
+                </div>
+            </div>
+
+            <!-- 食材面板 -->
+            <div class="ingredients-section">
+                <div id="ingredients-panel" class="ingredients-panel"></div>
+            </div>
+        </div>
+
+        <!-- 结束界面 -->
+        <div id="end-screen" class="screen">
+            <div class="end-content">
+                <h2 class="end-title">🎉 游戏结束 🎉</h2>
+                <div class="final-score">
+                    <div class="score-item">
+                        <span class="score-label">最终得分</span>
+                        <span id="final-score" class="score-value">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">完成菜品</span>
+                        <span id="final-dishes" class="score-value">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">最高连击</span>
+                        <span id="final-combo" class="score-value">×1</span>
+                    </div>
+                </div>
+                <button id="restart-btn" class="btn-primary">再来一局</button>
+            </div>
+        </div>
+
+        <!-- 特效层 -->
+        <div id="effects-layer" class="effects-layer"></div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
