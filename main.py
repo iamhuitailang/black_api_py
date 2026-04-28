@@ -14,6 +14,19 @@ from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailM
 from app.model.auth import UserModel, TokenModel
 from app.model.ims import ContactModel, VarietyModel, PurchaseModel, SaleModel, InventoryModel, OperationLogModel
 from app.model.dd import UserModel as DdUserModel, TaskModel, TaskClaimModel, ReviewModel, ReportModel, DdTokenModel
+from app.model.dj import (
+    UserModel as DjUserModel,
+    TokenModel as DjTokenModel,
+    MarketModel,
+    BoothModel,
+    CategoryModel,
+    PriceModel,
+    MarketItemModel,
+    FavoriteModel,
+    CheckinModel,
+    ReviewModel as DjReviewModel,
+    QAModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -50,6 +63,18 @@ def init_database():
     TaskClaimModel.create_table()
     ReviewModel.create_table()
     ReportModel.create_table()
+    
+    DjUserModel.create_table()
+    DjTokenModel.create_table()
+    MarketModel.create_table()
+    BoothModel.create_table()
+    CategoryModel.create_table()
+    PriceModel.create_table()
+    MarketItemModel.create_table()
+    FavoriteModel.create_table()
+    CheckinModel.create_table()
+    DjReviewModel.create_table()
+    QAModel.create_table()
     
     migrate_database()
     
