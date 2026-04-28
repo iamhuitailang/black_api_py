@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>欢乐球球</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="score-board">
+                <div class="score-item">
+                    <span class="label">得分</span>
+                    <span class="value" id="currentScore">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">最高分</span>
+                    <span class="value" id="highScore">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">生命</span>
+                    <span class="value" id="lives">❤️❤️❤️❤️❤️</span>
+                </div>
+            </div>
+            
+            <div class="timer-bar" id="timerBar">
+                <div class="timer-fill" id="timerFill"></div>
+            </div>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <div class="title">欢乐球球</div>
+            <div class="subtitle">Q萌休闲下落游戏</div>
+            <button class="btn" id="startBtn">开始游戏</button>
+            <div class="instructions">
+                <p>🎮 点击屏幕或按空格键让小球下落</p>
+                <p>⭐ 从平台缺口处下落得分</p>
+                <p>💜 避开紫色障碍柱</p>
+                <p>⏰ 每关限时，别超时哦！</p>
+            </div>
+        </div>
+        
+        <div class="game-over-screen" id="gameOverScreen">
+            <div class="title">游戏结束</div>
+            <div class="result">
+                <div class="result-item">
+                    <span class="result-label">本次得分</span>
+                    <span class="result-value" id="finalScore">0</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最高纪录</span>
+                    <span class="result-value" id="finalHighScore">0</span>
+                </div>
+                <div class="new-record" id="newRecord" style="display: none;">🎉 新纪录！🎉</div>
+            </div>
+            <button class="btn" id="restartBtn">再来一局</button>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
