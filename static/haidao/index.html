@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海盗来了 · 宝藏争夺战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <div class="title-container">
+                <h1 class="game-title">🏴‍☠️ 海盗来了 🏴‍☠️</h1>
+                <h2 class="subtitle">宝藏争夺战</h2>
+                <p class="description">转动命运轮盘，攻击其他海盗，抢夺金币，成为海上最强王者！</p>
+            </div>
+            <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            <div class="instructions">
+                <h3>游戏规则</h3>
+                <ul>
+                    <li>⚔️ 转动转盘决定你的命运</li>
+                    <li>💥 攻击其他海盗，抢夺金币</li>
+                    <li>❤️ 恢复生命，🛡️ 防御攻击</li>
+                    <li>👑 找到宝藏，获得大量金币</li>
+                    <li>💀 小心厄运，可能会受伤</li>
+                    <li>🌀 再来一次，额外转动机会</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen hidden">
+            <div class="game-header">
+                <div class="game-controls">
+                    <button id="pause-btn" class="btn btn-secondary">⏸️ 暂停</button>
+                    <button id="restart-btn" class="btn btn-secondary">🔄 重新开始</button>
+                </div>
+            </div>
+
+            <div class="main-game-area">
+                <div class="players-section">
+                    <div id="player-panel" class="player-panel player-card">
+                        <div class="player-header">
+                            <h3 class="player-name">🏴‍☠️ 海盗船长 (你)</h3>
+                            <div class="player-status">
+                                <span id="player-defense-status" class="defense-status hidden">🛡️ 防御中</span>
+                            </div>
+                        </div>
+                        <div class="player-stats">
+                            <div class="stat-row">
+                                <span class="stat-label">❤️ 生命值:</span>
+                                <div class="health-bar-container">
+                                    <div id="player-health-bar" class="health-bar"></div>
+                                </div>
+                                <span id="player-hp" class="stat-value">100</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">💰 金币:</span>
+                                <span id="player-gold" class="stat-value">50</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="enemies-section">
+                        <div id="enemy1-panel" class="enemy-panel player-card">
+                            <div class="player-header">
+                                <h3 class="player-name">🔴 红胡子</h3>
+                                <div class="player-status">
+                                    <span id="enemy1-defense-status" class="defense-status hidden">🛡️ 防御中</span>
+                                </div>
+                            </div>
+                            <div class="player-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">❤️ 生命值:</span>
+                                    <div class="health-bar-container">
+                                        <div id="enemy1-health-bar" class="health-bar"></div>
+                                    </div>
+                                    <span id="enemy1-hp" class="stat-value">80</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">💰 金币:</span>
+                                    <span id="enemy1-gold" class="stat-value">30</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="enemy2-panel" class="enemy-panel player-card">
+                            <div class="player-header">
+                                <h3 class="player-name">⚫ 黑珍珠</h3>
+                                <div class="player-status">
+                                    <span id="enemy2-defense-status" class="defense-status hidden">🛡️ 防御中</span>
+                                </div>
+                            </div>
+                            <div class="player-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">❤️ 生命值:</span>
+                                    <div class="health-bar-container">
+                                        <div id="enemy2-health-bar" class="health-bar"></div>
+                                    </div>
+                                    <span id="enemy2-hp" class="stat-value">90</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">💰 金币:</span>
+                                    <span id="enemy2-gold" class="stat-value">40</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="enemy3-panel" class="enemy-panel player-card">
+                            <div class="player-header">
+                                <h3 class="player-name">👁️ 独眼杰克</h3>
+                                <div class="player-status">
+                                    <span id="enemy3-defense-status" class="defense-status hidden">🛡️ 防御中</span>
+                                </div>
+                            </div>
+                            <div class="player-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">❤️ 生命值:</span>
+                                    <div class="health-bar-container">
+                                        <div id="enemy3-health-bar" class="health-bar"></div>
+                                    </div>
+                                    <span id="enemy3-hp" class="stat-value">70</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">💰 金币:</span>
+                                    <span id="enemy3-gold" class="stat-value">20</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-center">
+                    <div class="wheel-container">
+                        <canvas id="wheel-canvas" width="300" height="300"></canvas>
+                        <button id="spin-btn" class="btn btn-primary spin-btn">🎯 转动转盘</button>
+                    </div>
+
+                    <div class="action-panel">
+                        <h3>🏪 商店</h3>
+                        <div class="shop-items">
+                            <button id="buy-attack" class="shop-item">
+                                <span class="item-icon">⚔️</span>
+                                <span class="item-name">强制攻击</span>
+                                <span class="item-cost">💰 30金币</span>
+                            </button>
+                            <button id="buy-shield" class="shop-item">
+                                <span class="item-icon">🛡️</span>
+                                <span class="item-name">护盾</span>
+                                <span class="item-cost">💰 25金币</span>
+                            </button>
+                            <button id="buy-potion" class="shop-item">
+                                <span class="item-icon">❤️</span>
+                                <span class="item-name">大药水</span>
+                                <span class="item-cost">💰 20金币</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="battle-log">
+                        <h3>📜 战斗记录</h3>
+                        <div id="log-container" class="log-container">
+                            <div id="log-1" class="log-entry">游戏开始！准备战斗！</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen hidden">
+            <div class="result-container">
+                <h1 id="result-title">游戏结束</h1>
+                <p id="result-message"></p>
+                <div class="result-stats" id="result-stats"></div>
+                <button id="play-again-btn" class="btn btn-primary">再玩一次</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
