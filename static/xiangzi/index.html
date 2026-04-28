@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推箱子大冒险</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🎮 推箱子大冒险 🎮</h1>
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="info-label">关卡</span>
+                    <span class="info-value" id="level-display">1</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">步数</span>
+                    <span class="info-value" id="moves-display">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">时间</span>
+                    <span class="info-value" id="timer-display">60</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">记录</span>
+                    <span class="info-value" id="record-display">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-canvas-container">
+            <canvas id="game-canvas" width="480" height="480"></canvas>
+            
+            <div class="overlay" id="start-overlay">
+                <div class="overlay-content">
+                    <h2>🎁 欢迎来到推箱子世界！</h2>
+                    <p class="instruction">使用键盘方向键 ↑↓←→ 控制角色移动</p>
+                    <p class="instruction">将所有箱子推到目标点上即可通关</p>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-icon wall"></div>
+                            <span>墙壁</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon player"></div>
+                            <span>角色</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon box"></div>
+                            <span>箱子</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon target"></div>
+                            <span>目标点</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="start-btn">开始游戏</button>
+                </div>
+            </div>
+
+            <div class="overlay" id="pause-overlay" style="display: none;">
+                <div class="overlay-content">
+                    <h2>⏸️ 游戏暂停</h2>
+                    <button class="btn btn-primary" id="resume-btn">继续游戏</button>
+                    <button class="btn btn-secondary" id="restart-from-pause-btn">重新开始</button>
+                </div>
+            </div>
+
+            <div class="overlay" id="win-overlay" style="display: none;">
+                <div class="overlay-content">
+                    <h2>🎉 恭喜通关！</h2>
+                    <p class="result-info">用时: <span id="win-time">0</span> 秒</p>
+                    <p class="result-info">步数: <span id="win-moves">0</span> 步</p>
+                    <p class="result-info" id="new-record" style="display: none;">🏆 新纪录！</p>
+                    <button class="btn btn-primary" id="next-level-btn">下一关</button>
+                    <button class="btn btn-secondary" id="replay-btn">重玩本关</button>
+                </div>
+            </div>
+
+            <div class="overlay" id="lose-overlay" style="display: none;">
+                <div class="overlay-content">
+                    <h2>😢 时间到！</h2>
+                    <p class="instruction">别灰心，再试一次吧！</p>
+                    <button class="btn btn-primary" id="retry-btn">重新挑战</button>
+                </div>
+            </div>
+
+            <div class="overlay" id="complete-overlay" style="display: none;">
+                <div class="overlay-content">
+                    <h2>🏆 全部通关！</h2>
+                    <p class="instruction">太棒了！你已经完成了所有关卡！</p>
+                    <button class="btn btn-primary" id="play-again-btn">再来一次</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button class="btn btn-control" id="pause-btn" disabled>
+                <span class="btn-icon">⏸️</span>
+                暂停
+            </button>
+            <button class="btn btn-control" id="restart-btn" disabled>
+                <span class="btn-icon">🔄</span>
+                重新开始
+            </button>
+            <button class="btn btn-control" id="level-select-btn">
+                <span class="btn-icon">📋</span>
+                选择关卡
+            </button>
+        </div>
+
+        <div class="level-select-modal" id="level-select-modal" style="display: none;">
+            <div class="modal-content">
+                <h3>选择关卡</h3>
+                <div class="level-buttons" id="level-buttons">
+                </div>
+                <button class="btn btn-secondary" id="close-level-select-btn">关闭</button>
+            </div>
+        </div>
+
+        <div class="mobile-controls" id="mobile-controls">
+            <button class="direction-btn" id="btn-up">↑</button>
+            <div class="direction-row">
+                <button class="direction-btn" id="btn-left">←</button>
+                <button class="direction-btn" id="btn-down">↓</button>
+                <button class="direction-btn" id="btn-right">→</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
