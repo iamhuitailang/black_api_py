@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>羊了个羊 · 群羊闯关</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🐑 群羊闯关 🐑</h1>
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">剩余卡牌</span>
+                    <span class="stat-value" id="cardCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">最高纪录</span>
+                    <span class="stat-value" id="highScore">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">剩余时间</span>
+                    <span class="stat-value" id="timer">03:00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <canvas id="gameCanvas" width="480" height="520"></canvas>
+        </div>
+
+        <div class="slot-area">
+            <div class="slot-container" id="slotContainer">
+                <div class="slot" data-slot="0"></div>
+                <div class="slot" data-slot="1"></div>
+                <div class="slot" data-slot="2"></div>
+                <div class="slot" data-slot="3"></div>
+                <div class="slot" data-slot="4"></div>
+                <div class="slot" data-slot="5"></div>
+                <div class="slot" data-slot="6"></div>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button id="startBtn" class="btn btn-primary">开始游戏</button>
+            <button id="pauseBtn" class="btn btn-secondary" disabled>暂停</button>
+            <button id="restartBtn" class="btn btn-danger" disabled>重新开始</button>
+        </div>
+
+        <div class="game-overlay" id="startOverlay">
+            <div class="overlay-content">
+                <h2>🐑 欢迎来到群羊闯关 🐑</h2>
+                <div class="rules">
+                    <h3>游戏规则：</h3>
+                    <ul>
+                        <li>点击卡牌将其放入底部槽位</li>
+                        <li>槽位中集齐 3 张相同卡牌自动消除</li>
+                        <li>槽位最多可容纳 7 张卡牌</li>
+                        <li>上层卡牌必须先消除才能点击下层</li>
+                        <li>清空所有卡牌即可通关</li>
+                        <li>槽位满 7 张且无法消除则失败</li>
+                    </ul>
+                </div>
+                <button id="startGameBtn" class="btn btn-primary btn-large">开始挑战</button>
+            </div>
+        </div>
+
+        <div class="game-overlay hidden" id="winOverlay">
+            <div class="overlay-content">
+                <h2>🎉 恭喜通关！🎉</h2>
+                <p class="result-text">你成功消除了所有卡牌！</p>
+                <div class="result-stats">
+                    <p>用时：<span id="winTime">00:00</span></p>
+                    <p>新纪录！</p>
+                </div>
+                <button id="winRestartBtn" class="btn btn-primary btn-large">再来一局</button>
+            </div>
+        </div>
+
+        <div class="game-overlay hidden" id="loseOverlay">
+            <div class="overlay-content">
+                <h2>💔 游戏结束 💔</h2>
+                <p class="result-text" id="loseReason">槽位已满，无法消除！</p>
+                <button id="loseRestartBtn" class="btn btn-primary btn-large">重新挑战</button>
+            </div>
+        </div>
+
+        <div class="game-overlay hidden" id="pauseOverlay">
+            <div class="overlay-content">
+                <h2>⏸️ 游戏暂停 ⏸️</h2>
+                <button id="resumeBtn" class="btn btn-primary btn-large">继续游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
