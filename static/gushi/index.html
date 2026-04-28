@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="宝宝叫故事 - 睡前故事随机器">
+    <title>🌙 宝宝叫故事 - 睡前故事随机器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="bg-canvas" class="bg-canvas"></canvas>
+
+    <div id="app" class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🌙</span>
+                    <span class="logo-text">宝宝叫故事</span>
+                </div>
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="切换日间/夜间模式">
+                    <span class="theme-icon">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="random-section">
+                <div id="random-card" class="random-card">
+                    <div class="random-card-inner">
+                        <div class="random-icon">✨</div>
+                        <div class="random-title">摇一摇 · 随机一个故事</div>
+                        <div class="random-subtitle">为宝宝挑选今晚的睡前故事</div>
+                        <div class="random-hint">点击卡片开始</div>
+                    </div>
+                    <div class="card-decoration stars">
+                        <span>⭐</span><span>⭐</span><span>⭐</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="action-section">
+                <button id="add-story-btn" class="add-story-btn">
+                    <span class="btn-icon">✏️</span>
+                    <span class="btn-text">自己写一个新故事</span>
+                </button>
+            </section>
+
+            <section class="filter-section">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">
+                        <span class="filter-icon">📚</span>
+                        <span>全部故事</span>
+                    </button>
+                    <button class="filter-tab" data-filter="favorite">
+                        <span class="filter-icon">❤️</span>
+                        <span>我的收藏</span>
+                    </button>
+                </div>
+                <div id="story-count" class="story-count">共 0 个故事</div>
+            </section>
+
+            <section id="story-list-section" class="story-list-section">
+                <div id="story-list" class="story-grid">
+                </div>
+                <div id="empty-state" class="empty-state">
+                    <div class="empty-icon">📖</div>
+                    <div class="empty-title">还没有故事哦</div>
+                    <div class="empty-subtitle">点击上方按钮，为宝宝写第一个故事吧</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="story-modal" class="modal story-modal hidden">
+        <div class="modal-overlay" id="modal-overlay"></div>
+        <div class="modal-content story-modal-content">
+            <div class="story-modal-header">
+                <div class="story-modal-cover" id="modal-cover"></div>
+                <h2 id="modal-title" class="story-modal-title">故事标题</h2>
+            </div>
+            <div class="story-modal-body" id="modal-content">
+                故事内容...
+            </div>
+            <div class="story-modal-footer">
+                <button id="modal-favorite-btn" class="footer-btn favorite-btn">
+                    <span class="footer-btn-icon">🤍</span>
+                    <span>收藏</span>
+                </button>
+                <button id="modal-shake-btn" class="footer-btn shake-btn">
+                    <span class="footer-btn-icon">🎲</span>
+                    <span>摇一摇</span>
+                </button>
+                <button id="modal-close-btn" class="footer-btn close-btn">
+                    <span class="footer-btn-icon">🏠</span>
+                    <span>返回</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="form-modal" class="modal form-modal hidden">
+        <div class="modal-overlay form-overlay" id="form-overlay"></div>
+        <div class="modal-content form-modal-content">
+            <div class="form-modal-header">
+                <h2 id="form-title" class="form-title">写一个新故事</h2>
+                <button id="form-close-btn" class="form-close-btn" aria-label="关闭">&times;</button>
+            </div>
+            <form id="story-form" class="story-form">
+                <div class="form-group">
+                    <label class="form-label">故事标题</label>
+                    <input type="text" id="story-title-input" class="form-input" placeholder="给故事起个好听的名字" maxlength="50" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">故事封面</label>
+                    <div class="cover-selector">
+                        <div id="cover-preview" class="cover-preview">
+                            <span class="cover-placeholder">🐻</span>
+                        </div>
+                        <div class="cover-options">
+                            <p class="cover-hint">选择一个可爱的封面：</p>
+                            <div class="cover-icons" id="cover-icons">
+                                <button type="button" class="cover-icon-btn active" data-icon="🐻">🐻</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🐰">🐰</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🦊">🦊</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🐼">🐼</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🦁">🦁</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🐨">🐨</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🐯">🐯</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🐸">🐸</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🦋">🦋</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🌈">🌈</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🌟">🌟</button>
+                                <button type="button" class="cover-icon-btn" data-icon="🌸">🌸</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">故事内容</label>
+                    <textarea id="story-content-input" class="form-textarea" placeholder="开始写故事吧... 从前，在一个很远很远的地方..." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="form-cancel-btn" class="form-btn form-btn-secondary">取消</button>
+                    <button type="submit" class="form-btn form-btn-primary">保存故事</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal confirm-modal hidden">
+        <div class="modal-overlay" id="confirm-overlay"></div>
+        <div class="modal-content confirm-modal-content">
+            <div class="confirm-icon">❓</div>
+            <h3 class="confirm-title">确定要删除这个故事吗？</h3>
+            <p class="confirm-message">删除后无法恢复哦</p>
+            <div class="confirm-actions">
+                <button id="confirm-cancel-btn" class="confirm-btn confirm-btn-cancel">取消</button>
+                <button id="confirm-delete-btn" class="confirm-btn confirm-btn-delete">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shake-animation" class="shake-overlay hidden">
+        <div class="shake-content">
+            <div class="shake-icon">🎲</div>
+            <div class="shake-text">摇一摇...</div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
