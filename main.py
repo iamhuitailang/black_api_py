@@ -14,6 +14,7 @@ from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailM
 from app.model.auth import UserModel, TokenModel
 from app.model.ims import ContactModel, VarietyModel, PurchaseModel, SaleModel, InventoryModel, OperationLogModel
 from app.model.dd import UserModel as DdUserModel, TaskModel, TaskClaimModel, ReviewModel, ReportModel, DdTokenModel
+from app.model.exchange import ExUserModel, ExTokenModel, ExItemModel, ExExchangeModel, ExReviewModel, ExMessageModel, ExReportModel
 from app.common.sqlite.db import get_db
 
 
@@ -50,6 +51,14 @@ def init_database():
     TaskClaimModel.create_table()
     ReviewModel.create_table()
     ReportModel.create_table()
+    
+    ExUserModel.create_table()
+    ExTokenModel.create_table()
+    ExItemModel.create_table()
+    ExExchangeModel.create_table()
+    ExReviewModel.create_table()
+    ExMessageModel.create_table()
+    ExReportModel.create_table()
     
     migrate_database()
     
