@@ -14,6 +14,16 @@ from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailM
 from app.model.auth import UserModel, TokenModel
 from app.model.ims import ContactModel, VarietyModel, PurchaseModel, SaleModel, InventoryModel, OperationLogModel
 from app.model.dd import UserModel as DdUserModel, TaskModel, TaskClaimModel, ReviewModel, ReportModel, DdTokenModel
+from app.model.xq import (
+    UserModel as XqUserModel,
+    PostModel as XqPostModel,
+    ClaimModel as XqClaimModel,
+    ReviewModel as XqReviewModel,
+    CategoryModel as XqCategoryModel,
+    AdminModel as XqAdminModel,
+    XqTokenModel,
+    XqAdminTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -50,9 +60,21 @@ def init_database():
     TaskClaimModel.create_table()
     ReviewModel.create_table()
     ReportModel.create_table()
-    
+
+    XqUserModel.create_table()
+    XqTokenModel.create_table()
+    XqPostModel.create_table()
+    XqClaimModel.create_table()
+    XqReviewModel.create_table()
+    XqCategoryModel.create_table()
+    XqAdminModel.create_table()
+    XqAdminTokenModel.create_table()
+
+    XqAdminModel.init_default_admin()
+    XqCategoryModel.init_default_categories()
+
     migrate_database()
-    
+
     print("Database initialized successfully")
 
 
