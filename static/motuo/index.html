@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摩托竞速 · 公路对决</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🏍️ 摩托竞速 · 公路对决</h1>
+        </div>
+        
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="480" height="800"></canvas>
+            
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">距离</span>
+                    <span class="stat-value" id="distance">0</span>
+                    <span class="stat-unit">米</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">速度</span>
+                    <span class="stat-value" id="speed">0</span>
+                    <span class="stat-unit">km/h</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">超车</span>
+                    <span class="stat-value" id="overtakes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">排名</span>
+                    <span class="stat-value" id="rank">1</span>
+                </div>
+            </div>
+            
+            <div class="game-control-btns">
+                <button id="pauseBtn" class="control-btn" style="display: none;">⏸️ 暂停</button>
+                <button id="restartBtn" class="control-btn" style="display: none;">🔄 重新开始</button>
+            </div>
+            
+            <div class="game-overlay" id="startScreen">
+                <div class="overlay-content">
+                    <h2>🏍️ 公路对决</h2>
+                    <div class="game-info">
+                        <p>🎮 操作说明：</p>
+                        <p>← → 键切换车道</p>
+                        <p>躲避对向来车</p>
+                        <p>超越电脑对手</p>
+                        <p>第一个到达终点！</p>
+                    </div>
+                    <button id="startBtn" class="start-btn">开始游戏</button>
+                </div>
+            </div>
+            
+            <div class="game-overlay" id="countdownScreen" style="display: none;">
+                <div class="countdown-text" id="countdownText">3</div>
+            </div>
+            
+            <div class="game-overlay" id="pauseScreen" style="display: none;">
+                <div class="overlay-content">
+                    <h2>⏸️ 游戏暂停</h2>
+                    <button id="resumeBtn" class="start-btn">继续游戏</button>
+                    <button id="pauseRestartBtn" class="start-btn secondary">重新开始</button>
+                </div>
+            </div>
+            
+            <div class="game-overlay" id="gameOverScreen" style="display: none;">
+                <div class="overlay-content">
+                    <h2 id="resultTitle">🏆 恭喜胜利！</h2>
+                    <div class="result-stats">
+                        <div class="result-item">
+                            <span class="result-label">最终排名</span>
+                            <span class="result-value" id="finalRank">1</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">完赛时间</span>
+                            <span class="result-value" id="finalTime">00:00</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">超车数量</span>
+                            <span class="result-value" id="finalOvertakes">0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">最高速度</span>
+                            <span class="result-value" id="finalMaxSpeed">0</span>
+                            <span class="result-unit">km/h</span>
+                        </div>
+                    </div>
+                    <div class="best-stats">
+                        <h3>📊 历史最佳</h3>
+                        <div class="best-item">
+                            <span>最佳排名：</span>
+                            <span id="bestRank">-</span>
+                        </div>
+                        <div class="best-item">
+                            <span>最快时间：</span>
+                            <span id="bestTime">-</span>
+                        </div>
+                        <div class="best-item">
+                            <span>最多超车：</span>
+                            <span id="bestOvertakes">-</span>
+                        </div>
+                        <div class="best-item">
+                            <span>总比赛数：</span>
+                            <span id="totalRaces">0</span>
+                        </div>
+                    </div>
+                    <button id="playAgainBtn" class="start-btn">再玩一次</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
