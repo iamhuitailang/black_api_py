@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>治愈系钓鱼 - 海边日出</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="top-bar">
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-icon">🏆</span>
+                    <span class="stat-label">总得分</span>
+                    <span class="stat-value" id="total-score">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🎣</span>
+                    <span class="stat-label">总钓获</span>
+                    <span class="stat-value" id="total-catches">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📖</span>
+                    <span class="stat-label">图鉴</span>
+                    <span class="stat-value" id="fish-count">0/12</span>
+                </div>
+            </div>
+            <div class="control-panel">
+                <button id="btn-codex" class="btn btn-secondary">📖 图鉴</button>
+                <button id="btn-pause" class="btn btn-secondary" style="display:none;">⏸ 暂停</button>
+                <button id="btn-restart" class="btn btn-secondary">🔄 重新开始</button>
+            </div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="bottom-bar">
+            <div id="game-status" class="status-text">点击「抛竿」开始钓鱼</div>
+            <div id="action-buttons">
+                <button id="btn-cast" class="btn btn-primary btn-large">🎣 抛竿</button>
+                <button id="btn-reel" class="btn btn-success btn-large" style="display:none;">🐟 收杆!</button>
+                <button id="btn-start" class="btn btn-primary btn-large" style="display:none;">🎮 开始游戏</button>
+            </div>
+        </div>
+
+        <div id="codex-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📖 鱼类图鉴</h2>
+                    <button id="btn-close-codex" class="btn-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="codex-grid" class="codex-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-modal" class="modal" style="display:none;">
+            <div class="modal-content result-content">
+                <div id="result-icon" class="result-icon">🐟</div>
+                <h2 id="result-title">钓到鱼了!</h2>
+                <p id="result-fish-name">小鲫鱼</p>
+                <p id="result-score">+10分</p>
+                <p id="result-timing" class="timing-text">完美时机!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
