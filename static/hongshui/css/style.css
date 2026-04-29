@@ -1,0 +1,347 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    max-width: 800px;
+    width: 100%;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.game-header h1 {
+    font-size: 28px;
+    color: #2c3e50;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 15px 25px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-label {
+    font-size: 14px;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.difficulty-select {
+    padding: 8px 15px;
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.difficulty-select:hover {
+    border-color: #6c5ce7;
+}
+
+.difficulty-select:focus {
+    outline: none;
+    border-color: #6c5ce7;
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.control-btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.control-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.pause-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.restart-btn {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.resume-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.game-board-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.game-board {
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    background: #f8f9fa;
+}
+
+.pause-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.pause-content {
+    text-align: center;
+}
+
+.pause-content h2 {
+    font-size: 24px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.color-palette-container {
+    text-align: center;
+}
+
+.color-palette-label {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+.color-palette {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.color-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.color-btn.selected {
+    border-color: #2c3e50;
+    transform: scale(1.15);
+}
+
+.color-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.victory-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.victory-modal.hidden,
+.pause-overlay.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.victory-title {
+    font-size: 28px;
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+
+.victory-info {
+    margin-bottom: 30px;
+}
+
+.victory-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.victory-item:last-child {
+    margin-bottom: 0;
+}
+
+.victory-label {
+    font-size: 15px;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.victory-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.victory-value.rating-excellent {
+    color: #e74c3c;
+}
+
+.victory-value.rating-good {
+    color: #f39c12;
+}
+
+.victory-value.rating-ok {
+    color: #3498db;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+}
+
+@media (max-width: 600px) {
+    .game-container {
+        padding: 20px;
+    }
+
+    .game-header h1 {
+        font-size: 22px;
+    }
+
+    .game-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .game-controls {
+        flex-wrap: wrap;
+    }
+
+    .control-btn {
+        padding: 10px 18px;
+        font-size: 14px;
+    }
+
+    .color-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .modal-content {
+        padding: 25px;
+    }
+
+    .victory-title {
+        font-size: 22px;
+    }
+}

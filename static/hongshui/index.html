@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洪水填充 · 色彩大作战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>洪水填充 · 色彩大作战</h1>
+        </div>
+
+        <div class="game-info">
+            <div class="info-item">
+                <span class="info-label">难度</span>
+                <select id="difficulty" class="difficulty-select">
+                    <option value="easy">简单 (10×10, 4色)</option>
+                    <option value="normal" selected>普通 (14×14, 5色)</option>
+                    <option value="hard">困难 (20×20, 6色)</option>
+                </select>
+            </div>
+            <div class="info-item">
+                <span class="info-label">当前步数</span>
+                <span id="current-steps" class="info-value">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">目标步数</span>
+                <span id="target-steps" class="info-value">25</span>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button id="start-btn" class="control-btn start-btn">开始游戏</button>
+            <button id="pause-btn" class="control-btn pause-btn" disabled>暂停</button>
+            <button id="restart-btn" class="control-btn restart-btn" disabled>重新开始</button>
+        </div>
+
+        <div class="game-board-container">
+            <canvas id="game-board" class="game-board"></canvas>
+            <div id="pause-overlay" class="pause-overlay hidden">
+                <div class="pause-content">
+                    <h2>游戏暂停</h2>
+                    <button id="resume-btn" class="control-btn resume-btn">继续游戏</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="color-palette-container">
+            <div class="color-palette-label">调色板</div>
+            <div id="color-palette" class="color-palette"></div>
+        </div>
+
+        <div id="victory-modal" class="victory-modal hidden">
+            <div class="modal-content">
+                <h2 class="victory-title">🎉 恭喜通关！</h2>
+                <div class="victory-info">
+                    <div class="victory-item">
+                        <span class="victory-label">使用步数</span>
+                        <span id="victory-steps" class="victory-value">0</span>
+                    </div>
+                    <div class="victory-item">
+                        <span class="victory-label">目标步数</span>
+                        <span id="victory-target" class="victory-value">25</span>
+                    </div>
+                    <div class="victory-item">
+                        <span class="victory-label">评价</span>
+                        <span id="victory-rating" class="victory-value rating-excellent">完美！</span>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="play-again-btn" class="control-btn start-btn">再玩一次</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
