@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jn import (
+    UserModel as JnUserModel,
+    AdminModel as JnAdminModel,
+    JnTokenModel,
+    JnAdminTokenModel,
+    CategoryModel as JnCategoryModel,
+    SkillModel as JnSkillModel,
+    ExchangeModel as JnExchangeModel,
+    ReviewModel as JnReviewModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +82,18 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JnUserModel.create_table()
+    JnAdminModel.create_table()
+    JnTokenModel.create_table()
+    JnAdminTokenModel.create_table()
+    JnCategoryModel.create_table()
+    JnSkillModel.create_table()
+    JnExchangeModel.create_table()
+    JnReviewModel.create_table()
+
+    JnAdminModel.init_default_admin()
+    JnCategoryModel.init_default_categories()
 
     migrate_database()
 
