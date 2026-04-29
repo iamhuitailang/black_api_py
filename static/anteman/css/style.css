@@ -1,0 +1,520 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-red: #ff3b3b;
+    --primary-blue: #3b82f6;
+    --dark-blue: #1e40af;
+    --light-blue: #93c5fd;
+    --dark-red: #991b1b;
+    --light-red: #fca5a5;
+    --gold: #fbbf24;
+    --white: #ffffff;
+    --gray: #6b7280;
+    --light-gray: #f3f4f6;
+    --dark: #1f2937;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 900px;
+    background: linear-gradient(180deg, var(--white) 0%, var(--light-gray) 100%);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.screen {
+    display: none;
+    padding: 30px;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* 开始界面 */
+#start-screen {
+    text-align: center;
+}
+
+.title {
+    margin-bottom: 40px;
+}
+
+.title h1 {
+    font-size: 2.5rem;
+    color: var(--primary-red);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    margin-bottom: 10px;
+}
+
+.title h2 {
+    font-size: 1.8rem;
+    color: var(--primary-blue);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.character-select {
+    margin-bottom: 40px;
+}
+
+.character-select h3 {
+    font-size: 1.3rem;
+    color: var(--dark);
+    margin-bottom: 20px;
+}
+
+.character-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--light-blue) 0%, var(--primary-blue) 100%);
+    padding: 20px;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+}
+
+.character-card:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+.character-card.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.character-avatar {
+    font-size: 4rem;
+    margin-right: 20px;
+}
+
+.character-info {
+    text-align: left;
+    color: var(--white);
+}
+
+.character-info h4 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+}
+
+.character-info p {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.btn {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    margin: 10px;
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+    color: var(--white);
+    box-shadow: 0 4px 15px rgba(255, 59, 59, 0.4);
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 59, 59, 0.6);
+}
+
+.secondary-btn {
+    background: linear-gradient(135deg, var(--gray) 0%, var(--dark) 100%);
+    color: var(--white);
+    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.4);
+}
+
+.secondary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(107, 114, 128, 0.6);
+}
+
+/* 战斗界面 */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+    color: var(--white);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.level-info {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.level-info span {
+    margin-right: 20px;
+}
+
+.gold-display {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--gold);
+}
+
+#game-canvas {
+    width: 100%;
+    height: 400px;
+    max-width: 900px;
+    display: block;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    border: 3px solid var(--primary-blue);
+    background: #87CEEB;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.status-bars {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.player-status, .monster-status {
+    flex: 1;
+    background: var(--white);
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+}
+
+.status-header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.character-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--dark);
+}
+
+.bar-container {
+    margin-bottom: 12px;
+}
+
+.bar-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-bottom: 5px;
+}
+
+.bar {
+    width: 100%;
+    height: 25px;
+    background: var(--light-gray);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.3s ease;
+}
+
+.hp-bar {
+    background: linear-gradient(90deg, var(--primary-red) 0%, #ff6b6b 100%);
+}
+
+.energy-bar {
+    background: linear-gradient(90deg, var(--primary-blue) 0%, var(--light-blue) 100%);
+}
+
+.monster-hp-bar {
+    background: linear-gradient(90deg, #8B0000 0%, #DC143C 100%);
+}
+
+.bar-value {
+    display: block;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-top: 3px;
+}
+
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 0.95rem;
+    color: var(--dark);
+    margin-top: 10px;
+}
+
+/* 技能按钮 */
+.skill-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.skill-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 10px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.skill-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.skill-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.skill-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.skill-name {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.skill-desc {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.punch-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, var(--primary-red) 100%);
+    color: var(--white);
+}
+
+.kick-btn {
+    background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+    color: var(--white);
+}
+
+.beam-btn {
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+    color: var(--white);
+}
+
+.defend-btn {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+    color: var(--white);
+}
+
+/* 战斗日志 */
+.battle-log {
+    background: var(--white);
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.log-header {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--gray) 100%);
+    color: var(--white);
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.log-content {
+    padding: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.log-content p {
+    margin-bottom: 8px;
+    color: var(--dark);
+}
+
+.log-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* 回合指示器 */
+.turn-indicator {
+    text-align: center;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--dark);
+    box-shadow: var(--shadow);
+}
+
+/* 结果界面 */
+.result-content {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.result-content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#victory-screen h1 {
+    color: var(--primary-blue);
+}
+
+#gameover-screen h1 {
+    color: var(--primary-red);
+}
+
+#complete-screen h1 {
+    color: var(--gold);
+}
+
+.result-content p {
+    font-size: 1.2rem;
+    color: var(--dark);
+    margin-bottom: 20px;
+}
+
+.rewards, .stats-summary {
+    background: var(--light-gray);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+}
+
+.rewards p, .stats-summary p {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.rewards span, .stats-summary span {
+    font-weight: bold;
+    color: var(--primary-blue);
+}
+
+/* 动画效果 */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.shake {
+    animation: shake 0.3s ease-in-out;
+}
+
+.pulse {
+    animation: pulse 0.5s ease-in-out;
+}
+
+.flash {
+    animation: flash 0.2s ease-in-out 3;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .skill-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .status-bars {
+        flex-direction: column;
+    }
+    
+    .title h1 {
+        font-size: 2rem;
+    }
+    
+    .title h2 {
+        font-size: 1.4rem;
+    }
+    
+    .character-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .character-avatar {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .character-info {
+        text-align: center;
+    }
+}
+
+/* 滚动条样式 */
+.log-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.log-content::-webkit-scrollbar-track {
+    background: var(--light-gray);
+    border-radius: 3px;
+}
+
+.log-content::-webkit-scrollbar-thumb {
+    background: var(--gray);
+    border-radius: 3px;
+}
+
+.log-content::-webkit-scrollbar-thumb:hover {
+    background: var(--dark);
+}

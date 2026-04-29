@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奥特曼打怪兽 · 光之格斗</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 开始界面 -->
+        <div id="start-screen" class="screen active">
+            <div class="title">
+                <h1>🦸‍♂️ 奥特曼打怪兽</h1>
+                <h2>✨ 光之格斗 ✨</h2>
+            </div>
+            <div class="character-select">
+                <h3>选择你的奥特曼</h3>
+                <div class="character-card selected" data-character="tiga">
+                    <div class="character-avatar">🦸‍♂️</div>
+                    <div class="character-info">
+                        <h4>迪迦奥特曼</h4>
+                        <p>类型：均衡型</p>
+                        <p>特殊技能：复合光线（伤害 + 回复10生命）</p>
+                    </div>
+                </div>
+            </div>
+            <button id="start-btn" class="btn primary-btn">开始战斗 ⚔️</button>
+            <button id="continue-btn" class="btn secondary-btn" style="display: none;">继续游戏 ▶️</button>
+        </div>
+
+        <!-- 战斗界面 -->
+        <div id="battle-screen" class="screen">
+            <!-- 顶部状态栏 -->
+            <div class="top-bar">
+                <div class="level-info">
+                    <span id="current-level">第 1 关</span>
+                    <span id="monster-name">🦖 哥莫拉</span>
+                </div>
+                <div class="gold-display">
+                    💰 金币: <span id="gold">0</span>
+                </div>
+            </div>
+
+            <!-- Canvas 游戏区域 -->
+            <canvas id="game-canvas" width="800" height="400"></canvas>
+
+            <!-- 角色状态栏 -->
+            <div class="status-bars">
+                <div class="player-status">
+                    <div class="status-header">
+                        <span class="character-name">🦸‍♂️ 迪迦</span>
+                    </div>
+                    <div class="bar-container">
+                        <span class="bar-label">❤️ 生命</span>
+                        <div class="bar">
+                            <div id="player-hp-bar" class="bar-fill hp-bar"></div>
+                        </div>
+                        <span class="bar-value"><span id="player-hp">100</span>/100</span>
+                    </div>
+                    <div class="bar-container">
+                        <span class="bar-label">⚡ 能量</span>
+                        <div class="bar">
+                            <div id="player-energy-bar" class="bar-fill energy-bar"></div>
+                        </div>
+                        <span class="bar-value"><span id="player-energy">0</span>/100</span>
+                    </div>
+                    <div class="stats">
+                        <span>⚔️ 攻击: 15</span>
+                        <span>🛡️ 防御: 5</span>
+                    </div>
+                </div>
+
+                <div class="monster-status">
+                    <div class="status-header">
+                        <span id="monster-display-name" class="character-name">🦖 哥莫拉</span>
+                    </div>
+                    <div class="bar-container">
+                        <span class="bar-label">❤️ 生命</span>
+                        <div class="bar">
+                            <div id="monster-hp-bar" class="bar-fill monster-hp-bar"></div>
+                        </div>
+                        <span class="bar-value"><span id="monster-hp">50</span>/<span id="monster-max-hp">50</span></span>
+                    </div>
+                    <div class="stats">
+                        <span>⚔️ 攻击: <span id="monster-atk">10</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技能按钮 -->
+            <div class="skill-buttons">
+                <button id="skill-punch" class="skill-btn punch-btn" data-skill="punch">
+                    <span class="skill-icon">🥊</span>
+                    <span class="skill-name">拳击</span>
+                    <span class="skill-desc">伤害: 15 | 能量: +5</span>
+                </button>
+                <button id="skill-kick" class="skill-btn kick-btn" data-skill="kick">
+                    <span class="skill-icon">🦶</span>
+                    <span class="skill-name">踢击</span>
+                    <span class="skill-desc">伤害: 20 | 能量: +5</span>
+                </button>
+                <button id="skill-beam" class="skill-btn beam-btn" data-skill="beam">
+                    <span class="skill-icon">✨</span>
+                    <span class="skill-name">光线技能</span>
+                    <span class="skill-desc">伤害: 50 | 能量: -50</span>
+                </button>
+                <button id="skill-defend" class="skill-btn defend-btn" data-skill="defend">
+                    <span class="skill-icon">🛡️</span>
+                    <span class="skill-name">防御</span>
+                    <span class="skill-desc">本回合伤害减半 | 能量: +10</span>
+                </button>
+            </div>
+
+            <!-- 战斗日志 -->
+            <div class="battle-log">
+                <div class="log-header">📜 战斗日志</div>
+                <div id="log-content" class="log-content">
+                    <p>⚔️ 战斗开始！</p>
+                </div>
+            </div>
+
+            <!-- 回合指示器 -->
+            <div id="turn-indicator" class="turn-indicator">
+                <span id="turn-text">⚔️ 你的回合 - 选择行动</span>
+            </div>
+        </div>
+
+        <!-- 胜利界面 -->
+        <div id="victory-screen" class="screen">
+            <div class="result-content">
+                <h1>🎉 胜利！</h1>
+                <p id="victory-message">你击败了怪兽！</p>
+                <div class="rewards">
+                    <p>💰 获得金币: <span id="reward-gold">50</span></p>
+                    <p>⚡ 获得能量: <span id="reward-energy">20</span></p>
+                </div>
+                <button id="next-level-btn" class="btn primary-btn">下一关 ➡️</button>
+            </div>
+        </div>
+
+        <!-- 游戏结束界面 -->
+        <div id="gameover-screen" class="screen">
+            <div class="result-content">
+                <h1>💀 游戏结束</h1>
+                <p id="gameover-message">奥特曼倒下了...</p>
+                <div class="stats-summary">
+                    <p>📊 到达关卡: <span id="final-level">1</span></p>
+                    <p>💰 总金币: <span id="final-gold">0</span></p>
+                </div>
+                <button id="restart-btn" class="btn primary-btn">重新开始 🔄</button>
+            </div>
+        </div>
+
+        <!-- 通关界面 -->
+        <div id="complete-screen" class="screen">
+            <div class="result-content">
+                <h1>🏆 恭喜通关！</h1>
+                <p>你击败了所有怪兽，成为了真正的光之巨人！</p>
+                <div class="stats-summary">
+                    <p>💰 总金币: <span id="complete-gold">0</span></p>
+                </div>
+                <button id="new-game-btn" class="btn primary-btn">开始新游戏 🌟</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
