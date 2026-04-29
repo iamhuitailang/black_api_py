@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快枪手对决 · 谁更快</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>快枪手对决</h1>
+            <div class="score-board">
+                <div class="player-score">
+                    <span class="label">玩家</span>
+                    <span class="score" id="playerScore">0</span>
+                </div>
+                <div class="vs">VS</div>
+                <div class="computer-score">
+                    <span class="label">电脑人</span>
+                    <span class="score" id="computerScore">0</span>
+                </div>
+            </div>
+            <div class="round-info">
+                <span>第 <span id="currentRound">1</span> 回合</span>
+                <span>总局数: <span id="totalRounds">0</span></span>
+            </div>
+        </div>
+        
+        <div class="game-canvas-container">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div class="countdown-display" id="countdownDisplay"></div>
+            <div class="game-message" id="gameMessage"></div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="buttons">
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <button id="pauseBtn" class="btn btn-warning" disabled>暂停</button>
+                <button id="restartBtn" class="btn btn-danger" disabled>重新开始</button>
+                <button id="shootBtn" class="btn btn-success" disabled>拔枪射击</button>
+            </div>
+            <div class="hint">提示：按空格键也可以拔枪射击</div>
+        </div>
+        
+        <div class="game-log">
+            <h3>对决日志</h3>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">欢迎来到快枪手对决！点击开始游戏开始对决。</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
