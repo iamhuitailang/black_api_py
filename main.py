@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.feipin import (
+    UserModel as FeipinUserModel,
+    CategoryModel as FeipinCategoryModel,
+    OrderModel as FeipinOrderModel,
+    ReviewModel as FeipinReviewModel,
+    AdminModel as FeipinAdminModel,
+    FeipinTokenModel,
+    FeipinAdminTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,17 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    FeipinUserModel.create_table()
+    FeipinCategoryModel.create_table()
+    FeipinOrderModel.create_table()
+    FeipinReviewModel.create_table()
+    FeipinAdminModel.create_table()
+    FeipinTokenModel.create_table()
+    FeipinAdminTokenModel.create_table()
+
+    FeipinAdminModel.init_default_admin()
+    FeipinCategoryModel.init_default_categories()
 
     migrate_database()
 
@@ -151,6 +171,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8002,
         reload=True
     )
