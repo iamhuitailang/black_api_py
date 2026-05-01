@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开心农场 - Q萌种菜游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="player-info">
+                <div class="avatar">🧑‍🌾</div>
+                <div class="stats">
+                    <div class="level">等级: <span id="playerLevel">1</span></div>
+                    <div class="exp-bar">
+                        <div class="exp-fill" id="expFill"></div>
+                        <span class="exp-text" id="expText">0/100</span>
+                    </div>
+                </div>
+            </div>
+            <div class="resources">
+                <div class="resource gold">
+                    <span class="icon">💰</span>
+                    <span id="goldAmount">500</span>
+                </div>
+                <div class="resource seed">
+                    <span class="icon">🌱</span>
+                    <span id="seedCount">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="game-main">
+            <canvas id="gameCanvas" width="800" height="500"></canvas>
+            
+            <div class="tool-panel">
+                <div class="tool-item active" data-tool="hand">
+                    <span class="tool-icon">🖐️</span>
+                    <span class="tool-name">选择</span>
+                </div>
+                <div class="tool-item" data-tool="seed">
+                    <span class="tool-icon">🌱</span>
+                    <span class="tool-name">播种</span>
+                </div>
+                <div class="tool-item" data-tool="water">
+                    <span class="tool-icon">💧</span>
+                    <span class="tool-name">浇水</span>
+                </div>
+                <div class="tool-item" data-tool="fertilizer">
+                    <span class="tool-icon">💩</span>
+                    <span class="tool-name">施肥</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-footer">
+            <div class="footer-btn" id="shopBtn">
+                <span class="btn-icon">🏪</span>
+                <span class="btn-text">商店</span>
+            </div>
+            <div class="footer-btn" id="inventoryBtn">
+                <span class="btn-icon">🎒</span>
+                <span class="btn-text">背包</span>
+            </div>
+            <div class="footer-btn" id="warehouseBtn">
+                <span class="btn-icon">🏠</span>
+                <span class="btn-text">仓库</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shopModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🏪 种子商店</h2>
+                <button class="close-btn" id="closeShop">×</button>
+            </div>
+            <div class="modal-content" id="shopContent">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="inventoryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🎒 背包</h2>
+                <button class="close-btn" id="closeInventory">×</button>
+            </div>
+            <div class="modal-content" id="inventoryContent">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="warehouseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🏠 仓库</h2>
+                <button class="close-btn" id="closeWarehouse">×</button>
+            </div>
+            <div class="modal-content" id="warehouseContent">
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
