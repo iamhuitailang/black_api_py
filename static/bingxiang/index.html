@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="冰箱小助手 - 记录冰箱里的食材，追踪数量、过期时间，减少食物浪费">
+    <title>🧊 冰箱小助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #FDF6E3;
+            overflow-x: hidden;
+        }
+        
+        #app {
+            width: 100%;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 顶部固定区域 */
+        .top-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background-color: #FDF6E3;
+            padding-bottom: 15px;
+        }
+        
+        /* 标题栏 */
+        .header {
+            margin: 20px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #6BBF59, #A8D5BA);
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(107, 191, 89, 0.3);
+        }
+        
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-warning {
+            font-size: 14px;
+            color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: none;
+        }
+        
+        .header-warning.show {
+            display: block;
+        }
+        
+        /* 搜索和筛选栏 */
+        .search-bar {
+            margin: 0 20px;
+            padding: 15px 20px;
+            background: #FFFFFF;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        /* 搜索框容器 */
+        .search-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            pointer-events: none;
+        }
+        
+        .search-input {
+            width: 180px;
+            padding: 10px 15px 10px 45px;
+            border: 2px solid #E8E8E8;
+            border-radius: 12px;
+            font-size: 14px;
+            background: #F5F5F5;
+            outline: none;
+            color: #4A4A4A;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            border-color: #6BBF59;
+            background: #FFFFFF;
+        }
+        
+        .search-input::placeholder {
+            color: #9B9B9B;
+        }
+        
+        /* 分类按钮容器 */
+        .category-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .category-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #E8E8E8;
+            color: #4A4A4A;
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .category-btn:hover {
+            background: #D8D8D8;
+            transform: translateY(-1px);
+        }
+        
+        .category-btn.active {
+            background: #6BBF59;
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(107, 191, 89, 0.4);
+        }
+        
+        /* 内容区域（为固定顶部区域腾出空间） */
+        .content-spacer {
+            height: 180px;
+            flex-shrink: 0;
+        }
+        
+        /* Canvas容器 */
+        #canvasWrapper {
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+        
+        #mainCanvas {
+            display: block;
+            width: 100%;
+            cursor: pointer;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header {
+                margin: 15px;
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            
+            .header-title {
+                font-size: 20px;
+            }
+            
+            .header-warning {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+            
+            .search-bar {
+                margin: 0 15px;
+                padding: 12px 15px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            
+            .search-input {
+                width: 100%;
+            }
+            
+            .category-container {
+                justify-content: flex-start;
+            }
+            
+            .category-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .content-spacer {
+                height: 220px;
+            }
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FDF6E3;
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .loading.show {
+            display: flex;
+        }
+        
+        .loading-icon {
+            font-size: 48px;
+            animation: bounce 1s infinite;
+        }
+        
+        .loading-text {
+            font-size: 16px;
+            color: #6BBF59;
+            font-weight: 600;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+        
+        /* 弹窗样式补充 */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            background: #E8F5E9;
+        }
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234A4A4A' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px !important;
+        }
+        
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #F5F5F5;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #C5C5C5;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A8A8A8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载动画 -->
+    <div id="loading" class="loading show">
+        <div class="loading-icon">🧊</div>
+        <div class="loading-text">冰箱小助手启动中...</div>
+    </div>
+    
+    <!-- 主应用容器 -->
+    <div id="app">
+        <!-- 顶部固定区域 -->
+        <div class="top-section">
+            <!-- 标题栏 -->
+            <div class="header">
+                <div class="header-title">
+                    <span>🧊</span>
+                    <span>冰箱小助手</span>
+                </div>
+                <div class="header-warning" id="headerWarning">
+                    ⚠️ 有食材需要关注
+                </div>
+            </div>
+            
+            <!-- 搜索和筛选栏 -->
+            <div class="search-bar">
+                <!-- 搜索框 -->
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput"
+                        placeholder="搜索食材..."
+                        autocomplete="off"
+                    >
+                </div>
+                
+                <!-- 分类按钮 -->
+                <div class="category-container" id="categoryContainer">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 内容区域占位 -->
+        <div class="content-spacer"></div>
+        
+        <!-- Canvas内容区域 -->
+        <div id="canvasWrapper">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+    </div>
+    
+    <!-- JS模块引入 -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/notification.js"></script>
+    <script src="js/app.js"></script>
+    
+    <script>
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 隐藏加载动画
+            setTimeout(function() {
+                var loading = document.getElementById('loading');
+                if (loading) {
+                    loading.classList.remove('show');
+                }
+            }, 500);
+            
+            // 更新标题栏警告提示
+            function updateHeaderWarning() {
+                var expiryStats = Storage.getExpiryStats();
+                var warningEl = document.getElementById('headerWarning');
+                var totalWarning = expiryStats.warning + expiryStats.expired;
+                
+                if (totalWarning > 0) {
+                    warningEl.textContent = '⚠️ ' + totalWarning + ' 项需要关注';
+                    warningEl.classList.add('show');
+                } else {
+                    warningEl.classList.remove('show');
+                }
+            }
+            
+            // 初始化搜索框
+            var searchInput = document.getElementById('searchInput');
+            var categoryContainer = document.getElementById('categoryContainer');
+            
+            // 生成分类按钮
+            var categories = ['全部', '蔬菜', '水果', '肉类', '海鲜', '乳制品', '饮料', '调味品', '其他'];
+            var categoryIcons = {
+                '全部': '📦',
+                '蔬菜': '🥬',
+                '水果': '🍎',
+                '肉类': '🥩',
+                '海鲜': '🦐',
+                '乳制品': '🥛',
+                '饮料': '🍹',
+                '调味品': '🧂',
+                '其他': '📦'
+            };
+            
+            categories.forEach(function(cat) {
+                var btn = document.createElement('button');
+                btn.className = 'category-btn' + (cat === '全部' ? ' active' : '');
+                btn.innerHTML = categoryIcons[cat] + ' ' + cat;
+                btn.dataset.category = cat;
+                btn.addEventListener('click', function() {
+                    // 更新按钮状态
+                    document.querySelectorAll('.category-btn').forEach(function(b) {
+                        b.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // 更新App的分类筛选
+                    if (window.App) {
+                        App.setSelectedCategory(cat);
+                    }
+                    
+                    // 更新标题栏警告
+                    updateHeaderWarning();
+                });
+                categoryContainer.appendChild(btn);
+            });
+            
+            // 搜索框事件
+            var debounceTimer = null;
+            searchInput.addEventListener('input', function(e) {
+                var keyword = e.target.value;
+                
+                // 防抖处理
+                if (debounceTimer) {
+                    clearTimeout(debounceTimer);
+                }
+                
+                debounceTimer = setTimeout(function() {
+                    if (window.App) {
+                        App.setSearchKeyword(keyword);
+                    }
+                }, 200);
+            });
+            
+            // 键盘事件
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    this.blur();
+                    if (window.App) {
+                        App.setSearchKeyword('');
+                    }
+                }
+            });
+            
+            // 初始更新标题栏警告
+            updateHeaderWarning();
+            
+            // 暴露更新函数给App使用
+            window.updateHeaderWarning = updateHeaderWarning;
+        });
+    </script>
+</body>
+</html>
