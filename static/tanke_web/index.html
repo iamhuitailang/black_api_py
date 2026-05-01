@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>钢铁堡垒 · 坦克对战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-background">
+            <div class="bg-grid"></div>
+            <div class="bg-particles" id="bg-particles"></div>
+        </div>
+
+        <div class="game-container">
+            <div class="main-menu" id="main-menu">
+                <div class="menu-header">
+                    <h1 class="game-title">
+                        <span class="title-glow">钢铁堡垒</span>
+                    </h1>
+                    <p class="game-subtitle">TANK BATTLE</p>
+                </div>
+
+                <div class="menu-form" id="menu-form">
+                    <div class="form-group">
+                        <input type="text" id="username" class="form-input" placeholder="用户名" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password" class="form-input" placeholder="密码" autocomplete="current-password">
+                    </div>
+                    <div class="form-buttons">
+                        <button class="btn btn-primary" id="login-btn">登录</button>
+                        <button class="btn btn-secondary" id="register-btn">注册</button>
+                    </div>
+                    <div class="form-message" id="form-message"></div>
+                </div>
+
+                <div class="guest-option">
+                    <button class="btn btn-ghost" id="guest-btn">游客模式开始游戏</button>
+                </div>
+
+                <div class="game-info-menu">
+                    <div class="info-row">
+                        <span class="info-label">操作说明：</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">← →</span>
+                        <span class="info-desc">左右移动</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">↑ 空格</span>
+                        <span class="info-desc">射击</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">P</span>
+                        <span class="info-desc">暂停</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-screen" id="game-screen" style="display: none;">
+                <div class="game-hud">
+                    <div class="hud-left">
+                        <div class="hud-item">
+                            <span class="hud-label">关卡</span>
+                            <span class="hud-value" id="hud-wave">1</span>
+                        </div>
+                        <div class="hud-item">
+                            <span class="hud-label">得分</span>
+                            <span class="hud-value" id="hud-score">0</span>
+                        </div>
+                        <div class="hud-item">
+                            <span class="hud-label">击杀</span>
+                            <span class="hud-value" id="hud-kills">0</span>
+                        </div>
+                    </div>
+                    <div class="hud-center">
+                        <div class="player-info">
+                            <div class="player-hp">
+                                <span class="hp-icon">❤️</span>
+                                <div class="hp-bar">
+                                    <div class="hp-fill" id="hp-fill" style="width: 100%"></div>
+                                </div>
+                                <span class="hp-text" id="hp-text">3/3</span>
+                            </div>
+                            <div class="tank-level" id="tank-level">Lv.1</div>
+                        </div>
+                    </div>
+                    <div class="hud-right">
+                        <button class="btn btn-small btn-ghost" id="pause-btn">暂停</button>
+                        <button class="btn btn-small btn-danger" id="quit-btn">退出</button>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="game-canvas"></canvas>
+                </div>
+
+                <div class="mobile-controls" id="mobile-controls">
+                    <div class="control-group">
+                        <button class="control-btn" id="btn-left">←</button>
+                        <button class="control-btn" id="btn-right">→</button>
+                    </div>
+                    <button class="control-btn fire-btn" id="btn-fire">🔥</button>
+                </div>
+            </div>
+
+            <div class="pause-menu" id="pause-menu" style="display: none;">
+                <div class="pause-content">
+                    <h2 class="pause-title">游戏暂停</h2>
+                    <div class="pause-buttons">
+                        <button class="btn btn-primary" id="resume-btn">继续游戏</button>
+                        <button class="btn btn-secondary" id="restart-btn">重新开始</button>
+                        <button class="btn btn-ghost" id="back-menu-btn">返回主菜单</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-over-menu" id="game-over-menu" style="display: none;">
+                <div class="game-over-content">
+                    <h2 class="game-over-title" id="game-over-title">游戏结束</h2>
+                    <div class="game-over-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">到达关卡</span>
+                            <span class="stat-value" id="final-wave">1</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">最终得分</span>
+                            <span class="stat-value" id="final-score">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">击杀数</span>
+                            <span class="stat-value" id="final-kills">0</span>
+                        </div>
+                    </div>
+                    <div class="game-over-buttons">
+                        <button class="btn btn-primary" id="retry-btn">再来一局</button>
+                        <button class="btn btn-secondary" id="go-menu-btn">返回主菜单</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="level-up-notification" id="level-up-notification" style="display: none;">
+                <div class="level-up-content">
+                    <h2 class="level-up-title">🎖️ 坦克升级!</h2>
+                    <p class="level-up-level" id="new-level">Lv.2</p>
+                    <p class="level-up-desc" id="level-up-desc">属性已提升</p>
+                </div>
+            </div>
+
+            <div class="wave-notification" id="wave-notification" style="display: none;">
+                <div class="wave-content">
+                    <p class="wave-text" id="wave-text">第 1 波</p>
+                </div>
+            </div>
+
+            <div class="message-toast" id="message-toast" style="display: none;">
+                <span id="toast-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js?v=2"></script>
+    <script src="js/utils/utils.js?v=2"></script>
+    <script src="js/services/api.js?v=2"></script>
+    <script src="js/services/auth.js?v=2"></script>
+    <script src="js/config/game_config.js?v=2"></script>
+    <script src="js/game/entities.js?v=2"></script>
+    <script src="js/game/collision.js?v=2"></script>
+    <script src="js/game/renderer.js?v=2"></script>
+    <script src="js/game/input.js?v=2"></script>
+    <script src="js/game/game_manager.js?v=2"></script>
+    <script src="js/ui/ui_manager.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
+</body>
+</html>

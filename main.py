@@ -24,6 +24,12 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.tanke import (
+    TankeUserModel,
+    TankeTankModel,
+    TankeGameRecordModel,
+    TankeTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +78,11 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    TankeUserModel.create_table()
+    TankeTokenModel.create_table()
+    TankeTankModel.create_table()
+    TankeGameRecordModel.create_table()
 
     migrate_database()
 
@@ -151,6 +162,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8004,
         reload=True
     )
