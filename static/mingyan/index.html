@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>名言生成器 - 创意广告语生成工具</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>名言生成器</h1>
+            <p class="subtitle">输入关键词，一键生成创意广告语</p>
+        </header>
+        
+        <main class="main-content">
+            <section class="input-section">
+                <div class="form-group">
+                    <label for="keywords">关键词 (1-3个，用空格/逗号分隔)</label>
+                    <input type="text" id="keywords" placeholder="例如：咖啡 清晨 活力">
+                </div>
+                
+                <div class="form-group">
+                    <label>风格选择</label>
+                    <div class="options-grid" id="style-options">
+                        <button class="option-btn active" data-style="simple">简约</button>
+                        <button class="option-btn" data-style="emotion">情感</button>
+                        <button class="option-btn" data-style="humor">幽默</button>
+                        <button class="option-btn" data-style="luxury">高端</button>
+                        <button class="option-btn" data-style="inspire">励志</button>
+                        <button class="option-btn" data-style="rhyme">押韵</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>行业预设 (可选)</label>
+                    <div class="options-grid" id="industry-options">
+                        <button class="option-btn" data-industry="food">餐饮</button>
+                        <button class="option-btn" data-industry="beauty">美妆</button>
+                        <button class="option-btn" data-industry="tech">科技</button>
+                        <button class="option-btn" data-industry="education">教育</button>
+                        <button class="option-btn" data-industry="fashion">服装</button>
+                        <button class="option-btn" data-industry="fitness">健身</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>长度控制</label>
+                    <div class="options-grid" id="length-options">
+                        <button class="option-btn" data-length="short">短句 (5字内)</button>
+                        <button class="option-btn active" data-length="medium">中句 (10字内)</button>
+                        <button class="option-btn" data-length="long">长句 (15字内)</button>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="primary-btn" id="generate-btn">一键生成</button>
+                    <button class="secondary-btn" id="refresh-btn" disabled>换一批</button>
+                </div>
+            </section>
+            
+            <section class="result-section">
+                <div class="section-header">
+                    <h2>生成结果</h2>
+                    <button class="export-btn" id="export-results-btn">导出结果</button>
+                </div>
+                <div class="slogans-container" id="slogans-container">
+                    <div class="empty-state">
+                        <p>请输入关键词并点击"一键生成"</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="history-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="history">生成历史</button>
+                    <button class="tab-btn" data-tab="favorites">我的收藏</button>
+                </div>
+                <div class="tab-content" id="history-content">
+                    <div class="empty-state">
+                        <p>暂无生成历史</p>
+                    </div>
+                </div>
+                <div class="tab-content hidden" id="favorites-content">
+                    <div class="empty-state">
+                        <p>暂无收藏内容</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <canvas id="canvas-bg"></canvas>
+    </div>
+    
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
