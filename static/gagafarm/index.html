@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咯咯农场 - 养鸡模拟游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <div class="header-left">
+                <h1>🐔 咯咯农场</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="header-right">
+                <div class="stat-item">
+                    <span class="stat-label">金币:</span>
+                    <span class="stat-value" id="gold-display">0</span>
+                    <span class="stat-icon">💰</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">鸡蛋:</span>
+                    <span class="stat-value" id="egg-display">0</span>
+                    <span class="stat-icon">🥚</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">鸡只:</span>
+                    <span class="stat-value" id="chicken-display">0</span>
+                    <span class="stat-icon">🐔</span>
+                </div>
+            </div>
+        </header>
+        
+        <main id="main">
+            <div class="game-container">
+                <canvas id="game-canvas" width="800" height="500"></canvas>
+                <div id="event-notification" class="event-notification hidden">
+                    <div class="event-icon"></div>
+                    <div class="event-content">
+                        <div class="event-title"></div>
+                        <div class="event-message"></div>
+                    </div>
+                    <button class="event-close">&times;</button>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="farm">农场</button>
+                    <button class="tab-btn" data-tab="shop">商店</button>
+                    <button class="tab-btn" data-tab="upgrade">升级</button>
+                    <button class="tab-btn" data-tab="stats">统计</button>
+                </div>
+                
+                <div class="panel-content">
+                    <div id="tab-farm" class="tab-panel active">
+                        <div class="action-buttons">
+                            <button id="collect-eggs-btn" class="action-btn">
+                                <span class="btn-icon">🥚</span>
+                                <span class="btn-text">收集鸡蛋</span>
+                            </button>
+                            <button id="sell-eggs-btn" class="action-btn">
+                                <span class="btn-icon">💰</span>
+                                <span class="btn-text">出售鸡蛋</span>
+                            </button>
+                            <button id="auto-collect-toggle" class="action-btn">
+                                <span class="btn-icon">🔄</span>
+                                <span class="btn-text">自动收集: 关</span>
+                            </button>
+                        </div>
+                        <div class="farm-info">
+                            <p><strong>当前鸡舍:</strong> <span id="current-coop">小鸡圈</span></p>
+                            <p><strong>容量:</strong> <span id="current-capacity">0</span>/<span id="max-capacity">10</span></p>
+                            <p><strong>自动收集:</strong> <span id="auto-collect-status">未解锁</span></p>
+                        </div>
+                    </div>
+                    
+                    <div id="tab-shop" class="tab-panel">
+                        <h3>🐔 鸡种商店</h3>
+                        <div id="chicken-shop-list" class="shop-list">
+                        </div>
+                    </div>
+                    
+                    <div id="tab-upgrade" class="tab-panel">
+                        <h3>🏠 鸡舍升级</h3>
+                        <div id="coop-upgrade-list" class="shop-list">
+                        </div>
+                        
+                        <h3 style="margin-top: 20px;">🐕 装备商店</h3>
+                        <div id="dog-shop-list" class="shop-list">
+                        </div>
+                    </div>
+                    
+                    <div id="tab-stats" class="tab-panel">
+                        <h3>📊 游戏统计</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-label">总金币收入</div>
+                                <div class="stat-card-value" id="stat-total-gold">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-label">总产蛋数</div>
+                                <div class="stat-card-value" id="stat-total-eggs">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-label">总售卖鸡蛋</div>
+                                <div class="stat-card-value" id="stat-sold-eggs">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-label">游戏时间</div>
+                                <div class="stat-card-value" id="stat-play-time">0分钟</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-label">每小时产蛋率</div>
+                                <div class="stat-card-value" id="stat-eggs-per-hour">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-label">每小时金币率</div>
+                                <div class="stat-card-value" id="stat-gold-per-hour">0</div>
+                            </div>
+                        </div>
+                        <div class="reset-section">
+                            <button id="reset-game-btn" class="danger-btn">重置游戏</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer id="footer">
+            <p>咯咯农场 - 祝你养鸡愉快！🐔</p>
+        </footer>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/chicken.js"></script>
+    <script src="js/event.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
