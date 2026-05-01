@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏头诗生成器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">藏头诗生成器</h1>
+            <p class="subtitle">输入关键词，生成专属藏头诗</p>
+        </header>
+
+        <main class="main-content">
+            <section class="controls">
+                <div class="control-group">
+                    <label for="keywords">关键词 (2-8字)</label>
+                    <input type="text" id="keywords" placeholder="请输入关键词，如：平安、生日快乐" maxlength="8">
+                </div>
+
+                <div class="control-group">
+                    <label>诗体</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="form" value="five" checked>
+                            <span>五言绝句</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="form" value="seven">
+                            <span>七言绝句</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>风格</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="style" value="classical" checked>
+                            <span>古风典雅</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="style" value="modern">
+                            <span>现代浪漫</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="style" value="funny">
+                            <span>幽默搞笑</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>快速示例</label>
+                    <div class="examples">
+                        <button class="example-btn" data-keywords="爱情" data-form="seven" data-style="modern">爱情</button>
+                        <button class="example-btn" data-keywords="友情" data-form="five" data-style="classical">友情</button>
+                        <button class="example-btn" data-keywords="事业" data-form="seven" data-style="classical">事业</button>
+                        <button class="example-btn" data-keywords="生日快乐" data-form="seven" data-style="modern">生日</button>
+                        <button class="example-btn" data-keywords="节日快乐" data-form="five" data-style="funny">节日</button>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="btn btn-primary">一键生成</button>
+            </section>
+
+            <section class="result-section" id="resultSection">
+                <div class="result-container">
+                    <canvas id="poemCanvas" class="poem-canvas"></canvas>
+                    
+                    <div class="poem-text" id="poemText">
+                        <p class="poem-line">请输入关键词生成藏头诗</p>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="copyBtn" class="btn btn-secondary" disabled>复制文本</button>
+                        <button id="saveBtn" class="btn btn-secondary" disabled>保存图片</button>
+                        <button id="reGenerateBtn" class="btn btn-secondary" disabled>重新生成</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>© 2026 藏头诗生成器 | 纯前端实现，数据本地存储</p>
+        </footer>
+    </div>
+
+    <script src="js/modules/data.js"></script>
+    <script src="js/modules/storage.js"></script>
+    <script src="js/modules/generator.js"></script>
+    <script src="js/modules/canvas.js"></script>
+    <script src="js/modules/utils.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

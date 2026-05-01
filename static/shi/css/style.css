@@ -1,0 +1,424 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --ink-black: #1a1a1a;
+    --cinnabar-red: #B22222;
+    --gold: #D4AF37;
+    --rice-paper: #F5F1E6;
+    --rice-paper-dark: #E8E0D0;
+    --light-gray: #666;
+}
+
+@font-face {
+    font-family: 'Kaiti';
+    src: local('STKaiti'), local('华文楷体'), local('KaiTi'), local('KaiTi_GB2312');
+}
+
+@font-face {
+    font-family: 'Songti';
+    src: local('Noto Serif SC'), local('思源宋体'), local('SimSun'), local('宋体');
+}
+
+body {
+    font-family: 'Songti', 'STSong', 'SimSun', serif;
+    background: var(--rice-paper);
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(178, 34, 34, 0.03) 0%, transparent 50%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    min-height: 100vh;
+    color: var(--ink-black);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px 0;
+    position: relative;
+}
+
+.header::before,
+.header::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--ink-black), transparent);
+}
+
+.header::before {
+    top: 0;
+    width: 300px;
+}
+
+.header::after {
+    bottom: 0;
+    width: 200px;
+}
+
+.title {
+    font-family: 'Kaiti', 'STKaiti', 'KaiTi', cursive;
+    font-size: 3rem;
+    color: var(--ink-black);
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: 8px;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: var(--light-gray);
+    letter-spacing: 2px;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+.controls {
+    background: var(--rice-paper);
+    border: 2px solid var(--ink-black);
+    border-radius: 8px;
+    padding: 30px;
+    position: relative;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.08),
+        inset 0 0 30px rgba(212, 175, 55, 0.05);
+}
+
+.controls::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border: 1px solid var(--ink-black);
+    border-radius: 12px;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.control-group {
+    margin-bottom: 25px;
+}
+
+.control-group label {
+    display: block;
+    font-family: 'Kaiti', 'STKaiti', 'KaiTi', cursive;
+    font-size: 1.1rem;
+    color: var(--ink-black);
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+.control-group input[type="text"] {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1rem;
+    font-family: 'Songti', 'STSong', 'SimSun', serif;
+    border: 1px solid var(--ink-black);
+    border-radius: 4px;
+    background: var(--rice-paper);
+    color: var(--ink-black);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.control-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+}
+
+.radio-group {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 15px;
+    border: 1px solid var(--ink-black);
+    border-radius: 4px;
+    transition: all 0.3s;
+    font-family: 'Songti', 'STSong', 'SimSun', serif;
+}
+
+.radio-label:hover {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.radio-label input[type="radio"] {
+    accent-color: var(--cinnabar-red);
+}
+
+.radio-label input[type="radio"]:checked + span {
+    color: var(--cinnabar-red);
+}
+
+.examples {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.example-btn {
+    padding: 8px 18px;
+    font-family: 'Kaiti', 'STKaiti', 'KaiTi', cursive;
+    font-size: 1rem;
+    background: var(--rice-paper);
+    border: 1px solid var(--ink-black);
+    border-radius: 4px;
+    color: var(--ink-black);
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 2px;
+}
+
+.example-btn:hover {
+    background: var(--ink-black);
+    color: var(--rice-paper);
+}
+
+.btn {
+    padding: 12px 30px;
+    font-family: 'Kaiti', 'STKaiti', 'KaiTi', cursive;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 3px;
+}
+
+.btn-primary {
+    background: var(--cinnabar-red);
+    color: var(--rice-paper);
+    border: 1px solid var(--cinnabar-red);
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-primary:hover {
+    background: #8B1A1A;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(178, 34, 34, 0.3);
+}
+
+.btn-secondary {
+    background: var(--rice-paper);
+    color: var(--ink-black);
+    border: 1px solid var(--ink-black);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--ink-black);
+    color: var(--rice-paper);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.result-section {
+    background: var(--rice-paper);
+    border: 2px solid var(--ink-black);
+    border-radius: 8px;
+    padding: 30px;
+    position: relative;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.08),
+        inset 0 0 30px rgba(212, 175, 55, 0.05);
+}
+
+.result-section::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border: 1px solid var(--ink-black);
+    border-radius: 12px;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.result-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.poem-canvas {
+    display: none;
+    max-width: 100%;
+    border: 1px solid var(--ink-black);
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.poem-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.poem-text::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231a1a1a' fill-opacity='0.02' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+.poem-line {
+    font-family: 'Kaiti', 'STKaiti', 'KaiTi', cursive;
+    font-size: 1.8rem;
+    color: var(--ink-black);
+    margin: 12px 0;
+    letter-spacing: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.poem-line:first-child {
+    margin-top: 0;
+}
+
+.poem-line:last-child {
+    margin-bottom: 0;
+}
+
+.poem-line .hidden-word {
+    color: var(--cinnabar-red);
+    font-weight: bold;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 60px;
+    padding: 20px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--light-gray);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .title {
+        font-size: 2.2rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+
+    .title {
+        font-size: 1.8rem;
+        letter-spacing: 4px;
+    }
+
+    .controls,
+    .result-section {
+        padding: 20px;
+    }
+
+    .poem-line {
+        font-size: 1.4rem;
+        letter-spacing: 4px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.poem-line {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.poem-line:nth-child(1) { animation-delay: 0.1s; }
+.poem-line:nth-child(2) { animation-delay: 0.2s; }
+.poem-line:nth-child(3) { animation-delay: 0.3s; }
+.poem-line:nth-child(4) { animation-delay: 0.4s; }
+
+.poem-text {
+    position: relative;
+}
+
+.poem-text::after {
+    content: '';
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='25' fill='none' stroke='%23B22222' stroke-width='2' opacity='0.3'/%3E%3Ctext x='30' y='38' text-anchor='middle' font-family='Kaiti, STKaiti, KaiTi' font-size='16' fill='%23B22222' opacity='0.5'%3E诗%3C/text%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+}
