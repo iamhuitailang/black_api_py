@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太空侵略者 · 星际防御</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="info-label">得分</span>
+                    <span class="info-value" id="score">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">关卡</span>
+                    <span class="info-value" id="level">1</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">生命值</span>
+                    <span class="info-value" id="lives">❤️❤️❤️</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-canvas-container">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+            <div class="game-overlay" id="gameOverlay">
+                <div class="overlay-content">
+                    <h1 class="game-title">太空侵略者 · 星际防御</h1>
+                    <p class="game-description">保护地球，消灭所有外星入侵者！</p>
+                    <div class="control-info">
+                        <p><span class="key">← →</span> 左右移动</p>
+                        <p><span class="key">空格 / ↑</span> 射击</p>
+                        <p><span class="key">P</span> 暂停</p>
+                    </div>
+                    <button class="game-btn" id="startBtn">开始游戏</button>
+                </div>
+            </div>
+            <div class="game-overlay hidden" id="pauseOverlay">
+                <div class="overlay-content">
+                    <h1 class="game-title">游戏暂停</h1>
+                    <button class="game-btn" id="resumeBtn">继续游戏</button>
+                    <button class="game-btn secondary" id="restartBtnPause">重新开始</button>
+                </div>
+            </div>
+            <div class="game-overlay hidden" id="gameOverOverlay">
+                <div class="overlay-content">
+                    <h1 class="game-title" id="gameOverTitle">游戏结束</h1>
+                    <p class="game-description" id="gameOverMessage">地球被外星入侵者占领了...</p>
+                    <div class="final-score">
+                        <p>最终得分: <span id="finalScore">0</span></p>
+                        <p>到达关卡: <span id="finalLevel">1</span></p>
+                    </div>
+                    <button class="game-btn" id="restartBtnGameOver">重新开始</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-controls">
+            <button class="control-btn" id="pauseBtn">暂停</button>
+            <button class="control-btn" id="restartBtn">重新开始</button>
+        </div>
+    </div>
+    
+    <script src="js/game.js"></script>
+</body>
+</html>
