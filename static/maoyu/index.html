@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐱 猫语翻译器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="header-title">🐱 猫语翻译器 🐱</h1>
+            <p class="header-subtitle">听懂喵星人的秘密语言</p>
+        </header>
+
+        <div class="canvas-container" id="cat-container">
+            <canvas id="cat-canvas"></canvas>
+            <div class="sleeping-overlay" id="sleeping-overlay">
+                <div class="sleeping-message">
+                    <div class="sleeping-emoji">😴</div>
+                    <div class="sleeping-text">猫咪在睡觉，别吵它 Zzz</div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="tabs" id="main-tabs">
+            <button class="tab-btn active" data-tab="translate">
+                <span class="tab-icon">🔄</span>
+                <span>翻译</span>
+            </button>
+            <button class="tab-btn" data-tab="chat">
+                <span class="tab-icon">💬</span>
+                <span>对话</span>
+            </button>
+            <button class="tab-btn" data-tab="learn">
+                <span class="tab-icon">📚</span>
+                <span>学习</span>
+            </button>
+            <button class="tab-btn" data-tab="settings">
+                <span class="tab-icon">⚙️</span>
+                <span>设置</span>
+            </button>
+        </nav>
+
+        <div class="tab-content active" id="tab-translate">
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">🐱</span>
+                    选择猫叫声（点击播放）
+                </h3>
+                <div class="cat-sound-buttons" id="cat-sounds">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">🎲</span>
+                    随机翻译
+                </h3>
+                <button class="btn btn-secondary btn-block" id="random-btn">
+                    🎲 随机生成猫语
+                </button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">💬</span>
+                    人话转猫语
+                </h3>
+                <div class="input-group">
+                    <label class="input-label">输入人话：</label>
+                    <input type="text" class="text-input" id="human-input" placeholder="试试说：我爱你、我饿了、陪我玩...">
+                </div>
+                <button class="btn btn-primary btn-block" id="translate-human-btn">
+                    🔄 翻译成猫语
+                </button>
+            </div>
+
+            <div class="card" id="result-card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">✨</span>
+                    翻译结果
+                </h3>
+                <div class="result-card" id="result-container">
+                    <div class="result-placeholder" id="result-placeholder">
+                        点击上方按钮开始翻译...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-chat">
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div class="chat-container">
+                    <div id="chat-messages"></div>
+                    <div class="quick-messages">
+                        <button class="quick-msg-btn" data-msg="我爱你">💕 我爱你</button>
+                        <button class="quick-msg-btn" data-msg="我饿了">😸 我饿了</button>
+                        <button class="quick-msg-btn" data-msg="陪我玩">🎾 陪我玩</button>
+                        <button class="quick-msg-btn" data-msg="你好">👋 你好</button>
+                        <button class="quick-msg-btn" data-msg="晚安">😴 晚安</button>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="和猫咪聊聊天...">
+                        <button class="btn btn-primary btn-icon" id="chat-send-btn">
+                            📤
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-outline btn-block" id="chat-clear-btn">
+                🗑️ 清空聊天记录
+            </button>
+        </div>
+
+        <div class="tab-content" id="tab-learn">
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">📝</span>
+                    教猫咪新指令（纯娱乐）
+                </h3>
+                <div class="learn-form">
+                    <div class="learn-input-row">
+                        <div class="learn-input-group">
+                            <label class="input-label">猫语：</label>
+                            <input type="text" class="text-input" id="learn-command" placeholder="例如：喵喵喵">
+                        </div>
+                        <div class="learn-input-group">
+                            <label class="input-label">人话：</label>
+                            <input type="text" class="text-input" id="learn-translation" placeholder="例如：我饿了">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-block" id="learn-add-btn">
+                        ➕ 添加新指令
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">📖</span>
+                    已学会的指令
+                </h3>
+                <div id="learned-list">
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-settings">
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">�</span>
+                    选择猫咪
+                </h3>
+                <div class="cat-type-selector" id="cat-type-selector">
+                    <button class="cat-type-btn active" data-cat-type="lihua">
+                        <span class="cat-type-emoji">🐯</span>
+                        <span class="cat-type-name">狸花猫</span>
+                        <span class="cat-type-desc">中华田园猫，活泼可爱</span>
+                    </button>
+                    <button class="cat-type-btn" data-cat-type="siamese">
+                        <span class="cat-type-emoji">💎</span>
+                        <span class="cat-type-name">暹罗猫</span>
+                        <span class="cat-type-desc">话痨猫，声音高亢</span>
+                    </button>
+                    <button class="cat-type-btn" data-cat-type="persian">
+                        <span class="cat-type-emoji">👑</span>
+                        <span class="cat-type-name">波斯猫</span>
+                        <span class="cat-type-desc">优雅高贵，声音低沉</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">�🔊</span>
+                    音效设置
+                </h3>
+                <div class="settings-row">
+                    <div class="settings-label">
+                        <span class="settings-icon">🔊</span>
+                        <span>音效开关</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">📊</span>
+                    翻译统计
+                </h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-translations">0</div>
+                        <div class="stat-label">总翻译次数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-love">0</div>
+                        <div class="stat-label">说"我爱你"次数</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">📋</span>
+                    历史记录
+                </h3>
+                <button class="btn btn-outline btn-block" id="clear-history-btn">
+                    🗑️ 清空翻译历史
+                </button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">
+                    <span class="card-title-icon">ℹ️</span>
+                    关于
+                </h3>
+                <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                    🐱 猫语翻译器 v1.0<br>
+                    一款纯娱乐性质的猫咪翻译应用<br>
+                    内置7种常见猫叫声的预设翻译<br>
+                    支持对话模式、学习模式<br>
+                    <br>
+                    <em>仅供娱乐，猫咪的真实想法还需要你用心去感受哦～</em>
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            Made with <span class="footer-paw">💕</span> for cat lovers
+        </footer>
+    </div>
+
+    <div class="share-modal" id="share-modal">
+        <div class="share-content">
+            <div class="share-header">
+                <h3 class="share-title">分享卡片</h3>
+                <button class="share-close-btn" id="share-close-btn">✕</button>
+            </div>
+            <canvas id="share-canvas"></canvas>
+            <p class="share-hint">长按图片保存，分享到朋友圈</p>
+            <div class="btn-group" style="justify-content: center;">
+                <button class="btn btn-primary" id="share-save-btn">
+                    💾 保存图片
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="video-call-overlay" id="video-call-overlay">
+        <div class="video-call-content">
+            <div class="video-call-icon">📞</div>
+            <div class="video-call-text">喵星人请求视频通话</div>
+            <div class="video-call-subtitle">是否接受？</div>
+            <div>
+                <button class="video-call-btn answer" id="video-answer-btn">✅</button>
+                <button class="video-call-btn decline" id="video-decline-btn">❌</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/audio.js"></script>
+    <script src="js/modules/translator.js"></script>
+    <script src="js/modules/animations.js"></script>
+    <script src="js/modules/chat.js"></script>
+    <script src="js/modules/learning.js"></script>
+    <script src="js/modules/share.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
