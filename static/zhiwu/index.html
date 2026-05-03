@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌿 植物浇水日历</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">🌿 植物浇水日历</h1>
+                <p class="app-subtitle">管理家中所有植物的浇水日程</p>
+            </div>
+            <div class="header-actions">
+                <button id="enableNotifications" class="btn btn-notification">
+                    🔔 启用通知
+                </button>
+            </div>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="today">
+                <span class="tab-icon">💧</span>
+                <span class="tab-text">今日任务</span>
+            </button>
+            <button class="tab-btn" data-tab="calendar">
+                <span class="tab-icon">📅</span>
+                <span class="tab-text">浇水日历</span>
+            </button>
+            <button class="tab-btn" data-tab="plants">
+                <span class="tab-icon">🌱</span>
+                <span class="tab-text">我的植物</span>
+            </button>
+            <button class="tab-btn" data-tab="history">
+                <span class="tab-icon">📊</span>
+                <span class="tab-text">浇水历史</span>
+            </button>
+        </nav>
+
+        <main class="main-content">
+            <section id="tab-today" class="tab-content active">
+                <div class="today-header">
+                    <h2>💧 今日浇水任务</h2>
+                    <div class="today-actions">
+                        <span id="todayDate" class="today-date"></span>
+                        <button id="shareBtn" class="btn btn-primary btn-sm">
+                            📤 分享
+                        </button>
+                    </div>
+                </div>
+                <div id="todayTasks" class="tasks-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">🌿</span>
+                        <p>今天没有需要浇水的植物</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-calendar" class="tab-content">
+                <div class="calendar-header">
+                    <h2>📅 浇水日历</h2>
+                    <div class="calendar-controls">
+                        <button id="prevMonth" class="btn-icon">◀</button>
+                        <span id="calendarTitle" class="calendar-title"></span>
+                        <button id="nextMonth" class="btn-icon">▶</button>
+                        <button id="goToToday" class="btn btn-sm">今天</button>
+                    </div>
+                </div>
+                <div class="calendar-container">
+                    <canvas id="calendarCanvas"></canvas>
+                </div>
+                <div id="calendarDetail" class="calendar-detail">
+                    <p class="detail-placeholder">点击日期查看当天需要浇水的植物</p>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-dot ok"></span>
+                        <span>正常</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot today"></span>
+                        <span>今日待浇</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot warning"></span>
+                        <span>逾期1天</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot danger"></span>
+                        <span>逾期2天+</span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-plants" class="tab-content">
+                <div class="plants-header">
+                    <h2>🌱 我的植物</h2>
+                    <button id="addPlantBtn" class="btn btn-primary">
+                        ➕ 添加植物
+                    </button>
+                </div>
+                <div id="plantsList" class="plants-grid">
+                    <div class="empty-state">
+                        <span class="empty-icon">🌵</span>
+                        <p>还没有添加任何植物</p>
+                        <p class="empty-hint">点击"添加植物"开始记录</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-history" class="tab-content">
+                <div class="history-header">
+                    <h2>📊 浇水历史</h2>
+                    <select id="historyPlantFilter" class="history-filter">
+                        <option value="all">全部植物</option>
+                    </select>
+                </div>
+                <div id="historyList" class="history-timeline">
+                    <div class="empty-state">
+                        <span class="empty-icon">📝</span>
+                        <p>还没有浇水记录</p>
+                        <p class="empty-hint">给植物浇水后会显示在这里</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="addPlantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加植物</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="plantForm" class="plant-form">
+                <input type="hidden" id="editPlantId" value="">
+                
+                <div class="form-group">
+                    <label for="plantName">植物名称 *</label>
+                    <input type="text" id="plantName" required placeholder="例如：绿萝、多肉">
+                </div>
+
+                <div class="form-group">
+                    <label>选择图标</label>
+                    <div id="iconSelector" class="icon-selector">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="plantPhoto">植物照片（可选）</label>
+                    <div class="photo-upload">
+                        <div id="photoPreview" class="photo-preview">
+                            <span class="photo-placeholder">📷 点击上传照片</span>
+                        </div>
+                        <input type="file" id="plantPhoto" accept="image/*" capture="environment">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>浇水频率</label>
+                    <div id="waterTypeSelector" class="water-type-selector">
+                        <button type="button" class="water-type-btn active" data-type="every_n_days">
+                            <span class="water-icon">💧</span>
+                            <span class="water-name">每 N 天</span>
+                        </button>
+                        <button type="button" class="water-type-btn" data-type="daily">
+                            <span class="water-icon">💦</span>
+                            <span class="water-name">每天</span>
+                        </button>
+                        <button type="button" class="water-type-btn" data-type="weekly_days">
+                            <span class="water-icon">📅</span>
+                            <span class="water-name">每周</span>
+                        </button>
+                        <button type="button" class="water-type-btn" data-type="every_n_weeks">
+                            <span class="water-icon">🗓️</span>
+                            <span class="water-name">每 N 周</span>
+                        </button>
+                        <button type="button" class="water-type-btn" data-type="monthly_days">
+                            <span class="water-icon">📆</span>
+                            <span class="water-name">每月</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="waterSettingsPanel" class="water-settings-panel">
+                    <div class="form-group settings-every_n_days">
+                        <label>浇水间隔（天）</label>
+                        <div class="number-input-group">
+                            <button type="button" class="num-btn decrease" data-target="everyNDays">-</button>
+                            <input type="number" id="everyNDays" value="3" min="1" max="30">
+                            <button type="button" class="num-btn increase" data-target="everyNDays">+</button>
+                        </div>
+                        <div class="quick-options">
+                            <button type="button" class="quick-option" data-value="3">3天</button>
+                            <button type="button" class="quick-option" data-value="5">5天</button>
+                            <button type="button" class="quick-option" data-value="7">7天</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group settings-weekly_days hidden">
+                        <label>选择浇水日</label>
+                        <div class="weekday-selector">
+                            <button type="button" class="weekday-btn" data-day="1">周一</button>
+                            <button type="button" class="weekday-btn" data-day="2">周二</button>
+                            <button type="button" class="weekday-btn" data-day="3">周三</button>
+                            <button type="button" class="weekday-btn" data-day="4">周四</button>
+                            <button type="button" class="weekday-btn" data-day="5">周五</button>
+                            <button type="button" class="weekday-btn" data-day="6">周六</button>
+                            <button type="button" class="weekday-btn" data-day="0">周日</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group settings-every_n_weeks hidden">
+                        <label>间隔周数</label>
+                        <div class="number-input-group">
+                            <button type="button" class="num-btn decrease" data-target="everyNWeeks">-</button>
+                            <input type="number" id="everyNWeeks" value="2" min="1" max="12">
+                            <button type="button" class="num-btn increase" data-target="everyNWeeks">+</button>
+                        </div>
+                        <label class="mt-2">选择星期</label>
+                        <div class="weekday-selector single-select" id="weekdaySingle">
+                            <button type="button" class="weekday-btn" data-day="1">周一</button>
+                            <button type="button" class="weekday-btn" data-day="2">周二</button>
+                            <button type="button" class="weekday-btn" data-day="3">周三</button>
+                            <button type="button" class="weekday-btn" data-day="4">周四</button>
+                            <button type="button" class="weekday-btn" data-day="5">周五</button>
+                            <button type="button" class="weekday-btn" data-day="6">周六</button>
+                            <button type="button" class="weekday-btn" data-day="0">周日</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group settings-monthly_days hidden">
+                        <label>选择日期（可多选）</label>
+                        <div class="monthday-selector">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>最后浇水日期</label>
+                    <div class="date-input-group">
+                        <input type="date" id="lastWateredDate">
+                        <button type="button" id="setTodayBtn" class="btn btn-sm">今天</button>
+                    </div>
+                    <p class="form-hint">如果从未浇过水，可以留空</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary modal-close">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="plantDetailModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="detailPlantName">植物详情</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="plant-detail-content">
+                <div class="detail-main">
+                    <div class="detail-photo" id="detailPhoto">
+                        <span class="detail-icon" id="detailIcon">🌿</span>
+                    </div>
+                    <div class="detail-info">
+                        <div class="info-item">
+                            <span class="info-label">浇水频率</span>
+                            <span class="info-value" id="detailSchedule">每 3 天</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最后浇水</span>
+                            <span class="info-value" id="detailLastWatered">从未</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">下次浇水</span>
+                            <span class="info-value" id="detailNextWatered">今天</span>
+                        </div>
+                        <div class="info-item warning-item" id="detailWarning" style="display:none;">
+                            <span class="info-label">状态</span>
+                            <span class="info-value warning-text" id="detailWarningText">逾期 2 天</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <button id="waterNowBtn" class="btn btn-success">💧 立即浇水</button>
+                    <button id="editPlantBtn" class="btn btn-secondary">✏️ 编辑</button>
+                    <button id="deletePlantBtn" class="btn btn-danger">🗑️ 删除</button>
+                </div>
+                <div class="detail-history">
+                    <h4>最近浇水记录</h4>
+                    <div id="detailHistoryList" class="detail-history-list">
+                        <p class="no-history">暂无记录</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>确认删除</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="confirm-content">
+                <p>确定要删除这株植物吗？</p>
+                <p class="confirm-warning">此操作不可撤销，浇水历史也将被删除。</p>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary modal-close">取消</button>
+                <button id="confirmDeleteBtn" class="btn btn-danger">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📤 分享浇水任务</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="share-content">
+                <div class="share-preview">
+                    <div id="shareTextPreview" class="share-text-preview">
+                    </div>
+                </div>
+                <div class="share-actions">
+                    <button id="copyToClipboardBtn" class="btn btn-primary">
+                        📋 复制到剪贴板
+                    </button>
+                    <button id="nativeShareBtn" class="btn btn-secondary" style="display:none;">
+                        📱 分享
+                    </button>
+                </div>
+                <div id="shareSuccess" class="share-success" style="display:none;">
+                    ✅ 已复制到剪贴板！
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/modules/storage.js"></script>
+    <script src="js/modules/icons.js"></script>
+    <script src="js/modules/schedule.js"></script>
+    <script src="js/modules/notification.js"></script>
+    <script src="js/modules/calendar.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
