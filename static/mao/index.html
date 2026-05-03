@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫捉老鼠 - 休闲小游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <main class="main-content">
+        <div class="container">
+            <div class="page-title">
+                <h1>🐱 猫捉老鼠 🐭</h1>
+                <p class="subtitle">控制老鼠躲避猫的追捕，收集奶酪，坚持越久得分越高！</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🎮 游戏区域</h2>
+                </div>
+                <div class="card-body">
+                    <div id="game-ui" class="game-ui hidden">
+                        <div class="game-info">
+                            <div class="info-item">
+                                <div class="label">🧀 得分</div>
+                                <div class="value" id="score-display">0</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="label">⏱️ 生存时间</div>
+                                <div class="value" id="time-display">0:00</div>
+                            </div>
+                            <div class="info-item audio-controls">
+                                <div class="label">🔊 音量</div>
+                                <div class="volume-slider-container">
+                                    <input type="range" id="volume-slider" min="0" max="100" value="50">
+                                    <span id="volume-value">50%</span>
+                                </div>
+                                <button class="btn btn-sm" id="sound-toggle" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;">
+                                    🔊 音效开
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="game-container">
+                        <canvas id="game-canvas" width="800" height="600"></canvas>
+                    </div>
+
+                    <div id="start-screen" class="start-screen">
+                        <div class="game-icon">🐱</div>
+                        <h2>准备好了吗？</h2>
+                        <p class="mb-20">控制小老鼠躲避猫咪的追捕，收集美味的奶酪！</p>
+                        
+                        <div class="controls-info mb-20">
+                            <p><strong>🎮 操作说明：</strong></p>
+                            <p>• 使用 <span>W</span> <span>A</span> <span>S</span> <span>D</span> 或 <span>↑</span> <span>←</span> <span>↓</span> <span>→</span> 移动老鼠</p>
+                            <p>• 按 <span>空格</span> 或 <span>ESC</span> 暂停/继续游戏</p>
+                            <p>• 收集 <span>🧀</span> 奶酪获得分数</p>
+                            <p>• 躲避 <span>🐱</span> 猫咪的追捕</p>
+                        </div>
+
+                        <button class="btn btn-primary btn-lg" id="start-btn">
+                            🎮 开始游戏
+                        </button>
+                    </div>
+
+                    <div id="game-controls" class="game-controls hidden">
+                        <button class="btn btn-warning" id="pause-btn">⏸️ 暂停</button>
+                        <button class="btn btn-secondary" id="restart-btn">🔄 重新开始</button>
+                        <button class="btn btn-success hidden" id="resume-btn">▶️ 继续游戏</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📊 游戏统计</h2>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">🏆 最高分</div>
+                            <div class="stat-value" id="stats-high-score">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">⏱️ 最长生存时间</div>
+                            <div class="stat-value" id="stats-longest-survival">0:00</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">🧀 总奶酪数</div>
+                            <div class="stat-value" id="stats-total-cheeses">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">🎮 总游戏次数</div>
+                            <div class="stat-value" id="stats-total-games">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📖 游戏说明</h2>
+                </div>
+                <div class="card-body">
+                    <div class="controls-info">
+                        <p><strong>🎯 游戏目标：</strong></p>
+                        <p>• 控制灰色小老鼠在绿色场地内移动</p>
+                        <p>• 收集黄色奶酪获得分数 (+10分/个)</p>
+                        <p>• 躲避橙色猫咪的追捕</p>
+                        <p>• 坚持时间越长，猫咪速度越快！</p>
+                        <br>
+                        <p><strong>⚡ 猫咪速度变化：</strong></p>
+                        <p>• 0-10秒：速度 3</p>
+                        <p>• 10-20秒：速度 4</p>
+                        <p>• 20-30秒：速度 5</p>
+                        <p>• 30-40秒：速度 6</p>
+                        <p>• 40-50秒：速度 7</p>
+                        <p>• 50秒以上：速度 8（最高）</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="game-over-modal" class="game-over-modal hidden">
+        <div class="game-over-content">
+            <div class="game-over-icon">😿</div>
+            <h2 class="game-over-title">游戏结束！</h2>
+            <div class="game-over-stats">
+                <p>最终得分：<strong id="final-score">0</strong> 分</p>
+                <p>生存时间：<strong id="final-time">0:00</strong></p>
+            </div>
+            <button class="btn btn-primary" id="retry-btn">
+                🔄 再来一局
+            </button>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
