@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="礼物推荐器 - 智能送礼指南，解决送礼选择困难症">
+    <meta name="theme-color" content="#FF8A65">
+    <title>礼物推荐器 - 智能送礼指南</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <canvas id="bg-canvas" class="bg-canvas"></canvas>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="gift-spinner"></div>
+            <span>礼物准备中...</span>
+        </div>
+    </div>
+
+    <div id="app" class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🎁</span>
+                    <span class="logo-text">礼物推荐器</span>
+                </div>
+                <div class="header-actions">
+                    <button id="favorites-btn" class="icon-btn" title="我的收藏">
+                    </button>
+                    <button id="manage-btn" class="icon-btn" title="礼物库管理">
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <nav class="tab-nav">
+                <button class="tab-item active" data-tab="recommend">
+                    <span class="tab-icon">✨</span>
+                    <span>推荐</span>
+                </button>
+                <button class="tab-item" data-tab="favorites">
+                    <span class="tab-icon">❤️</span>
+                    <span>收藏</span>
+                </button>
+                <button class="tab-item" data-tab="library">
+                    <span class="tab-icon">📚</span>
+                    <span>礼物库</span>
+                </button>
+            </nav>
+
+            <section id="recommend-tab" class="tab-content active">
+                <div class="form-section">
+                    <h2 class="section-title">选择收礼对象信息</h2>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-icon">👤</span>
+                            关系
+                        </label>
+                        <div class="options-grid" id="relationship-options"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-icon">♂️</span>
+                            性别
+                        </label>
+                        <div class="options-grid gender-options" id="gender-options"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-icon">🎂</span>
+                            年龄段
+                        </label>
+                        <div class="options-grid" id="age-options"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-icon">💰</span>
+                            预算范围
+                        </label>
+                        <div class="options-grid" id="budget-options"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-icon">🎯</span>
+                            兴趣爱好
+                        </label>
+                        <div class="options-grid interest-options" id="interest-options"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-icon">🎉</span>
+                            节日/场合
+                        </label>
+                        <div class="options-grid" id="occasion-options"></div>
+                    </div>
+
+                    <button id="recommend-btn" class="btn btn-primary btn-lg w-full">
+                        <span class="btn-icon">🎁</span>
+                        开始推荐
+                    </button>
+                </div>
+
+                <div id="results-section" class="results-section hidden">
+                    <div class="results-header">
+                        <h2 class="section-title">推荐结果</h2>
+                        <div class="results-actions">
+                            <button id="share-btn" class="btn btn-outline btn-sm">
+                                📤 分享
+                            </button>
+                            <button id="refresh-btn" class="btn btn-secondary btn-sm">
+                                🔄 换一批
+                            </button>
+                            <button id="back-form-btn" class="btn btn-outline btn-sm">
+                                📝 重新选择
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <label class="filter-label">价格筛选</label>
+                            <select id="filter-price" class="filter-select">
+                                <option value="all">全部价格</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">类型筛选</label>
+                            <select id="filter-category" class="filter-select">
+                                <option value="all">全部类型</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="gift-list" class="gift-grid"></div>
+
+                    <div id="empty-results" class="empty-state hidden">
+                        <div class="empty-icon">🎁</div>
+                        <p class="empty-text">暂无匹配的礼物，试试"换一批"吧</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="favorites-tab" class="tab-content">
+                <div class="favorites-section">
+                    <div class="section-header">
+                        <h2 class="section-title">我的收藏</h2>
+                        <button id="clear-favorites-btn" class="btn btn-secondary btn-sm">
+                            清空收藏
+                        </button>
+                    </div>
+                    <div id="favorites-list" class="gift-grid"></div>
+                    <div id="empty-favorites" class="empty-state">
+                        <div class="empty-icon">❤️</div>
+                        <p class="empty-text">还没有收藏任何礼物</p>
+                        <p class="empty-hint">去推荐页面发现心仪的礼物吧</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="library-tab" class="tab-content">
+                <div class="library-section">
+                    <div class="section-header">
+                        <h2 class="section-title">礼物库管理</h2>
+                        <button id="add-gift-btn" class="btn btn-primary btn-sm">
+                            <span class="btn-icon">➕</span>
+                            添加礼物
+                        </button>
+                    </div>
+
+                    <div class="library-stats">
+                        <div class="stat-item">
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="gift-detail-modal" class="modal-overlay">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">礼物详情</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="add-gift-modal" class="modal-overlay">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title">添加礼物</h3>
+                <button class="modal-close" id="add-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="gift-form" class="gift-form">
+                    <div class="form-row">
+                        <label class="form-label">礼物名称 *</label>
+                        <input type="text" id="gift-name" class="form-input" placeholder="输入礼物名称" required>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">分类</label>
+                        <select id="gift-category" class="form-select">
+                            <option value="鲜花">鲜花</option>
+                            <option value="美妆">美妆</option>
+                            <option value="数码">数码</option>
+                            <option value="阅读">阅读</option>
+                            <option value="美食">美食</option>
+                            <option value="玩具">玩具</option>
+                            <option value="家居">家居</option>
+                            <option value="运动">运动</option>
+                            <option value="服饰">服饰</option>
+                            <option value="首饰">首饰</option>
+                            <option value="健康">健康</option>
+                            <option value="乐器">乐器</option>
+                            <option value="户外">户外</option>
+                            <option value="浪漫">浪漫</option>
+                            <option value="实用">实用</option>
+                            <option value="创意">创意</option>
+                            <option value="轻奢">轻奢</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">价格 (元) *</label>
+                        <input type="number" id="gift-price" class="form-input" placeholder="输入价格" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">品牌</label>
+                        <input type="text" id="gift-brand" class="form-input" placeholder="品牌名称">
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">适合关系</label>
+                        <div class="checkbox-group" id="gift-relationship"></div>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">适合性别</label>
+                        <div class="checkbox-group" id="gift-gender"></div>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">适合年龄</label>
+                        <div class="checkbox-group" id="gift-age"></div>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">兴趣标签</label>
+                        <div class="checkbox-group" id="gift-interest"></div>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">节日标签</label>
+                        <div class="checkbox-group" id="gift-occasion"></div>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">图片URL</label>
+                        <input type="url" id="gift-image" class="form-input" placeholder="图片链接（可选）">
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-label">描述</label>
+                        <textarea id="gift-description" class="form-textarea" rows="3" placeholder="礼物描述和购买建议"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button id="cancel-add-btn" class="btn btn-secondary">取消</button>
+                <button id="save-gift-btn" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="share-modal" class="modal-overlay">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title">分享推荐</h3>
+                <button class="modal-close" id="share-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="share-preview">
+                    <h4 class="share-preview-title">🎁 为你精选的礼物推荐</h4>
+                    <div class="share-preview-info" id="share-preview-info"></div>
+                    <div class="share-preview-gifts" id="share-preview-gifts"></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="share-options">
+                    <h4 class="share-options-title">选择分享方式</h4>
+                    
+                    <div class="share-methods">
+                        <button class="share-method-btn" id="share-copy-link">
+                            <span class="share-method-icon">🔗</span>
+                            <span class="share-method-text">复制链接</span>
+                        </button>
+                        <button class="share-method-btn" id="share-copy-text">
+                            <span class="share-method-icon">📋</span>
+                            <span class="share-method-text">复制文字</span>
+                        </button>
+                        <button class="share-method-btn" id="share-generate-image">
+                            <span class="share-method-icon">📷</span>
+                            <span class="share-method-text">生成图片</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="share-link-section" id="share-link-section">
+                    <label class="form-label">分享链接</label>
+                    <div class="share-link-wrapper">
+                        <input type="text" id="share-link-input" class="form-input" readonly>
+                        <button class="btn btn-primary btn-sm" id="copy-link-btn">复制</button>
+                    </div>
+                </div>
+
+                <div class="share-image-section hidden" id="share-image-section">
+                    <label class="form-label">分享图片</label>
+                    <div class="share-image-wrapper">
+                        <canvas id="share-canvas" class="share-canvas"></canvas>
+                    </div>
+                    <div class="share-image-actions">
+                        <button class="btn btn-primary" id="download-image-btn">
+                            💾 下载图片
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/giftData.js"></script>
+    <script src="js/recommendation.js"></script>
+    <script src="js/canvasBg.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
