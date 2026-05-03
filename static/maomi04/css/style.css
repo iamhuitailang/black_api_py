@@ -1,0 +1,572 @@
+/* 全局样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 根元素样式 */
+:root {
+    --bg-wood: #8B7355;
+    --bg-wood-light: #D2B48C;
+    --grass-light: #90EE90;
+    --grass-medium: #7CCD7C;
+    --card-white: #FFFFFF;
+    --btn-orange: #FF8C00;
+    --btn-orange-hover: #FFA500;
+    --fish-gold: #FFD700;
+    --text-dark: #333333;
+    --text-light: #666666;
+    --border-light: #EEEEEE;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-medium: rgba(0, 0, 0, 0.2);
+}
+
+/* 基础样式 */
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+    background-color: var(--bg-wood);
+    color: var(--text-dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* 主容器 */
+#app {
+    max-width: 850px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: var(--bg-wood-light);
+    box-shadow: 0 0 20px var(--shadow-medium);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 头部样式 */
+.header {
+    background-color: var(--card-white);
+    padding: 15px 20px;
+    box-shadow: 0 2px 10px var(--shadow-light);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-dark);
+}
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.1rem;
+}
+
+.fish-stats, .cat-stats {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.fish-icon {
+    color: var(--fish-gold);
+    font-size: 1.3rem;
+}
+
+.cat-icon {
+    font-size: 1.3rem;
+}
+
+.stats-separator {
+    color: var(--text-light);
+}
+
+/* 主内容区 */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 画布容器 */
+.canvas-container {
+    position: relative;
+    background-color: var(--grass-light);
+    border-bottom: 3px solid var(--grass-medium);
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: pointer;
+}
+
+/* 提示框 */
+.tooltip {
+    position: absolute;
+    background-color: var(--card-white);
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-medium);
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+}
+
+.tooltip.hidden {
+    display: none;
+}
+
+/* 控制面板 */
+.control-panel {
+    background-color: var(--card-white);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 标签按钮 */
+.tab-buttons {
+    display: flex;
+    background-color: var(--border-light);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    border: none;
+    background-color: transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-light);
+}
+
+.tab-btn:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.tab-btn.active {
+    background-color: var(--card-white);
+    color: var(--text-dark);
+    font-weight: bold;
+    border-bottom: 3px solid var(--btn-orange);
+}
+
+/* 标签内容 */
+.tab-content {
+    flex: 1;
+    padding: 15px;
+    display: none;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 网格布局 */
+.items-grid, .inventory-grid, .shop-grid, .album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+/* 道具卡片 */
+.item-card, .shop-card, .album-card {
+    background-color: var(--card-white);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.item-card:hover, .shop-card:hover, .album-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
+.item-card.placed {
+    border-color: var(--btn-orange);
+}
+
+.item-card.owned {
+    opacity: 0.6;
+}
+
+.item-icon, .shop-icon, .album-icon {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.item-name, .shop-name, .album-name {
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    margin-bottom: 3px;
+}
+
+.item-price, .shop-price {
+    font-size: 0.8rem;
+    color: var(--fish-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+
+/* 布置标签页 */
+.place-actions {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-light);
+}
+
+.hint-text {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 10px;
+}
+
+/* 商店卡片 */
+.shop-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.shop-card.can-buy {
+    border-color: var(--btn-orange);
+}
+
+.shop-status {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 3px;
+}
+
+.shop-status.unlocked {
+    color: #4CAF50;
+}
+
+.shop-status.locked {
+    color: #F44336;
+}
+
+/* 图鉴卡片 */
+.album-card {
+    position: relative;
+}
+
+.album-card.uncollected {
+    opacity: 0.5;
+    background-color: var(--border-light);
+}
+
+.album-card.uncollected .album-icon {
+    filter: grayscale(100%);
+}
+
+.album-rarity {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 3px;
+    display: inline-block;
+}
+
+.album-rarity.common {
+    background-color: #E0E0E0;
+    color: #666;
+}
+
+.album-rarity.rare {
+    background-color: #BBDEFB;
+    color: #1976D2;
+}
+
+.album-rarity.epic {
+    background-color: #E1BEE7;
+    color: #7B1FA2;
+}
+
+.album-rarity.legendary {
+    background-color: #FFECB3;
+    color: #FF8F00;
+}
+
+/* 筛选按钮 */
+.album-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border-light);
+    background-color: var(--card-white);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    border-color: var(--btn-orange);
+    color: var(--btn-orange);
+}
+
+.filter-btn.active {
+    background-color: var(--btn-orange);
+    color: white;
+    border-color: var(--btn-orange);
+}
+
+/* 通知容器 */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification {
+    background-color: var(--card-white);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--shadow-medium);
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.notification.success {
+    border-left: 4px solid #4CAF50;
+}
+
+.notification.warning {
+    border-left: 4px solid #FF9800;
+}
+
+.notification.error {
+    border-left: 4px solid #F44336;
+}
+
+.notification.info {
+    border-left: 4px solid #2196F3;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* 模态框 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: var(--card-white);
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 8px 32px var(--shadow-medium);
+    animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: color 0.3s ease;
+}
+
+.close-btn:hover {
+    color: var(--text-dark);
+}
+
+/* 猫咪详情 */
+.cat-detail {
+    text-align: center;
+}
+
+.cat-image {
+    font-size: 4rem;
+    margin-bottom: 15px;
+}
+
+.cat-detail h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.cat-rarity {
+    font-size: 1rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.cat-rarity.common {
+    background-color: #E0E0E0;
+    color: #666;
+}
+
+.cat-rarity.rare {
+    background-color: #BBDEFB;
+    color: #1976D2;
+}
+
+.cat-rarity.epic {
+    background-color: #E1BEE7;
+    color: #7B1FA2;
+}
+
+.cat-rarity.legendary {
+    background-color: #FFECB3;
+    color: #FF8F00;
+}
+
+.cat-info {
+    text-align: left;
+}
+
+.cat-info p {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.95rem;
+}
+
+.cat-info p:last-child {
+    border-bottom: none;
+}
+
+/* 空状态提示 */
+.empty-text {
+    text-align: center;
+    color: var(--text-light);
+    padding: 20px;
+    font-size: 0.95rem;
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .title {
+        font-size: 1.3rem;
+    }
+
+    .status-bar {
+        font-size: 1rem;
+    }
+
+    .items-grid, .inventory-grid, .shop-grid, .album-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px;
+    }
+
+    .item-icon, .shop-icon, .album-icon {
+        font-size: 1.5rem;
+    }
+
+    .item-name, .shop-name, .album-name {
+        font-size: 0.75rem;
+    }
+
+    .tab-btn {
+        font-size: 0.9rem;
+        padding: 10px 0;
+    }
+
+    .notification-container {
+        top: 10px;
+        right: 10px;
+    }
+
+    .notification {
+        font-size: 0.85rem;
+        padding: 10px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .items-grid, .inventory-grid, .shop-grid, .album-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .album-filter {
+        justify-content: center;
+    }
+
+    .filter-btn {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+}

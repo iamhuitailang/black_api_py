@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫咪后院 · 萌猫收集</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部状态栏 -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">🐱 猫咪后院</h1>
+                <div class="status-bar">
+                    <div class="fish-stats">
+                        <span class="fish-icon">🐟</span>
+                        <span id="fish-count">0</span>
+                    </div>
+                    <div class="stats-separator">|</div>
+                    <div class="cat-stats">
+                        <span class="cat-icon">📖</span>
+                        <span id="cat-collected">0</span>/<span id="cat-total">11</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 游戏画布区域 -->
+            <div class="canvas-container">
+                <canvas id="game-canvas" width="800" height="500"></canvas>
+                <div id="game-tooltip" class="tooltip hidden"></div>
+            </div>
+
+            <!-- 底部控制面板 -->
+            <div class="control-panel">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="yard">🏠 布置</button>
+                    <button class="tab-btn" data-tab="shop">🛒 商店</button>
+                    <button class="tab-btn" data-tab="album">📚 图鉴</button>
+                </div>
+
+                <!-- 布置标签页 -->
+                <div id="tab-yard" class="tab-content active">
+                    <div class="items-grid" id="placed-items">
+                        <!-- 动态生成已放置的道具 -->
+                    </div>
+                    <div class="place-actions">
+                        <p class="hint-text">点击下方道具放入庭院</p>
+                        <div class="inventory-grid" id="inventory-items">
+                            <!-- 动态生成可放置的道具 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商店标签页 -->
+                <div id="tab-shop" class="tab-content">
+                    <div class="shop-grid" id="shop-items">
+                        <!-- 动态生成商店商品 -->
+                    </div>
+                </div>
+
+                <!-- 图鉴标签页 -->
+                <div id="tab-album" class="tab-content">
+                    <div class="album-filter">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="common">普通</button>
+                        <button class="filter-btn" data-filter="rare">稀有</button>
+                        <button class="filter-btn" data-filter="epic">史诗</button>
+                        <button class="filter-btn" data-filter="legendary">传说</button>
+                    </div>
+                    <div class="album-grid" id="album-cats">
+                        <!-- 动态生成猫咪图鉴 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 消息提示 -->
+        <div id="notification-container" class="notification-container"></div>
+
+        <!-- 猫咪详情弹窗 -->
+        <div id="cat-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <div class="cat-detail">
+                    <div class="cat-image" id="modal-cat-image">🐱</div>
+                    <h2 id="modal-cat-name">猫咪名称</h2>
+                    <p class="cat-rarity" id="modal-cat-rarity">稀有度</p>
+                    <div class="cat-info">
+                        <p><strong>来访条件：</strong><span id="modal-cat-requirement">-</span></p>
+                        <p><strong>奖励鱼干：</strong><span id="modal-cat-reward">-</span></p>
+                        <p><strong>停留时间：</strong><span id="modal-cat-stay">-</span></p>
+                        <p><strong>来访次数：</strong><span id="modal-cat-visits">0</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏脚本 -->
+    <script src="js/utils.js?v=3"></script>
+    <script src="js/storage.js?v=3"></script>
+    <script src="js/data.js?v=3"></script>
+    <script src="js/catSystem.js?v=3"></script>
+    <script src="js/itemSystem.js?v=3"></script>
+    <script src="js/canvas.js?v=3"></script>
+    <script src="js/ui.js?v=3"></script>
+    <script src="js/app.js?v=3"></script>
+</body>
+</html>
