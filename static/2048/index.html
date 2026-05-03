@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>2048 游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="header-top">
+                <h1 class="game-title">2048</h1>
+                <div class="score-panel">
+                    <div class="score-box">
+                        <span class="score-label">分数</span>
+                        <span class="score-value" id="current-score">0</span>
+                    </div>
+                    <div class="score-box">
+                        <span class="score-label">最高分</span>
+                        <span class="score-value" id="best-score">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-bottom">
+                <p class="game-intro">合并数字，达到 <strong>2048</strong>！</p>
+                <div class="control-group">
+                    <button class="btn btn-theme" id="theme-btn" title="切换主题">
+                        <span class="theme-icon">🌙</span>
+                    </button>
+                    <button class="btn btn-sound" id="sound-btn" title="音量开关">
+                        <span class="sound-icon">🔊</span>
+                    </button>
+                    <button class="btn btn-undo" id="undo-btn" title="撤销上一步">
+                        <span>↩️ 撤销</span>
+                    </button>
+                    <button class="btn btn-primary" id="new-game-btn">
+                        <span>🎮 新游戏</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div class="game-board-wrapper">
+                <canvas class="game-canvas" id="game-canvas" width="400" height="400"></canvas>
+                <div class="float-scores" id="float-scores"></div>
+                
+                <div class="game-overlay" id="start-overlay">
+                    <div class="overlay-content">
+                        <div class="overlay-icon">🎮</div>
+                        <h2 class="overlay-title">准备好开始了吗？</h2>
+                        <p class="overlay-text">滑动相同数字进行合并<br>使用方向键或滑动屏幕</p>
+                        <button class="btn btn-lg btn-primary" id="start-btn">开始游戏</button>
+                    </div>
+                </div>
+
+                <div class="game-overlay hidden" id="game-over-overlay">
+                    <div class="overlay-content">
+                        <div class="overlay-icon">😢</div>
+                        <h2 class="overlay-title">游戏结束</h2>
+                        <p class="overlay-text">最终得分: <strong id="final-score">0</strong></p>
+                        <div class="overlay-buttons">
+                            <button class="btn btn-primary" id="retry-btn">🔄 再来一局</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-overlay hidden" id="win-overlay">
+                    <div class="overlay-content win-content">
+                        <div class="overlay-icon">🎉</div>
+                        <h2 class="overlay-title">恭喜你！</h2>
+                        <p class="overlay-text">你合成了 <strong>2048</strong>！</p>
+                        <div class="overlay-buttons">
+                            <button class="btn btn-secondary" id="continue-btn">继续挑战</button>
+                            <button class="btn btn-primary" id="new-game-win-btn">新游戏</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-overlay hidden" id="pause-overlay">
+                    <div class="overlay-content">
+                        <div class="overlay-icon">⏸️</div>
+                        <h2 class="overlay-title">游戏暂停</h2>
+                        <div class="overlay-buttons">
+                            <button class="btn btn-primary" id="resume-btn">▶️ 继续游戏</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">游戏状态</span>
+                        <span class="info-value" id="game-status">未开始</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">最高分</span>
+                        <span class="info-value" id="high-score-list">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="instructions">
+                <h3 class="instructions-title">📖 游戏说明</h3>
+                <div class="instructions-grid">
+                    <div class="instruction-item">
+                        <span class="instruction-icon">⌨️</span>
+                        <span class="instruction-text">使用 <strong>方向键</strong> 移动方块</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">👆</span>
+                        <span class="instruction-text">手机端可 <strong>滑动屏幕</strong> 操作</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">➕</span>
+                        <span class="instruction-text"><strong>相同数字</strong> 相撞会合并</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">🎯</span>
+                        <span class="instruction-text">目标是合成 <strong>2048</strong></span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="game-footer">
+            <div class="footer-controls">
+                <button class="btn btn-sm btn-secondary" id="pause-btn">⏸️ 暂停</button>
+                <div class="volume-control">
+                    <span class="volume-label">音量</span>
+                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="50">
+                </div>
+                <button class="btn btn-sm btn-danger" id="restart-btn">🔄 重新开始</button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/gameCore.js"></script>
+    <script src="js/animator.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
