@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 猫语翻译器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="cat-avatar" id="catAvatar">
+                <canvas id="catCanvas" width="200" height="200"></canvas>
+            </div>
+            <div class="header-center">
+                <h1>🐾 猫语翻译器</h1>
+                <div class="cat-type-selector" id="catTypeSelector">
+                    <button class="cat-type-btn active" data-type="null" title="默认粉猫">🐱</button>
+                    <button class="cat-type-btn" data-type="ragdoll" title="布偶猫">🐈</button>
+                    <button class="cat-type-btn" data-type="siamese" title="暹罗猫">😺</button>
+                    <button class="cat-type-btn" data-type="orange_tabby" title="橘猫">😸</button>
+                </div>
+            </div>
+            <button class="sound-toggle" id="soundToggle">🔊</button>
+        </header>
+
+        <main class="app-main">
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="cat-to-human">🎤 猫叫→人话</button>
+                <button class="mode-tab" data-mode="human-to-cat">💬 人话→猫语</button>
+                <button class="mode-tab" data-mode="chat">💬 对话模式</button>
+                <button class="mode-tab" data-mode="learn">🐾 猫语学习</button>
+            </div>
+
+            <div class="mode-content active" id="cat-to-human-mode">
+                <div class="cat-sound-buttons">
+                    <h3>选择猫叫声：</h3>
+                    <div class="sound-grid" id="catSoundGrid"></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="record-btn" id="recordBtn">🎤 录音识别</button>
+                    <button class="random-btn" id="randomCatBtn">🎲 随机猫语</button>
+                </div>
+                <div class="result-box" id="catToHumanResult">
+                    <div class="result-label">翻译结果：</div>
+                    <div class="result-content" id="catToHumanText">点击上方按钮开始翻译~</div>
+                </div>
+            </div>
+
+            <div class="mode-content" id="human-to-cat-mode">
+                <div class="input-section">
+                    <h3>输入人话：</h3>
+                    <textarea class="input-text" id="humanInput" placeholder="输入你想对猫咪说的话..."></textarea>
+                    <div class="quick-phrases">
+                        <button class="quick-phrase-btn" data-phrase="我爱你">我爱你</button>
+                        <button class="quick-phrase-btn" data-phrase="我饿了">我饿了</button>
+                        <button class="quick-phrase-btn" data-phrase="陪我玩">陪我玩</button>
+                        <button class="quick-phrase-btn" data-phrase="别吵我">别吵我</button>
+                        <button class="quick-phrase-btn" data-phrase="好舒服">好舒服</button>
+                        <button class="quick-phrase-btn" data-phrase="我好伤心">我好伤心</button>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="translate-btn" id="translateToCatBtn">🔄 翻译成猫语</button>
+                    <button class="random-btn" id="randomHumanBtn">🎲 随机翻译</button>
+                </div>
+                <div class="result-box" id="humanToCatResult">
+                    <div class="result-label">猫语翻译：</div>
+                    <div class="result-content cat-language" id="humanToCatText">等待翻译...</div>
+                    <button class="play-sound-btn" id="playCatSoundBtn">🔊 播放猫叫</button>
+                </div>
+            </div>
+
+            <div class="mode-content" id="chat-mode">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="输入消息...">
+                        <button class="cat-mic-btn" id="chatMicBtn">🐱</button>
+                        <button class="send-btn" id="chatSendBtn">发送</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-content" id="learn-mode">
+                <div class="learn-section">
+                    <h3>🐾 猫语学习中心</h3>
+                    <p class="learn-desc">点击下方指令，教猫咪理解你的意思（纯娱乐功能）</p>
+                    <div class="learn-commands" id="learnCommands"></div>
+                    <div class="learn-progress">
+                        <h4>学习进度：</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="learnProgress"></div>
+                        </div>
+                        <span class="progress-text" id="progressText">0/5</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="share-section">
+            <button class="share-btn" id="shareBtn">📋 生成分享卡片</button>
+        </div>
+
+        <div class="history-section">
+            <h3>📜 翻译历史</h3>
+            <div class="history-list" id="historyList">
+                <p class="empty-history">暂无翻译记录</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="shareModal">
+        <div class="modal-content">
+            <h3>🐱 分享卡片</h3>
+            <canvas id="shareCanvas" width="400" height="500"></canvas>
+            <div class="modal-buttons">
+                <button class="download-btn" id="downloadCardBtn">💾 保存图片</button>
+                <button class="close-modal-btn" id="closeModalBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="easter-egg" id="easterEgg"></div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
