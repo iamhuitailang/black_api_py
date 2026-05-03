@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图滑块 · 脑力挑战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <h1 class="game-title">🧩 拼图滑块</h1>
+            <p class="game-subtitle">脑力挑战</p>
+        </header>
+
+        <div class="game-stats">
+            <div class="stat-item">
+                <span class="stat-label">步数</span>
+                <span class="stat-value" id="moves">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">时间</span>
+                <span class="stat-value" id="timer">00:00</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">最佳</span>
+                <span class="stat-value" id="best">--</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="game-section">
+                <div class="game-container">
+                    <canvas id="gameCanvas" width="400" height="400"></canvas>
+                    <div id="victoryOverlay" class="victory-overlay hidden">
+                        <div class="victory-content">
+                            <h2>🎉 恭喜通关!</h2>
+                            <p>步数: <span id="finalMoves">0</span></p>
+                            <p>时间: <span id="finalTime">00:00</span></p>
+                            <p id="newRecord" class="new-record hidden">🏆 新纪录!</p>
+                            <button id="playAgainBtn" class="btn btn-primary">再玩一次</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="preview-section">
+                    <label class="control-label">原图参考</label>
+                    <div class="preview-container">
+                        <canvas id="previewCanvas" width="150" height="150"></canvas>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label class="control-label">难度选择</label>
+                        <div class="difficulty-btns">
+                            <button class="btn difficulty-btn" data-size="3" data-difficulty="easy">
+                                <span class="difficulty-icon">🟢</span>
+                                <span>简单</span>
+                                <span class="difficulty-detail">3×3</span>
+                            </button>
+                            <button class="btn difficulty-btn active" data-size="4" data-difficulty="medium">
+                                <span class="difficulty-icon">🟡</span>
+                                <span>中等</span>
+                                <span class="difficulty-detail">4×4</span>
+                            </button>
+                            <button class="btn difficulty-btn" data-size="5" data-difficulty="hard">
+                                <span class="difficulty-icon">🔴</span>
+                                <span>困难</span>
+                                <span class="difficulty-detail">5×5</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">图片选择</label>
+                        <div class="theme-btns">
+                            <button class="btn theme-btn active" data-theme="cat">🐱 猫咪</button>
+                            <button class="btn theme-btn" data-theme="dog">🐶 狗狗</button>
+                            <button class="btn theme-btn" data-theme="flower">🌸 花朵</button>
+                            <button class="btn theme-btn" data-theme="landscape">🏞️ 风景</button>
+                            <button class="btn theme-btn" data-theme="abstract">🎨 抽象</button>
+                        </div>
+                        <div class="upload-section">
+                            <button class="btn btn-secondary" id="uploadBtn">📁 上传图片</button>
+                            <input type="file" id="imageUpload" accept="image/*" class="hidden">
+                            <button class="btn btn-secondary" id="randomBtn">🎲 随机图片</button>
+                        </div>
+                    </div>
+
+                    <div class="action-btns">
+                        <button class="btn btn-primary" id="shuffleBtn">🔀 重新洗牌</button>
+                        <button class="btn btn-secondary" id="resetBtn">🔄 重置</button>
+                        <button class="btn btn-secondary" id="hintBtn">💡 提示</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
