@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆秘境 · 翻牌配对</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="game-header">
+            <h1>🎴 记忆秘境</h1>
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="label">玩家1</span>
+                    <span id="player1-score" class="score">0</span>
+                    <span class="pairs" id="player1-pairs">0对</span>
+                </div>
+                <div class="info-item current-turn">
+                    <span class="label">当前回合</span>
+                    <span id="current-player" class="player-name">玩家1</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">玩家2</span>
+                    <span id="player2-score" class="score">0</span>
+                    <span class="pairs" id="player2-pairs">0对</span>
+                </div>
+            </div>
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">步数:</span>
+                    <span id="moves" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">时间:</span>
+                    <span id="timer" class="stat-value">00:00</span>
+                </div>
+                <div class="stat-item" id="time-limit-container" style="display: none;">
+                    <span class="stat-label">剩余:</span>
+                    <span id="time-left" class="stat-value highlight">30s</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div id="game-menu" class="menu-panel">
+                <h2>选择游戏模式</h2>
+                <div class="menu-options">
+                    <div class="option-group">
+                        <label>难度选择:</label>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn active" data-size="4">4×4 入门</button>
+                            <button class="difficulty-btn" data-size="6">6×6 进阶</button>
+                        </div>
+                    </div>
+                    <div class="option-group">
+                        <label>游戏模式:</label>
+                        <div class="mode-buttons">
+                            <button class="mode-btn active" data-mode="single">单人模式</button>
+                            <button class="mode-btn" data-mode="double">双人对战</button>
+                        </div>
+                    </div>
+                    <div class="option-group" id="time-limit-option">
+                        <label>时间限制:</label>
+                        <div class="time-buttons">
+                            <button class="time-btn" data-time="0">无限制</button>
+                            <button class="time-btn active" data-time="30">30秒</button>
+                            <button class="time-btn" data-time="60">60秒</button>
+                        </div>
+                    </div>
+                    <div class="option-group">
+                        <label>特殊卡牌:</label>
+                        <div class="special-buttons">
+                            <button class="special-btn" data-special="false">关闭</button>
+                            <button class="special-btn active" data-special="true">开启</button>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-btn" class="start-btn">开始游戏</button>
+                <button id="continue-btn" class="continue-btn" style="display: none;">继续游戏</button>
+            </div>
+
+            <div id="game-canvas-container" class="canvas-container" style="display: none;">
+                <canvas id="game-canvas"></canvas>
+            </div>
+
+            <div id="game-over" class="game-over-panel" style="display: none;">
+                <h2 id="winner-text">游戏结束!</h2>
+                <div class="final-stats">
+                    <p>总步数: <span id="final-moves">0</span></p>
+                    <p>总时间: <span id="final-time">00:00</span></p>
+                </div>
+                <button id="new-game-btn" class="start-btn">新游戏</button>
+                <button id="menu-btn" class="menu-btn">返回菜单</button>
+            </div>
+        </main>
+
+        <div class="game-controls">
+            <button id="pause-btn" class="control-btn" style="display: none;">⏸️ 暂停</button>
+            <button id="sound-btn" class="control-btn">🔊 音效</button>
+            <button id="help-btn" class="control-btn">❓ 帮助</button>
+        </div>
+
+        <div id="help-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>游戏说明</h2>
+                <div class="help-content">
+                    <h3>🎯 基本规则</h3>
+                    <p>• 每次翻开两张牌，如果配对则获得这对牌</p>
+                    <p>• 配对成功可额外获得一回合</p>
+                    <p>• 用最少步数/最短时间翻开所有配对即可胜利</p>
+                    
+                    <h3>🎴 特殊卡牌</h3>
+                    <div class="special-cards-help">
+                        <p><span class="card-emoji">🔄</span> <strong>洗牌</strong>：重新洗乱所有未配对的牌</p>
+                        <p><span class="card-emoji">👁️</span> <strong>窥视</strong>：可偷看任意一张未翻开的牌</p>
+                        <p><span class="card-emoji">⏳</span> <strong>时间冻结</strong>：限时模式下对方下回合时间减半</p>
+                        <p><span class="card-emoji">❌</span> <strong>陷阱牌</strong>：翻开后强制结束自己回合</p>
+                    </div>
+                    
+                    <h3>⌨️ 快捷键</h3>
+                    <p>• 空格键：暂停/继续</p>
+                    <p>• R键：重新开始</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="peek-modal" class="modal" style="display: none;">
+            <div class="modal-content peek-modal">
+                <h3>选择一张牌偷看</h3>
+                <p class="peek-hint">点击任意未翻开的牌查看</p>
+                <button id="cancel-peek" class="menu-btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/card.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

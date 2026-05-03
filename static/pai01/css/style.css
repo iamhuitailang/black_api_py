@@ -1,0 +1,470 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #3498DB;
+    --secondary-color: #2C3E50;
+    --success-color: #27AE60;
+    --danger-color: #E74C3C;
+    --warning-color: #F39C12;
+    --info-color: #17A2B8;
+    --bg-color: #1a1a2e;
+    --card-bg: #16213e;
+    --text-color: #e0e0e0;
+    --text-light: #ffffff;
+    --text-muted: #888888;
+    --border-radius: 12px;
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    color: var(--text-color);
+    overflow-x: hidden;
+}
+
+#app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.game-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-light);
+    text-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+    margin-bottom: 15px;
+    background: linear-gradient(90deg, #3498DB, #9B59B6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.game-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 100px;
+}
+
+.info-item.current-turn {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: var(--primary-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.4); }
+    50% { box-shadow: 0 0 20px 5px rgba(52, 152, 219, 0.2); }
+}
+
+.info-item .label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.info-item .score {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--text-light);
+}
+
+.info-item .pairs {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+.info-item .player-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.game-stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.stat-value.highlight {
+    color: var(--warning-color);
+}
+
+.game-main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+}
+
+.menu-panel, .game-over-panel {
+    background: rgba(22, 33, 62, 0.95);
+    border-radius: var(--border-radius);
+    padding: 30px;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.menu-panel h2, .game-over-panel h2 {
+    text-align: center;
+    color: var(--text-light);
+    margin-bottom: 25px;
+    font-size: 1.5rem;
+}
+
+.menu-options {
+    margin-bottom: 25px;
+}
+
+.option-group {
+    margin-bottom: 20px;
+}
+
+.option-group label {
+    display: block;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.difficulty-buttons,
+.mode-buttons,
+.time-buttons,
+.special-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.difficulty-btn,
+.mode-btn,
+.time-btn,
+.special-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 12px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.difficulty-btn:hover,
+.mode-btn:hover,
+.time-btn:hover,
+.special-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.difficulty-btn.active,
+.mode-btn.active,
+.time-btn.active,
+.special-btn.active {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+}
+
+.start-btn, .continue-btn, .menu-btn {
+    width: 100%;
+    padding: 15px 30px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    margin-bottom: 10px;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, var(--primary-color), #2980B9);
+    color: white;
+}
+
+.start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+}
+
+.continue-btn {
+    background: linear-gradient(135deg, var(--success-color), #229954);
+    color: white;
+}
+
+.continue-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+}
+
+.menu-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.menu-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.canvas-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+#game-canvas {
+    border-radius: var(--border-radius);
+    background: rgba(22, 33, 62, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.final-stats {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.final-stats p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.final-stats span {
+    font-weight: bold;
+    color: var(--text-light);
+}
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-color);
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.control-btn:hover {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: var(--primary-color);
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 30px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.modal-content.peek-modal {
+    max-width: 400px;
+    text-align: center;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.close-modal:hover {
+    color: var(--text-light);
+}
+
+.modal-content h2 {
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+}
+
+.modal-content h3 {
+    color: var(--primary-color);
+    margin: 20px 0 10px;
+    font-size: 1.1rem;
+}
+
+.help-content p {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.special-cards-help {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.special-cards-help p {
+    margin-bottom: 10px;
+}
+
+.card-emoji {
+    font-size: 1.3rem;
+    margin-right: 8px;
+}
+
+.peek-hint {
+    color: var(--text-muted);
+    margin: 15px 0;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+    #app {
+        padding: 10px;
+    }
+    
+    .game-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .game-info {
+        gap: 10px;
+    }
+    
+    .info-item {
+        min-width: 80px;
+        padding: 8px 12px;
+    }
+    
+    .info-item .score {
+        font-size: 1.4rem;
+    }
+    
+    .game-stats {
+        gap: 15px;
+    }
+    
+    .menu-panel, .game-over-panel {
+        padding: 20px;
+    }
+    
+    .difficulty-buttons,
+    .mode-buttons,
+    .time-buttons,
+    .special-buttons {
+        gap: 8px;
+    }
+    
+    .difficulty-btn,
+    .mode-btn,
+    .time-btn,
+    .special-btn {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .modal-content {
+        padding: 20px;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
