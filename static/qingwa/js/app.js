@@ -17,18 +17,18 @@ const AREAS = {
     TOP_SAFE: { rows: [0, 1, 2], type: 'topSafe' } // 顶部更多安全区
 };
 
-// 车辆类型定义 - 降低初始速度约40%
+// 车辆类型定义
 const VEHICLE_TYPES = {
-    CAR: { emoji: '🚗', color: '#ef4444', width: 60, height: 30, speed: 1.2, direction: 'right' },
-    SUV: { emoji: '🚙', color: '#3b82f6', width: 70, height: 35, speed: 1.5, direction: 'right' },
-    TRUCK: { emoji: '🚛', color: '#6b7280', width: 100, height: 35, speed: 1.0, direction: 'left' },
-    BIKE: { emoji: '🚲', color: '#8b5cf6', width: 40, height: 30, speed: 1.1, direction: 'right' }
+    CAR: { emoji: '🚗', color: '#ef4444', width: 60, height: 30, speed: 2, direction: 'right' },
+    SUV: { emoji: '🚙', color: '#3b82f6', width: 70, height: 35, speed: 2.5, direction: 'right' },
+    TRUCK: { emoji: '🚛', color: '#6b7280', width: 100, height: 35, speed: 1.5, direction: 'left' },
+    BIKE: { emoji: '🚲', color: '#8b5cf6', width: 40, height: 30, speed: 1.8, direction: 'right' }
 };
 
-// 河流障碍物定义 - 降低速度并增加木头宽度
+// 河流障碍物定义
 const WATER_OBSTACLES = {
-    LOG: { emoji: '🪵', color: '#92400e', width: 130, height: 30, speed: 1.3, directions: ['left', 'right'] },
-    TURTLE: { emoji: '🐢', color: '#16a34a', width: 80, height: 30, speed: 1.2, direction: 'right' }
+    LOG: { emoji: '🪵', color: '#92400e', width: 100, height: 30, speed: 2, directions: ['left', 'right'] },
+    TURTLE: { emoji: '🐢', color: '#16a34a', width: 60, height: 30, speed: 2, direction: 'right' }
 };
 
 // 洞口位置
@@ -330,39 +330,39 @@ class FroggerGame {
     
     // ==================== 关卡生成 ====================
     generateLevel() {
-        const levelMultiplier = 1 + (this.state.level - 1) * 0.12;
+        const levelMultiplier = 1 + (this.state.level - 1) * 0.2;
         
-        // 生成车辆 - 减少数量，增加间距
+        // 生成车辆
         this.state.vehicles = [];
         
-        // 第9行（从底部数第4行）- 汽车右行（从3辆减少到2辆）
-        this.addVehiclesToRow(9, ['CAR'], 2, levelMultiplier);
+        // 第9行（从底部数第4行）- 汽车右行
+        this.addVehiclesToRow(9, ['CAR'], 3, levelMultiplier);
         
-        // 第10行 - 自行车右行（保持2辆，但增加间距）
+        // 第10行 - 自行车右行和卡车左行
         this.addVehiclesToRow(10, ['BIKE'], 2, levelMultiplier);
         
-        // 第11行 - SUV右行（去掉卡车，保持2辆但更慢）
-        this.addVehiclesToRow(11, ['SUV'], 2, levelMultiplier);
+        // 第11行 - SUV右行和卡车左行
+        this.addVehiclesToRow(11, ['SUV', 'TRUCK'], 2, levelMultiplier);
         
-        // 生成河流障碍物 - 增加数量和大小
+        // 生成河流障碍物
         this.state.waterObstacles = [];
         
-        // 第4行 - 乌龟右行（从3只增加到4只）
-        this.addWaterObstaclesToRow(4, ['TURTLE'], 4, levelMultiplier, 'right');
+        // 第4行 - 乌龟右行
+        this.addWaterObstaclesToRow(4, ['TURTLE'], 3, levelMultiplier, 'right');
         
-        // 第5行 - 木头左行（从2根增加到3根）
-        this.addWaterObstaclesToRow(5, ['LOG'], 3, levelMultiplier, 'left');
+        // 第5行 - 木头左行
+        this.addWaterObstaclesToRow(5, ['LOG'], 2, levelMultiplier, 'left');
         
-        // 第6行 - 乌龟和木头混合（从2个增加到3个）
-        this.addWaterObstaclesToRow(6, ['TURTLE', 'LOG'], 3, levelMultiplier, 'right');
+        // 第6行 - 乌龟和木头混合
+        this.addWaterObstaclesToRow(6, ['TURTLE', 'LOG'], 2, levelMultiplier, 'right');
         
-        // 第7行 - 木头右行（从2根增加到3根）
-        this.addWaterObstaclesToRow(7, ['LOG'], 3, levelMultiplier, 'right');
+        // 第7行 - 木头右行
+        this.addWaterObstaclesToRow(7, ['LOG'], 2, levelMultiplier, 'right');
     }
     
     addVehiclesToRow(row, types, count, multiplier) {
         const y = row * TILE_SIZE + 5;
-        const baseSpacing = CANVAS_WIDTH / (count + 1);
+        const spacing = CANVAS_WIDTH / count;
         
         for (let i = 0; i < count; i++) {
             const typeKey = types[Math.floor(Math.random() * types.length)];
@@ -371,7 +371,7 @@ class FroggerGame {
             
             this.state.vehicles.push({
                 type: typeKey,
-                x: (i + 1) * baseSpacing + Math.random() * 30 - 15,
+                x: i * spacing + Math.random() * 50,
                 y: y,
                 width: type.width,
                 height: type.height,
@@ -385,7 +385,7 @@ class FroggerGame {
     
     addWaterObstaclesToRow(row, types, count, multiplier, direction) {
         const y = row * TILE_SIZE + 5;
-        const baseSpacing = CANVAS_WIDTH / count;
+        const spacing = CANVAS_WIDTH / count;
         
         for (let i = 0; i < count; i++) {
             const typeKey = types[Math.floor(Math.random() * types.length)];
@@ -393,7 +393,7 @@ class FroggerGame {
             
             this.state.waterObstacles.push({
                 type: typeKey,
-                x: i * baseSpacing + Math.random() * 20 - 10,
+                x: i * spacing + Math.random() * 50,
                 y: y,
                 width: type.width,
                 height: type.height,
