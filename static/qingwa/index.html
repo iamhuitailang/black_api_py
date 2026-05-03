@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青蛙过河 · 极速挑战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🐸 青蛙过河 · 极速挑战</h1>
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="info-label">得分:</span>
+                    <span id="score" class="info-value">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">关卡:</span>
+                    <span id="level" class="info-value">1</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">生命:</span>
+                    <span id="lives" class="info-value">❤️❤️❤️❤️❤️</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="480" height="520"></canvas>
+            <div id="overlay" class="game-overlay">
+                <div id="startScreen" class="overlay-screen">
+                    <h2 class="overlay-title">🐸 准备开始</h2>
+                    <p class="overlay-text">控制青蛙穿越马路和河流，安全抵达对岸！</p>
+                    <p class="overlay-tip">使用 方向键 移动青蛙</p>
+                    <button id="startBtn" class="game-btn btn-primary">开始游戏</button>
+                </div>
+                <div id="pauseScreen" class="overlay-screen hidden">
+                    <h2 class="overlay-title">⏸️ 游戏暂停</h2>
+                    <p class="overlay-text">休息一下，继续挑战！</p>
+                    <button id="resumeBtn" class="game-btn btn-primary">继续游戏</button>
+                    <button id="restartFromPauseBtn" class="game-btn btn-secondary">重新开始</button>
+                </div>
+                <div id="gameOverScreen" class="overlay-screen hidden">
+                    <h2 class="overlay-title">💀 游戏结束</h2>
+                    <p class="overlay-text">你的青蛙全部阵亡了！</p>
+                    <p class="overlay-score">最终得分: <span id="finalScore">0</span></p>
+                    <p class="overlay-score">最高纪录: <span id="highScore">0</span></p>
+                    <button id="restartBtn" class="game-btn btn-primary">重新开始</button>
+                </div>
+                <div id="levelCompleteScreen" class="overlay-screen hidden">
+                    <h2 class="overlay-title">🎉 过关成功！</h2>
+                    <p class="overlay-text">准备进入下一关，速度更快哦！</p>
+                    <button id="nextLevelBtn" class="game-btn btn-primary">下一关</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-controls">
+            <button id="pauseBtn" class="game-btn btn-secondary" disabled>⏸️ 暂停</button>
+            <button id="restartGameBtn" class="game-btn btn-secondary">🔄 重新开始</button>
+        </div>
+        
+        <div class="game-instructions">
+            <h3>🎮 操作说明</h3>
+            <ul>
+                <li>↑ ↓ ← → : 移动青蛙</li>
+                <li>躲避马路上的车辆</li>
+                <li>跳上河流中的木头和乌龟</li>
+                <li>安全抵达对岸洞口</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="js/app.js"></script>
+</body>
+</html>
