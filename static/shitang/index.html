@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美味食堂 - 饭店经营小游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 顶部状态栏 -->
+        <div id="top-bar">
+            <div class="status-item">
+                <span class="icon">💰</span>
+                <span class="label">金币</span>
+                <span id="gold-display">0</span>
+            </div>
+            <div class="status-item">
+                <span class="icon">⭐</span>
+                <span class="label">声望</span>
+                <span id="reputation-display">0</span>
+            </div>
+            <div class="status-item">
+                <span class="icon">📊</span>
+                <span class="label">满意度</span>
+                <span id="satisfaction-display">70%</span>
+            </div>
+            <div class="status-item">
+                <span class="icon">🏆</span>
+                <span class="label">餐厅等级</span>
+                <span id="level-display">1</span>
+            </div>
+        </div>
+
+        <!-- 游戏主区域 -->
+        <div id="main-area">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <!-- 底部导航栏 -->
+        <div id="bottom-bar">
+            <button class="nav-btn active" data-panel="game">
+                <span class="icon">🎮</span>
+                <span>游戏</span>
+            </button>
+            <button class="nav-btn" data-panel="recipes">
+                <span class="icon">📖</span>
+                <span>菜谱</span>
+            </button>
+            <button class="nav-btn" data-panel="employees">
+                <span class="icon">👥</span>
+                <span>员工</span>
+            </button>
+            <button class="nav-btn" data-panel="kitchenware">
+                <span class="icon">🍳</span>
+                <span>厨具</span>
+            </button>
+            <button class="nav-btn" data-panel="upgrade">
+                <span class="icon">⬆️</span>
+                <span>升级</span>
+            </button>
+        </div>
+
+        <!-- 弹出面板 -->
+        <div id="recipes-panel" class="panel hidden">
+            <div class="panel-header">
+                <h2>📖 菜谱管理</h2>
+                <button class="close-btn">✕</button>
+            </div>
+            <div class="panel-content" id="recipes-content">
+                <!-- 菜谱列表将由JS动态生成 -->
+            </div>
+        </div>
+
+        <div id="employees-panel" class="panel hidden">
+            <div class="panel-header">
+                <h2>👥 员工管理</h2>
+                <button class="close-btn">✕</button>
+            </div>
+            <div class="panel-content" id="employees-content">
+                <!-- 员工列表将由JS动态生成 -->
+            </div>
+        </div>
+
+        <div id="kitchenware-panel" class="panel hidden">
+            <div class="panel-header">
+                <h2>🍳 厨具管理</h2>
+                <button class="close-btn">✕</button>
+            </div>
+            <div class="panel-content" id="kitchenware-content">
+                <!-- 厨具列表将由JS动态生成 -->
+            </div>
+        </div>
+
+        <div id="upgrade-panel" class="panel hidden">
+            <div class="panel-header">
+                <h2>⬆️ 餐厅升级</h2>
+                <button class="close-btn">✕</button>
+            </div>
+            <div class="panel-content" id="upgrade-content">
+                <!-- 升级选项将由JS动态生成 -->
+            </div>
+        </div>
+
+        <!-- 提示框 -->
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <!-- JavaScript模块 -->
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/gameState.js"></script>
+    <script src="js/customer.js"></script>
+    <script src="js/recipe.js"></script>
+    <script src="js/employee.js"></script>
+    <script src="js/kitchenware.js"></script>
+    <script src="js/restaurant.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
