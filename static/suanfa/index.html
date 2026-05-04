@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排序算法可视化 - Sorting Algorithm Visualizer</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">
+                <span class="icon">🔢</span>
+                排序算法可视化
+                <span class="subtitle">Sorting Algorithm Visualizer</span>
+            </h1>
+        </header>
+
+        <main class="main-content">
+            <div class="canvas-container">
+                <canvas id="sortCanvas" width="800" height="400"></canvas>
+                <div class="canvas-overlay" id="statusOverlay">
+                    <span class="status-text" id="statusText">准备就绪</span>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-section">
+                    <h3 class="section-title">🎲 数组设置</h3>
+                    <div class="control-group">
+                        <label for="arraySize" class="control-label">数组大小: <span id="arraySizeValue">30</span></label>
+                        <input type="range" id="arraySize" min="10" max="50" value="30" class="slider">
+                    </div>
+                    <button id="randomizeBtn" class="btn btn-primary">
+                        <span class="btn-icon">🎲</span> 随机生成
+                    </button>
+                </div>
+
+                <div class="control-section">
+                    <h3 class="section-title">📊 算法选择</h3>
+                    <div class="algorithm-grid">
+                        <label class="algorithm-item">
+                            <input type="radio" name="algorithm" value="bubble" checked class="algorithm-radio">
+                            <span class="algorithm-label">
+                                <span class="algo-icon">🫧</span>
+                                <span class="algo-name">冒泡排序</span>
+                                <span class="algo-info">O(n²) · 稳定</span>
+                            </span>
+                        </label>
+                        <label class="algorithm-item">
+                            <input type="radio" name="algorithm" value="selection" class="algorithm-radio">
+                            <span class="algorithm-label">
+                                <span class="algo-icon">🎯</span>
+                                <span class="algo-name">选择排序</span>
+                                <span class="algo-info">O(n²) · 不稳定</span>
+                            </span>
+                        </label>
+                        <label class="algorithm-item">
+                            <input type="radio" name="algorithm" value="insertion" class="algorithm-radio">
+                            <span class="algorithm-label">
+                                <span class="algo-icon">📥</span>
+                                <span class="algo-name">插入排序</span>
+                                <span class="algo-info">O(n²) · 稳定</span>
+                            </span>
+                        </label>
+                        <label class="algorithm-item">
+                            <input type="radio" name="algorithm" value="quick" class="algorithm-radio">
+                            <span class="algorithm-label">
+                                <span class="algo-icon">⚡</span>
+                                <span class="algo-name">快速排序</span>
+                                <span class="algo-info">O(n log n) · 不稳定</span>
+                            </span>
+                        </label>
+                        <label class="algorithm-item">
+                            <input type="radio" name="algorithm" value="merge" class="algorithm-radio">
+                            <span class="algorithm-label">
+                                <span class="algo-icon">🔗</span>
+                                <span class="algo-name">归并排序</span>
+                                <span class="algo-info">O(n log n) · 稳定</span>
+                            </span>
+                        </label>
+                        <label class="algorithm-item">
+                            <input type="radio" name="algorithm" value="heap" class="algorithm-radio">
+                            <span class="algorithm-label">
+                                <span class="algo-icon">🌲</span>
+                                <span class="algo-name">堆排序</span>
+                                <span class="algo-info">O(n log n) · 不稳定</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3 class="section-title">▶️ 动画控制</h3>
+                    <div class="control-group">
+                        <label for="speedRange" class="control-label">动画速度: <span id="speedValue">中速</span></label>
+                        <input type="range" id="speedRange" min="1" max="100" value="50" class="slider">
+                    </div>
+                    <div class="button-group">
+                        <button id="startBtn" class="btn btn-success">
+                            <span class="btn-icon">▶️</span> 开始排序
+                        </button>
+                        <button id="pauseBtn" class="btn btn-warning" disabled>
+                            <span class="btn-icon">⏸️</span> 暂停
+                        </button>
+                        <button id="resetBtn" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span> 重置
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3 class="section-title">📈 实时统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">比较次数</span>
+                            <span class="stat-value" id="comparisons">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">交换次数</span>
+                            <span class="stat-value" id="swaps">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">当前状态</span>
+                            <span class="stat-value status-ready" id="currentStatus">准备就绪</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3 class="section-title">🎨 颜色图例</h3>
+                    <div class="legend-grid">
+                        <div class="legend-item">
+                            <span class="legend-color legend-default"></span>
+                            <span class="legend-text">默认状态</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color legend-comparing"></span>
+                            <span class="legend-text">比较中 (🟡)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color legend-sorted"></span>
+                            <span class="legend-text">已排序 (🟢)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color legend-pivot"></span>
+                            <span class="legend-text">基准值 (🔴)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color legend-swapping"></span>
+                            <span class="legend-text">交换中 (🟠)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>排序算法可视化工具 | 帮助理解算法原理</p>
+        </footer>
+    </div>
+
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
