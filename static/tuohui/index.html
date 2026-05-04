@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拖拽排序工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>拖拽排序工具</h1>
+            <div class="mode-switch">
+                <button class="mode-btn active" data-mode="list">列表模式</button>
+                <button class="mode-btn" data-mode="board">看板模式</button>
+                <button class="mode-btn" data-mode="tree">树形模式</button>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" id="addItem">添加项目</button>
+                <button class="btn btn-secondary" id="clearData">清空数据</button>
+                <button class="btn btn-secondary" id="exportData">导出数据</button>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <canvas id="sortCanvas"></canvas>
+        </main>
+        
+        <div class="help-panel" id="helpPanel">
+            <h3>操作说明</h3>
+            <ul>
+                <li><strong>拖拽排序</strong>：按住项目拖拽到目标位置</li>
+                <li><strong>手柄拖拽</strong>：也可按住左侧⋮⋮图标拖拽</li>
+                <li><strong>编辑项目</strong>：双击项目进行编辑</li>
+                <li><strong>删除项目</strong>：点击项目右上角×按钮</li>
+                <li><strong>折叠/展开</strong>：树形模式下点击▶图标折叠子项</li>
+                <li><strong>嵌套拖拽</strong>：树形模式下拖到项目右侧可创建子级</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 编辑弹窗 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h3>编辑项目</h3>
+            <input type="text" id="editInput" placeholder="输入项目名称">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelEdit">取消</button>
+                <button class="btn btn-primary" id="saveEdit">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 提示消息 -->
+    <div class="toast" id="toast"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/dataModel.js"></script>
+    <script src="js/animation.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/dragManager.js"></script>
+    <script src="js/listView.js"></script>
+    <script src="js/boardView.js"></script>
+    <script src="js/treeView.js"></script>
+    <script src="js/itemEditor.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
