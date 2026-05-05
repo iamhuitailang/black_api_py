@@ -24,6 +24,13 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.bq import (
+    BqUserModel,
+    BqTokenModel,
+    BqNoteModel,
+    BqCategoryModel,
+    BqTagModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +79,12 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    BqUserModel.create_table()
+    BqTokenModel.create_table()
+    BqNoteModel.create_table()
+    BqCategoryModel.create_table()
+    BqTagModel.create_table()
 
     migrate_database()
 
@@ -151,6 +164,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8012,
         reload=True
     )
