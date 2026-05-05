@@ -24,11 +24,85 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.qx import (
+    UserModel as QxUserModel,
+    QxTokenModel,
+    AdminModel as QxAdminModel,
+    QxAdminTokenModel,
+    ActivityModel,
+    RegistrationModel,
+    RideModel,
+    PostModel as QxPostModel
+)
 from app.common.sqlite.db import get_db
 
 
+def get_table_columns(db, table_name):
+    cursor = db.execute(f"PRAGMA table_info({table_name})")
+    return [row['name'] for row in cursor.fetchall()]
+
+def add_column_if_not_exists(db, table_name, column_def):
+    column_name = column_def.split()[0]
+    columns = get_table_columns(db, table_name)
+    if column_name not in columns:
+        try:
+            db.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_def}")
+            print(f"  - Added column {column_name} to {table_name}")
+            return True
+        except Exception as e:
+            print(f"  - Failed to add column {column_name} to {table_name}: {e}")
+            return False
+    return False
+
+def migrate_qx_tables():
+    print("Migrating qx tables...")
+    db = get_db()
+    
+    add_column_if_not_exists(db, "tb_qx_activities", "is_checked INTEGER DEFAULT 1")
+    add_column_if_not_exists(db, "tb_qx_activities", "current_people INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_activities", "meeting_lng REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_activities", "meeting_lat REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_activities", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    add_column_if_not_exists(db, "tb_qx_activities", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    
+    add_column_if_not_exists(db, "tb_qx_registrations", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    
+    add_column_if_not_exists(db, "tb_qx_users", "level TEXT DEFAULT '萌新'")
+    add_column_if_not_exists(db, "tb_qx_users", "total_distance REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_users", "total_duration INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_users", "avg_speed REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_users", "bike_type TEXT DEFAULT '公路车'")
+    add_column_if_not_exists(db, "tb_qx_users", "bio TEXT DEFAULT ''")
+    add_column_if_not_exists(db, "tb_qx_users", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    add_column_if_not_exists(db, "tb_qx_users", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    
+    add_column_if_not_exists(db, "tb_qx_rides", "activity_id INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_rides", "date TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    add_column_if_not_exists(db, "tb_qx_rides", "distance REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_rides", "duration INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_rides", "avg_speed REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_rides", "max_speed REAL DEFAULT 0.0")
+    add_column_if_not_exists(db, "tb_qx_rides", "elevation INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_rides", "route_name TEXT DEFAULT ''")
+    add_column_if_not_exists(db, "tb_qx_rides", "images TEXT DEFAULT ''")
+    add_column_if_not_exists(db, "tb_qx_rides", "notes TEXT DEFAULT ''")
+    add_column_if_not_exists(db, "tb_qx_rides", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    add_column_if_not_exists(db, "tb_qx_rides", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    
+    add_column_if_not_exists(db, "tb_qx_posts", "user_id INTEGER NOT NULL DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_posts", "content TEXT DEFAULT ''")
+    add_column_if_not_exists(db, "tb_qx_posts", "images TEXT DEFAULT ''")
+    add_column_if_not_exists(db, "tb_qx_posts", "activity_id INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_posts", "like_count INTEGER DEFAULT 0")
+    add_column_if_not_exists(db, "tb_qx_posts", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    add_column_if_not_exists(db, "tb_qx_posts", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    
+    print("  - qx tables migration completed")
+
 def migrate_database():
     print("Running database migrations...")
+    
+    migrate_qx_tables()
     
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
@@ -72,6 +146,17 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    QxUserModel.create_table()
+    QxTokenModel.create_table()
+    QxAdminModel.create_table()
+    QxAdminTokenModel.create_table()
+    ActivityModel.create_table()
+    RegistrationModel.create_table()
+    RideModel.create_table()
+    QxPostModel.create_table()
+
+    QxAdminModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +236,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8020,
         reload=True
     )
