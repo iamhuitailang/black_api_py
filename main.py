@@ -24,6 +24,13 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.qd import (
+    SignUserModel,
+    SignRecordModel,
+    SignStatsModel,
+    SignConfigModel,
+    SignTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +79,13 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    SignUserModel.create_table()
+    SignTokenModel.create_table()
+    SignRecordModel.create_table()
+    SignStatsModel.create_table()
+    SignConfigModel.create_table()
+    SignConfigModel.init_default_config()
 
     migrate_database()
 
@@ -151,6 +165,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8018,
         reload=True
     )
