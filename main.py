@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.dota import (
+    DotaUserModel,
+    DotaTokenModel,
+    DotaHeroModel,
+    DotaUserHeroModel,
+    DotaSkillModel,
+    DotaEquipmentModel,
+    DotaUserEquipmentModel,
+    DotaStageModel,
+    DotaUserStageModel,
+    DotaEnemyModel,
+    DotaBattleLogModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -33,6 +46,10 @@ def migrate_database():
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
+    
+    migrated_skill = DotaSkillModel.migrate_add_missing_columns()
+    if migrated_skill:
+        print("  - Migrated tb_dota_skills: added missing columns")
 
 
 def init_database():
@@ -72,6 +89,25 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DotaUserModel.create_table()
+    DotaTokenModel.create_table()
+    DotaHeroModel.create_table()
+    DotaUserHeroModel.create_table()
+    DotaSkillModel.create_table()
+    DotaSkillModel.migrate_add_missing_columns()
+    DotaEquipmentModel.create_table()
+    DotaUserEquipmentModel.create_table()
+    DotaStageModel.create_table()
+    DotaUserStageModel.create_table()
+    DotaEnemyModel.create_table()
+    DotaBattleLogModel.create_table()
+
+    DotaHeroModel.init_default_heroes()
+    DotaSkillModel.init_default_skills()
+    DotaEquipmentModel.init_default_equipment()
+    DotaStageModel.init_default_stages()
+    DotaEnemyModel.init_default_enemies()
 
     migrate_database()
 
