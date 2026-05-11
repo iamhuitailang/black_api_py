@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寿司拼盘 · 创意料理</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="game-header">
+                <div class="stat-item">
+                    <span class="stat-icon">💰</span>
+                    <span class="stat-label">金币</span>
+                    <span class="stat-value" id="score-display">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">⭐</span>
+                    <span class="stat-label">连击</span>
+                    <span class="stat-value" id="combo-display">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📜</span>
+                    <span class="stat-label">完成</span>
+                    <span class="stat-value" id="orders-display">0</span>
+                </div>
+                <button id="reset-btn" class="btn-small">🔄 重置</button>
+            </div>
+
+            <div id="customer-area">
+                <div class="customer-avatar">👘</div>
+                <div id="order-display">
+                    <div class="order-label">🍣 订单</div>
+                    <div id="current-order"></div>
+                    <div id="timer-bar">
+                        <div id="timer-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="making-area">
+                <div class="plate">
+                    <div class="plate-label">🍽️ 制作台</div>
+                    <div id="selected-items"></div>
+                </div>
+                <div class="action-buttons">
+                    <button id="confirm-btn" class="btn-primary">✅ 完成</button>
+                    <button id="clear-btn" class="btn-secondary">🗑️ 清空</button>
+                </div>
+            </div>
+
+            <div id="ingredients-area">
+                <div class="ingredient-section">
+                    <div class="section-title">🍚 米饭</div>
+                    <div id="rice-ingredients" class="ingredient-list"></div>
+                </div>
+                <div class="ingredient-section">
+                    <div class="section-title">🐟 主料</div>
+                    <div id="main-ingredients" class="ingredient-list"></div>
+                </div>
+                <div class="ingredient-section">
+                    <div class="section-title">🌿 配料</div>
+                    <div id="topping-ingredients" class="ingredient-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="notification" class="notification hidden">
+            <div class="notification-content"></div>
+        </div>
+
+        <div id="unlock-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">🎉 解锁新食材!</div>
+                <div id="unlock-content"></div>
+                <button id="unlock-ok-btn" class="btn-primary">太棒了!</button>
+            </div>
+        </div>
+
+        <div id="gameover-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">😢 游戏结束</div>
+                <div id="gameover-content"></div>
+                <button id="restart-btn" class="btn-primary">再来一次</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
