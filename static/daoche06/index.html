@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒车入库停车游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <nav class="nav-bar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <span class="logo-icon">🚗</span>
+                    <span class="logo-text">倒车入库</span>
+                </div>
+                <div class="nav-status">
+                    <span id="nav-level">🎯 第 <span id="nav-level-value">1</span> 关</span>
+                    <span id="nav-time">⏱️ <span id="nav-time-value">00:00</span></span>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <div class="page-title fade-in">
+                    <h1>🚗 倒车入库停车游戏 🅿️</h1>
+                    <p class="subtitle">精准操控，完美入库！</p>
+                </div>
+
+                <div class="game-info fade-in">
+                    <div class="info-item">
+                        <div class="label">🎯 当前关卡</div>
+                        <div class="value" id="level-display">1</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">⏱️ 游戏时间</div>
+                        <div class="value" id="time-display">00:00</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">📊 总成功次数</div>
+                        <div class="value" id="success-display">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">💥 总失败次数</div>
+                        <div class="value" id="fail-display">0</div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <h2 class="card-title">🎮 游戏画面</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="canvas-wrapper">
+                            <canvas id="gameCanvas" width="800" height="500"></canvas>
+                            <div class="overlay" id="gameOverlay">
+                                <div class="overlay-content" id="overlayContent">
+                                    <h2 id="overlayTitle">倒车入库</h2>
+                                    <p id="overlayMessage">点击开始游戏按钮开始挑战</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-controls fade-in">
+                    <button class="btn btn-primary" id="start-btn" onclick="gameState.startGame()">▶️ 开始游戏</button>
+                    <button class="btn btn-warning" id="pause-btn" onclick="gameState.pauseGame()">⏸️ 暂停</button>
+                    <button class="btn btn-danger" id="restart-btn" onclick="gameState.restartLevel()">🔄 重开</button>
+                </div>
+
+                <div class="card fade-in mt-20">
+                    <div class="card-header">
+                        <h2 class="card-title">📖 操作说明</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="control-grid">
+                            <div class="control-item">
+                                <div class="key">↑</div>
+                                <div class="desc">前进（调整位置）</div>
+                            </div>
+                            <div class="control-item">
+                                <div class="key">↓</div>
+                                <div class="desc">倒车（核心操作）</div>
+                            </div>
+                            <div class="control-item">
+                                <div class="key">←</div>
+                                <div class="desc">向左转向</div>
+                            </div>
+                            <div class="control-item">
+                                <div class="key">→</div>
+                                <div class="desc">向右转向</div>
+                            </div>
+                            <div class="control-item">
+                                <div class="key">空格</div>
+                                <div class="desc">紧急停车</div>
+                            </div>
+                        </div>
+                        <div class="mt-20 game-rules">
+                            <p><strong>🎯 游戏目标：</strong></p>
+                            <p>• 将车辆完整倒入车库内</p>
+                            <p>• 车辆需与车库边线平行</p>
+                            <p>• 不能触碰障碍物、边界及车库边缘</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="pause-modal" id="pauseModal" style="display: none;">
+            <div class="pause-content">
+                <h2 class="pause-title">⏸️ 游戏暂停</h2>
+                <div class="pause-buttons">
+                    <button class="btn btn-primary" onclick="gameState.resumeGame()">▶️ 继续</button>
+                    <button class="btn btn-warning" onclick="gameState.restartLevel()">🔄 重开</button>
+                    <button class="btn btn-danger" onclick="gameState.exitGame()">🚪 退出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/gameConfig.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/collision.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
