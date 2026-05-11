@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大家来射箭 - 古风射箭游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="score-board" class="hidden">
+                <div class="score-item">
+                    <span class="label">当前得分</span>
+                    <span id="current-score" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">最高分</span>
+                    <span id="high-score" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">剩余时间</span>
+                    <span id="time-left" class="value">--</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">剩余箭矢</span>
+                    <span id="arrows-left" class="value">∞</span>
+                </div>
+            </div>
+            
+            <div id="wind-indicator" class="hidden">
+                <div class="wind-arrow" id="wind-arrow"></div>
+                <span id="wind-speed" class="wind-text">无风</span>
+            </div>
+            
+            <div id="weapon-selector" class="hidden">
+                <div class="weapon-item" data-weapon="wood" title="木箭">
+                    <div class="weapon-icon wood-arrow"></div>
+                    <span>木箭</span>
+                </div>
+                <div class="weapon-item" data-weapon="iron" title="铁箭">
+                    <div class="weapon-icon iron-arrow"></div>
+                    <span>铁箭</span>
+                </div>
+                <div class="weapon-item" data-weapon="feather" title="羽毛箭">
+                    <div class="weapon-icon feather-arrow"></div>
+                    <span>羽毛箭</span>
+                </div>
+                <div class="weapon-item" data-weapon="fire" title="火箭">
+                    <div class="weapon-icon fire-arrow"></div>
+                    <span>火箭</span>
+                </div>
+                <div class="weapon-item" data-weapon="hook" title="钩爪箭">
+                    <div class="weapon-icon hook-arrow"></div>
+                    <span>钩爪箭</span>
+                </div>
+            </div>
+            
+            <div id="mode-selector" class="hidden">
+                <div class="mode-item" data-mode="training">
+                    <h3>训练场</h3>
+                    <p>固定靶，无风，无限箭</p>
+                </div>
+                <div class="mode-item" data-mode="hunting">
+                    <h3>狩猎季</h3>
+                    <p>移动动物目标，限时/限箭</p>
+                </div>
+                <div class="mode-item" data-mode="wind">
+                    <h3>风之试炼</h3>
+                    <p>风力多变，需要计算偏移</p>
+                </div>
+                <div class="mode-item" data-mode="survival">
+                    <h3>生存战</h3>
+                    <p>敌人射箭反击，需躲避</p>
+                </div>
+                <div class="mode-item" data-mode="tournament">
+                    <h3>锦标赛</h3>
+                    <p>多轮累计分数制</p>
+                </div>
+            </div>
+            
+            <div id="difficulty-selector" class="hidden">
+                <div class="difficulty-item" data-difficulty="easy">
+                    <h3>简单</h3>
+                    <p>关闭重力，无风，大靶心</p>
+                </div>
+                <div class="difficulty-item" data-difficulty="normal">
+                    <h3>普通</h3>
+                    <p>开启重力，微风，固定+移动</p>
+                </div>
+                <div class="difficulty-item" data-difficulty="hard">
+                    <h3>困难</h3>
+                    <p>开启重力，变化风，移动+小动物，60秒</p>
+                </div>
+                <div class="difficulty-item" data-difficulty="master">
+                    <h3>大师</h3>
+                    <p>真实重力，风向随时变，多种混合，45秒</p>
+                </div>
+            </div>
+            
+            <button id="pause-btn" class="hidden">暂停</button>
+        </div>
+        
+        <div id="start-screen" class="overlay">
+            <div class="overlay-content">
+                <h1 class="title">大家来射箭</h1>
+                <p class="subtitle">古风射箭游戏</p>
+                <button id="start-btn" class="btn primary">开始游戏</button>
+                <button id="resume-btn" class="btn secondary hidden">继续游戏</button>
+            </div>
+        </div>
+        
+        <div id="mode-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="title">选择模式</h2>
+                <div id="mode-list"></div>
+                <button id="back-to-start-btn" class="btn secondary">返回</button>
+            </div>
+        </div>
+        
+        <div id="difficulty-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="title">选择难度</h2>
+                <div id="difficulty-list"></div>
+                <button id="back-to-mode-btn" class="btn secondary">返回</button>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="title">游戏暂停</h2>
+                <div class="pause-stats">
+                    <div class="stat-item">
+                        <span class="label">当前得分</span>
+                        <span id="pause-current-score" class="value">0</span>
+                    </div>
+                </div>
+                <div class="pause-buttons">
+                    <button id="resume-game-btn" class="btn primary">继续游戏</button>
+                    <button id="restart-btn" class="btn secondary">重新开始</button>
+                    <button id="quit-btn" class="btn danger">退出游戏</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="game-over-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="title" id="game-over-title">游戏结束</h2>
+                <div class="game-over-stats">
+                    <div class="stat-item">
+                        <span class="label">总得分</span>
+                        <span id="final-score" class="value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">最高分</span>
+                        <span id="final-high-score" class="value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">命中次数</span>
+                        <span id="total-hits" class="value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">10环次数</span>
+                        <span id="perfect-hits" class="value">0</span>
+                    </div>
+                </div>
+                <div class="game-over-buttons">
+                    <button id="play-again-btn" class="btn primary">再玩一次</button>
+                    <button id="back-to-menu-btn" class="btn secondary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/constants.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/core/engine.js"></script>
+    <script src="js/core/physics.js"></script>
+    <script src="js/core/renderer.js"></script>
+    <script src="js/entities/bow.js"></script>
+    <script src="js/entities/arrow.js"></script>
+    <script src="js/entities/target.js"></script>
+    <script src="js/entities/animal.js"></script>
+    <script src="js/entities/enemy.js"></script>
+    <script src="js/systems/input.js"></script>
+    <script src="js/systems/scoring.js"></script>
+    <script src="js/systems/wind.js"></script>
+    <script src="js/systems/timer.js"></script>
+    <script src="js/systems/gameState.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
