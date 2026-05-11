@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>21点 - Blackjack</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header class="game-header">
+            <div class="header-left">
+                <h1>21点</h1>
+                <span class="game-subtitle">Blackjack</span>
+            </div>
+            <div class="header-center">
+                <div class="score-display">
+                    <span class="score-label">当前得分</span>
+                    <span id="current-score" class="score-value">0</span>
+                </div>
+                <div class="score-display">
+                    <span class="score-label">最高分</span>
+                    <span id="high-score" class="score-value">0</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="pause-btn" class="btn-icon" title="暂停">
+                    <span>⏸</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="stats-panel">
+            <div class="stat-item">
+                <span class="stat-label">胜</span>
+                <span id="wins" class="stat-value wins">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">负</span>
+                <span id="losses" class="stat-value losses">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">平局</span>
+                <span id="pushes" class="stat-value pushes">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">最高连胜</span>
+                <span id="max-streak" class="stat-value streak">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">总盈亏</span>
+                <span id="total-profit" class="stat-value profit">0</span>
+            </div>
+            <div class="stat-item" id="debt-stat">
+                <span class="stat-label">欠款</span>
+                <span id="debt" class="stat-value debt">0</span>
+            </div>
+        </div>
+
+        <main class="game-main">
+            <canvas id="game-canvas"></canvas>
+            
+            <div class="status-overlay">
+                <div id="status-message" class="status-message hidden"></div>
+            </div>
+        </main>
+
+        <div class="bet-panel">
+            <div class="bet-info">
+                <span class="bet-label">筹码</span>
+                <span id="chips" class="bet-value">1000</span>
+            </div>
+            <div class="bet-controls">
+                <span class="bet-label">下注</span>
+                <div class="bet-input-group">
+                    <button id="bet-minus" class="btn-bet">−</button>
+                    <input type="number" id="bet-amount" value="100" min="10" step="10">
+                    <button id="bet-plus" class="btn-bet">+</button>
+                </div>
+                <div class="bet-presets">
+                    <button class="btn-preset" data-bet="50">50</button>
+                    <button class="btn-preset" data-bet="100">100</button>
+                    <button class="btn-preset" data-bet="200">200</button>
+                    <button class="btn-preset" data-bet="500">500</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-panel">
+            <button id="start-btn" class="btn-action btn-primary">开始游戏</button>
+            <button id="reset-game-btn" class="btn-action btn-secondary hidden">重置游戏</button>
+            <button id="hit-btn" class="btn-action btn-hit hidden">要牌 (Hit)</button>
+            <button id="stand-btn" class="btn-action btn-stand hidden">停牌 (Stand)</button>
+            <button id="double-btn" class="btn-action btn-double hidden">双倍 (Double)</button>
+            <button id="new-game-btn" class="btn-action btn-secondary hidden">新一局</button>
+        </div>
+    </div>
+
+    <div id="pause-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>游戏暂停</h2>
+            <div class="modal-buttons">
+                <button id="resume-btn" class="btn-modal btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn-modal btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn-modal btn-danger">退出游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="quit-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>确认退出</h2>
+            <p>游戏进度已自动保存。</p>
+            <div class="modal-buttons">
+                <button id="confirm-quit-btn" class="btn-modal btn-danger">确认退出</button>
+                <button id="cancel-quit-btn" class="btn-modal btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
