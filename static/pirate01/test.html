@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Translation</title>
+</head>
+<body>
+    <h1>Translation Test</h1>
+    <div id="output"></div>
+
+    <script src="js/dictionary.js"></script>
+    <script src="js/translator.js"></script>
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            const p = document.createElement('p');
+            p.textContent = message;
+            output.appendChild(p);
+            console.log(message);
+        }
+
+        log('=== Dictionary Test ===');
+        
+        const chineseDict = PirateDictionary.getChineseTranslations();
+        log('Chinese dictionary entries: ' + Object.keys(chineseDict).length);
+        log('Has "你好": ' + ('你好' in chineseDict));
+        log('"你好" translations: ' + JSON.stringify(chineseDict['你好']));
+        
+        const englishDict = PirateDictionary.getWordTranslations();
+        log('English dictionary entries: ' + Object.keys(englishDict).length);
+        
+        log('');
+        log('=== isChinese Test ===');
+        log('"你好" is Chinese: ' + PirateDictionary.isChinese('你好'));
+        log('"Hello" is Chinese: ' + PirateDictionary.isChinese('Hello'));
+        
+        log('');
+        log('=== Translation Test ===');
+        
+        const testCases = [
+            '你好',
+            '你好吗',
+            '我的朋友',
+            '我爱你',
+            '谢谢',
+            '再见',
+            'Hello',
+            'Hello my friend',
+            'How are you?'
+        ];
+        
+        testCases.forEach(test => {
+            log('');
+            log('Input: ' + test);
+            log('Is Chinese: ' + PirateDictionary.isChinese(test));
+            
+            if (PirateDictionary.isChinese(test)) {
+                const sorted = Object.keys(chineseDict)
+                    .filter(phrase => phrase.length > 0)
+                    .sort((a, b) => b.length - a.length);
+                    
+                log('Sorted phrases (first 5): ' + sorted.slice(0, 5).join(', '));
+                
+                let found = false;
+                sorted.forEach(phrase => {
+                    if (test.includes(phrase)) {
+                        log('  Found "' + phrase + '" -> ' + JSON.stringify(chineseDict[phrase]));
+                        found = true;
+                    }
+                });
+                
+                if (!found) {
+                    log('  No matching phrases found in dictionary');
+                }
+            }
+            
+            const result = Translator.translate(test);
+            log('Output: ' + result);
+        });
+        
+        log('');
+        log('=== End of Tests ===');
+    </script>
+</body>
+</html>
