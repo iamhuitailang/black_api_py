@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萌萌企鹅滑冰</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="start-screen" class="screen active">
+                <div class="menu-box">
+                    <h1 class="game-title">🐧 萌萌企鹅滑冰</h1>
+                    <p class="game-subtitle">冰面滑行大冒险</p>
+                    <button id="start-btn" class="btn primary-btn">开始游戏</button>
+                    <button id="continue-btn" class="btn secondary-btn hidden">继续游戏</button>
+                    <div class="controls-info">
+                        <p>🎮 点击企鹅周围方向 / 滑动 / 键盘方向键 控制</p>
+                        <p>⭐ 收集道具 | 🏠 到达终点</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="pause-screen" class="screen">
+                <div class="menu-box">
+                    <h2>⏸️ 游戏暂停</h2>
+                    <button id="resume-btn" class="btn primary-btn">继续游戏</button>
+                    <button id="restart-btn" class="btn secondary-btn">重新开始</button>
+                    <button id="quit-btn" class="btn danger-btn">退出游戏</button>
+                </div>
+            </div>
+            
+            <div id="gameover-screen" class="screen">
+                <div class="menu-box">
+                    <h2 id="gameover-title">游戏结束</h2>
+                    <div class="score-display">
+                        <p>得分: <span id="final-score">0</span></p>
+                        <p>关卡: <span id="final-level">1</span></p>
+                        <p>最高分: <span id="final-highscore">0</span></p>
+                    </div>
+                    <button id="retry-btn" class="btn primary-btn">再试一次</button>
+                    <button id="menu-btn" class="btn secondary-btn">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="levelcomplete-screen" class="screen">
+                <div class="menu-box">
+                    <h2>🎉 关卡完成!</h2>
+                    <div class="score-display">
+                        <p>得分: <span id="level-score">0</span></p>
+                        <p>推力次数: <span id="level-pushes">0</span></p>
+                        <p>用时: <span id="level-time">0</span>秒</p>
+                    </div>
+                    <button id="next-level-btn" class="btn primary-btn">下一关</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="game-hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-item">
+                    <span class="hud-label">关卡</span>
+                    <span id="hud-level" class="hud-value">1</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">得分</span>
+                    <span id="hud-score" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">最高分</span>
+                    <span id="hud-highscore" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">时间</span>
+                    <span id="hud-time" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">推力</span>
+                    <span id="hud-pushes" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">生命</span>
+                    <span id="hud-lives" class="hud-value">❤️❤️❤️</span>
+                </div>
+            </div>
+            
+            <div class="hud-bottom">
+                <div id="items-slot">
+                    <div id="item-magnet" class="item-slot" title="磁铁鱼">🐟</div>
+                    <div id="item-claw" class="item-slot" title="冰爪">❄️</div>
+                    <div id="item-shield" class="item-slot" title="护盾">🛡️</div>
+                    <div id="item-rocket" class="item-slot" title="火箭">🚀</div>
+                </div>
+                <button id="pause-btn" class="btn small-btn">⏸️ 暂停</button>
+            </div>
+        </div>
+        
+        <div id="direction-indicator" class="hidden"></div>
+    </div>
+    
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
