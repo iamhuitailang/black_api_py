@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素头像生成器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1 class="title">🎮 像素头像生成器</h1>
+            <div class="header-actions">
+                <button id="btn-history" class="btn btn-secondary">📜 历史记录</button>
+                <button id="btn-save" class="btn btn-primary">💾 保存</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="face">脸型</button>
+                    <button class="tab-btn" data-tab="hair">发型</button>
+                    <button class="tab-btn" data-tab="features">五官</button>
+                    <button class="tab-btn" data-tab="clothing">服装</button>
+                    <button class="tab-btn" data-tab="animation">动画</button>
+                </div>
+
+                <div class="tab-content active" id="tab-face">
+                    <div class="options-group">
+                        <h3>选择脸型</h3>
+                        <div class="options-grid" id="face-options"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-hair">
+                    <div class="options-group">
+                        <h3>肤色</h3>
+                        <div class="color-palette" id="skin-colors"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>发色</h3>
+                        <div class="color-palette" id="hair-colors"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>发型</h3>
+                        <div class="options-grid" id="hair-options"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-features">
+                    <div class="options-group">
+                        <h3>眼睛</h3>
+                        <div class="options-grid" id="eye-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>眉毛</h3>
+                        <div class="options-grid" id="eyebrow-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>嘴巴</h3>
+                        <div class="options-grid" id="mouth-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>鼻子</h3>
+                        <div class="options-grid" id="nose-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>腮红</h3>
+                        <div class="options-grid" id="blush-options"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-clothing">
+                    <div class="options-group">
+                        <h3>上衣</h3>
+                        <div class="options-grid" id="shirt-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>头饰</h3>
+                        <div class="options-grid" id="headwear-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>面部配饰</h3>
+                        <div class="options-grid" id="face-accessory-options"></div>
+                    </div>
+                    <div class="options-group">
+                        <h3>背景</h3>
+                        <div class="options-grid" id="background-options"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-animation">
+                    <div class="options-group">
+                        <h3>动画效果</h3>
+                        <div class="toggle-options">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="animation-blink">
+                                <span>眨眼</span>
+                            </label>
+                            <label class="toggle-label">
+                                <input type="checkbox" id="animation-breathe">
+                                <span>呼吸</span>
+                            </label>
+                        </div>
+                        <div class="animation-test">
+                            <button id="btn-test-expression" class="btn btn-secondary">😊 测试表情切换</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="preview-area">
+                <div class="preview-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="preview-canvas" width="32" height="32"></canvas>
+                    </div>
+                    <div class="canvas-info">32×32 像素</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-export-png" class="btn btn-primary">⬇️ 导出PNG</button>
+                    <button id="btn-export-gif" class="btn btn-primary">🎬 导出GIF</button>
+                    <button id="btn-share" class="btn btn-secondary">🔗 分享</button>
+                    <button id="btn-clear" class="btn btn-danger">🗑️ 清空</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal" id="history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📜 历史记录</h2>
+                <button class="modal-close" id="close-history">×</button>
+            </div>
+            <div class="modal-body" id="history-list"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="share-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔗 分享</h2>
+                <button class="modal-close" id="close-share">×</button>
+            </div>
+            <div class="modal-body">
+                <p>复制下方链接分享您的像素头像：</p>
+                <div class="share-link-container">
+                    <input type="text" id="share-link" readonly>
+                    <button id="btn-copy-link" class="btn btn-primary">复制</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/modules/faceModule.js"></script>
+    <script src="js/modules/hairModule.js"></script>
+    <script src="js/modules/featuresModule.js"></script>
+    <script src="js/modules/clothingModule.js"></script>
+    <script src="js/modules/animationModule.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
