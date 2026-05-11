@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密室逃脱 · 文字迷境</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="message-box" class="message-box hidden"></div>
+            
+            <div id="inventory" class="inventory">
+                <div class="inventory-title">🎒 背包</div>
+                <div class="inventory-items" id="inventory-items"></div>
+            </div>
+            
+            <div id="hint-btn" class="hint-btn">💡 提示</div>
+            <div id="pause-btn" class="pause-btn">⏸️</div>
+        </div>
+        
+        <div id="start-screen" class="overlay">
+            <div class="overlay-content">
+                <h1 class="game-title">🏰 古堡密室 🏰</h1>
+                <p class="game-subtitle">文字迷境 · 密室逃脱</p>
+                <div class="game-description">
+                    <p>你醒来发现自己身处一间古老的古堡书房...</p>
+                    <p>点击场景探索，收集物品，解开谜题，逃出密室！</p>
+                </div>
+                <button id="start-btn" class="btn btn-primary">▶️ 开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary hidden">🔄 继续游戏</button>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2 class="menu-title">⏸️ 游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="resume-btn" class="btn btn-primary">▶️ 继续游戏</button>
+                    <button id="restart-btn" class="btn btn-secondary">🔄 重新开始</button>
+                    <button id="quit-btn" class="btn btn-danger">🚪 退出游戏</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="victory-screen" class="overlay hidden">
+            <div class="overlay-content victory">
+                <h2 class="victory-title">🎉 逃出成功！ 🎉</h2>
+                <p class="victory-text">你成功解开了所有谜题，逃出了古堡密室！</p>
+                <div class="victory-stats">
+                    <p>🗝️ 收集物品：<span id="items-collected">0</span> 个</p>
+                    <p>🧩 解开谜题：<span id="puzzles-solved">0</span> 个</p>
+                    <p>💡 使用提示：<span id="hints-used">0</span> 次</p>
+                </div>
+                <button id="play-again-btn" class="btn btn-primary">🎮 再玩一次</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/gameState.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/puzzles.js"></script>
+    <script src="js/scenes.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
