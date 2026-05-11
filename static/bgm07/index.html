@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGM混音器 - 专业音频创作工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <h1>🎧 BGM混音器</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="transport-controls">
+                <button id="playBtn" class="btn btn-play" title="播放">▶</button>
+                <button id="pauseBtn" class="btn btn-pause" title="暂停">⏸</button>
+                <button id="stopBtn" class="btn btn-stop" title="停止">⏹</button>
+            </div>
+            <div class="tempo-control">
+                <label for="bpmSlider">BPM:</label>
+                <input type="range" id="bpmSlider" min="60" max="200" value="120">
+                <span id="bpmValue">120</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="tracks-section">
+                <h2>轨道控制</h2>
+                <div id="tracksContainer" class="tracks-container"></div>
+            </section>
+
+            <section class="master-section">
+                <h2>主控制</h2>
+                <div class="master-controls">
+                    <div class="master-volume">
+                        <label>主音量</label>
+                        <input type="range" id="masterVolume" min="0" max="100" value="80">
+                        <span id="masterVolumeValue">80%</span>
+                    </div>
+                    <div class="vu-meter">
+                        <canvas id="vuMeterCanvas" width="60" height="200"></canvas>
+                        <label>VU表</label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="effects-section">
+                <h2>效果器</h2>
+                <div class="effects-container">
+                    <div class="effect-card">
+                        <h3>🎚 均衡器 (EQ)</h3>
+                        <div class="effect-controls">
+                            <div class="eq-band">
+                                <label>低频 (Low)</label>
+                                <input type="range" id="eqLow" min="-12" max="12" value="0" step="1">
+                                <span id="eqLowValue">0 dB</span>
+                            </div>
+                            <div class="eq-band">
+                                <label>中频 (Mid)</label>
+                                <input type="range" id="eqMid" min="-12" max="12" value="0" step="1">
+                                <span id="eqMidValue">0 dB</span>
+                            </div>
+                            <div class="eq-band">
+                                <label>高频 (High)</label>
+                                <input type="range" id="eqHigh" min="-12" max="12" value="0" step="1">
+                                <span id="eqHighValue">0 dB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="effect-card">
+                        <h3>🌊 混响 (Reverb)</h3>
+                        <div class="effect-controls">
+                            <div class="effect-param">
+                                <label>房间大小</label>
+                                <input type="range" id="reverbRoom" min="0.1" max="3" value="1" step="0.1">
+                                <span id="reverbRoomValue">1.0s</span>
+                            </div>
+                            <div class="effect-param">
+                                <label>干湿比</label>
+                                <input type="range" id="reverbMix" min="0" max="100" value="30">
+                                <span id="reverbMixValue">30%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="effect-card">
+                        <h3>⏱ 延迟 (Delay)</h3>
+                        <div class="effect-controls">
+                            <div class="effect-param">
+                                <label>延迟时间</label>
+                                <input type="range" id="delayTime" min="0.1" max="1" value="0.3" step="0.05">
+                                <span id="delayTimeValue">0.3s</span>
+                            </div>
+                            <div class="effect-param">
+                                <label>反馈</label>
+                                <input type="range" id="delayFeedback" min="0" max="90" value="40">
+                                <span id="delayFeedbackValue">40%</span>
+                            </div>
+                            <div class="effect-param">
+                                <label>干湿比</label>
+                                <input type="range" id="delayMix" min="0" max="100" value="20">
+                                <span id="delayMixValue">20%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="effect-card">
+                        <h3>🎚 滤波器 (Filter)</h3>
+                        <div class="effect-controls">
+                            <div class="effect-param">
+                                <label>类型</label>
+                                <select id="filterType">
+                                    <option value="lowpass">低通</option>
+                                    <option value="highpass">高通</option>
+                                    <option value="bandpass">带通</option>
+                                </select>
+                            </div>
+                            <div class="effect-param">
+                                <label>Cutoff</label>
+                                <input type="range" id="filterCutoff" min="20" max="20000" value="5000" step="10">
+                                <span id="filterCutoffValue">5000Hz</span>
+                            </div>
+                            <div class="effect-param">
+                                <label>Resonance</label>
+                                <input type="range" id="filterResonance" min="0" max="20" value="1" step="0.1">
+                                <span id="filterResonanceValue">1.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="effect-card">
+                        <h3>⚡ 失真 (Distortion)</h3>
+                        <div class="effect-controls">
+                            <div class="effect-param">
+                                <label>增益</label>
+                                <input type="range" id="distortionGain" min="0" max="100" value="0">
+                                <span id="distortionGainValue">0%</span>
+                            </div>
+                            <div class="effect-param">
+                                <label>过载度</label>
+                                <input type="range" id="distortionAmount" min="0" max="100" value="0">
+                                <span id="distortionAmountValue">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="presets-section">
+                <h2>内置风格</h2>
+                <div class="presets-container">
+                    <button class="preset-btn" data-preset="edm">🎵 电子舞曲 (EDM)</button>
+                    <button class="preset-btn" data-preset="lofi">🎷 放松Lo-Fi</button>
+                    <button class="preset-btn" data-preset="8bit">👾 8-bit复古</button>
+                    <button class="preset-btn" data-preset="epic">🎺 史诗管弦</button>
+                    <button class="preset-btn" data-preset="ambient">🌌 环境氛围</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>状态: <span id="statusIndicator">已停止</span> | 播放位置: <span id="playbackPosition">0:00</span></p>
+        </footer>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/audioEngine.js"></script>
+    <script src="js/tracks.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/presets.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
