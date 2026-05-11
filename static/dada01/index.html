@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>哈哈打鸭子</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="game-ui" id="gameUI">
+            <div class="top-bar">
+                <div class="stat-item">
+                    <span class="label">漏掉</span>
+                    <span class="value" id="missedCount">0/5</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">时间</span>
+                    <span class="value" id="timeLeft">60s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">分数</span>
+                    <span class="value" id="currentScore">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">最高分</span>
+                    <span class="value" id="highScore">0</span>
+                </div>
+                <button class="btn pause-btn" id="pauseBtn" style="display: none;">暂停</button>
+            </div>
+        </div>
+        
+        <div class="overlay" id="startOverlay">
+            <div class="modal">
+                <h1 class="game-title">哈哈打鸭子</h1>
+                <p class="game-desc">
+                    点击或触摸鸭子来击中它们！<br>
+                    普通鸭子 +10 分，金色鸭子 +20 分<br>
+                    漏掉 5 只或时间耗尽游戏结束
+                </p>
+                <button class="btn start-btn" id="startBtn">开始游戏</button>
+                <button class="btn secondary-btn" id="resumeBtn" style="display: none;">继续游戏</button>
+            </div>
+        </div>
+        
+        <div class="overlay" id="pauseOverlay" style="display: none;">
+            <div class="modal">
+                <h2 class="modal-title">游戏暂停</h2>
+                <div class="button-group">
+                    <button class="btn" id="resumeFromPauseBtn">继续游戏</button>
+                    <button class="btn" id="restartFromPauseBtn">重新开始</button>
+                    <button class="btn secondary-btn" id="exitToMenuBtn">退出到菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overlay" id="gameOverOverlay" style="display: none;">
+            <div class="modal">
+                <h2 class="modal-title">游戏结束</h2>
+                <div class="result-stats">
+                    <div class="result-item">
+                        <span class="label">最终得分</span>
+                        <span class="value" id="finalScore">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">击中鸭子</span>
+                        <span class="value" id="hitCount">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">漏掉鸭子</span>
+                        <span class="value" id="missedTotal">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">新纪录</span>
+                        <span class="value" id="newRecord">否</span>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn" id="restartBtn">重新开始</button>
+                    <button class="btn secondary-btn" id="backToMenuBtn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="effect-layer" id="effectLayer" style="display: none;"></div>
+    </div>
+    
+    <script src="js/utils/config.js"></script>
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/audio.js"></script>
+    <script src="js/game/duck.js"></script>
+    <script src="js/game/effects.js"></script>
+    <script src="js/game/renderer.js"></script>
+    <script src="js/game/engine.js"></script>
+    <script src="js/game/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

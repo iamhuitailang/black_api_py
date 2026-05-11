@@ -1,0 +1,43 @@
+var GameConfig = {
+    GAME_DURATION: 60,
+    MAX_MISSED: 5,
+    MAX_DUCKS: 5,
+    MIN_DUCKS_THRESHOLD: 3,
+    SPAWN_INTERVAL_MIN: 800,
+    SPAWN_INTERVAL_MAX: 1200,
+    
+    NORMAL_DUCK_SCORE: 10,
+    GOLDEN_DUCK_SCORE: 20,
+    GOLDEN_DUCK_CHANCE: 0.1,
+    
+    DUCK_SPEED_BASE: 2,
+    DUCK_SPEED_VARIANCE: 1.5,
+    GOLDEN_DUCK_SPEED_BONUS: 1.5,
+    
+    DUCK_SIZE: 60,
+    
+    WING_FLAP_INTERVAL: 150,
+    
+    SKY_COLOR_TOP: '#87CEEB',
+    SKY_COLOR_BOTTOM: '#E0F6FF',
+    GRASS_COLORS: ['#228B22', '#6B8E23', '#8B7355'],
+    DUCK_HEAD_COLOR: '#2E8B57',
+    DUCK_BODY_COLOR: '#8B4513',
+    DUCK_BEAK_COLOR: '#FF8C00',
+    GOLDEN_DUCK_COLOR: '#FFD700',
+    FEATHER_COLOR: '#F5F5DC',
+    SMOKE_COLOR: 'rgba(200, 200, 200, 0.6)',
+    
+    FEATHER_COUNT: 8,
+    SMOKE_DURATION: 500,
+    FEATHER_DURATION: 1500,
+    
+    STORAGE_KEY: 'haha_duck_game',
+    
+    GAME_STATE: {
+        MENU: 'menu',
+        PLAYING: 'playing',
+        PAUSED: 'paused',
+        GAME_OVER: 'game_over'
+    }
+};
