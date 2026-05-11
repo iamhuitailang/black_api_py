@@ -70,7 +70,7 @@ const CONSTANTS = {
         INITIAL_TREE_SEGMENTS: 8,
         SEGMENT_HEIGHT: 60,
         TREE_WIDTH: 80,
-        BRANCH_LENGTH: 120,
+        BRANCH_LENGTH: 70,
         BRANCH_HEIGHT: 20,
         BASE_SPEED: 1000,
         MIN_SPEED: 200,

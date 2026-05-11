@@ -289,7 +289,7 @@ const Renderer = (function() {
         
         const bodyWidth = 30;
         const bodyHalfWidth = bodyWidth / 2;
-        const distanceFromTree = 100;
+        const distanceFromTree = 130;
         
         let playerCenterX;
         let axeDirection;
