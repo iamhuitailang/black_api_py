@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞镖打靶 - Dart Game</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 游戏主画布 -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- UI 覆盖层 -->
+        <div id="ui-overlay">
+            <!-- 顶部状态栏 -->
+            <div id="top-bar">
+                <div id="score-display">
+                    <span>当前得分: <span id="current-score">0</span></span>
+                </div>
+                <div id="high-score-display">
+                    <span>最高分: <span id="high-score">0</span></span>
+                </div>
+                <div id="mode-display">
+                    <span id="mode-text">标准模式</span>
+                </div>
+                <div id="round-display">
+                    <span>第 <span id="current-round">1</span>/3 轮</span>
+                </div>
+                <div id="timer-display" style="display: none;">
+                    <span>剩余时间: <span id="time-left">30</span>秒</span>
+                </div>
+            </div>
+            
+            <!-- 控制按钮区 -->
+            <div id="control-buttons">
+                <button id="pause-btn">暂停</button>
+            </div>
+        </div>
+        
+        <!-- 开始菜单 -->
+        <div id="start-menu" class="menu">
+            <h1>🎯 飞镖打靶</h1>
+            <p class="subtitle">瞄准靶心，挑战最高分！</p>
+            <div class="mode-buttons">
+                <button id="start-standard-btn">标准模式</button>
+                <button id="start-timed-btn">限时模式</button>
+            </div>
+            <div class="instructions">
+                <h3>游戏说明</h3>
+                <ul>
+                    <li>拖动飞镖向后蓄力</li>
+                    <li>释放飞镖投掷</li>
+                    <li>根据命中环数计算得分</li>
+                    <li>挑战最高分！</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 暂停菜单 -->
+        <div id="pause-menu" class="menu" style="display: none;">
+            <h2>游戏暂停</h2>
+            <div class="menu-buttons">
+                <button id="resume-btn">继续游戏</button>
+                <button id="restart-btn">重新开始</button>
+                <button id="quit-btn">退出游戏</button>
+            </div>
+        </div>
+        
+        <!-- 游戏结束菜单 -->
+        <div id="game-over-menu" class="menu" style="display: none;">
+            <h2>游戏结束</h2>
+            <div class="final-score">
+                <p>最终得分: <span id="final-score">0</span></p>
+                <p id="new-record" style="display: none;">🎉 新纪录！</p>
+            </div>
+            <div class="menu-buttons">
+                <button id="play-again-btn">再玩一次</button>
+                <button id="back-to-menu-btn">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 游戏模块脚本 -->
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

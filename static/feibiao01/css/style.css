@@ -1,0 +1,322 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    overflow: hidden;
+    color: #fff;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-canvas {
+    background: linear-gradient(180deg, #2d2d44 0%, #1a1a2e 100%);
+    border-radius: 15px;
+    box-shadow: 0 0 50px rgba(255, 107, 107, 0.3),
+                0 0 100px rgba(78, 205, 196, 0.2),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#ui-overlay > * {
+    pointer-events: auto;
+}
+
+#top-bar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 30px;
+    padding: 15px 30px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+#top-bar span {
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#score-display span {
+    color: #ffd700;
+}
+
+#high-score-display span {
+    color: #ff6b6b;
+}
+
+#mode-display span {
+    color: #4ecdc4;
+}
+
+#round-display span {
+    color: #a8e6cf;
+}
+
+#timer-display span {
+    color: #ff8b94;
+}
+
+#control-buttons {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+button {
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+#pause-btn {
+    background: linear-gradient(135deg, #ffd93d, #ff9f1c);
+    color: #1a1a2e;
+    box-shadow: 0 4px 15px rgba(255, 217, 61, 0.4);
+}
+
+#pause-btn:hover {
+    background: linear-gradient(135deg, #ffe066, #ffaa33);
+    box-shadow: 0 4px 15px rgba(255, 217, 61, 0.6);
+}
+
+.menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(26, 26, 46, 0.95);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    min-width: 400px;
+}
+
+.menu h1 {
+    font-size: 48px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #4ecdc4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.5));
+    }
+    to {
+        filter: drop-shadow(0 0 20px rgba(78, 205, 196, 0.8));
+    }
+}
+
+.menu h2 {
+    font-size: 36px;
+    margin-bottom: 30px;
+    color: #ffd93d;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.subtitle {
+    font-size: 18px;
+    color: #a8e6cf;
+    margin-bottom: 30px;
+}
+
+.mode-buttons, .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.mode-buttons button {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: #fff;
+    font-size: 18px;
+    padding: 15px 30px;
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+}
+
+.mode-buttons button:hover {
+    background: linear-gradient(135deg, #5edcd5, #55b8a0);
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.6);
+}
+
+#start-timed-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+#start-timed-btn:hover {
+    background: linear-gradient(135deg, #ff8080, #ff6b6b);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.6);
+}
+
+.menu-buttons button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.menu-buttons button:hover {
+    background: linear-gradient(135deg, #7c8ff5, #865bb5);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.6);
+}
+
+#restart-btn {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+}
+
+#restart-btn:hover {
+    background: linear-gradient(135deg, #f5a0fc, #f6687a);
+    box-shadow: 0 5px 15px rgba(245, 87, 108, 0.6);
+}
+
+#quit-btn, #back-to-menu-btn {
+    background: linear-gradient(135deg, #434343, #000000);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+#quit-btn:hover, #back-to-menu-btn:hover {
+    background: linear-gradient(135deg, #555555, #111111);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
+}
+
+.instructions {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 15px;
+    border-left: 4px solid #4ecdc4;
+}
+
+.instructions h3 {
+    font-size: 20px;
+    color: #4ecdc4;
+    margin-bottom: 15px;
+}
+
+.instructions ul {
+    list-style: none;
+    text-align: left;
+}
+
+.instructions li {
+    font-size: 16px;
+    color: #ddd;
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+}
+
+.instructions li::before {
+    content: '🎯';
+    position: absolute;
+    left: 0;
+}
+
+.final-score {
+    margin-bottom: 30px;
+}
+
+.final-score p {
+    font-size: 24px;
+    margin: 10px 0;
+}
+
+#final-score {
+    color: #ffd93d;
+    font-size: 48px;
+    font-weight: bold;
+}
+
+#new-record {
+    color: #ff6b6b;
+    font-size: 28px !important;
+    font-weight: bold;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.1);
+    }
+}
+
+@media (max-width: 768px) {
+    .menu {
+        min-width: 90%;
+        padding: 20px;
+    }
+    
+    .menu h1 {
+        font-size: 36px;
+    }
+    
+    #top-bar {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 15px;
+    }
+    
+    #top-bar span {
+        font-size: 14px;
+    }
+    
+    button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
