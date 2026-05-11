@@ -51,10 +51,6 @@
                 <span class="stat-label">总盈亏</span>
                 <span id="total-profit" class="stat-value profit">0</span>
             </div>
-            <div class="stat-item" id="debt-stat">
-                <span class="stat-label">欠款</span>
-                <span id="debt" class="stat-value debt">0</span>
-            </div>
         </div>
 
         <main class="game-main">
@@ -69,6 +65,7 @@
             <div class="bet-info">
                 <span class="bet-label">筹码</span>
                 <span id="chips" class="bet-value">1000</span>
+                <button id="recharge-btn" class="btn-recharge">充值</button>
             </div>
             <div class="bet-controls">
                 <span class="bet-label">下注</span>
@@ -88,7 +85,6 @@
 
         <div class="action-panel">
             <button id="start-btn" class="btn-action btn-primary">开始游戏</button>
-            <button id="reset-game-btn" class="btn-action btn-secondary hidden">重置游戏</button>
             <button id="hit-btn" class="btn-action btn-hit hidden">要牌 (Hit)</button>
             <button id="stand-btn" class="btn-action btn-stand hidden">停牌 (Stand)</button>
             <button id="double-btn" class="btn-action btn-double hidden">双倍 (Double)</button>

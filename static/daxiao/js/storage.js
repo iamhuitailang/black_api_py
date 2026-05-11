@@ -5,8 +5,6 @@ function saveGameState(gameState, extraData = {}) {
         const stateToSave = {
             chips: gameState.chips,
             bet: gameState.bet,
-            debt: gameState.debt,
-            maxDebt: gameState.maxDebt,
             state: gameState.state,
             result: gameState.result,
             deck: gameState.deck,
@@ -54,14 +52,6 @@ function applySavedState(gameState, savedState) {
 
     if (typeof savedState.bet === 'number') {
         gameState.bet = savedState.bet;
-    }
-
-    if (typeof savedState.debt === 'number') {
-        gameState.debt = savedState.debt;
-    }
-
-    if (typeof savedState.maxDebt === 'number') {
-        gameState.maxDebt = savedState.maxDebt;
     }
 
     if (typeof savedState.state === 'string') {

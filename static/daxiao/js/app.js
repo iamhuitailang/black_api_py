@@ -3,7 +3,7 @@ import { createGameState, placeBet, dealInitialCards, checkInitialBlackjack,
          determineResult, settleBet, getResultMessage, resetGame, resetAll,
          calculateHandValue, GAME_STATES, startNewRound, canPlaceBet,
          RESULTS } from './game.js';
-import { createRenderer, CANVAS_WIDTH, CANVAS_HEIGHT } from './renderer.js';
+import { createRenderer } from './renderer.js';
 import { createAnimationManager, createCardDealAnimation } from './animation.js';
 import { createUI } from './ui.js';
 import { loadGameState, applySavedState, saveGameState, clearGameState, setupAutoSave } from './storage.js';
@@ -33,7 +33,6 @@ function initGame() {
 
     const ui = createUI(gameState, {
         onStart: handleStart,
-        onResetGame: handleResetGame,
         onHit: handleHit,
         onStand: handleStand,
         onDouble: handleDouble,
@@ -58,18 +57,19 @@ function initGame() {
     }
 
     function addDealAnimations() {
-        const deckX = CANVAS_WIDTH - 100;
+        const canvas = renderer.getCanvas();
+        const deckX = canvas.width - 100;
         const deckY = 50;
-        const centerX = CANVAS_WIDTH / 2;
+        const centerX = canvas.width / 2;
 
-        const playerY = CANVAS_HEIGHT - 140;
-        const dealerY = 120;
+        const playerY = canvas.height - 130;
+        const dealerY = 110;
 
         const playerCards = gameState.playerHand.cards;
         const dealerCards = gameState.dealerHand.cards;
 
-        const playerSpacing = 28;
-        const dealerSpacing = 28;
+        const playerSpacing = 25;
+        const dealerSpacing = 25;
 
         const playerTotalWidth = (playerCards.length - 1) * playerSpacing;
         const playerStartX = centerX - playerTotalWidth / 2;
@@ -118,19 +118,20 @@ function initGame() {
     }
 
     function addHitAnimation(isPlayer = true) {
-        const deckX = CANVAS_WIDTH - 100;
+        const canvas = renderer.getCanvas();
+        const deckX = canvas.width - 100;
         const deckY = 50;
-        const centerX = CANVAS_WIDTH / 2;
+        const centerX = canvas.width / 2;
 
         const hand = isPlayer ? gameState.playerHand : gameState.dealerHand;
         const cards = hand.cards;
         const lastCard = cards[cards.length - 1];
 
-        const spacing = 28;
+        const spacing = 25;
         const totalWidth = (cards.length - 1) * spacing;
         const startX = centerX - totalWidth / 2;
         const targetX = startX + (cards.length - 1) * spacing;
-        const targetY = isPlayer ? CANVAS_HEIGHT - 140 : 120;
+        const targetY = isPlayer ? canvas.height - 130 : 110;
 
         const anim = createCardDealAnimation(
             lastCard, deckX, deckY, targetX, targetY, false
@@ -308,27 +309,6 @@ function initGame() {
         resetGame(gameState);
         animManager.clearAll();
         ui.hideStatusMessage();
-        ui.updateAll(gameState);
-        ui.setBetInputMax(gameState.chips);
-    }
-
-    function handleResetGame() {
-        resetAll(gameState);
-        animManager.clearAll();
-        ui.hideStatusMessage();
-        gameState.chips = 1000;
-        gameState.debt = 0;
-        gameState.stats = {
-            wins: 0,
-            losses: 0,
-            pushes: 0,
-            currentStreak: 0,
-            maxStreak: 0,
-            totalProfit: 0,
-            currentScore: 0,
-            highScore: 0
-        };
-        saveGameState(gameState);
         ui.updateAll(gameState);
         ui.setBetInputMax(gameState.chips);
     }

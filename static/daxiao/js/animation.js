@@ -1,5 +1,3 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, CARD_WIDTH, CARD_HEIGHT } from './renderer.js';
-
 const ANIMATION_DURATION = 400;
 const FLIP_DURATION = 300;
 const CHIP_DURATION = 250;
@@ -121,21 +119,18 @@ function createAnimationManager(renderer) {
         const playerHand = gameState.playerHand;
         const dealerHand = gameState.dealerHand;
 
-        const dealerY = 120;
-        const playerY = CANVAS_HEIGHT - 140;
-        const centerX = CANVAS_WIDTH / 2;
+        const dealerY = 110;
+        const playerY = canvas.height - 130;
+        const centerX = canvas.width / 2;
 
-        const playerSpacing = 28;
-        const dealerSpacing = 28;
+        const playerSpacing = 25;
+        const dealerSpacing = 25;
 
         const playerTotalWidth = (playerHand.cards.length - 1) * playerSpacing;
         const playerStartX = centerX - playerTotalWidth / 2;
 
         const dealerTotalWidth = (dealerHand.cards.length - 1) * dealerSpacing;
         const dealerStartX = centerX - dealerTotalWidth / 2;
-
-        const cardOffsetX = -CARD_WIDTH / 2;
-        const cardOffsetY = -CARD_HEIGHT / 2;
 
         for (let i = 0; i < dealerHand.cards.length; i++) {
             const card = dealerHand.cards[i];
@@ -156,14 +151,14 @@ function createAnimationManager(renderer) {
 
                 ctx.save();
                 ctx.translate(x, y);
-                renderer.drawCard(cardOffsetX, cardOffsetY, card, isFaceDown);
+                renderer.drawCard(-40, -57.5, card, isFaceDown);
                 ctx.restore();
             } else {
                 ctx.save();
                 ctx.translate(targetX, targetY);
                 const rotation = (i - (dealerHand.cards.length - 1) / 2) * 0.05;
                 ctx.rotate(rotation);
-                renderer.drawCard(cardOffsetX, cardOffsetY, card, isFaceDown);
+                renderer.drawCard(-40, -57.5, card, isFaceDown);
                 ctx.restore();
             }
         }
@@ -187,14 +182,14 @@ function createAnimationManager(renderer) {
 
                 ctx.save();
                 ctx.translate(x, y);
-                renderer.drawCard(cardOffsetX, cardOffsetY, card, isFaceDown);
+                renderer.drawCard(-40, -57.5, card, isFaceDown);
                 ctx.restore();
             } else {
                 ctx.save();
                 ctx.translate(targetX, targetY);
                 const rotation = (i - (playerHand.cards.length - 1) / 2) * 0.05;
                 ctx.rotate(rotation);
-                renderer.drawCard(cardOffsetX, cardOffsetY, card, isFaceDown);
+                renderer.drawCard(-40, -57.5, card, isFaceDown);
                 ctx.restore();
             }
         }

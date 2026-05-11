@@ -1,21 +1,17 @@
-const CANVAS_WIDTH = 900;
-const CANVAS_HEIGHT = 600;
+const CANVAS_WIDTH = 1200;
+const CANVAS_HEIGHT = 720;
 
-const CARD_WIDTH = 100;
-const CARD_HEIGHT = 145;
-const CARD_CORNER_RADIUS = 10;
+const CARD_WIDTH = 120;
+const CARD_HEIGHT = 170;
+const CARD_CORNER_RADIUS = 8;
 
 const TABLE_GREEN = '#0d6b3d';
 const TABLE_DARK_GREEN = '#0a502e';
 
 function createRenderer(canvas) {
     const ctx = canvas.getContext('2d');
-    canvas.width = CANVAS_WIDTH * 2;
-    canvas.height = CANVAS_HEIGHT * 2;
-    canvas.style.width = CANVAS_WIDTH + 'px';
-    canvas.style.height = CANVAS_HEIGHT + 'px';
-    
-    ctx.scale(2, 2);
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
 
     let animations = [];
 
@@ -65,10 +61,10 @@ function createRenderer(canvas) {
     }
 
     function drawCardBack() {
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
 
         roundRect(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_CORNER_RADIUS);
         const gradient = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
@@ -95,18 +91,18 @@ function createRenderer(canvas) {
         ctx.globalAlpha = 1;
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 18px Arial';
+        ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('♠♥', CARD_WIDTH / 2, CARD_HEIGHT / 2 - 10);
-        ctx.fillText('♦♣', CARD_WIDTH / 2, CARD_HEIGHT / 2 + 15);
+        ctx.fillText('♠♥', CARD_WIDTH / 2, CARD_HEIGHT / 2 - 8);
+        ctx.fillText('♦♣', CARD_WIDTH / 2, CARD_HEIGHT / 2 + 12);
     }
 
     function drawCardFront(card) {
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
 
         roundRect(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_CORNER_RADIUS);
         ctx.fillStyle = '#ffffff';
@@ -115,7 +111,7 @@ function createRenderer(canvas) {
         ctx.shadowColor = 'transparent';
 
         ctx.strokeStyle = '#d1d5db';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1;
         roundRect(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_CORNER_RADIUS);
         ctx.stroke();
 
@@ -123,32 +119,35 @@ function createRenderer(canvas) {
         const rank = card.rank;
         const symbol = card.suitSymbol;
 
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
         ctx.fillStyle = color;
-        ctx.font = 'bold 18px Arial';
+        ctx.font = 'bold 22px Arial';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(rank, 8, 6);
+        ctx.fillText(rank, 10, 8);
 
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(symbol, 8, 26);
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText(symbol, 10, 32);
 
         ctx.save();
         ctx.translate(CARD_WIDTH, CARD_HEIGHT);
         ctx.rotate(Math.PI);
 
         ctx.fillStyle = color;
-        ctx.font = 'bold 18px Arial';
+        ctx.font = 'bold 22px Arial';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(rank, 8, 6);
+        ctx.fillText(rank, 10, 8);
 
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(symbol, 8, 26);
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText(symbol, 10, 32);
 
         ctx.restore();
 
         ctx.fillStyle = color;
-        ctx.font = 'bold 48px Arial';
+        ctx.font = 'bold 56px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(symbol, CARD_WIDTH / 2, CARD_HEIGHT / 2);
@@ -175,7 +174,7 @@ function createRenderer(canvas) {
 
         if (numCards === 0) return;
 
-        const spacing = 28;
+        const spacing = 25;
         const totalWidth = (numCards - 1) * spacing;
         const startOffsetX = startX - totalWidth / 2;
 
@@ -201,44 +200,44 @@ function createRenderer(canvas) {
 
     function drawLabels(playerValue, dealerValue, isDealerTurn) {
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 22px Arial';
+        ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        roundRect(CANVAS_WIDTH / 2 - 85, 28, 170, 40, 8);
+        roundRect(CANVAS_WIDTH / 2 - 90, 35, 180, 45, 8);
         ctx.fill();
         ctx.fillStyle = '#ffd700';
-        ctx.fillText('庄家', CANVAS_WIDTH / 2, 48);
+        ctx.fillText('庄家', CANVAS_WIDTH / 2, 57);
 
         if (dealerValue !== null) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-            roundRect(CANVAS_WIDTH / 2 + 110, 28, 65, 40, 8);
+            roundRect(CANVAS_WIDTH / 2 + 110, 35, 70, 45, 8);
             ctx.fill();
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(dealerValue.toString(), CANVAS_WIDTH / 2 + 142, 48);
+            ctx.fillText(dealerValue.toString(), CANVAS_WIDTH / 2 + 135, 57);
         }
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        roundRect(CANVAS_WIDTH / 2 - 85, CANVAS_HEIGHT - 68, 170, 40, 8);
+        roundRect(CANVAS_WIDTH / 2 - 90, CANVAS_HEIGHT - 80, 180, 45, 8);
         ctx.fill();
         ctx.fillStyle = '#ffd700';
-        ctx.fillText('玩家', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 48);
+        ctx.fillText('玩家', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 57);
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        roundRect(CANVAS_WIDTH / 2 + 110, CANVAS_HEIGHT - 68, 65, 40, 8);
+        roundRect(CANVAS_WIDTH / 2 + 110, CANVAS_HEIGHT - 80, 70, 45, 8);
         ctx.fill();
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(playerValue.toString(), CANVAS_WIDTH / 2 + 142, CANVAS_HEIGHT - 48);
+        ctx.fillText(playerValue.toString(), CANVAS_WIDTH / 2 + 135, CANVAS_HEIGHT - 57);
     }
 
     function drawBetInfo(betAmount) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        roundRect(CANVAS_WIDTH / 2 - 110, CANVAS_HEIGHT / 2 - 22, 220, 44, 8);
+        roundRect(CANVAS_WIDTH / 2 - 110, CANVAS_HEIGHT / 2 - 25, 220, 50, 8);
         ctx.fill();
 
         ctx.fillStyle = '#ffd700';
-        ctx.font = 'bold 20px Arial';
+        ctx.font = 'bold 22px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`下注: ${betAmount}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
@@ -251,47 +250,21 @@ function createRenderer(canvas) {
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
         ctx.fillStyle = '#ffd700';
-        ctx.font = 'bold 52px Arial';
+        ctx.font = 'bold 56px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('21点', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 60);
+        ctx.fillText('21点', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 70);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = '26px Arial';
+        ctx.font = '24px Arial';
         ctx.fillText('Blackjack', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 
         ctx.fillStyle = '#aaa';
-        ctx.font = '18px Arial';
+        ctx.font = '16px Arial';
         ctx.fillText('点击"开始游戏"按钮开始', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
     }
 
-    function drawNoChips() {
-        drawTableBackground();
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        ctx.fillStyle = '#f87171';
-        ctx.font = 'bold 42px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('筹码不足！', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '20px Arial';
-        ctx.fillText('你已经输光了所有筹码', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
-
-        ctx.fillStyle = '#aaa';
-        ctx.font = '16px Arial';
-        ctx.fillText('点击"重新开始"按钮重置游戏', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
-    }
-
     function render(gameState) {
-        if (gameState.chips <= 0 && gameState.state === 'idle') {
-            drawNoChips();
-            return;
-        }
-
         drawTableBackground();
 
         const playerHand = gameState.playerHand;
@@ -305,8 +278,8 @@ function createRenderer(canvas) {
             (gameState.state === 'dealer_turn' || gameState.state === 'settlement' ? 
                 calculateHandValue(dealerHand) : getVisibleValue(dealerHand)) : null;
 
-        const dealerY = 120;
-        const playerY = CANVAS_HEIGHT - 140;
+        const dealerY = 110;
+        const playerY = CANVAS_HEIGHT - 130;
 
         drawHand(dealerHand, CANVAS_WIDTH / 2, dealerY, 0.05, true);
         drawHand(playerHand, CANVAS_WIDTH / 2, playerY, 0.05, false);
@@ -399,7 +372,6 @@ function createRenderer(canvas) {
         drawLabels,
         drawBetInfo,
         drawWelcome,
-        drawNoChips,
         render,
         clear,
         resize,

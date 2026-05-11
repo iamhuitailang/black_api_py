@@ -36,8 +36,6 @@ function createGameState() {
         state: GAME_STATES.IDLE,
         bet: 100,
         chips: 1000,
-        debt: 0,
-        maxDebt: 5000,
         result: null,
         stats: {
             wins: 0,
@@ -64,28 +62,15 @@ function startNewRound(gameState) {
 }
 
 function canPlaceBet(gameState, betAmount) {
-    if (betAmount <= 0) return false;
-    
-    const totalAvailable = gameState.chips + (gameState.maxDebt - gameState.debt);
-    return betAmount <= totalAvailable;
+    return betAmount > 0 && betAmount <= gameState.chips;
 }
 
 function placeBet(gameState, betAmount) {
     if (!canPlaceBet(gameState, betAmount)) {
         return false;
     }
-    
     gameState.bet = betAmount;
-    
-    if (gameState.chips >= betAmount) {
-        gameState.chips -= betAmount;
-    } else {
-        const fromChips = gameState.chips;
-        const fromDebt = betAmount - gameState.chips;
-        gameState.chips = 0;
-        gameState.debt += fromDebt;
-    }
-    
+    gameState.chips -= betAmount;
     gameState.state = GAME_STATES.DEALING;
     return true;
 }
@@ -208,13 +193,11 @@ function determineResult(gameState) {
 
 function settleBet(gameState) {
     const stats = gameState.stats;
-    let winAmount = 0;
 
     switch (gameState.result) {
         case RESULTS.PLAYER_BLACKJACK:
             const bjPayout = Math.floor(gameState.bet * 1.5);
-            winAmount = gameState.bet + bjPayout;
-            gameState.chips += winAmount;
+            gameState.chips += gameState.bet + bjPayout;
             stats.wins++;
             stats.currentStreak++;
             stats.currentScore += 2;
@@ -223,8 +206,7 @@ function settleBet(gameState) {
 
         case RESULTS.PLAYER_WIN:
         case RESULTS.DEALER_BUST:
-            winAmount = gameState.bet * 2;
-            gameState.chips += winAmount;
+            gameState.chips += gameState.bet * 2;
             stats.wins++;
             stats.currentStreak++;
             stats.currentScore += 1;
@@ -232,8 +214,7 @@ function settleBet(gameState) {
             break;
 
         case RESULTS.PUSH:
-            winAmount = gameState.bet;
-            gameState.chips += winAmount;
+            gameState.chips += gameState.bet;
             stats.pushes++;
             stats.totalProfit += 0;
             break;
@@ -244,12 +225,6 @@ function settleBet(gameState) {
             stats.currentStreak = 0;
             stats.totalProfit -= gameState.bet;
             break;
-    }
-    
-    if (gameState.debt > 0 && gameState.chips > 0) {
-        const repayAmount = Math.min(gameState.debt, gameState.chips);
-        gameState.debt -= repayAmount;
-        gameState.chips -= repayAmount;
     }
 
     if (stats.currentStreak > stats.maxStreak) {

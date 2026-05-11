@@ -1,7 +1,6 @@
 function createUI(gameState, callbacks) {
     const elements = {
         startBtn: document.getElementById('start-btn'),
-        resetGameBtn: document.getElementById('reset-game-btn'),
         hitBtn: document.getElementById('hit-btn'),
         standBtn: document.getElementById('stand-btn'),
         doubleBtn: document.getElementById('double-btn'),
@@ -12,6 +11,7 @@ function createUI(gameState, callbacks) {
         quitBtn: document.getElementById('quit-btn'),
         confirmQuitBtn: document.getElementById('confirm-quit-btn'),
         cancelQuitBtn: document.getElementById('cancel-quit-btn'),
+        rechargeBtn: document.getElementById('recharge-btn'),
         betMinus: document.getElementById('bet-minus'),
         betPlus: document.getElementById('bet-plus'),
         betAmount: document.getElementById('bet-amount'),
@@ -24,8 +24,6 @@ function createUI(gameState, callbacks) {
         pushes: document.getElementById('pushes'),
         maxStreak: document.getElementById('max-streak'),
         totalProfit: document.getElementById('total-profit'),
-        debt: document.getElementById('debt'),
-        debtStat: document.getElementById('debt-stat'),
         pauseModal: document.getElementById('pause-modal'),
         quitModal: document.getElementById('quit-modal'),
         statusMessage: document.getElementById('status-message')
@@ -48,13 +46,6 @@ function createUI(gameState, callbacks) {
         elements.maxStreak.textContent = stats.maxStreak;
         elements.totalProfit.textContent = stats.totalProfit;
         
-        if (gameState.debt > 0) {
-            elements.debt.textContent = gameState.debt;
-            elements.debtStat.classList.add('visible');
-        } else {
-            elements.debtStat.classList.remove('visible');
-        }
-        
         const profitEl = elements.totalProfit;
         if (stats.totalProfit > 0) {
             profitEl.textContent = '+' + stats.totalProfit;
@@ -70,35 +61,19 @@ function createUI(gameState, callbacks) {
         const state = gameState.state;
         const canDouble = gameState.playerHand.cards.length === 2 && 
                          gameState.chips >= gameState.bet;
-        const totalAvailable = gameState.chips + (gameState.maxDebt - gameState.debt);
-        const canPlay = totalAvailable > 0;
-        const hasDebt = gameState.debt > 0;
 
-        elements.startBtn.classList.toggle('hidden', state !== 'idle' || !canPlay);
-        elements.resetGameBtn.classList.toggle('hidden', state !== 'idle' || canPlay);
+        elements.startBtn.classList.toggle('hidden', state !== 'idle');
         elements.hitBtn.classList.toggle('hidden', state !== 'player_turn');
         elements.standBtn.classList.toggle('hidden', state !== 'player_turn');
         elements.doubleBtn.classList.toggle('hidden', state !== 'player_turn' || !canDouble);
         elements.newGameBtn.classList.toggle('hidden', state !== 'settlement');
 
-        elements.betMinus.disabled = state !== 'idle' || !canPlay;
-        elements.betPlus.disabled = state !== 'idle' || !canPlay;
-        elements.betAmount.disabled = state !== 'idle' || !canPlay;
+        elements.betMinus.disabled = state !== 'idle';
+        elements.betPlus.disabled = state !== 'idle';
+        elements.betAmount.disabled = state !== 'idle';
         elements.presetBtns.forEach(btn => {
-            btn.disabled = state !== 'idle' || !canPlay;
+            btn.disabled = state !== 'idle';
         });
-        
-        if (canPlay && state === 'idle') {
-            elements.betAmount.max = totalAvailable;
-            const currentBet = parseInt(elements.betAmount.value) || 100;
-            if (currentBet > totalAvailable) {
-                elements.betAmount.value = Math.min(100, totalAvailable);
-            }
-        }
-        
-        if (!canPlay && state === 'idle') {
-            elements.betAmount.value = 100;
-        }
     }
 
     function showStatusMessage(message, duration = 2000) {
@@ -137,12 +112,6 @@ function createUI(gameState, callbacks) {
             const betAmount = parseInt(elements.betAmount.value) || 100;
             if (callbacks.onStart) {
                 callbacks.onStart(betAmount);
-            }
-        });
-
-        elements.resetGameBtn.addEventListener('click', () => {
-            if (callbacks.onResetGame) {
-                callbacks.onResetGame();
             }
         });
 
