@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>大家来砍树</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="top-bar">
+                <div id="score-display">
+                    <span class="label">得分</span>
+                    <span id="current-score">0</span>
+                </div>
+                <div id="wood-display">
+                    <span class="label">木材</span>
+                    <span id="wood-count">0</span>
+                </div>
+                <button id="pause-btn" class="icon-btn">⏸</button>
+            </div>
+            
+            <div id="powerup-bar" class="hidden">
+                <div id="powerup-slots"></div>
+            </div>
+        </div>
+        
+        <div id="start-screen" class="menu-screen">
+            <div class="menu-content">
+                <h1>🪓 大家来砍树 🌲</h1>
+                <div class="stats">
+                    <p>最高纪录: <span id="high-score">0</span></p>
+                    <p>连胜: <span id="streak">0</span></p>
+                </div>
+                <div class="difficulty-select">
+                    <label>选择难度:</label>
+                    <select id="difficulty">
+                        <option value="beginner">🌱 新手</option>
+                        <option value="skilled">🌿 熟练</option>
+                        <option value="expert">🌳 高手</option>
+                        <option value="crazy">🔥 疯狂</option>
+                    </select>
+                </div>
+                <div class="buttons">
+                    <button id="start-btn" class="primary-btn">开始游戏</button>
+                    <button id="shop-btn" class="secondary-btn">商店</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="shop-screen" class="menu-screen hidden">
+            <div class="menu-content">
+                <h2>🏪 商店</h2>
+                <p class="balance">金币: <span id="gold-count">0</span> | 木材: <span id="wood-balance">0</span></p>
+                
+                <div class="shop-section">
+                    <h3>💰 木材兑换金币 (1木材=2金币)</h3>
+                    <div id="convert-section" style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+                        <select id="convert-amount" style="padding:8px;font-size:14px;border:2px solid #4a7c23;border-radius:8px;">
+                            <option value="10">10木材</option>
+                            <option value="25">25木材</option>
+                            <option value="50">50木材</option>
+                            <option value="100">100木材</option>
+                        </select>
+                        <button id="convert-btn" class="primary-btn" style="padding:8px 15px;font-size:14px;">兑换</button>
+                    </div>
+                </div>
+                
+                <div class="shop-section">
+                    <h3>🪓 斧头</h3>
+                    <div id="axe-shop" class="shop-grid"></div>
+                </div>
+                
+                <div class="shop-section">
+                    <h3>🌲 树木皮肤</h3>
+                    <div id="tree-shop" class="shop-grid"></div>
+                </div>
+                
+                <div class="shop-section">
+                    <h3>🎁 道具</h3>
+                    <div id="powerup-shop" class="shop-grid"></div>
+                </div>
+                
+                <button id="back-btn" class="secondary-btn">返回</button>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="menu-screen hidden">
+            <div class="menu-content">
+                <h2>⏸ 游戏暂停</h2>
+                <div class="buttons">
+                    <button id="resume-btn" class="primary-btn">继续游戏</button>
+                    <button id="restart-btn" class="secondary-btn">重新开始</button>
+                    <button id="quit-btn" class="danger-btn">退出</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="game-over-screen" class="menu-screen hidden">
+            <div class="menu-content">
+                <h2>💀 游戏结束</h2>
+                <div class="result">
+                    <p>本局得分: <span id="final-score">0</span></p>
+                    <p>获得木材: <span id="final-wood">0</span></p>
+                    <p>最高纪录: <span id="game-over-high-score">0</span></p>
+                </div>
+                <div class="buttons">
+                    <button id="retry-btn" class="primary-btn">再来一局</button>
+                    <button id="home-btn" class="secondary-btn">返回主页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(180deg, #87CEEB 0%, #90EE90 100%);
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#ui-layer > * {
+    pointer-events: auto;
+}
+
+#top-bar {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#top-bar > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#top-bar .label {
+    color: #aaa;
+    font-size: 14px;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+#powerup-bar {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+}
+
+#powerup-slots {
+    display: flex;
+    gap: 10px;
+}
+
+.powerup-slot {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    position: relative;
+}
+
+.powerup-slot.active {
+    background: rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.powerup-slot .timer {
+    position: absolute;
+    bottom: 2px;
+    font-size: 10px;
+    color: white;
+}
+
+.menu-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.menu-content {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.menu-content h1 {
+    font-size: 32px;
+    margin-bottom: 20px;
+    color: #2d5016;
+}
+
+.menu-content h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #2d5016;
+}
+
+.menu-content h3 {
+    font-size: 18px;
+    margin: 20px 0 10px;
+    color: #4a7c23;
+    text-align: left;
+}
+
+.stats {
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: #333;
+}
+
+.stats p {
+    margin: 5px 0;
+}
+
+.difficulty-select {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.difficulty-select label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: #333;
+}
+
+.difficulty-select select {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #4a7c23;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.primary-btn, .secondary-btn, .danger-btn {
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.primary-btn:hover, .secondary-btn:hover, .danger-btn:hover {
+    transform: scale(1.02);
+}
+
+.primary-btn:active, .secondary-btn:active, .danger-btn:active {
+    transform: scale(0.98);
+}
+
+.primary-btn {
+    background: linear-gradient(180deg, #4a7c23 0%, #2d5016 100%);
+    color: white;
+}
+
+.secondary-btn {
+    background: linear-gradient(180deg, #f0f0f0 0%, #d0d0d0 100%);
+    color: #333;
+    border: 2px solid #ccc;
+}
+
+.danger-btn {
+    background: linear-gradient(180deg, #dc3545 0%, #a71d2a 100%);
+    color: white;
+}
+
+.balance {
+    font-size: 20px;
+    font-weight: bold;
+    color: #8B4513;
+    margin-bottom: 20px;
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.shop-item {
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.shop-item:hover {
+    border-color: #4a7c23;
+    transform: scale(1.02);
+}
+
+.shop-item.owned {
+    border-color: #4a7c23;
+    background: #e8f5e8;
+}
+
+.shop-item.equipped {
+    border-color: #FFD700;
+    background: #fff9e6;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.shop-item .icon {
+    font-size: 36px;
+    margin-bottom: 5px;
+}
+
+.shop-item .name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.shop-item .price {
+    font-size: 14px;
+    color: #8B4513;
+}
+
+.shop-item .status {
+    font-size: 12px;
+    color: #4a7c23;
+}
+
+.result {
+    margin: 20px 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.result p {
+    margin: 10px 0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 600px) {
+    .menu-content {
+        padding: 20px;
+    }
+    
+    .menu-content h1 {
+        font-size: 24px;
+    }
+    
+    .menu-content h2 {
+        font-size: 20px;
+    }
+    
+    .shop-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.5s;
+}
+
+@keyframes vibrate {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(2px, -2px); }
+    50% { transform: translate(-2px, 2px); }
+    75% { transform: translate(2px, 2px); }
+}
+
+.vibrate {
+    animation: vibrate 0.1s infinite;
+}
