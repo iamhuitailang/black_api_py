@@ -25,6 +25,10 @@ const App = (function() {
             historyList: document.getElementById('historyList'),
             closeHistoryBtn: document.getElementById('closeHistoryBtn'),
             clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+            imageModal: document.getElementById('imageModal'),
+            shareImage: document.getElementById('shareImage'),
+            closeImageBtn: document.getElementById('closeImageBtn'),
+            downloadImageBtn: document.getElementById('downloadImageBtn'),
             themeBtns: document.querySelectorAll('.theme-btn'),
             exampleBtns: document.querySelectorAll('.example-btn')
         };
@@ -44,6 +48,8 @@ const App = (function() {
         updateThemeUI();
     }
 
+    let currentImageDataUrl = null;
+
     function bindEvents() {
         elements.translateBtn.addEventListener('click', handleTranslate);
         elements.randomBtn.addEventListener('click', handleRandomQuote);
@@ -54,6 +60,9 @@ const App = (function() {
         elements.speakBtn.addEventListener('click', handleSpeak);
         elements.copyBtn.addEventListener('click', handleCopy);
         elements.shareBtn.addEventListener('click', handleShare);
+        
+        elements.closeImageBtn.addEventListener('click', closeImageModal);
+        elements.downloadImageBtn.addEventListener('click', downloadCurrentImage);
         
         elements.themeBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -76,9 +85,16 @@ const App = (function() {
             }
         });
         
+        elements.imageModal.addEventListener('click', (e) => {
+            if (e.target === elements.imageModal) {
+                closeImageModal();
+            }
+        });
+        
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeHistoryModal();
+                closeImageModal();
             }
         });
         
@@ -203,21 +219,44 @@ const App = (function() {
         showToast('正在生成分享图片...', 'info');
         
         try {
-            const result = await Translator.share(text, originalText, currentTheme);
-            if (result) {
-                if (result.type === 'native') {
-                    showToast('分享成功，Yo ho ho!', 'success');
-                } else if (result.type === 'download') {
-                    showToast('图片已下载，可以手动分享!', 'success');
-                } else if (result.type === 'copied') {
-                    showToast('已复制到剪贴板，可以手动分享!', 'success');
-                }
-            }
+            currentImageDataUrl = await Translator.generateShareImage(text, originalText, currentTheme);
+            elements.shareImage.src = currentImageDataUrl;
+            openImageModal();
+            showToast('图片生成成功！', 'success');
         } catch (error) {
-            if (error.name !== 'AbortError') {
-                showToast('分享失败，shiver me timbers!', 'error');
-                console.error('Share error:', error);
-            }
+            showToast('分享失败，shiver me timbers!', 'error');
+            console.error('Share error:', error);
+        }
+    }
+
+    function openImageModal() {
+        elements.imageModal.classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+        elements.imageModal.classList.add('hidden');
+    }
+
+    function downloadCurrentImage() {
+        if (!currentImageDataUrl) {
+            showToast('没有图片可以下载，matey!', 'warning');
+            return;
+        }
+        
+        try {
+            const link = document.createElement('a');
+            link.download = 'pirate-translation.png';
+            link.href = currentImageDataUrl;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
+            showToast('图片已下载，Yo ho ho!', 'success');
+        } catch (error) {
+            console.error('Download error:', error);
+            showToast('下载失败，shiver me timbers!', 'error');
         }
     }
 

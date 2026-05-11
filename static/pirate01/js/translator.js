@@ -395,16 +395,40 @@ const Translator = (function() {
         return lines.slice(0, 5);
     }
 
-    function dataURLtoBlob(dataUrl) {
-        const arr = dataUrl.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
+    function dataURLToBlob(dataURL) {
+        const parts = dataURL.split(';base64,');
+        const contentType = parts[0].split(':')[1];
+        const raw = window.atob(parts[1]);
+        const rawLength = raw.length;
+        const uInt8Array = new Uint8Array(rawLength);
+        
+        for (let i = 0; i < rawLength; ++i) {
+            uInt8Array[i] = raw.charCodeAt(i);
         }
-        return new Blob([u8arr], { type: mime });
+        
+        return new Blob([uInt8Array], { type: contentType });
+    }
+
+    function downloadImage(dataUrl, filename) {
+        return new Promise((resolve, reject) => {
+            try {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                
+                setTimeout(() => {
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        resolve(true);
+                    }, 100);
+                }, 50);
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 
     async function share(text, originalText, theme) {
@@ -412,19 +436,9 @@ const Translator = (function() {
         
         try {
             const imageDataUrl = await generateShareImage(text, originalText, theme);
-            console.log('Image data URL length:', imageDataUrl.length);
+            console.log('Image generated, starting download...');
             
-            let blob;
-            try {
-                blob = dataURLtoBlob(imageDataUrl);
-            } catch (e) {
-                console.log('dataURLtoBlob failed, trying fetch:', e);
-                const response = await fetch(imageDataUrl);
-                blob = await response.blob();
-            }
-            
-            console.log('Blob created:', blob.size, 'bytes, type:', blob.type);
-            
+            const blob = dataURLToBlob(imageDataUrl);
             const file = new File([blob], 'pirate-translation.png', { type: 'image/png' });
             console.log('File created:', file.name, file.size, 'bytes');
 
@@ -437,60 +451,36 @@ const Translator = (function() {
                     };
 
                     if (navigator.canShare(shareData)) {
-                        console.log('Using native share API with file');
+                        console.log('Using native share API');
                         await navigator.share(shareData);
                         return { shared: true, type: 'native' };
                     }
                 } catch (shareError) {
-                    console.log('Native share with file failed, trying without:', shareError);
-                }
-                
-                try {
-                    const shareDataNoFile = {
-                        title: '🏴‍☠️ 海盗语翻译器',
-                        text: text
-                    };
-                    if (navigator.canShare(shareDataNoFile)) {
-                        console.log('Using native share API without file');
-                        await navigator.share(shareDataNoFile);
+                    if (shareError.name !== 'AbortError') {
+                        console.log('Native share failed, falling back to download:', shareError);
+                    } else {
+                        throw shareError;
                     }
-                } catch (shareError2) {
-                    console.log('Native share without file also failed:', shareError2);
                 }
             }
 
-            console.log('Downloading image via object URL');
-            
-            const objectUrl = URL.createObjectURL(blob);
-            console.log('Object URL created:', objectUrl);
-            
-            const link = document.createElement('a');
-            link.download = 'pirate-translation.png';
-            link.href = objectUrl;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            
-            setTimeout(() => {
-                link.click();
-                console.log('Link clicked, download initiated');
-                
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(objectUrl);
-                    console.log('Cleanup complete');
-                }, 100);
-            }, 50);
+            console.log('Downloading image directly');
+            await downloadImage(imageDataUrl, 'pirate-translation.png');
+            console.log('Download initiated');
 
             return { shared: true, type: 'download' };
         } catch (error) {
             console.error('Share error:', error);
             
-            try {
-                await copyToClipboard(text);
-                return { shared: true, type: 'copied' };
-            } catch (copyError) {
-                throw error;
+            if (error.name !== 'AbortError') {
+                try {
+                    await copyToClipboard(text);
+                    return { shared: true, type: 'copied' };
+                } catch (copyError) {
+                    throw error;
+                }
             }
+            throw error;
         }
     }
 
