@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台球 · 精准一击</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="logo">
+                <span class="logo-icon">🎱</span>
+                <span class="logo-text">精准一击</span>
+            </div>
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">关卡</span>
+                    <span class="stat-value" id="level-display">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">分数</span>
+                    <span class="stat-value" id="score-display">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">连击</span>
+                    <span class="stat-value" id="combo-display">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">难度</span>
+                    <span class="stat-value" id="difficulty-display">🟢 简单</span>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button class="btn btn-icon" id="pause-btn" title="暂停">⏸️</button>
+                <button class="btn btn-icon" id="restart-btn" title="重新开始">🔄</button>
+                <button class="btn btn-icon" id="difficulty-btn" title="切换难度">🎯</button>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div class="canvas-wrapper">
+                <canvas id="game-canvas"></canvas>
+            </div>
+        </main>
+
+        <footer class="game-footer">
+            <div class="game-tip" id="game-tip">
+                拖动鼠标/手指瞄准，释放击球！
+            </div>
+        </footer>
+    </div>
+
+    <div class="overlay" id="start-overlay">
+        <div class="overlay-content">
+            <div class="overlay-icon">🎱</div>
+            <h1 class="overlay-title">台球 · 精准一击</h1>
+            <p class="overlay-subtitle">控制球杆，精准击球，完成清台挑战！</p>
+            <div class="overlay-rules">
+                <p><strong>🎮 操作说明：</strong></p>
+                <p>• 开球时可拖动母球自由摆放</p>
+                <p>• 按住并拖动鼠标/手指瞄准方向</p>
+                <p>• 拖动距离决定击球力度</p>
+                <p>• 释放鼠标/手指击球</p>
+            </div>
+            <button class="btn btn-primary btn-large" id="start-btn">开始游戏</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="pause-overlay">
+        <div class="overlay-content">
+            <div class="overlay-icon">⏸️</div>
+            <h2 class="overlay-title">游戏暂停</h2>
+            <div class="overlay-menu">
+                <button class="btn btn-primary btn-large" id="resume-btn">继续游戏</button>
+                <button class="btn btn-secondary btn-large" id="pause-restart-btn">重新开始</button>
+                <button class="btn btn-danger btn-large" id="pause-exit-btn">退出游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="win-overlay">
+        <div class="overlay-content">
+            <div class="overlay-icon">🏆</div>
+            <h2 class="overlay-title">恭喜过关！</h2>
+            <div class="win-stats">
+                <p>关卡 <strong id="win-level">1</strong> 完成</p>
+                <p>得分 <strong id="win-score">0</strong></p>
+                <p>清台奖励 <strong>+50</strong></p>
+            </div>
+            <button class="btn btn-primary btn-large" id="next-level-btn">下一关</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="difficulty-overlay">
+        <div class="overlay-content">
+            <div class="overlay-icon">🎯</div>
+            <h2 class="overlay-title">选择难度</h2>
+            <div class="difficulty-list">
+                <button class="btn btn-difficulty" data-difficulty="easy">
+                    <span class="diff-icon">🟢</span>
+                    <span class="diff-name">简单</span>
+                    <span class="diff-desc">6个目标球，大球袋</span>
+                </button>
+                <button class="btn btn-difficulty" data-difficulty="medium">
+                    <span class="diff-icon">🟡</span>
+                    <span class="diff-name">中等</span>
+                    <span class="diff-desc">10个目标球，正常球袋</span>
+                </button>
+                <button class="btn btn-difficulty" data-difficulty="hard">
+                    <span class="diff-icon">🔴</span>
+                    <span class="diff-name">困难</span>
+                    <span class="diff-desc">15个目标球，小球袋</span>
+                </button>
+            </div>
+            <button class="btn btn-secondary" id="difficulty-close-btn">返回</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
