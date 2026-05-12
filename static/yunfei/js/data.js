@@ -1204,6 +1204,23 @@ const RegionData = {
             { id: 'northwest', name: '西北区', provinces: ['610000', '620000', '630000', '640000', '650000'], multiplier: 1.5 },
             { id: 'northeast', name: '东北区', provinces: ['210000', '220000', '230000'], multiplier: 1.3 }
         ];
+    },
+
+    getZoneMultiplier(senderProvinceCode, receiverProvinceCode, senderCityCode, receiverCityCode) {
+        if (senderCityCode === receiverCityCode) {
+            return 0.6;
+        }
+        if (senderProvinceCode === receiverProvinceCode) {
+            return 0.8;
+        }
+        
+        const zones = this.getZones();
+        for (let zone of zones) {
+            if (zone.provinces.includes(receiverProvinceCode)) {
+                return zone.multiplier;
+            }
+        }
+        return 1.2;
     }
 };
 
