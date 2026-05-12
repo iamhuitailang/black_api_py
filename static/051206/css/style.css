@@ -1,0 +1,129 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Press Start 2P', monospace, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#game-container {
+    position: relative;
+    background: #000;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+#game-ui {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: #000;
+    color: #fff;
+    padding: 15px 20px;
+    font-size: 14px;
+    border-bottom: 2px solid #333;
+}
+
+.ui-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.ui-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.ui-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+}
+
+#game-canvas {
+    display: block;
+    background: #5c94fc;
+    width: 800px;
+    height: 480px;
+}
+
+#game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#game-overlay.hidden {
+    display: none;
+}
+
+#overlay-content {
+    text-align: center;
+    color: #fff;
+    padding: 40px;
+}
+
+#overlay-title {
+    font-size: 32px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-shadow: 3px 3px 0 #000;
+}
+
+#overlay-message {
+    font-size: 16px;
+    margin-bottom: 30px;
+    color: #ccc;
+}
+
+#overlay-button {
+    padding: 15px 40px;
+    font-size: 16px;
+    font-family: inherit;
+    background: #e52521;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.3s;
+}
+
+#overlay-button:hover {
+    background: #ff3b36;
+}
+
+#overlay-button:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 800px) {
+    #game-ui {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .ui-item {
+        min-width: 80px;
+    }
+}

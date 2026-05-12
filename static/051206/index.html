@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级玛丽 - Super Mario</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Press Start 2P', monospace, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #game-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        #game-ui {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #000;
+            color: #fff;
+            padding: 15px 20px;
+            font-size: 14px;
+            border-bottom: 2px solid #333;
+        }
+
+        .ui-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .ui-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .ui-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #game-canvas {
+            display: block;
+            background: #5c94fc;
+            width: 800px;
+            height: 480px;
+        }
+
+        #game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #game-overlay.hidden {
+            display: none;
+        }
+
+        #overlay-content {
+            text-align: center;
+            color: #fff;
+            padding: 40px;
+        }
+
+        #overlay-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            text-shadow: 3px 3px 0 #000;
+        }
+
+        #overlay-message {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+
+        #overlay-button {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-family: inherit;
+            background: #e52521;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: background 0.3s;
+        }
+
+        #overlay-button:hover {
+            background: #ff3b36;
+        }
+
+        #overlay-button:active {
+            transform: scale(0.98);
+        }
+
+        @media (max-width: 800px) {
+            #game-ui {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .ui-item {
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-ui">
+            <div class="ui-item">
+                <span class="ui-label">分数</span>
+                <span id="score" class="ui-value">000000</span>
+            </div>
+            <div class="ui-item">
+                <span class="ui-label">金币</span>
+                <span id="coins" class="ui-value">00</span>
+            </div>
+            <div class="ui-item">
+                <span class="ui-label">世界</span>
+                <span id="world" class="ui-value">1-1</span>
+            </div>
+            <div class="ui-item">
+                <span class="ui-label">时间</span>
+                <span id="time" class="ui-value">300</span>
+            </div>
+            <div class="ui-item">
+                <span class="ui-label">生命</span>
+                <span id="lives" class="ui-value">3</span>
+            </div>
+        </div>
+        <canvas id="game-canvas" width="800" height="480"></canvas>
+        <div id="game-overlay" class="hidden">
+            <div id="overlay-content">
+                <h2 id="overlay-title"></h2>
+                <p id="overlay-message"></p>
+                <button id="overlay-button">继续</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置常量 ====================
+        const TILE_SIZE = 32;
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 480;
+        const GRAVITY = 0.5;
+        const GAME_TIME = 300;
+
+        const COLORS = {
+            sky: '#5c94fc',
+            ground: '#c84c0c',
+            groundTop: '#e09050',
+            brick: '#c84c0c',
+            question: '#fc9838',
+            questionUsed: '#804000',
+            mario: '#e52521',
+            marioSkin: '#ffa07a',
+            goomba: '#8b4513',
+            coin: '#ffd700'
+        };
+
+        // ==================== 输入管理 ====================
+        const inputManager = {
+            keys: {},
+            init() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                        e.preventDefault();
+                    }
+                });
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+            },
+            isLeft() {
+                return this.keys['ArrowLeft'] || this.keys['KeyA'];
+            },
+            isRight() {
+                return this.keys['ArrowRight'] || this.keys['KeyD'];
+            },
+            isJump() {
+                return this.keys['Space'] || this.keys['ArrowUp'] || this.keys['KeyW'];
+            }
+        };
+
+        // ==================== 游戏主类 ====================
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.score = 0;
+                this.coins = 0;
+                this.lives = 3;
+                this.time = GAME_TIME;
+                this.timeTimer = 0;
+                this.cameraX = 0;
+                
+                this.isRunning = false;
+                this.isPaused = false;
+                this.gameOver = false;
+                this.levelComplete = false;
+                
+                this.blocks = [];
+                this.enemies = [];
+                this.coinsList = [];
+                
+                this.player = {
+                    x: 80,
+                    y: 14 * TILE_SIZE - 32,
+                    vx: 0,
+                    vy: 0,
+                    width: 28,
+                    height: 32,
+                    onGround: false,
+                    facingRight: true,
+                    isJumping: false,
+                    isInvincible: false,
+                    invincibleTimer: 0
+                };
+                
+                this.loadGameState();
+                this.init();
+            }
+            
+            init() {
+                inputManager.init();
+                this.generateLevel();
+                this.updateUI();
+                this.draw();
+                this.showOverlay('超级玛丽', '点击按钮或按空格键开始游戏', '开始游戏');
+                
+                document.getElementById('overlay-button').onclick = () => {
+                    this.hideOverlay();
+                    this.start();
+                };
+                
+                const startHandler = (e) => {
+                    if (e.code === 'Space' && this.isPaused) {
+                        e.preventDefault();
+                        this.hideOverlay();
+                        window.removeEventListener('keydown', startHandler);
+                        this.start();
+                    }
+                };
+                window.addEventListener('keydown', startHandler);
+            }
+            
+            generateLevel() {
+                this.blocks = [];
+                this.enemies = [];
+                this.coinsList = [];
+                
+                const groundY = 14 * TILE_SIZE;
+                
+                for (let x = 0; x < 30; x++) {
+                    this.blocks.push({
+                        x: x * TILE_SIZE,
+                        y: groundY,
+                        width: TILE_SIZE,
+                        height: TILE_SIZE,
+                        type: 'ground',
+                        solid: true
+                    });
+                }
+                
+                for (let i = 0; i < 6; i++) {
+                    const x = (i + 1) * TILE_SIZE;
+                    const y = 9 * TILE_SIZE;
+                    this.blocks.push({
+                        x: x,
+                        y: y,
+                        width: TILE_SIZE,
+                        height: TILE_SIZE,
+                        type: i === 1 ? 'question' : 'brick',
+                        solid: true,
+                        used: false
+                    });
+                }
+                
+                for (let i = 0; i < 3; i++) {
+                    this.coinsList.push({
+                        x: (12 + i * 2) * TILE_SIZE,
+                        y: 8 * TILE_SIZE,
+                        width: TILE_SIZE,
+                        height: TILE_SIZE,
+                        collected: false
+                    });
+                }
+                
+                this.enemies.push({
+                    x: 6 * TILE_SIZE,
+                    y: 13 * TILE_SIZE,
+                    width: TILE_SIZE,
+                    height: TILE_SIZE,
+                    vx: -1,
+                    vy: 0,
+                    type: 'goomba',
+                    dead: false
+                });
+            }
+            
+            start() {
+                this.isRunning = true;
+                this.gameLoop();
+            }
+            
+            gameLoop() {
+                if (!this.isRunning) return;
+                
+                if (!this.isPaused && !this.gameOver && !this.levelComplete) {
+                    this.update();
+                    this.draw();
+                }
+                
+                requestAnimationFrame(() => this.gameLoop());
+            }
+            
+            update() {
+                if (this.player.isInvincible) {
+                    this.player.invincibleTimer--;
+                    if (this.player.invincibleTimer <= 0) {
+                        this.player.isInvincible = false;
+                    }
+                }
+                
+                if (inputManager.isLeft()) {
+                    this.player.vx = -5;
+                    this.player.facingRight = false;
+                } else if (inputManager.isRight()) {
+                    this.player.vx = 5;
+                    this.player.facingRight = true;
+                } else {
+                    this.player.vx *= 0.8;
+                    if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
+                }
+                
+                if (inputManager.isJump() && this.player.onGround) {
+                    this.player.vy = -12;
+                    this.player.onGround = false;
+                }
+                
+                this.player.vy += GRAVITY;
+                if (this.player.vy > 15) this.player.vy = 15;
+                
+                this.player.x += this.player.vx;
+                this.handleHorizontalCollisions();
+                
+                this.player.y += this.player.vy;
+                this.player.onGround = false;
+                this.handleVerticalCollisions();
+                
+                if (this.player.x < 0) this.player.x = 0;
+                
+                this.cameraX = Math.max(0, this.player.x - CANVAS_WIDTH / 3);
+                this.cameraX = Math.min(this.cameraX, 30 * TILE_SIZE - CANVAS_WIDTH);
+                
+                this.updateEnemies();
+                this.checkCoinCollection();
+                
+                this.timeTimer++;
+                if (this.timeTimer >= 60) {
+                    this.timeTimer = 0;
+                    this.time--;
+                    if (this.time <= 0) {
+                        this.playerDeath();
+                    }
+                }
+                
+                if (this.player.y > CANVAS_HEIGHT + 100) {
+                    this.playerDeath();
+                }
+                
+                this.saveGameState();
+                this.updateUI();
+            }
+            
+            handleHorizontalCollisions() {
+                for (const block of this.blocks) {
+                    if (!block.solid) continue;
+                    if (this.checkRectCollision(this.player, block)) {
+                        if (this.player.vx > 0) {
+                            this.player.x = block.x - this.player.width;
+                        } else if (this.player.vx < 0) {
+                            this.player.x = block.x + block.width;
+                        }
+                        this.player.vx = 0;
+                    }
+                }
+            }
+            
+            handleVerticalCollisions() {
+                for (const block of this.blocks) {
+                    if (!block.solid) continue;
+                    if (this.checkRectCollision(this.player, block)) {
+                        if (this.player.vy > 0) {
+                            this.player.y = block.y - this.player.height;
+                            this.player.vy = 0;
+                            this.player.onGround = true;
+                        } else if (this.player.vy < 0) {
+                            this.player.y = block.y + block.height;
+                            this.player.vy = 0;
+                        }
+                    }
+                }
+            }
+            
+            updateEnemies() {
+                for (const enemy of this.enemies) {
+                    if (enemy.dead) continue;
+                    
+                    enemy.x += enemy.vx;
+                    enemy.vy += GRAVITY;
+                    enemy.y += enemy.vy;
+                    
+                    for (const block of this.blocks) {
+                        if (block.solid && this.checkRectCollision(enemy, block)) {
+                            if (enemy.vy > 0) {
+                                enemy.y = block.y - enemy.height;
+                                enemy.vy = 0;
+                            }
+                        }
+                    }
+                    
+                    if (enemy.x < 0 || enemy.x > 30 * TILE_SIZE) {
+                        enemy.vx = -enemy.vx;
+                    }
+                    
+                    if (this.checkRectCollision(this.player, enemy)) {
+                        if (this.player.vy > 0 && this.player.y + this.player.height - 10 < enemy.y + enemy.height / 2) {
+                            enemy.dead = true;
+                            this.player.vy = -8;
+                            this.score += 100;
+                        } else if (!this.player.isInvincible) {
+                            this.playerDeath();
+                        }
+                    }
+                }
+            }
+            
+            checkCoinCollection() {
+                for (const coin of this.coinsList) {
+                    if (!coin.collected && this.checkRectCollision(this.player, coin)) {
+                        coin.collected = true;
+                        this.score += 100;
+                        this.coins++;
+                    }
+                }
+            }
+            
+            checkRectCollision(rect1, rect2) {
+                return rect1.x < rect2.x + rect2.width &&
+                       rect1.x + rect1.width > rect2.x &&
+                       rect1.y < rect2.y + rect2.height &&
+                       rect1.y + rect1.height > rect2.y;
+            }
+            
+            playerDeath() {
+                this.lives--;
+                if (this.lives <= 0) {
+                    this.gameOver = true;
+                    this.clearGameState();
+                    this.showOverlay('游戏结束', `最终得分: ${this.score}`, '重新开始');
+                    document.getElementById('overlay-button').onclick = () => {
+                        location.reload();
+                    };
+                } else {
+                    this.player.x = 80;
+                    this.player.y = 14 * TILE_SIZE - 32;
+                    this.player.vx = 0;
+                    this.player.vy = 0;
+                    this.player.isInvincible = true;
+                    this.player.invincibleTimer = 120;
+                    this.cameraX = 0;
+                    this.time = GAME_TIME;
+                }
+            }
+            
+            updateUI() {
+                document.getElementById('score').textContent = this.score.toString().padStart(6, '0');
+                document.getElementById('coins').textContent = this.coins.toString().padStart(2, '0');
+                document.getElementById('time').textContent = this.time;
+                document.getElementById('lives').textContent = this.lives;
+            }
+            
+            showOverlay(title, message, buttonText) {
+                document.getElementById('overlay-title').textContent = title;
+                document.getElementById('overlay-message').textContent = message;
+                document.getElementById('overlay-button').textContent = buttonText;
+                document.getElementById('game-overlay').classList.remove('hidden');
+                this.isPaused = true;
+            }
+            
+            hideOverlay() {
+                document.getElementById('game-overlay').classList.add('hidden');
+                this.isPaused = false;
+            }
+            
+            draw() {
+                const ctx = this.ctx;
+                
+                ctx.fillStyle = COLORS.sky;
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                this.drawBackground();
+                
+                for (const block of this.blocks) {
+                    const drawX = block.x - this.cameraX;
+                    if (drawX > -TILE_SIZE && drawX < CANVAS_WIDTH + TILE_SIZE) {
+                        this.drawBlock(block, drawX);
+                    }
+                }
+                
+                for (const coin of this.coinsList) {
+                    if (!coin.collected) {
+                        const drawX = coin.x - this.cameraX;
+                        if (drawX > -TILE_SIZE && drawX < CANVAS_WIDTH + TILE_SIZE) {
+                            this.drawCoin(coin, drawX);
+                        }
+                    }
+                }
+                
+                for (const enemy of this.enemies) {
+                    if (!enemy.dead) {
+                        const drawX = enemy.x - this.cameraX;
+                        if (drawX > -TILE_SIZE && drawX < CANVAS_WIDTH + TILE_SIZE) {
+                            this.drawEnemy(enemy, drawX);
+                        }
+                    }
+                }
+                
+                const playerDrawX = this.player.x - this.cameraX;
+                this.drawPlayer(playerDrawX);
+            }
+            
+            drawBackground() {
+                const ctx = this.ctx;
+                
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 5; i++) {
+                    const x = (i * 200 - this.cameraX * 0.3) % (CANVAS_WIDTH + 200) - 100;
+                    const y = 50 + (i % 2) * 30;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 25, 0, Math.PI * 2);
+                    ctx.arc(x + 30, y - 10, 30, 0, Math.PI * 2);
+                    ctx.arc(x + 60, y, 25, 0, Math.PI * 2);
+                    ctx.arc(x + 30, y + 10, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            drawBlock(block, drawX) {
+                const ctx = this.ctx;
+                const y = block.y;
+                
+                if (block.type === 'ground') {
+                    ctx.fillStyle = COLORS.groundTop;
+                    ctx.fillRect(drawX, y, TILE_SIZE, 4);
+                    ctx.fillStyle = COLORS.ground;
+                    ctx.fillRect(drawX, y + 4, TILE_SIZE, TILE_SIZE - 4);
+                } else if (block.type === 'brick') {
+                    ctx.fillStyle = COLORS.brick;
+                    ctx.fillRect(drawX, y, TILE_SIZE, TILE_SIZE);
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(drawX + 1, y + 1, TILE_SIZE - 2, 1);
+                    ctx.fillRect(drawX + 1, y + 15, TILE_SIZE - 2, 1);
+                    ctx.fillRect(drawX + 15, y + 1, 1, TILE_SIZE - 2);
+                } else if (block.type === 'question') {
+                    const color = block.used ? COLORS.questionUsed : COLORS.question;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(drawX, y, TILE_SIZE, TILE_SIZE);
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(drawX + 1, y + 1, TILE_SIZE - 2, 1);
+                    ctx.fillRect(drawX + 1, y + TILE_SIZE - 2, TILE_SIZE - 2, 1);
+                    if (!block.used) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(drawX + 12, y + 6, 8, 4);
+                        ctx.fillRect(drawX + 14, y + 10, 4, 8);
+                        ctx.fillRect(drawX + 12, y + 18, 8, 4);
+                    }
+                }
+            }
+            
+            drawCoin(coin, drawX) {
+                const ctx = this.ctx;
+                const y = coin.y;
+                
+                ctx.fillStyle = COLORS.coin;
+                ctx.beginPath();
+                ctx.arc(drawX + 16, y + 16, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff59d';
+                ctx.beginPath();
+                ctx.arc(drawX + 16, y + 14, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            drawEnemy(enemy, drawX) {
+                const ctx = this.ctx;
+                const y = enemy.y;
+                
+                ctx.fillStyle = COLORS.goomba;
+                ctx.beginPath();
+                ctx.arc(drawX + 16, y + 16, 14, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(drawX + 10, y + 14, 5, 0, Math.PI * 2);
+                ctx.arc(drawX + 22, y + 14, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(drawX + 12, y + 14, 2, 0, Math.PI * 2);
+                ctx.arc(drawX + 20, y + 14, 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = COLORS.goomba;
+                ctx.fillRect(drawX + 4, y + 26, 8, 6);
+                ctx.fillRect(drawX + 20, y + 26, 8, 6);
+            }
+            
+            drawPlayer(drawX) {
+                const ctx = this.ctx;
+                const y = this.player.y;
+                
+                if (this.player.isInvincible && this.player.invincibleTimer % 8 < 4) {
+                    return;
+                }
+                
+                ctx.save();
+                
+                if (!this.player.facingRight) {
+                    ctx.translate(drawX + this.player.width, y);
+                    ctx.scale(-1, 1);
+                    ctx.translate(-drawX, -y);
+                }
+                
+                ctx.fillStyle = COLORS.mario;
+                ctx.fillRect(drawX + 2, y + 8, 12, 12);
+                
+                ctx.fillStyle = COLORS.marioSkin;
+                ctx.fillRect(drawX + 4, y, 10, 10);
+                
+                ctx.fillStyle = COLORS.mario;
+                ctx.fillRect(drawX + 2, y - 2, 12, 4);
+                
+                ctx.fillStyle = '#000';
+                ctx.fillRect(drawX + 10, y + 2, 2, 2);
+                
+                ctx.fillStyle = '#4a2800';
+                ctx.fillRect(drawX + 6, y + 6, 6, 2);
+                
+                ctx.fillStyle = '#0000ff';
+                ctx.fillRect(drawX + 2, y + 18, 5, 10);
+                ctx.fillRect(drawX + 9, y + 18, 5, 10);
+                
+                ctx.fillStyle = '#8b4513';
+                ctx.fillRect(drawX, y + 26, 7, 4);
+                ctx.fillRect(drawX + 9, y + 26, 7, 4);
+                
+                ctx.restore();
+            }
+            
+            saveGameState() {
+                const state = {
+                    score: this.score,
+                    coins: this.coins,
+                    lives: this.lives,
+                    time: this.time,
+                    playerX: this.player.x,
+                    playerY: this.player.y,
+                    coinsList: this.coinsList.map(c => ({ x: c.x, y: c.y, collected: c.collected })),
+                    enemies: this.enemies.map(e => ({ x: e.x, y: e.y, vx: e.vx, dead: e.dead }))
+                };
+                localStorage.setItem('marioGameState', JSON.stringify(state));
+            }
+            
+            loadGameState() {
+                const saved = localStorage.getItem('marioGameState');
+                if (saved) {
+                    try {
+                        const state = JSON.parse(saved);
+                        this.score = state.score || 0;
+                        this.coins = state.coins || 0;
+                        this.lives = state.lives || 3;
+                        this.time = state.time || GAME_TIME;
+                        this.player.x = state.playerX || 80;
+                        this.player.y = state.playerY || (14 * TILE_SIZE - 32);
+                        
+                        if (state.coinsList) {
+                            this.coinsList = state.coinsList.map(c => ({
+                                x: c.x,
+                                y: c.y,
+                                width: TILE_SIZE,
+                                height: TILE_SIZE,
+                                collected: c.collected
+                            }));
+                        }
+                        
+                        if (state.enemies) {
+                            this.enemies = state.enemies.map(e => ({
+                                x: e.x,
+                                y: e.y,
+                                vx: e.vx,
+                                vy: 0,
+                                width: TILE_SIZE,
+                                height: TILE_SIZE,
+                                type: 'goomba',
+                                dead: e.dead
+                            }));
+                        }
+                    } catch (e) {
+                        console.error('加载游戏状态失败:', e);
+                    }
+                }
+            }
+            
+            clearGameState() {
+                localStorage.removeItem('marioGameState');
+            }
+        }
+
+        window.onload = function() {
+            new Game();
+        };
+    </script>
+</body>
+</html>

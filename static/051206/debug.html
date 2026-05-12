@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 3px solid #ff0000;
+            background: #5c94fc;
+        }
+        #log {
+            background: #000;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #222;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; background: #330000; }
+        .info { color: #ffff00; }
+        .step { color: #00ffff; font-weight: bold; }
+        h1 { color: #fff; }
+        h2 { color: #aaa; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>🎮 超级玛丽 - 调试模式</h1>
+    <h2>这个页面会逐步加载游戏并显示每一步的状态</h2>
+    <canvas id="game-canvas" width="800" height="480"></canvas>
+    <div id="log"></div>
+
+    <script>
+        // 不使用模块，直接内联所有代码进行调试
+        const TILE_SIZE = 32;
+        const COLORS = {
+            sky: '#5c94fc',
+            ground: '#c84c0c',
+            groundTop: '#e09050',
+            mario: '#e52521'
+        };
+
+        const logDiv = document.getElementById('log');
+        let stepCount = 0;
+
+        function log(msg, type = 'info') {
+            stepCount++;
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + type;
+            div.innerHTML = `<span class="step">[步骤${stepCount}]</span> ${msg}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type}] ${msg}`);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function runDebugTests() {
+            log('开始游戏初始化...', 'info');
+            await sleep(500);
+
+            try {
+                // 步骤1: 获取canvas
+                log('获取Canvas元素...', 'info');
+                const canvas = document.getElementById('game-canvas');
+                if (!canvas) {
+                    log('❌ Canvas元素未找到！', 'error');
+                    return;
+                }
+                log('✅ Canvas元素获取成功', 'success');
+                await sleep(300);
+
+                // 步骤2: 获取context
+                log('获取2D绘图上下文...', 'info');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    log('❌ 无法获取2D绘图上下文！', 'error');
+                    return;
+                }
+                log('✅ 2D绘图上下文获取成功', 'success');
+                await sleep(300);
+
+                // 步骤3: 绘制背景
+                log('绘制天空背景...', 'info');
+                ctx.fillStyle = COLORS.sky;
+                ctx.fillRect(0, 0, 800, 480);
+                log('✅ 背景绘制完成', 'success');
+                await sleep(300);
+
+                // 步骤4: 绘制地面
+                log('绘制地面...', 'info');
+                const groundY = 14 * TILE_SIZE;
+                ctx.fillStyle = COLORS.groundTop;
+                ctx.fillRect(0, groundY, 800, 4);
+                ctx.fillStyle = COLORS.ground;
+                ctx.fillRect(0, groundY + 4, 800, TILE_SIZE - 4);
+                log('✅ 地面绘制完成', 'success');
+                await sleep(300);
+
+                // 步骤5: 绘制砖块
+                log('绘制砖块...', 'info');
+                for (let i = 0; i < 6; i++) {
+                    const x = (i + 1) * TILE_SIZE;
+                    const y = 9 * TILE_SIZE;
+                    const isQuestion = i === 1;
+                    
+                    ctx.fillStyle = isQuestion ? '#fc9838' : '#c84c0c';
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, 1);
+                    ctx.fillRect(x + 1, y + 15, TILE_SIZE - 2, 1);
+                    ctx.fillRect(x + 15, y + 1, 1, TILE_SIZE - 2);
+                    
+                    if (isQuestion) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 12, y + 6, 8, 4);
+                        ctx.fillRect(x + 14, y + 10, 4, 8);
+                        ctx.fillRect(x + 12, y + 18, 8, 4);
+                    }
+                }
+                log('✅ 砖块绘制完成', 'success');
+                await sleep(300);
+
+                // 步骤6: 绘制马里奥
+                log('绘制马里奥...', 'info');
+                const marioX = 80;
+                const marioY = 14 * TILE_SIZE - 32;
+                
+                ctx.fillStyle = COLORS.mario;
+                ctx.fillRect(marioX + 2, marioY + 8, 12, 12);
+                
+                ctx.fillStyle = '#ffa07a';
+                ctx.fillRect(marioX + 4, marioY, 10, 10);
+                
+                ctx.fillStyle = COLORS.mario;
+                ctx.fillRect(marioX + 2, marioY - 2, 12, 4);
+                
+                ctx.fillStyle = '#000';
+                ctx.fillRect(marioX + 10, marioY + 2, 2, 2);
+                
+                ctx.fillStyle = '#4a2800';
+                ctx.fillRect(marioX + 6, marioY + 6, 6, 2);
+                
+                ctx.fillStyle = '#0000ff';
+                ctx.fillRect(marioX + 2, marioY + 18, 5, 10);
+                ctx.fillRect(marioX + 9, marioY + 18, 5, 10);
+                
+                ctx.fillStyle = '#8b4513';
+                ctx.fillRect(marioX, marioY + 26, 7, 4);
+                ctx.fillRect(marioX + 9, marioY + 26, 7, 4);
+                
+                log('✅ 马里奥绘制完成', 'success');
+                await sleep(300);
+
+                // 步骤7: 绘制敌人
+                log('绘制敌人 (Goomba)...', 'info');
+                const enemyX = 6 * TILE_SIZE;
+                const enemyY = 13 * TILE_SIZE;
+                
+                ctx.fillStyle = '#8b4513';
+                ctx.beginPath();
+                ctx.arc(enemyX + 16, enemyY + 16, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(enemyX + 10, enemyY + 14, 5, 0, Math.PI * 2);
+                ctx.arc(enemyX + 22, enemyY + 14, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(enemyX + 12, enemyY + 14, 2, 0, Math.PI * 2);
+                ctx.arc(enemyX + 20, enemyY + 14, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#8b4513';
+                ctx.fillRect(enemyX + 4, enemyY + 26, 8, 6);
+                ctx.fillRect(enemyX + 20, enemyY + 26, 8, 6);
+                
+                log('✅ 敌人绘制完成', 'success');
+                await sleep(300);
+
+                // 步骤8: 绘制金币
+                log('绘制金币...', 'info');
+                const coinX = 4 * TILE_SIZE;
+                const coinY = 8 * TILE_SIZE;
+                
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(coinX + 16, coinY + 16, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#fff59d';
+                ctx.beginPath();
+                ctx.arc(coinX + 16, coinY + 14, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                log('✅ 金币绘制完成', 'success');
+                await sleep(300);
+
+                log('🎉 所有绘制测试通过！画面应该正常显示了！', 'success');
+                log('', 'info');
+                log('你应该能看到：', 'info');
+                log('- 蓝色天空背景', 'info');
+                log('- 棕色地面', 'info');
+                log('- 5个普通砖块和1个问号块', 'info');
+                log('- 红色的小马里奥站在地面上', 'info');
+                log('- 棕色的Goomba敌人', 'info');
+                log('- 空中漂浮的金色金币', 'info');
+                log('', 'success');
+                log('如果这个页面能正常显示，说明Canvas绘制没有问题。');
+                log('问题可能出在index.html的模块加载或游戏逻辑中。');
+
+            } catch (error) {
+                log(`❌ 发生错误: ${error.message}`, 'error');
+                log(`错误堆栈: ${error.stack}`, 'error');
+            }
+        }
+
+        window.onload = function() {
+            runDebugTests();
+        };
+    </script>
+</body>
+</html>

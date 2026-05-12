@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级玛丽测试</title>
+    <style>
+        body {
+            background: #333;
+            color: #fff;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #ff0000;
+            background: #5c94fc;
+        }
+        #log {
+            background: #000;
+            padding: 10px;
+            margin-top: 20px;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #00ff00;
+        }
+        .error {
+            color: #ff0000;
+        }
+        .info {
+            color: #ffff00;
+        }
+    </style>
+</head>
+<body>
+    <h1>超级玛丽 - 测试页面</h1>
+    <canvas id="game-canvas" width="800" height="480"></canvas>
+    <div id="log"></div>
+
+    <script type="module">
+        import { TILE_SIZE, COLORS } from './js/config.js';
+        
+        const logDiv = document.getElementById('log');
+        function log(msg, type = 'info') {
+            const span = document.createElement('div');
+            span.className = type;
+            span.textContent = msg;
+            logDiv.appendChild(span);
+            console.log(msg);
+        }
+
+        log('=== 开始游戏初始化测试 ===', 'info');
+
+        try {
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            log('✓ Canvas 和 Context 获取成功', 'success');
+
+            ctx.fillStyle = COLORS.sky;
+            ctx.fillRect(0, 0, 800, 480);
+            log('✓ 背景绘制成功', 'success');
+
+            ctx.fillStyle = '#e09050';
+            ctx.fillRect(0, 14 * TILE_SIZE, 800, 4);
+            ctx.fillStyle = '#c84c0c';
+            ctx.fillRect(0, 14 * TILE_SIZE + 4, 800, TILE_SIZE - 4);
+            log('✓ 地面绘制成功', 'success');
+
+            for (let i = 0; i < 6; i++) {
+                const x = (i + 1) * TILE_SIZE;
+                const y = 9 * TILE_SIZE;
+                const color = i === 1 ? '#fc9838' : '#c84c0c';
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, 1);
+                ctx.fillRect(x + 1, y + 15, TILE_SIZE - 2, 1);
+                ctx.fillRect(x + 15, y + 1, 1, TILE_SIZE - 2);
+                
+                if (i === 1) {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(x + 12, y + 6, 8, 4);
+                    ctx.fillRect(x + 14, y + 10, 4, 8);
+                    ctx.fillRect(x + 12, y + 18, 8, 4);
+                }
+            }
+            log('✓ 砖块和问号块绘制成功', 'success');
+
+            const marioX = 80;
+            const marioY = 14 * TILE_SIZE - 32;
+            
+            ctx.fillStyle = '#e52521';
+            ctx.fillRect(marioX + 2, marioY + 8, 12, 12);
+            
+            ctx.fillStyle = '#ffa07a';
+            ctx.fillRect(marioX + 4, marioY, 10, 10);
+            
+            ctx.fillStyle = '#e52521';
+            ctx.fillRect(marioX + 2, marioY - 2, 12, 4);
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(marioX + 10, marioY + 2, 2, 2);
+            
+            ctx.fillStyle = '#4a2800';
+            ctx.fillRect(marioX + 6, marioY + 6, 6, 2);
+            
+            ctx.fillStyle = '#0000ff';
+            ctx.fillRect(marioX + 2, marioY + 18, 5, 10);
+            ctx.fillRect(marioX + 9, marioY + 18, 5, 10);
+            
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(marioX, marioY + 26, 7, 4);
+            ctx.fillRect(marioX + 9, marioY + 26, 7, 4);
+            log('✓ 马里奥绘制成功', 'success');
+
+            ctx.fillStyle = '#8b4513';
+            ctx.beginPath();
+            ctx.arc(6 * TILE_SIZE + 16, 13 * TILE_SIZE + 16, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(6 * TILE_SIZE + 10, 13 * TILE_SIZE + 14, 5, 0, Math.PI * 2);
+            ctx.arc(6 * TILE_SIZE + 22, 13 * TILE_SIZE + 14, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(6 * TILE_SIZE + 12, 13 * TILE_SIZE + 14, 2, 0, Math.PI * 2);
+            ctx.arc(6 * TILE_SIZE + 20, 13 * TILE_SIZE + 14, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(6 * TILE_SIZE + 4, 13 * TILE_SIZE + 26, 8, 6);
+            ctx.fillRect(6 * TILE_SIZE + 20, 13 * TILE_SIZE + 26, 8, 6);
+            log('✓ 敌人 (Goomba) 绘制成功', 'success');
+
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(4 * TILE_SIZE + 16, 8 * TILE_SIZE + 16, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff59d';
+            ctx.beginPath();
+            ctx.arc(4 * TILE_SIZE + 16, 8 * TILE_SIZE + 14, 4, 0, Math.PI * 2);
+            ctx.fill();
+            log('✓ 金币绘制成功', 'success');
+
+            log('=== 所有测试通过！游戏画面应该能正常显示 ===', 'success');
+            log('', 'info');
+            log('你应该能看到：', 'info');
+            log('- 蓝色天空背景', 'info');
+            log('- 棕色地面', 'info');
+            log('- 5个普通砖块和1个问号块', 'info');
+            log('- 红色的小马里奥', 'info');
+            log('- 棕色的Goomba敌人', 'info');
+            log('- 金色的金币', 'info');
+
+        } catch (error) {
+            log('✗ 错误: ' + error.message, 'error');
+            log('堆栈: ' + error.stack, 'error');
+        }
+    </script>
+</body>
+</html>
