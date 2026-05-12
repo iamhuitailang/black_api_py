@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>索尼克游戏测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #28a745;
+        }
+        .error {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>游戏代码测试</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addTest(name, success, message = '') {
+            const div = document.createElement('div');
+            div.className = `test-result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${name}:</strong> ${success ? '通过' : '失败'} ${message}`;
+            results.appendChild(div);
+            return success;
+        }
+
+        function runTests() {
+            let allPassed = true;
+
+            // 测试 CONFIG
+            try {
+                if (typeof CONFIG !== 'undefined') {
+                    addTest('CONFIG 定义', true, `关卡数: ${CONFIG.LEVELS.length}`);
+                } else {
+                    addTest('CONFIG 定义', false, 'CONFIG 未定义');
+                    allPassed = false;
+                }
+            } catch(e) {
+                addTest('CONFIG 定义', false, e.message);
+                allPassed = false;
+            }
+
+            // 测试 GAME_STATE
+            try {
+                if (typeof GAME_STATE !== 'undefined') {
+                    addTest('GAME_STATE 定义', true);
+                } else {
+                    addTest('GAME_STATE 定义', false, 'GAME_STATE 未定义');
+                    allPassed = false;
+                }
+            } catch(e) {
+                addTest('GAME_STATE 定义', false, e.message);
+                allPassed = false;
+            }
+
+            // 测试 storage
+            try {
+                if (typeof storage !== 'undefined') {
+                    addTest('StorageManager 定义', true, `已解锁关卡: ${storage.currentData.unlockedLevels}`);
+                } else {
+                    addTest('StorageManager 定义', false, 'storage 未定义');
+                    allPassed = false;
+                }
+            } catch(e) {
+                addTest('StorageManager 定义', false, e.message);
+                allPassed = false;
+            }
+
+            // 测试类定义
+            const classesToTest = ['Platform', 'Level', 'Ring', 'PowerUp', 'Spring', 'Goal', 'Enemy', 'Physics', 'Player', 'InputManager', 'UIManager', 'Game'];
+            
+            classesToTest.forEach(className => {
+                try {
+                    if (typeof window[className] === 'function') {
+                        addTest(`${className} 类`, true);
+                    } else {
+                        addTest(`${className} 类`, false, `${className} 未定义或不是函数`);
+                        allPassed = false;
+                    }
+                } catch(e) {
+                    addTest(`${className} 类`, false, e.message);
+                    allPassed = false;
+                }
+            });
+
+            // 测试 input
+            try {
+                if (typeof input !== 'undefined') {
+                    addTest('InputManager 实例', true);
+                } else {
+                    addTest('InputManager 实例', false, 'input 未定义');
+                    allPassed = false;
+                }
+            } catch(e) {
+                addTest('InputManager 实例', false, e.message);
+                allPassed = false;
+            }
+
+            // 测试创建关卡
+            try {
+                const levelData = CONFIG.LEVELS[0];
+                const level = new Level(levelData);
+                addTest('Level 创建', true, `平台数: ${level.platforms.length}, 金环数: ${level.rings.length}, 敌人数: ${level.enemies.length}`);
+            } catch(e) {
+                addTest('Level 创建', false, e.message);
+                allPassed = false;
+            }
+
+            // 测试创建玩家
+            try {
+                const player = new Player(100, 450);
+                addTest('Player 创建', true, `位置: (${player.x}, ${player.y})`);
+            } catch(e) {
+                addTest('Player 创建', false, e.message);
+                allPassed = false;
+            }
+
+            // 测试 Goal
+            try {
+                const goal = new Goal(1000, 400);
+                addTest('Goal 创建', true);
+            } catch(e) {
+                addTest('Goal 创建', false, e.message);
+                allPassed = false;
+            }
+
+            if (allPassed) {
+                results.innerHTML += '<h2 style="color: #28a745; margin-top: 30px;">所有测试通过！游戏代码正常。</h2>';
+                results.innerHTML += '<p><a href="index.html" style="color: #00bfff; font-size: 18px;">点击进入游戏</a></p>';
+            } else {
+                results.innerHTML += '<h2 style="color: #dc3545; margin-top: 30px;">有测试失败，请检查代码。</h2>';
+            }
+        }
+
+        // 加载所有 JS 文件
+        const scripts = [
+            'js/config.js',
+            'js/storage.js',
+            'js/input.js',
+            'js/physics.js',
+            'js/items.js',
+            'js/enemies.js',
+            'js/level.js',
+            'js/player.js',
+            'js/ui.js',
+            'js/game.js'
+        ];
+
+        let loaded = 0;
+        scripts.forEach(src => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                loaded++;
+                if (loaded === scripts.length) {
+                    runTests();
+                }
+            };
+            script.onerror = () => {
+                addTest(`加载 ${src}`, false, '加载失败');
+            };
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>

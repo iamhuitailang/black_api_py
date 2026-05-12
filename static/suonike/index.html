@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>狡猾的索尼克 - Sonic the Hedgehog</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="title-screen" class="screen active">
+                <h1 class="game-title">SONIC</h1>
+                <p class="subtitle">狡猾的索尼克</p>
+                <div class="menu-buttons">
+                    <button id="start-btn" class="menu-btn">开始游戏</button>
+                    <button id="continue-btn" class="menu-btn">继续游戏</button>
+                </div>
+                <p class="controls-hint">方向键移动 / 空格跳跃 / Z键攻击</p>
+            </div>
+
+            <div id="mode-select" class="screen">
+                <h2>选择模式</h2>
+                <div class="mode-buttons">
+                    <button class="mode-btn" data-mode="story">
+                        <span class="mode-icon">📖</span>
+                        <span class="mode-name">故事模式</span>
+                        <span class="mode-desc">体验完整剧情</span>
+                    </button>
+                    <button class="mode-btn" data-mode="time">
+                        <span class="mode-icon">⏱️</span>
+                        <span class="mode-name">时间挑战</span>
+                        <span class="mode-desc">最快速度通关</span>
+                    </button>
+                    <button class="mode-btn" data-mode="boss">
+                        <span class="mode-icon">👾</span>
+                        <span class="mode-name">Boss Rush</span>
+                        <span class="mode-desc">连续挑战BOSS</span>
+                    </button>
+                </div>
+                <button id="back-to-title" class="back-btn">返回</button>
+            </div>
+
+            <div id="level-select" class="screen">
+                <h2>选择关卡</h2>
+                <div class="level-grid" id="level-grid"></div>
+                <button id="back-to-mode" class="back-btn">返回</button>
+            </div>
+
+            <div id="hud" class="hud hidden">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="hud-icon">🟡</span>
+                        <span id="rings-count">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">❤️</span>
+                        <span id="lives-count">3</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">💎</span>
+                        <span id="emeralds-count">0</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="hud-score">
+                        <span id="score-display">0</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="hud-item">
+                        <span class="hud-icon">⏱️</span>
+                        <span id="time-display">0:00</span>
+                    </div>
+                    <button id="pause-btn" class="pause-btn">⏸️</button>
+                </div>
+            </div>
+
+            <div id="pause-menu" class="screen popup hidden">
+                <h2>游戏暂停</h2>
+                <div class="pause-buttons">
+                    <button id="resume-btn" class="menu-btn">继续游戏</button>
+                    <button id="restart-btn" class="menu-btn">重新开始</button>
+                    <button id="quit-btn" class="menu-btn">退出关卡</button>
+                </div>
+            </div>
+
+            <div id="level-complete" class="screen popup hidden">
+                <h2>关卡完成!</h2>
+                <div class="results">
+                    <div class="result-grade" id="result-grade">A</div>
+                    <div class="result-stats">
+                        <div class="stat-row">
+                            <span>时间:</span>
+                            <span id="result-time">0:00</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>金环:</span>
+                            <span id="result-rings">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>分数:</span>
+                            <span id="result-score">0</span>
+                        </div>
+                    </div>
+                    <div class="result-bonuses" id="result-bonuses"></div>
+                </div>
+                <div class="complete-buttons">
+                    <button id="next-level-btn" class="menu-btn">下一关</button>
+                    <button id="retry-level-btn" class="menu-btn">重玩</button>
+                    <button id="exit-level-btn" class="menu-btn">退出</button>
+                </div>
+            </div>
+
+            <div id="game-over" class="screen popup hidden">
+                <h2>游戏结束</h2>
+                <div class="game-over-stats">
+                    <div class="stat-row">
+                        <span>最终分数:</span>
+                        <span id="final-score">0</span>
+                    </div>
+                </div>
+                <div class="gameover-buttons">
+                    <button id="retry-game-btn" class="menu-btn">重新开始</button>
+                    <button id="exit-game-btn" class="menu-btn">返回标题</button>
+                </div>
+            </div>
+
+            <div id="ending-screen" class="screen hidden">
+                <h1>恭喜通关!</h1>
+                <div class="ending-animation"></div>
+                <p class="ending-text">你成功击败了蛋头博士，拯救了世界！</p>
+                <div class="final-stats">
+                    <div class="stat-row">
+                        <span>总分数:</span>
+                        <span id="total-final-score">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>总时间:</span>
+                        <span id="total-final-time">0:00</span>
+                    </div>
+                </div>
+                <button id="ending-exit-btn" class="menu-btn">返回标题</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/enemies.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
