@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食堂订餐系统 - 管理端</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <h1>食堂订餐系统 - 管理端</h1>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="username" value="admin" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="password" value="admin123654" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="main-page" class="page">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2>订餐管理</h2>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" data-page="dashboard" class="nav-item active">
+                        <span class="icon">📊</span> 数据统计
+                    </a>
+                    <a href="#" data-page="dishes" class="nav-item">
+                        <span class="icon">🍽️</span> 菜品管理
+                    </a>
+                    <a href="#" data-page="categories" class="nav-item">
+                        <span class="icon">📁</span> 分类管理
+                    </a>
+                    <a href="#" data-page="daily-menu" class="nav-item">
+                        <span class="icon">📅</span> 每日菜单
+                    </a>
+                    <a href="#" data-page="orders" class="nav-item">
+                        <span class="icon">📋</span> 订单管理
+                    </a>
+                    <a href="#" data-page="verify" class="nav-item">
+                        <span class="icon">✅</span> 订单核销
+                    </a>
+                </nav>
+                <div class="sidebar-footer">
+                    <button id="logout-btn" class="btn btn-outline">退出登录</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div id="page-dashboard" class="content-page active">
+                    <div class="page-header">
+                        <h2>数据统计</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>今日订单</h3>
+                            <div class="stat-value" id="today-orders">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>今日营收</h3>
+                            <div class="stat-value" id="today-revenue">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>菜品总数</h3>
+                            <div class="stat-value" id="total-dishes">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>待核销</h3>
+                            <div class="stat-value" id="pending-orders">0</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>订单趋势</h3>
+                        <canvas id="order-chart"></canvas>
+                    </div>
+                </div>
+
+                <div id="page-dishes" class="content-page">
+                    <div class="page-header">
+                        <h2>菜品管理</h2>
+                        <button id="add-dish-btn" class="btn btn-primary">+ 添加菜品</button>
+                    </div>
+                    <div class="filter-bar">
+                        <select id="dish-category-filter">
+                            <option value="">全部分类</option>
+                        </select>
+                        <select id="dish-status-filter">
+                            <option value="">全部状态</option>
+                            <option value="1">上架</option>
+                            <option value="0">下架</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="dishes-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>图片</th>
+                                    <th>名称</th>
+                                    <th>分类</th>
+                                    <th>价格</th>
+                                    <th>库存</th>
+                                    <th>销量</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="page-categories" class="content-page">
+                    <div class="page-header">
+                        <h2>分类管理</h2>
+                        <button id="add-category-btn" class="btn btn-primary">+ 添加分类</button>
+                    </div>
+                    <div class="category-list" id="category-list"></div>
+                </div>
+
+                <div id="page-daily-menu" class="content-page">
+                    <div class="page-header">
+                        <h2>每日菜单</h2>
+                    </div>
+                    <div class="menu-config">
+                        <div class="config-item">
+                            <label>选择日期</label>
+                            <input type="date" id="menu-date">
+                        </div>
+                        <div class="config-item">
+                            <label>选择餐段</label>
+                            <select id="menu-meal-type"></select>
+                        </div>
+                        <button id="load-menu-btn" class="btn btn-secondary">加载菜单</button>
+                        <button id="publish-menu-btn" class="btn btn-primary">发布菜单</button>
+                    </div>
+                    <div class="dish-selection">
+                        <h3>选择菜品</h3>
+                        <div id="dish-checkboxes"></div>
+                    </div>
+                </div>
+
+                <div id="page-orders" class="content-page">
+                    <div class="page-header">
+                        <h2>订单管理</h2>
+                    </div>
+                    <div class="filter-bar">
+                        <select id="order-status-filter">
+                            <option value="">全部状态</option>
+                            <option value="pending">待取餐</option>
+                            <option value="completed">已完成</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                        <input type="date" id="order-date-filter">
+                    </div>
+                    <div class="table-container">
+                        <table id="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>订单号</th>
+                                    <th>用户</th>
+                                    <th>日期</th>
+                                    <th>餐段</th>
+                                    <th>金额</th>
+                                    <th>状态</th>
+                                    <th>取餐码</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="page-verify" class="content-page">
+                    <div class="page-header">
+                        <h2>订单核销</h2>
+                    </div>
+                    <div class="verify-container">
+                        <div class="verify-input">
+                            <label>输入取餐码</label>
+                            <input type="text" id="verify-qrcode" placeholder="请输入或扫描取餐码">
+                            <button id="verify-btn" class="btn btn-primary">核销</button>
+                        </div>
+                        <div id="verify-result"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal" id="dish-modal">
+            <div class="modal-header">
+                <h3 id="dish-modal-title">添加菜品</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="dish-form">
+                    <input type="hidden" id="dish-id">
+                    <div class="form-group">
+                        <label>菜品名称</label>
+                        <input type="text" id="dish-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>分类</label>
+                        <select id="dish-category" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>价格</label>
+                        <input type="number" id="dish-price" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>成本价</label>
+                        <input type="number" id="dish-cost" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>库存</label>
+                        <input type="number" id="dish-stock" value="999">
+                    </div>
+                    <div class="form-group">
+                        <label>图片URL</label>
+                        <input type="text" id="dish-image">
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <textarea id="dish-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="dish-sort" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="dish-status">
+                            <option value="1">上架</option>
+                            <option value="0">下架</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal" id="category-modal">
+            <div class="modal-header">
+                <h3 id="category-modal-title">添加分类</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="category-form">
+                    <input type="hidden" id="category-id">
+                    <div class="form-group">
+                        <label>分类名称</label>
+                        <input type="text" id="category-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>图标</label>
+                        <input type="text" id="category-icon" placeholder="例如: 🍚">
+                    </div>
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="category-sort" value="0">
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pages/dishes.js"></script>
+    <script src="js/pages/categories.js"></script>
+    <script src="js/pages/daily_menu.js"></script>
+    <script src="js/pages/orders.js"></script>
+    <script src="js/pages/verify.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+</body>
+</html>

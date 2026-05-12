@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.order import (
+    UserModel as OrderUserModel,
+    DishModel as OrderDishModel,
+    CategoryModel as OrderCategoryModel,
+    DailyMenuModel as OrderDailyMenuModel,
+    OrderModel as OrderOrderModel,
+    OrderDetailModel as OrderOrderDetailModel,
+    VerifyLogModel as OrderVerifyLogModel,
+    CancelLogModel as OrderCancelLogModel,
+    MealConfigModel as OrderMealConfigModel,
+    AdminTokenModel as OrderAdminTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,21 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    OrderUserModel.create_table()
+    OrderAdminTokenModel.create_table()
+    OrderCategoryModel.create_table()
+    OrderDishModel.create_table()
+    OrderMealConfigModel.create_table()
+    OrderDailyMenuModel.create_table()
+    OrderOrderModel.create_table()
+    OrderOrderDetailModel.create_table()
+    OrderVerifyLogModel.create_table()
+    OrderCancelLogModel.create_table()
+
+    OrderUserModel.init_default_admin()
+    OrderCategoryModel.init_default_categories()
+    OrderMealConfigModel.init_default_configs()
 
     migrate_database()
 
@@ -151,6 +178,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8018,
         reload=True
     )
