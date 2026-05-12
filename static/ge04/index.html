@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>割绳子 · 糖果大冒险</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <div class="title">
+                <h1>🍬 割绳子</h1>
+                <h2>糖果大冒险</h2>
+            </div>
+            <div class="candy-decoration"></div>
+            <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            <button id="levels-btn" class="btn btn-secondary">关卡选择</button>
+        </div>
+
+        <div id="levels-screen" class="screen hidden">
+            <h2>🎯 选择关卡</h2>
+            <div id="levels-grid" class="levels-grid"></div>
+            <button id="back-to-start" class="btn btn-secondary">返回</button>
+        </div>
+
+        <div id="game-screen" class="screen hidden">
+            <div class="game-header">
+                <span id="level-indicator">关卡 1</span>
+                <div class="stars-display">
+                    <span id="stars-collected">0</span>/<span id="stars-total">3</span> ⭐
+                </div>
+                <button id="pause-btn" class="btn-icon">⏸️</button>
+            </div>
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div id="pause-menu" class="menu hidden">
+            <div class="menu-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="win-menu" class="menu hidden">
+            <div class="menu-content">
+                <h2>🎉 恭喜过关！</h2>
+                <div class="win-stars">
+                    <span id="win-stars-display">⭐⭐⭐</span>
+                </div>
+                <button id="next-level-btn" class="btn btn-primary">下一关</button>
+                <button id="replay-btn" class="btn btn-secondary">重玩本关</button>
+                <button id="win-quit-btn" class="btn btn-danger">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="lose-menu" class="menu hidden">
+            <div class="menu-content">
+                <h2>😢 糖果掉了</h2>
+                <p>再试一次吧！</p>
+                <button id="retry-btn" class="btn btn-primary">重新尝试</button>
+                <button id="lose-quit-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/objects.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
