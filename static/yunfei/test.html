@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快递运费计算器 - 测试</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📦 快递运费计算器</h1>
+            <p>智能比价，一键估算多家快递运费</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="card">
+                    <h2>📝 寄件信息</h2>
+                    <div class="form-group">
+                        <label>寄件地址</label>
+                        <div class="address-selector" id="senderAddress">
+                            <select class="province-select" data-type="sender"></select>
+                            <select class="city-select" data-type="sender"></select>
+                            <select class="district-select" data-type="sender"></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>收件地址</label>
+                        <div class="address-selector" id="receiverAddress">
+                            <select class="province-select" data-type="receiver"></select>
+                            <select class="city-select" data-type="receiver"></select>
+                            <select class="district-select" data-type="receiver"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📦 包裹信息</h2>
+                    <div class="form-group">
+                        <label>包裹重量</label>
+                        <div class="weight-input">
+                            <input type="number" id="weight" step="0.01" min="0" placeholder="输入重量" value="5">
+                            <select id="weightUnit">
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>包裹尺寸 (可选，用于体积重计算)</label>
+                        <div class="dimension-input">
+                            <input type="number" id="length" step="0.1" min="0" placeholder="长" value="30">
+                            <span>×</span>
+                            <input type="number" id="width" step="0.1" min="0" placeholder="宽" value="20">
+                            <span>×</span>
+                            <input type="number" id="height" step="0.1" min="0" placeholder="高" value="15">
+                            <span class="unit">cm</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>计费方式</label>
+                        <select id="billingType">
+                            <option value="auto">自动判断</option>
+                            <option value="weight">按重量计费</option>
+                            <option value="volume">体积重计费</option>
+                            <option value="piece">按件计费</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="calculate-btn" id="calculateBtn">🚀 计算运费</button>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <h2>💰 运费比价结果</h2>
+                    <div class="result-container" id="resultContainer">
+                        <div class="empty-state">
+                            <span class="icon">📊</span>
+                            <p>填写信息后点击计算，查看多家快递比价</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🕐 最近查询记录</h2>
+                    <div class="history-list" id="historyList">
+                        <div class="empty-state">
+                            <span class="icon">📋</span>
+                            <p>暂无查询记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
