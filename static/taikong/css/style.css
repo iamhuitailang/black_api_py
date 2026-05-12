@@ -1,0 +1,266 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0d0d2d 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+}
+
+.game-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#gameCanvas {
+    border: 2px solid #00ffff;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3),
+                0 0 60px rgba(0, 255, 255, 0.1),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(to bottom, 
+        #000011 0%, 
+        #000022 30%, 
+        #000033 60%, 
+        #000022 100%);
+}
+
+.hud {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 30px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00ffff;
+    border-radius: 20px;
+    z-index: 10;
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+}
+
+.hud-item .label {
+    font-size: 12px;
+    color: #00ffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.hud-item .value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.overlay.active {
+    display: flex;
+}
+
+.menu {
+    background: linear-gradient(135deg, #1a1a3a 0%, #2a2a5a 100%);
+    border: 2px solid #00ffff;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.menu h1, .menu h2 {
+    color: #00ffff;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px #00ffff;
+}
+
+.menu h2 {
+    font-size: 2em;
+}
+
+.subtitle {
+    color: #888;
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+}
+
+.controls-info {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.controls-info p {
+    color: #aaa;
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.final-score, .final-level, .level-info {
+    color: #fff;
+    font-size: 1.2em;
+    margin: 15px 0;
+}
+
+.final-score span, .final-level span, .level-info span {
+    color: #00ff00;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 15px 30px;
+    margin: 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn.primary {
+    background: linear-gradient(135deg, #00ffff 0%, #0088ff 100%);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.btn.primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+}
+
+.btn.secondary {
+    background: linear-gradient(135deg, #444 0%, #666 100%);
+    color: #fff;
+}
+
+.btn.secondary:hover {
+    background: linear-gradient(135deg, #555 0%, #777 100%);
+    transform: scale(1.02);
+}
+
+.btn.danger {
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+    color: #fff;
+}
+
+.btn.danger:hover {
+    background: linear-gradient(135deg, #ff6666 0%, #ff0000 100%);
+    transform: scale(1.02);
+}
+
+.score-popup {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffff00;
+    text-shadow: 0 0 10px #ffff00;
+    animation: popupScore 1s ease-out forwards;
+}
+
+@keyframes popupScore {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-50px) scale(1.5);
+    }
+}
+
+@media (max-width: 768px) {
+    .hud {
+        gap: 15px;
+        padding: 8px 15px;
+    }
+    
+    .hud-item .label {
+        font-size: 10px;
+    }
+    
+    .hud-item .value {
+        font-size: 14px;
+    }
+    
+    .menu {
+        padding: 25px;
+    }
+    
+    .menu h1 {
+        font-size: 1.8em;
+    }
+    
+    .menu h2 {
+        font-size: 1.5em;
+    }
+    
+    .controls-info p {
+        font-size: 12px;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hud {
+        gap: 10px;
+        padding: 5px 10px;
+    }
+    
+    .hud-item .value {
+        font-size: 12px;
+    }
+    
+    .menu {
+        padding: 20px;
+    }
+    
+    .menu h1 {
+        font-size: 1.5em;
+    }
+}
