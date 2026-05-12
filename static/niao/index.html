@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>愤怒的小小鸟</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="main-menu" class="menu">
+                <h1>🐦 愤怒的小小鸟</h1>
+                <button id="startBtn" class="btn">开始游戏</button>
+                <button id="levelSelectBtn" class="btn">选择关卡</button>
+            </div>
+            
+            <div id="level-menu" class="menu hidden">
+                <h2>选择关卡</h2>
+                <div id="level-grid"></div>
+                <button id="backBtn" class="btn">返回</button>
+            </div>
+            
+            <div id="pause-menu" class="menu hidden">
+                <h2>游戏暂停</h2>
+                <button id="resumeBtn" class="btn">继续游戏</button>
+                <button id="restartBtn" class="btn">重新开始</button>
+                <button id="quitBtn" class="btn">退出游戏</button>
+            </div>
+            
+            <div id="level-complete" class="menu hidden">
+                <h2>🎉 关卡完成！</h2>
+                <div id="stars-display"></div>
+                <p>得分: <span id="final-score">0</span></p>
+                <button id="nextLevelBtn" class="btn">下一关</button>
+                <button id="retryBtn" class="btn">重玩</button>
+                <button id="menuBtn" class="btn">返回菜单</button>
+            </div>
+            
+            <div id="game-over" class="menu hidden">
+                <h2>💔 游戏失败</h2>
+                <p>猪猪还没被消灭！</p>
+                <button id="retryBtn2" class="btn">重新尝试</button>
+                <button id="menuBtn2" class="btn">返回菜单</button>
+            </div>
+        </div>
+        
+        <div id="hud" class="hidden">
+            <div class="hud-left">
+                <span>关卡: <span id="level-display">1</span></span>
+                <span>得分: <span id="score-display">0</span></span>
+            </div>
+            <div class="hud-right">
+                <span>小鸟: <span id="birds-display">0</span></span>
+                <button id="pauseBtn" class="btn-small">⏸️ 暂停</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/objects.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

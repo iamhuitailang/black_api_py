@@ -1,0 +1,214 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 1200px;
+    height: 700px;
+    background: linear-gradient(180deg, #87CEEB 0%, #90EE90 70%, #8B4513 70%, #8B4513 100%);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+    min-width: 300px;
+}
+
+.menu.hidden {
+    display: none;
+}
+
+.menu h1 {
+    font-size: 48px;
+    color: #FF6347;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.menu h2 {
+    font-size: 32px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.menu p {
+    font-size: 18px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 15px 30px;
+    margin: 10px 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #FF6347 0%, #FF4500 100%);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 99, 71, 0.4);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 14px;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+}
+
+#level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.level-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.level-btn:hover {
+    border-color: #FF6347;
+    background: #FFF5F5;
+}
+
+.level-btn.locked {
+    background: #eee;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.level-btn.completed {
+    background: #90EE90;
+    border-color: #4CAF50;
+}
+
+#stars-display {
+    font-size: 48px;
+    margin: 20px 0;
+}
+
+.star {
+    display: inline-block;
+    margin: 0 5px;
+}
+
+.star.filled {
+    color: #FFD700;
+    text-shadow: 0 0 10px #FFD700;
+}
+
+.star.empty {
+    color: #ddd;
+}
+
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+}
+
+#hud.hidden {
+    display: none;
+}
+
+.hud-left, .hud-right {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+#hud span {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#hud span span {
+    color: #FFD700;
+}
+
+@media (max-width: 1200px) {
+    #game-container {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+}
