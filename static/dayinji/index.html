@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小票打印机模拟器 🧾</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🧾 小票打印机模拟器</h1>
+            <div class="header-actions">
+                <button id="historyBtn" class="btn btn-secondary">📋 历史记录</button>
+                <button id="shareBtn" class="btn btn-secondary">🔗 分享</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <div class="section">
+                    <h2>🛒 商品管理</h2>
+                    <div class="form-group">
+                        <label>商品名称</label>
+                        <input type="text" id="itemName" placeholder="输入商品名称" maxlength="20">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>单价 (¥)</label>
+                            <input type="number" id="itemPrice" placeholder="0.00" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>数量</label>
+                            <input type="number" id="itemQty" placeholder="1" value="1" min="1">
+                        </div>
+                    </div>
+                    <button id="addItemBtn" class="btn btn-primary btn-lg">➕ 添加商品</button>
+                </div>
+
+                <div class="section">
+                    <h3>购物车</h3>
+                    <div id="cartList" class="cart-list"></div>
+                    <div class="cart-summary">
+                        <div class="summary-row">
+                            <span>小计:</span>
+                            <span id="subtotal">¥0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>税费 (%):</span>
+                            <input type="number" id="taxRate" value="0" min="0" max="100">
+                        </div>
+                        <div class="summary-row">
+                            <span>税费:</span>
+                            <span id="taxAmount">¥0.00</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>总计:</span>
+                            <span id="totalAmount">¥0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>收款:</span>
+                            <input type="number" id="cashReceived" placeholder="0.00" step="0.01" min="0">
+                        </div>
+                        <div class="summary-row">
+                            <span>找零:</span>
+                            <span id="changeAmount">¥0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>🏪 店铺信息</h2>
+                    <div class="form-group">
+                        <label>店名</label>
+                        <input type="text" id="shopName" placeholder="输入店名" maxlength="20">
+                    </div>
+                    <div class="form-group">
+                        <label>电话</label>
+                        <input type="text" id="shopPhone" placeholder="输入电话" maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label>地址</label>
+                        <input type="text" id="shopAddress" placeholder="输入地址" maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label>收银员</label>
+                        <input type="text" id="cashier" placeholder="输入收银员姓名" maxlength="10">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>🎨 小票主题</h2>
+                    <div class="theme-selector">
+                        <div class="theme-option active" data-theme="thermal">
+                            <div class="theme-preview thermal"></div>
+                            <span>复古热敏纸</span>
+                        </div>
+                        <div class="theme-option" data-theme="supermarket">
+                            <div class="theme-preview supermarket"></div>
+                            <span>超市蓝</span>
+                        </div>
+                        <div class="theme-option" data-theme="cafe">
+                            <div class="theme-preview cafe"></div>
+                            <span>咖啡店</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section action-buttons">
+                    <button id="printBtn" class="btn btn-success btn-lg">🖨️ 打印</button>
+                    <button id="downloadBtn" class="btn btn-info btn-lg">💾 保存图片</button>
+                    <button id="clearBtn" class="btn btn-danger btn-lg">🗑️ 清空</button>
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <h2>📄 小票预览</h2>
+                <div class="receipt-container">
+                    <canvas id="receiptCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 历史记录</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔗 分享</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="share-options">
+                    <button class="share-btn" data-share="copy">📋 复制链接</button>
+                    <button class="share-btn" data-share="download">💾 下载图片分享</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="printFrame" style="display: none;"></div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
