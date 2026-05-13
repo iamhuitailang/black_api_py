@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铲子骑士 - 科幻版</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="start-screen" class="screen active">
+                <h1>铲子骑士</h1>
+                <p class="subtitle">科幻版</p>
+                <button id="start-btn" class="btn-primary">开始游戏</button>
+                <div class="controls-info">
+                    <h3>操作说明</h3>
+                    <p>← → / A D：移动</p>
+                    <p>↓ / S：下蹲/下落</p>
+                    <p>↑ / W / 空格：跳跃</p>
+                    <p>J / K / E：攻击/挖掘</p>
+                    <p>空中↓ + 攻击：跳铲</p>
+                    <p>L / Q：使用魔法</p>
+                </div>
+            </div>
+            
+            <div id="pause-screen" class="screen">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn-secondary">退出游戏</button>
+            </div>
+            
+            <div id="gameover-screen" class="screen">
+                <h2>游戏结束</h2>
+                <p id="final-score">得分: 0</p>
+                <button id="retry-btn" class="btn-primary">重新挑战</button>
+                <button id="quit-gameover-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+            
+            <div id="victory-screen" class="screen">
+                <h2>关卡通关!</h2>
+                <p id="victory-score">得分: 0</p>
+                <p id="victory-bonus">奖励: 0</p>
+                <button id="next-level-btn" class="btn-primary">下一关</button>
+                <button id="quit-victory-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+        
+        <div id="hud" class="hud hidden">
+            <div class="hud-left">
+                <div class="health-bar">
+                    <span>生命</span>
+                    <div class="bar-container">
+                        <div id="health-fill" class="bar-fill health"></div>
+                    </div>
+                </div>
+                <div class="mana-bar">
+                    <span>魔法</span>
+                    <div class="bar-container">
+                        <div id="mana-fill" class="bar-fill mana"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="hud-center">
+                <div id="level-display">关卡 1</div>
+            </div>
+            <div class="hud-right">
+                <div id="score-display">得分: 0</div>
+                <button id="pause-btn" class="btn-small">暂停</button>
+            </div>
+        </div>
+        
+        <div id="mobile-controls" class="mobile-controls hidden">
+            <div class="dpad">
+                <button class="dpad-btn" id="btn-up">↑</button>
+                <button class="dpad-btn" id="btn-left">←</button>
+                <button class="dpad-btn" id="btn-down">↓</button>
+                <button class="dpad-btn" id="btn-right">→</button>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="btn-magic">魔法</button>
+                <button class="action-btn" id="btn-jump">跳跃</button>
+                <button class="action-btn" id="btn-attack">攻击</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/trap.js"></script>
+    <script src="js/magic.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
