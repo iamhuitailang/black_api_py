@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直升机救援</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="main-menu" class="menu overlay">
+            <div class="menu-content">
+                <h1>🚁 直升机救援</h1>
+                <p class="subtitle">驾驶救援直升机，拯救被困者！</p>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary" style="display: none;">继续游戏</button>
+                <div class="helicopter-select">
+                    <h3>选择直升机</h3>
+                    <div class="helicopter-options">
+                        <div class="helicopter-option selected" data-type="small">
+                            <div class="icon">🚁</div>
+                            <div class="name">小型救援机</div>
+                            <div class="stats">
+                                <span>速度: ⭐⭐⭐</span>
+                                <span>燃油: 60秒</span>
+                            </div>
+                        </div>
+                        <div class="helicopter-option locked" data-type="medium">
+                            <div class="icon">🚁</div>
+                            <div class="name">中型直升机</div>
+                            <div class="stats">
+                                <span>速度: ⭐⭐</span>
+                                <span>燃油: 90秒</span>
+                            </div>
+                            <div class="lock">🔒 第2关解锁</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-select">
+                    <h3>选择关卡</h3>
+                    <div class="level-options" id="level-options">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu overlay" style="display: none;">
+            <div class="menu-content">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over-menu" class="menu overlay" style="display: none;">
+            <div class="menu-content">
+                <h2 id="game-over-title">任务完成！</h2>
+                <div id="game-over-stats"></div>
+                <button id="next-level-btn" class="btn btn-primary" style="display: none;">下一关</button>
+                <button id="retry-btn" class="btn btn-secondary">重新挑战</button>
+                <button id="menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="hud" style="display: none;">
+            <div class="hud-top">
+                <div class="hud-item">
+                    <span class="label">关卡</span>
+                    <span class="value" id="level-display">1</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">分数</span>
+                    <span class="value" id="score-display">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">时间</span>
+                    <span class="value" id="time-display">60</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">燃油</span>
+                    <div class="fuel-bar">
+                        <div class="fuel-fill" id="fuel-fill"></div>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    <span class="label">获救</span>
+                    <span class="value"><span id="rescued-display">0</span>/<span id="total-display">0</span></span>
+                </div>
+            </div>
+            <div class="hud-controls">
+                <button id="pause-hud-btn" class="hud-btn">⏸️</button>
+            </div>
+        </div>
+
+        <div id="virtual-controls" style="display: none;">
+            <div class="joystick left-joystick">
+                <div class="joystick-base">
+                    <div class="joystick-handle" id="left-handle"></div>
+                </div>
+            </div>
+            <div class="joystick right-joystick">
+                <div class="joystick-base">
+                    <div class="joystick-handle" id="right-handle"></div>
+                </div>
+            </div>
+            <button id="rope-btn" class="action-btn">🪢 绳索</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/helicopter.js"></script>
+    <script src="js/rescueTarget.js"></script>
+    <script src="js/obstacles.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
