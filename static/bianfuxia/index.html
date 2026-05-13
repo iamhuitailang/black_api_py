@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蝙蝠侠 · 哥谭暗影</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="start-screen" class="screen active">
+                <div class="menu-box">
+                    <h1>蝙蝠侠 · 哥谭暗影</h1>
+                    <p class="subtitle">在哥谭市的暗夜中，成为传奇</p>
+                    <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                    <button id="continueBtn" class="btn btn-secondary" style="display: none;">继续游戏</button>
+                    <div class="controls-info">
+                        <p>🎮 操作说明：</p>
+                        <p>A/D - 移动 | W - 跳跃 | 鼠标点击 - 钩爪</p>
+                        <p>空格 - 滑翔 | J - 攻击 | ESC - 暂停</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="pause-screen" class="screen">
+                <div class="menu-box">
+                    <h2>游戏暂停</h2>
+                    <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                    <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+                    <button id="quitBtn" class="btn btn-danger">退出游戏</button>
+                </div>
+            </div>
+            
+            <div id="game-over-screen" class="screen">
+                <div class="menu-box">
+                    <h2>任务失败</h2>
+                    <p id="final-score"></p>
+                    <button id="retryBtn" class="btn btn-primary">重新挑战</button>
+                    <button id="menuBtn" class="btn btn-secondary">返回主菜单</button>
+                </div>
+            </div>
+            
+            <div id="victory-screen" class="screen">
+                <div class="menu-box">
+                    <h2>任务完成！</h2>
+                    <p id="victory-score"></p>
+                    <button id="nextLevelBtn" class="btn btn-primary">下一关</button>
+                    <button id="victoryMenuBtn" class="btn btn-secondary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="hud" style="display: none;">
+            <div class="hud-left">
+                <div class="health-bar">
+                    <span class="label">生命值</span>
+                    <div class="bar-container">
+                        <div id="healthFill" class="bar-fill"></div>
+                    </div>
+                </div>
+                <div class="combo-display" id="comboDisplay">
+                    <span class="combo-count" id="comboCount">0</span>
+                    <span class="combo-text">连击</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="level-info">
+                    <span>关卡: </span><span id="levelNum">1</span>
+                </div>
+                <div class="score-info">
+                    <span>分数: </span><span id="scoreNum">0</span>
+                </div>
+                <button id="pauseBtn" class="pause-btn">⏸ 暂停</button>
+            </div>
+            <div class="abilities">
+                <div class="ability" id="glideAbility" title="滑翔斗篷">
+                    <span class="icon">🦇</span>
+                    <span class="text">滑翔</span>
+                </div>
+                <div class="ability locked" id="batarangAbility" title="蝙蝠镖 (第3关解锁)">
+                    <span class="icon">🔒</span>
+                    <span class="text">蝙蝠镖</span>
+                </div>
+                <div class="ability locked" id="finisherAbility" title="终结技 (第4关解锁)">
+                    <span class="icon">🔒</span>
+                    <span class="text">终结技</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
