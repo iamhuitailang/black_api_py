@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小雷电 - 纵版射击游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <h1 class="game-title">小雷电</h1>
+            <p class="subtitle">太空战争</p>
+            <button id="start-btn" class="btn-primary">开始游戏</button>
+            <div class="controls-info">
+                <p>🎮 控制方式</p>
+                <p>PC: 鼠标跟随 / WASD / 方向键</p>
+                <p>移动端: 触摸滑动</p>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="screen hidden">
+            <h2>游戏暂停</h2>
+            <button id="resume-btn" class="btn-primary">继续游戏</button>
+            <button id="restart-btn" class="btn-secondary">重新开始</button>
+            <button id="quit-btn" class="btn-secondary">退出游戏</button>
+        </div>
+        
+        <div id="gameover-screen" class="screen hidden">
+            <h2>游戏结束</h2>
+            <p id="final-score">得分: 0</p>
+            <button id="retry-btn" class="btn-primary">再来一次</button>
+            <button id="home-btn" class="btn-secondary">返回主页</button>
+        </div>
+        
+        <div id="victory-screen" class="screen hidden">
+            <h2>🎉 通关成功！</h2>
+            <p id="victory-score">得分: 0</p>
+            <button id="victory-retry-btn" class="btn-primary">再玩一次</button>
+            <button id="victory-home-btn" class="btn-secondary">返回主页</button>
+        </div>
+        
+        <div id="hud" class="hud hidden">
+            <div class="hud-left">
+                <div class="score">得分: <span id="score">0</span></div>
+                <div class="level">关卡: <span id="level">1</span></div>
+                <div class="wave">波次: <span id="wave">1</span></div>
+            </div>
+            <div class="hud-right">
+                <div class="lives">生命: <span id="lives">❤️❤️❤️</span></div>
+                <button id="pause-btn" class="pause-btn">⏸️</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/storage.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/bullet.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/powerup.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/collision.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

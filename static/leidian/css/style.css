@@ -1,0 +1,250 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #0a0a1a;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(180deg, #0a0a2e 0%, #1a0a3e 50%, #0a1a2e 100%);
+}
+
+#gameCanvas {
+    background: linear-gradient(180deg, #05051a 0%, #0a0a3a 50%, #05152a 100%);
+    border: 2px solid #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+                inset 0 0 50px rgba(0, 255, 255, 0.1);
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(10, 10, 30, 0.95);
+    z-index: 100;
+}
+
+.screen.hidden {
+    display: none;
+}
+
+.game-title {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff,
+                 0 0 20px #00ffff,
+                 0 0 40px #00ffff;
+    margin-bottom: 0.5rem;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px #00ffff,
+                     0 0 20px #00ffff,
+                     0 0 40px #00ffff;
+    }
+    to {
+        text-shadow: 0 0 20px #00ffff,
+                     0 0 40px #00ffff,
+                     0 0 80px #00ffff;
+    }
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    color: #ff66ff;
+    text-shadow: 0 0 10px #ff66ff;
+    margin-bottom: 3rem;
+}
+
+h2 {
+    font-size: 2.5rem;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+    margin-bottom: 2rem;
+}
+
+.btn-primary {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #0a0a1a;
+    background: linear-gradient(135deg, #00ffff, #00ccff);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    margin: 0.5rem;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+}
+
+.btn-secondary {
+    padding: 0.8rem 2.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #00ffff;
+    background: transparent;
+    border: 2px solid #00ffff;
+    border-radius: 50px;
+    cursor: pointer;
+    margin: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(0, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.controls-info {
+    margin-top: 3rem;
+    text-align: center;
+    color: #aaaaff;
+}
+
+.controls-info p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.controls-info p:first-child {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ffff00;
+    margin-bottom: 1rem;
+}
+
+.hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.hud.hidden {
+    display: none;
+}
+
+.hud-left,
+.hud-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.hud > * {
+    pointer-events: auto;
+}
+
+.score,
+.level,
+.wave,
+.lives {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 0 0 5px #000000;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.3rem 0.8rem;
+    border-radius: 5px;
+}
+
+.score span { color: #ffff00; }
+.level span { color: #00ff00; }
+.wave span { color: #ff66ff; }
+.lives span { color: #ff4444; }
+
+.pause-btn {
+    padding: 0.5rem 1rem;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid #ffffff;
+    border-radius: 10px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pause-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+#final-score,
+#victory-score {
+    font-size: 1.5rem;
+    color: #ffff00;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 2.5rem;
+    }
+    
+    .subtitle {
+        font-size: 1.2rem;
+    }
+    
+    h2 {
+        font-size: 1.8rem;
+    }
+    
+    .btn-primary {
+        padding: 0.8rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .btn-secondary {
+        padding: 0.6rem 1.8rem;
+        font-size: 0.9rem;
+    }
+    
+    .score,
+    .level,
+    .wave,
+    .lives {
+        font-size: 0.9rem;
+        padding: 0.2rem 0.5rem;
+    }
+    
+    .controls-info {
+        margin-top: 2rem;
+    }
+    
+    .controls-info p {
+        font-size: 0.8rem;
+    }
+}
