@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报名管理 - 活动报名系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>活动管理后台</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">首页</a>
+                <a href="activity_list.html" class="nav-item">活动管理</a>
+                <a href="registration_list.html" class="nav-item active">报名管理</a>
+                <a href="checkin.html" class="nav-item">签到管理</a>
+            </nav>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>报名管理</h1>
+                <div class="user-info">
+                    <span id="userName">管理员</span>
+                    <button id="logoutBtn" class="logout-btn">退出登录</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>报名列表</h2>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="statusFilter">
+                        <option value="">全部状态</option>
+                        <option value="1">待审核</option>
+                        <option value="2">已通过</option>
+                        <option value="3">已拒绝</option>
+                        <option value="4">已取消</option>
+                    </select>
+                    <input type="text" id="keyword" placeholder="搜索姓名/手机号...">
+                    <button id="searchBtn">搜索</button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>报名编号</th>
+                                <th>姓名</th>
+                                <th>手机号</th>
+                                <th>活动</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registrationList">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pages/registration.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            RegistrationPage.init();
+        });
+    </script>
+</body>
+</html>

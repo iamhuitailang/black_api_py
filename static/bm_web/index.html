@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动报名 - 首页</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🎪 活动报名</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link active">活动列表</a>
+                <a href="my_registrations.html" class="nav-link">我的报名</a>
+                <a href="login.html" id="loginLink" class="nav-link nav-link-login">登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="filter-bar">
+            <div class="search-box">
+                <input type="text" id="keyword" placeholder="搜索活动...">
+                <button id="searchBtn" class="btn btn-primary">搜索</button>
+            </div>
+            <div class="filter-select">
+                <select id="statusFilter">
+                    <option value="">全部状态</option>
+                    <option value="1">报名中</option>
+                    <option value="2">进行中</option>
+                    <option value="3">已结束</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="activity-grid" id="activityGrid"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/pages/home.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = Storage.getUser();
+            const loginLink = document.getElementById('loginLink');
+            if (user) {
+                loginLink.textContent = '退出';
+                loginLink.href = '#';
+                loginLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    Storage.clear();
+                    Toast.success('退出成功');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                });
+            }
+            HomePage.init();
+        });
+    </script>
+</body>
+</html>

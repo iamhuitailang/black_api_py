@@ -65,10 +65,7 @@ class RouterRegistry:
             if action_part.endswith(suffix):
                 http_method = method_suffixes[suffix]
                 matched_suffix = suffix
-                if suffix != 'Post':
-                    action_path_suffix = suffix.lower()
-                else:
-                    action_path_suffix = ''
+                action_path_suffix = ''
                 action_part = action_part[:-len(suffix)]
                 break
         

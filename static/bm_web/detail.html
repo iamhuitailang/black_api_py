@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动详情</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🎪 活动报名</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">活动列表</a>
+                <a href="my_registrations.html" class="nav-link">我的报名</a>
+                <a href="login.html" id="loginLink" class="nav-link nav-link-login">登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="detail-page">
+            <div class="back-btn">
+                <a href="index.html" class="btn btn-secondary">← 返回列表</a>
+            </div>
+
+            <div class="activity-detail-card">
+                <div class="activity-detail-image">📅</div>
+                <div class="activity-detail-content">
+                    <h1 id="activityTitle" class="activity-detail-title"></h1>
+                    <p id="activityDescription" class="activity-detail-description"></p>
+
+                    <div class="activity-info-grid">
+                        <div class="info-item">
+                            <span class="info-label">📍 活动地点</span>
+                            <span class="info-value" id="activityLocation"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🕐 开始时间</span>
+                            <span class="info-value" id="activityStartTime"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🕐 结束时间</span>
+                            <span class="info-value" id="activityEndTime"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">📅 报名开始</span>
+                            <span class="info-value" id="activityRegistrationStart"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">📅 报名截止</span>
+                            <span class="info-value" id="activityRegistrationEnd"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">👥 名额</span>
+                            <span class="info-value" id="activityQuota"></span>
+                        </div>
+                    </div>
+
+                    <div class="registration-section">
+                        <h3>报名信息</h3>
+                        <form id="registrationForm" class="form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>姓名 *</label>
+                                    <input type="text" id="realName" required placeholder="请输入姓名">
+                                </div>
+                                <div class="form-group">
+                                    <label>手机号 *</label>
+                                    <input type="tel" id="phone" required placeholder="请输入手机号">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>邮箱</label>
+                                    <input type="email" id="email" placeholder="请输入邮箱（选填）">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>备注</label>
+                                <textarea id="remark" rows="3" placeholder="备注信息（选填）"></textarea>
+                            </div>
+                            <button type="submit" id="registerBtn" class="btn btn-primary btn-block">立即报名</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/pages/detail.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = Storage.getUser();
+            const loginLink = document.getElementById('loginLink');
+            if (user) {
+                loginLink.textContent = '退出';
+                loginLink.href = '#';
+                loginLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    Storage.clear();
+                    Toast.success('退出成功');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 500);
+                });
+            }
+            DetailPage.init();
+        });
+    </script>
+</body>
+</html>

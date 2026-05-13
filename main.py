@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.bm import (
+    UserModel as BmUserModel,
+    ActivityModel as BmActivityModel,
+    RegistrationModel as BmRegistrationModel,
+    CheckinLogModel as BmCheckinLogModel,
+    TagModel as BmTagModel,
+    ActivityTagModel as BmActivityTagModel,
+    FormFieldModel as BmFormFieldModel,
+    NotificationModel as BmNotificationModel,
+    ConfigModel as BmConfigModel,
+    AdminTokenModel as BmAdminTokenModel,
+    UserTokenModel as BmUserTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +85,20 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    BmUserModel.create_table()
+    BmAdminTokenModel.create_table()
+    BmUserTokenModel.create_table()
+    BmActivityModel.create_table()
+    BmRegistrationModel.create_table()
+    BmCheckinLogModel.create_table()
+    BmTagModel.create_table()
+    BmActivityTagModel.create_table()
+    BmFormFieldModel.create_table()
+    BmNotificationModel.create_table()
+    BmConfigModel.create_table()
+
+    BmUserModel.init_default_admin()
 
     migrate_database()
 

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的报名</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🎪 活动报名</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">活动列表</a>
+                <a href="my_registrations.html" class="nav-link active">我的报名</a>
+                <a href="login.html" id="loginLink" class="nav-link nav-link-login">登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>我的报名记录</h2>
+            <div class="filter-select">
+                <select id="statusFilter">
+                    <option value="">全部状态</option>
+                    <option value="1">待审核</option>
+                    <option value="2">已通过</option>
+                    <option value="3">已拒绝</option>
+                    <option value="4">已取消</option>
+                </select>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>报名编号</th>
+                    <th>活动名称</th>
+                    <th>活动地点</th>
+                    <th>报名时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="registrationList"></tbody>
+        </table>
+
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <div class="modal" id="ticketModal">
+        <div class="modal-content ticket-card">
+            <span class="close-btn">&times;</span>
+            <div class="ticket-header">
+                <h3>🎫 电子票</h3>
+                <p class="ticket-subtitle">活动入场凭证</p>
+            </div>
+            <div class="ticket-body">
+                <div class="ticket-info">
+                    <span class="ticket-label">报名编号</span>
+                    <span class="ticket-value" id="ticketNo"></span>
+                </div>
+                <div class="ticket-qrcode">
+                    <div class="qrcode-display" id="ticketQrcode"></div>
+                    <p class="qrcode-tip">签到码</p>
+                </div>
+            </div>
+            <div class="ticket-footer">
+                <p>请出示此凭证给工作人员扫描签到</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/pages/my_registrations.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = Storage.getUser();
+            const loginLink = document.getElementById('loginLink');
+            if (user) {
+                loginLink.textContent = '退出';
+                loginLink.href = '#';
+                loginLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    Storage.clear();
+                    Toast.success('退出成功');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 500);
+                });
+            }
+            MyRegistrationsPage.init();
+        });
+    </script>
+</body>
+</html>

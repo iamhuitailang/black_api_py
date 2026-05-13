@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动详情 - 活动报名管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>🎪 活动报名</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item">仪表盘</a>
+                <a href="activity_list.html" class="nav-item active">活动管理</a>
+                <a href="registration_list.html" class="nav-item">报名管理</a>
+                <a href="checkin.html" class="nav-item">签到管理</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-title">活动详情</div>
+                <div class="header-user">
+                    <span id="userInfo">管理员</span>
+                    <button class="btn btn-small" onclick="logout()">退出</button>
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="page-header">
+                    <button class="btn btn-secondary" onclick="goBack()">← 返回列表</button>
+                </div>
+
+                <div class="card" id="activityDetail">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pages/activity_detail.js"></script>
+</body>
+</html>
