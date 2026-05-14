@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>火柴人格斗 - Stickman Fight</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="main-menu" class="menu-screen">
+                <h1>🔥 火柴人格斗 🔥</h1>
+                <div class="menu-buttons">
+                    <button id="startBtn" class="menu-btn">开始游戏</button>
+                    <button id="continueBtn" class="menu-btn" style="display: none;">继续游戏</button>
+                    <button id="selectCharBtn" class="menu-btn">选择角色</button>
+                </div>
+                <div class="controls-info">
+                    <p><strong>PC 控制:</strong></p>
+                    <p>A/D 或 ←/→ - 移动 | W/↑ - 跳跃</p>
+                    <p>J - 轻攻击 | K - 重攻击 | L/Shift - 防御</p>
+                    <p>U/空格 - 必杀技</p>
+                </div>
+            </div>
+
+            <div id="character-select" class="menu-screen" style="display: none;">
+                <h2>选择角色</h2>
+                <div id="character-list" class="character-grid"></div>
+                <button id="backToMenuBtn" class="menu-btn">返回</button>
+            </div>
+
+            <div id="game-hud" style="display: none;">
+                <div class="health-bar player-health">
+                    <div class="health-label">玩家</div>
+                    <div class="health-bar-container">
+                        <div class="health-fill" id="playerHealth"></div>
+                    </div>
+                    <div class="energy-bar-container">
+                        <div class="energy-fill" id="playerEnergy"></div>
+                    </div>
+                </div>
+                
+                <div class="health-bar enemy-health">
+                    <div class="health-label">敌人</div>
+                    <div class="health-bar-container">
+                        <div class="health-fill" id="enemyHealth"></div>
+                    </div>
+                    <div class="energy-bar-container">
+                        <div class="energy-fill" id="enemyEnergy"></div>
+                    </div>
+                </div>
+                
+                <div id="levelInfo">第 1 关</div>
+                <button id="pauseBtn" class="pause-btn">⏸</button>
+            </div>
+
+            <div id="pause-menu" class="menu-screen overlay" style="display: none;">
+                <h2>游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="resumeBtn" class="menu-btn">继续游戏</button>
+                    <button id="restartBtn" class="menu-btn">重新开始</button>
+                    <button id="quitBtn" class="menu-btn">退出游戏</button>
+                </div>
+            </div>
+
+            <div id="victory-screen" class="menu-screen overlay" style="display: none;">
+                <h2>🎉 胜利! 🎉</h2>
+                <p id="victoryMessage">恭喜通过第 1 关!</p>
+                <div class="menu-buttons">
+                    <button id="nextLevelBtn" class="menu-btn">下一关</button>
+                    <button id="victoryQuitBtn" class="menu-btn">返回主菜单</button>
+                </div>
+            </div>
+
+            <div id="defeat-screen" class="menu-screen overlay" style="display: none;">
+                <h2>💀 失败 💀</h2>
+                <p>再接再厉!</p>
+                <div class="menu-buttons">
+                    <button id="retryBtn" class="menu-btn">重试</button>
+                    <button id="defeatQuitBtn" class="menu-btn">返回主菜单</button>
+                </div>
+            </div>
+
+            <div id="game-complete" class="menu-screen overlay" style="display: none;">
+                <h2>🏆 通关! 🏆</h2>
+                <p>恭喜你击败了所有敌人!</p>
+                <div class="menu-buttons">
+                    <button id="playAgainBtn" class="menu-btn">再玩一次</button>
+                </div>
+            </div>
+
+            <div id="mobile-controls" class="mobile-controls" style="display: none;">
+                <div class="joystick-area">
+                    <div class="joystick-base" id="joystickBase">
+                        <div class="joystick-handle" id="joystickHandle"></div>
+                    </div>
+                </div>
+                <div class="buttons-area">
+                    <button class="action-btn" id="btnD">D</button>
+                    <div class="btn-row">
+                        <button class="action-btn" id="btnC">C</button>
+                        <button class="action-btn" id="btnA">A</button>
+                    </div>
+                    <div class="btn-row">
+                        <button class="action-btn" id="btnE">E</button>
+                        <button class="action-btn" id="btnB">B</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+    <script>
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+        });
+        console.log('HTML loaded, waiting for DOMContentLoaded...');
+    </script>
+</body>
+</html>
