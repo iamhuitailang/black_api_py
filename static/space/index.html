@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外太空 - 地球模型</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <p>正在加载太空场景...</p>
+    </div>
+
+    <canvas id="spaceCanvas"></canvas>
+
+    <div id="controlPanel" class="control-panel">
+        <div class="panel-header">
+            <h3>🌍 控制面板</h3>
+            <button id="togglePanel" class="toggle-btn">−</button>
+        </div>
+        
+        <div class="panel-content">
+            <div class="control-group">
+                <label>
+                    <span>旋转速度</span>
+                    <input type="range" id="rotationSpeed" min="0" max="100" value="50">
+                    <span id="rotationSpeedValue">0.5</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    <span>缩放比例</span>
+                    <input type="range" id="zoomLevel" min="30" max="200" value="100">
+                    <span id="zoomLevelValue">1.0x</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    <span>星星密度</span>
+                    <input type="range" id="starDensity" min="100" max="3000" value="2000">
+                    <span id="starDensityValue">2000</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    <span>云层密度</span>
+                    <input type="range" id="cloudDensity" min="0" max="100" value="50">
+                    <span id="cloudDensityValue">50%</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="autoRotate" checked>
+                    <span>自动旋转</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showAtmosphere" checked>
+                    <span>显示大气层</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showStars" checked>
+                    <span>显示星空</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showClouds" checked>
+                    <span>显示云层</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="lensFlare" checked>
+                    <span>镜头光晕</span>
+                </label>
+            </div>
+
+            <div class="button-group">
+                <button id="resetView">重置视角</button>
+                <button id="saveState">保存状态</button>
+            </div>
+
+            <div class="info-box">
+                <p>💡 提示：拖拽鼠标旋转视角，滚轮缩放</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/3d-engine.js"></script>
+    <script src="js/stars.js"></script>
+    <script src="js/earth.js"></script>
+    <script src="js/lighting.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
