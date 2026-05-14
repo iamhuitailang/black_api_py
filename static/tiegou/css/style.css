@@ -1,0 +1,202 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 900px;
+    height: 600px;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #8B7355 85%, #6B5344 100%);
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10;
+}
+
+.screen.hidden {
+    display: none;
+}
+
+.menu-box {
+    background: linear-gradient(145deg, #2d2d44 0%, #1a1a2e 100%);
+    padding: 40px 60px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border: 3px solid #ffd700;
+}
+
+.menu-box h1 {
+    font-size: 48px;
+    color: #ffd700;
+    margin-bottom: 10px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.menu-box h2 {
+    font-size: 36px;
+    color: #ffd700;
+    margin-bottom: 30px;
+}
+
+.menu-box .subtitle {
+    font-size: 20px;
+    color: #aaa;
+    margin-bottom: 40px;
+}
+
+.menu-box p {
+    font-size: 18px;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 15px 40px;
+    margin: 12px 0;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.btn-primary {
+    background: linear-gradient(145deg, #ffd700, #ffaa00);
+    color: #1a1a2e;
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(145deg, #4a4a6a, #3a3a5a);
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(100, 100, 150, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(145deg, #ff4444, #cc2222);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(255, 68, 68, 0.4);
+}
+
+#game-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 20px;
+    z-index: 5;
+}
+
+#game-hud.hidden {
+    display: none;
+}
+
+.hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.hud-item {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 2px solid #ffd700;
+}
+
+.hud-label {
+    color: #ffd700;
+    font-size: 14px;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.hud-value {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.pause-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #ffd700;
+    border-radius: 50%;
+    color: #ffd700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pause-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+    transform: scale(1.1);
+}
+
+.click-effect {
+    position: absolute;
+    pointer-events: none;
+    animation: clickPop 0.3s ease-out forwards;
+}
+
+@keyframes clickPop {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}

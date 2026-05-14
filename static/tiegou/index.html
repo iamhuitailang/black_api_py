@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁钩船长 - 简易版</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="900" height="600"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <div class="menu-box">
+                <h1>🏴‍☠️ 铁钩船长</h1>
+                <p class="subtitle">简易版</p>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="screen hidden">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="gameover-screen" class="screen hidden">
+            <div class="menu-box">
+                <h2 id="gameover-title">游戏结束</h2>
+                <p id="gameover-message"></p>
+                <button id="retry-btn" class="btn btn-primary">再来一次</button>
+                <button id="home-btn" class="btn btn-secondary">返回主页</button>
+            </div>
+        </div>
+        
+        <div id="game-hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-item">
+                    <span class="hud-label">❤️ 生命</span>
+                    <span id="health-display" class="hud-value">3</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">☠️ 击杀</span>
+                    <span id="kills-display" class="hud-value">0/20</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">⏱️ 时间</span>
+                    <span id="time-display" class="hud-value">30</span>
+                </div>
+            </div>
+            <button id="pause-btn" class="pause-btn">⏸️</button>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
