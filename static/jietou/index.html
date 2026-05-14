@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>街头霸王 - 格斗游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">街头霸王</h1>
+            <div class="character-select">
+                <div class="character-card" data-character="ryu">
+                    <div class="character-icon">🥋</div>
+                    <div class="character-name">隆</div>
+                    <div class="character-type">均衡型</div>
+                </div>
+                <div class="character-card" data-character="ken">
+                    <div class="character-icon">🥊</div>
+                    <div class="character-name">肯</div>
+                    <div class="character-type">攻击型</div>
+                </div>
+                <div class="character-card" data-character="chunli">
+                    <div class="character-icon">👊</div>
+                    <div class="character-name">春丽</div>
+                    <div class="character-type">速度型</div>
+                </div>
+            </div>
+            <button id="start-btn" class="game-btn">开始游戏</button>
+        </div>
+
+        <div id="pause-screen" class="screen">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="game-btn">继续游戏</button>
+                <button id="restart-btn" class="game-btn">重新开始</button>
+                <button id="quit-btn" class="game-btn">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="screen">
+            <div class="game-over-menu">
+                <h2 id="result-text">胜利!</h2>
+                <button id="play-again-btn" class="game-btn">再来一局</button>
+                <button id="back-to-menu-btn" class="game-btn">返回主菜单</button>
+            </div>
+        </div>
+
+        <button id="pause-btn" class="pause-btn">⏸</button>
+        
+        <div id="hud">
+            <div class="player-hud player1">
+                <div class="player-name">玩家</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" id="player1-health"></div>
+                </div>
+            </div>
+            <div class="timer" id="timer">60</div>
+            <div class="player-hud player2">
+                <div class="player-name">电脑</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" id="player2-health"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-hint">
+            <div class="control-group">
+                <span>移动:</span>
+                <kbd>←</kbd>
+                <kbd>→</kbd>
+                <kbd>↓</kbd>
+            </div>
+            <div class="control-group">
+                <span>攻击:</span>
+                <kbd>A</kbd>
+                <kbd>S</kbd>
+                <kbd>D</kbd>
+                <kbd>F</kbd>
+            </div>
+            <div class="control-group">
+                <span>必杀:</span>
+                <kbd>G</kbd>
+                <kbd>H</kbd>
+                <kbd>J</kbd>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
