@@ -113,7 +113,10 @@ const Renderer = {
         
         const progress = (gameData.questionIndex / CONFIG.TARGET_QUESTIONS) * 100;
         this.drawRoundRect(50, 15, 700, 14, 7, '#E0E0E0');
-        this.drawRoundRect(50, 15, 7 * progress, 14, 7, this.theme.accent);
+        if (progress > 0) {
+            const progressWidth = Math.max(14, 7 * progress);
+            this.drawRoundRect(50, 15, progressWidth, 14, 7, this.theme.accent);
+        }
         
         this.drawText(`第 ${gameData.questionIndex + 1} / ${CONFIG.TARGET_QUESTIONS} 题`, 400, 52, 16, '#666666');
 
