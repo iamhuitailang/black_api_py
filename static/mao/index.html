@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>真心话大冒险</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="particleCanvas"></canvas>
+    
+    <div id="app" class="app">
+        <header class="header">
+            <h1 class="title">真心话大冒险</h1>
+            <button id="settingsBtn" class="settings-btn">⚙️</button>
+            <button id="clearDataBtn" style="position: absolute; right: 50px; top: 50%; transform: translateY(-50%); padding: 5px 10px; font-size: 12px;">清除数据</button>
+        </header>
+
+        <main class="main-content">
+            <div id="themeSelector" class="theme-selector">
+                <h2>选择主题</h2>
+                <div class="themes">
+                    <button class="theme-btn active" data-theme="classic">🎆 经典派对</button>
+                    <button class="theme-btn" data-theme="romantic">💕 浪漫粉</button>
+                    <button class="theme-btn" data-theme="dark">🍺 暗黑酒馆</button>
+                    <button class="theme-btn" data-theme="kids">🎨 童趣乐园</button>
+                    <button class="theme-btn" data-theme="minimal">💼 极简白</button>
+                </div>
+            </div>
+
+            <div id="modeSelector" class="mode-selector">
+                <h2>游戏模式</h2>
+                <div class="modes">
+                    <button class="mode-btn active" data-mode="mix">🎲 混合模式</button>
+                    <button class="mode-btn" data-mode="truth">💬 纯真心话</button>
+                    <button class="mode-btn" data-mode="dare">🎯 纯大冒险</button>
+                </div>
+            </div>
+
+            <div id="difficultySelector" class="difficulty-selector">
+                <h2>难度等级</h2>
+                <div class="difficulties">
+                    <button class="difficulty-btn active" data-difficulty="light">🌱 轻度</button>
+                    <button class="difficulty-btn" data-difficulty="normal">🔥 普通</button>
+                    <button class="difficulty-btn" data-difficulty="hard">💀 重口</button>
+                    <button class="difficulty-btn" data-difficulty="adult">🔞 成人</button>
+                </div>
+            </div>
+
+            <div id="drawMethodSelector" class="draw-method">
+                <h2>抽取方式</h2>
+                <div class="methods">
+                    <button class="method-btn active" data-method="card">🃏 翻牌</button>
+                    <button class="method-btn" data-method="wheel">🎡 轮盘</button>
+                </div>
+            </div>
+
+            <div id="cardContainer" class="card-container">
+                <div id="card" class="card">
+                    <div class="card-front">
+                        <div class="card-logo">🎴</div>
+                        <p>点击抽取</p>
+                    </div>
+                    <div class="card-back">
+                        <div id="cardType" class="card-type"></div>
+                        <div id="cardContent" class="card-content"></div>
+                        <div id="cardDifficulty" class="card-difficulty"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="wheelContainer" class="wheel-container" style="display: none;">
+                <div class="wheel">
+                    <canvas id="wheelCanvas" width="300" height="300"></canvas>
+                    <div class="wheel-pointer"></div>
+                </div>
+            </div>
+
+            <div id="drawBtn" class="draw-btn-container">
+                <button id="drawButton" class="draw-btn">🎰 抽一个</button>
+            </div>
+
+            <div id="actionButtons" class="action-buttons" style="display: none;">
+                <button id="completeBtn" class="action-btn complete">✅ 完成</button>
+                <button id="punishBtn" class="action-btn punish">⚠️ 惩罚</button>
+                <button id="nextBtn" class="action-btn next">➡️ 下一个</button>
+            </div>
+
+            <div id="scoreBoard" class="score-board">
+                <h3>🏆 积分榜</h3>
+                <div id="scoreList" class="score-list"></div>
+                <button id="addPlayerBtn" class="add-player-btn">+ 添加玩家</button>
+            </div>
+
+            <div id="customQuestions" class="custom-questions">
+                <h3>📝 自定义题库</h3>
+                <div class="add-question-form">
+                    <select id="questionType">
+                        <option value="truth">真心话</option>
+                        <option value="dare">大冒险</option>
+                    </select>
+                    <select id="questionLevel">
+                        <option value="light">轻度</option>
+                        <option value="normal">普通</option>
+                        <option value="hard">重口</option>
+                        <option value="adult">成人</option>
+                    </select>
+                    <input type="text" id="questionInput" placeholder="输入题目内容...">
+                    <button id="addQuestionBtn">添加</button>
+                </div>
+                <div id="customList" class="custom-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="punishModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>⚠️ 惩罚时间！</h2>
+            <p id="punishContent"></p>
+            <button id="closePunishBtn" class="modal-btn">确定</button>
+        </div>
+    </div>
+
+    <div id="playerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>添加玩家</h2>
+            <input type="text" id="playerNameInput" placeholder="输入玩家姓名">
+            <div class="modal-buttons">
+                <button id="cancelPlayerBtn" class="modal-btn secondary">取消</button>
+                <button id="confirmPlayerBtn" class="modal-btn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/animation.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
