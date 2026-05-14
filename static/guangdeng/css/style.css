@@ -1,0 +1,438 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Georgia', serif;
+    background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%);
+    overflow: hidden;
+    user-select: none;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+.screen.active {
+    display: flex;
+}
+
+#start-screen {
+    background: linear-gradient(135deg, #3d2817 0%, #1a0f0a 50%, #2c1810 100%);
+    justify-content: center;
+    align-items: center;
+}
+
+.title-card {
+    background: linear-gradient(145deg, #d4a574 0%, #c4956a 50%, #b08050 100%);
+    border: 8px solid #8b4513;
+    border-radius: 20px;
+    padding: 60px 80px;
+    text-align: center;
+    box-shadow: 
+        0 0 30px rgba(0,0,0,0.5),
+        inset 0 2px 10px rgba(255,255,255,0.3),
+        inset 0 -2px 10px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.title-card::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 3px solid #654321;
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+.title-card h1 {
+    font-size: 48px;
+    color: #2c1810;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+    letter-spacing: 4px;
+}
+
+.subtitle {
+    font-size: 24px;
+    color: #4a3020;
+    margin-bottom: 40px;
+    font-style: italic;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+    display: block;
+    width: 200px;
+    margin: 15px auto;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    border: 4px solid #654321;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Georgia', serif;
+}
+
+.btn-primary {
+    background: linear-gradient(145deg, #4a90d9 0%, #357abd 100%);
+    color: white;
+    border-color: #2c5a8a;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(145deg, #5aa0e9 0%, #458acd 100%);
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    background: linear-gradient(145deg, #7cb342 0%, #558b2f 100%);
+    color: white;
+    border-color: #33691e;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(145deg, #8cc352 0%, #659b3f 100%);
+    transform: scale(1.05);
+}
+
+.btn-danger {
+    background: linear-gradient(145deg, #e53935 0%, #c62828 100%);
+    color: white;
+    border-color: #b71c1c;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(145deg, #f54945 0%, #d63838 100%);
+    transform: scale(1.05);
+}
+
+#game-screen {
+    flex-direction: column;
+}
+
+#top-bar {
+    height: 60px;
+    background: linear-gradient(180deg, #d4a574 0%, #c4956a 100%);
+    border-bottom: 4px solid #8b4513;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.resource-bar {
+    display: flex;
+    gap: 30px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c1810;
+}
+
+.resource-bar span {
+    background: rgba(0,0,0,0.1);
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: 2px solid #8b4513;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    padding: 8px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    background: linear-gradient(145deg, #795548 0%, #5d4037 100%);
+    color: #f5deb3;
+    border: 3px solid #3e2723;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-small:hover {
+    background: linear-gradient(145deg, #896558 0%, #6d5047 100%);
+    transform: scale(1.05);
+}
+
+#game-canvas {
+    flex: 1;
+    background: #4a7c3f;
+    cursor: crosshair;
+}
+
+#bottom-bar {
+    height: 100px;
+    background: linear-gradient(0deg, #d4a574 0%, #c4956a 100%);
+    border-top: 4px solid #8b4513;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+}
+
+#tower-panel {
+    display: flex;
+    gap: 15px;
+}
+
+.tower-btn {
+    width: 70px;
+    height: 80px;
+    background: linear-gradient(145deg, #8d6e63 0%, #6d4c41 100%);
+    border: 3px solid #4e342e;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.tower-btn:hover {
+    background: linear-gradient(145deg, #9d7e73 0%, #7d5c51 100%);
+    transform: scale(1.1);
+}
+
+.tower-btn.selected {
+    background: linear-gradient(145deg, #ffb74d 0%, #ff9800 100%);
+    border-color: #e65100;
+    transform: scale(1.1);
+}
+
+.tower-icon {
+    font-size: 28px;
+    margin-bottom: 3px;
+}
+
+.tower-name {
+    font-size: 12px;
+    font-weight: bold;
+    color: #f5deb3;
+}
+
+.tower-cost {
+    font-size: 11px;
+    color: #ffd700;
+}
+
+#hero-panel {
+    display: flex;
+    gap: 15px;
+}
+
+.hero-btn {
+    width: 70px;
+    height: 80px;
+    background: linear-gradient(145deg, #5c6bc0 0%, #3949ab 100%);
+    border: 3px solid #1a237e;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.hero-btn:hover {
+    background: linear-gradient(145deg, #6c7bd0 0%, #4959bb 100%);
+    transform: scale(1.1);
+}
+
+.hero-btn.selected {
+    background: linear-gradient(145deg, #ffb74d 0%, #ff9800 100%);
+    border-color: #e65100;
+    transform: scale(1.1);
+}
+
+.hero-icon {
+    font-size: 28px;
+    margin-bottom: 3px;
+}
+
+.hero-name {
+    font-size: 12px;
+    font-weight: bold;
+    color: #f5deb3;
+}
+
+.btn-wave {
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(145deg, #ef5350 0%, #c62828 100%);
+    color: white;
+    border: 4px solid #b71c1c;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.7); }
+    50% { box-shadow: 0 0 20px 10px rgba(239, 83, 80, 0); }
+}
+
+.btn-wave:hover {
+    background: linear-gradient(145deg, #ff6360 0%, #d63838 100%);
+    transform: scale(1.05);
+}
+
+.popup-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.popup-overlay.hidden {
+    display: none;
+}
+
+.popup-content {
+    background: linear-gradient(145deg, #d4a574 0%, #c4956a 50%, #b08050 100%);
+    border: 8px solid #8b4513;
+    border-radius: 20px;
+    padding: 40px 60px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+}
+
+.popup-content h2 {
+    font-size: 36px;
+    color: #2c1810;
+    margin-bottom: 30px;
+}
+
+.popup-menu {
+    position: absolute;
+    z-index: 50;
+}
+
+.popup-menu.hidden {
+    display: none;
+}
+
+.menu-content {
+    background: linear-gradient(145deg, #d4a574 0%, #c4956a 100%);
+    border: 5px solid #8b4513;
+    border-radius: 15px;
+    padding: 20px;
+    min-width: 250px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.menu-content h3 {
+    color: #2c1810;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 20px;
+}
+
+.tower-option, .upgrade-option {
+    background: linear-gradient(145deg, #8d6e63 0%, #6d4c41 100%);
+    border: 3px solid #4e342e;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tower-option:hover, .upgrade-option:hover {
+    background: linear-gradient(145deg, #9d7e73 0%, #7d5c51 100%);
+    transform: scale(1.02);
+}
+
+.tower-option-info, .upgrade-option-info {
+    color: #f5deb3;
+}
+
+.tower-option-cost, .upgrade-option-cost {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.btn-sell {
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    background: linear-gradient(145deg, #ef5350 0%, #c62828 100%);
+    color: white;
+    border: 3px solid #b71c1c;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.btn-sell:hover {
+    background: linear-gradient(145deg, #ff6360 0%, #d63838 100%);
+}
+
+.btn-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: #c62828;
+    color: white;
+    border: 2px solid #b71c1c;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.btn-close:hover {
+    background: #d63838;
+}
+
+#tower-stats {
+    background: rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    color: #2c1810;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    font-size: 14px;
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光登守卫 - Kingdom Defense</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <div class="title-card">
+                <h1>⚔️ 光登守卫 ⚔️</h1>
+                <p class="subtitle">王国保卫战</p>
+                <button id="start-btn" class="btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn-secondary" style="display:none;">继续游戏</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="top-bar">
+                <div class="resource-bar">
+                    <span class="gold">💰 <span id="gold-display">200</span></span>
+                    <span class="lives">❤️ <span id="lives-display">20</span></span>
+                    <span class="wave">🌊 波次: <span id="wave-display">1</span>/<span id="total-waves">10</span></span>
+                </div>
+                <div class="controls">
+                    <button id="pause-btn" class="btn-small">⏸️ 暂停</button>
+                    <button id="speed-btn" class="btn-small">⏩ 1x</button>
+                </div>
+            </div>
+
+            <canvas id="game-canvas"></canvas>
+
+            <div id="bottom-bar">
+                <div id="tower-panel">
+                    <div class="tower-btn" data-tower="arrow">
+                        <div class="tower-icon">🏹</div>
+                        <div class="tower-name">箭塔</div>
+                        <div class="tower-cost">70金</div>
+                    </div>
+                    <div class="tower-btn" data-tower="barracks">
+                        <div class="tower-icon">⚔️</div>
+                        <div class="tower-name">兵营</div>
+                        <div class="tower-cost">70金</div>
+                    </div>
+                    <div class="tower-btn" data-tower="magic">
+                        <div class="tower-icon">🔮</div>
+                        <div class="tower-name">魔法塔</div>
+                        <div class="tower-cost">100金</div>
+                    </div>
+                    <div class="tower-btn" data-tower="cannon">
+                        <div class="tower-icon">💣</div>
+                        <div class="tower-name">炮塔</div>
+                        <div class="tower-cost">120金</div>
+                    </div>
+                </div>
+                <div id="hero-panel">
+                    <div class="hero-btn" data-hero="gerard">
+                        <div class="hero-icon">🛡️</div>
+                        <div class="hero-name">杰拉德</div>
+                    </div>
+                </div>
+                <button id="start-wave-btn" class="btn-wave">🌊 开始波次</button>
+            </div>
+        </div>
+
+        <div id="tower-menu" class="popup-menu hidden">
+            <div class="menu-content">
+                <h3 id="tower-menu-title">选择防御塔</h3>
+                <div id="tower-options"></div>
+                <button id="close-tower-menu" class="btn-close">✕</button>
+            </div>
+        </div>
+
+        <div id="upgrade-menu" class="popup-menu hidden">
+            <div class="menu-content">
+                <h3 id="upgrade-tower-name">防御塔</h3>
+                <div id="tower-stats"></div>
+                <div id="do-upgrade" class="upgrade-option"></div>
+                <button id="sell-tower-btn" class="btn-sell">💰 出售</button>
+                <button id="close-upgrade-menu" class="btn-close">✕</button>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="popup-overlay hidden">
+            <div class="popup-content">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="popup-overlay hidden">
+            <div class="popup-content">
+                <h2 id="game-over-title">游戏结束</h2>
+                <p id="game-over-message"></p>
+                <button id="retry-btn" class="btn-primary">重新开始</button>
+                <button id="menu-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/path.js"></script>
+    <script src="js/tower.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/hero.js"></script>
+    <script src="js/projectile.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
