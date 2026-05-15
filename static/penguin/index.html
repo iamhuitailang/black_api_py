@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐧 企鹅滑铲对决</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="snow-container"></div>
+        
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen" class="screen active">
+            <div class="title">
+                <h1>🐧 企鹅滑铲对决 🎄</h1>
+                <p>圣诞雪夜 · 爆笑冰面对战</p>
+            </div>
+            <div class="menu-buttons">
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="select-char-btn" class="btn btn-secondary">选择角色</button>
+            </div>
+            <div class="controls-hint">
+                <p>← → 移动 | ↑ 跳跃 | ↓ 下蹲</p>
+                <p>J 轻滑铲 | K 重滑铲 | L 冰锥 | I 必杀</p>
+            </div>
+        </div>
+        
+        <div id="character-screen" class="screen">
+            <h2>选择你的企鹅</h2>
+            <div class="character-grid">
+                <div class="character-card" data-char="emperor">
+                    <div class="char-icon">🐧</div>
+                    <h3>帝企鹅</h3>
+                    <p class="char-type">均衡型</p>
+                    <div class="char-stats">
+                        <div class="stat"><span>生命</span><div class="bar"><div class="bar-fill" style="width: 80%"></div></div></div>
+                        <div class="stat"><span>攻击</span><div class="bar"><div class="bar-fill" style="width: 70%"></div></div></div>
+                        <div class="stat"><span>速度</span><div class="bar"><div class="bar-fill" style="width: 60%"></div></div></div>
+                    </div>
+                    <p class="char-skill">技能：极地冰浪、巨鲸冲撞</p>
+                </div>
+                <div class="character-card" data-char="little">
+                    <div class="char-icon">🐧</div>
+                    <h3>小企鹅</h3>
+                    <p class="char-type">速度型</p>
+                    <div class="char-stats">
+                        <div class="stat"><span>生命</span><div class="bar"><div class="bar-fill" style="width: 60%"></div></div></div>
+                        <div class="stat"><span>攻击</span><div class="bar"><div class="bar-fill" style="width: 50%"></div></div></div>
+                        <div class="stat"><span>速度</span><div class="bar"><div class="bar-fill" style="width: 100%"></div></div></div>
+                    </div>
+                    <p class="char-skill">技能：冰锥风暴、高速滑铲</p>
+                </div>
+                <div class="character-card" data-char="fat">
+                    <div class="char-icon">🐧</div>
+                    <h3>胖企鹅</h3>
+                    <p class="char-type">力量型</p>
+                    <div class="char-stats">
+                        <div class="stat"><span>生命</span><div class="bar"><div class="bar-fill" style="width: 100%"></div></div></div>
+                        <div class="stat"><span>攻击</span><div class="bar"><div class="bar-fill" style="width: 90%"></div></div></div>
+                        <div class="stat"><span>速度</span><div class="bar"><div class="bar-fill" style="width: 40%"></div></div></div>
+                    </div>
+                    <p class="char-skill">技能：泰山压顶、寒冰护盾</p>
+                </div>
+            </div>
+            <button id="back-to-start-btn" class="btn btn-secondary">返回</button>
+        </div>
+        
+        <div id="game-hud" class="hud hidden">
+            <div class="player-hud left">
+                <div class="health-bar">
+                    <div class="health-fill" id="player1-health"></div>
+                </div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="player1-energy"></div>
+                </div>
+                <span class="player-name" id="player1-name">玩家</span>
+            </div>
+            <div class="timer" id="game-timer">1:30</div>
+            <div class="player-hud right">
+                <div class="health-bar">
+                    <div class="health-fill" id="player2-health"></div>
+                </div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="player2-energy"></div>
+                </div>
+                <span class="player-name" id="player2-name">电脑</span>
+            </div>
+        </div>
+        <button id="pause-btn" class="pause-btn hidden">⏸</button>
+        
+        <div id="pause-screen" class="screen overlay hidden">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                    <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                    <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="result-screen" class="screen overlay hidden">
+            <div class="result-menu">
+                <h2 id="result-title">胜利!</h2>
+                <p id="result-message">你把对手撞出了冰台!</p>
+                <div class="menu-buttons">
+                    <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                    <button id="main-menu-btn" class="btn btn-secondary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
