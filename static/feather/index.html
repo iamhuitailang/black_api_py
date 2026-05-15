@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>羽毛下落 - Feather Fall</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="startScreen" class="screen">
+            <h1>羽毛下落</h1>
+            <p class="subtitle">Feather Fall</p>
+            <div class="menu-buttons">
+                <button id="startBtn" class="btn primary">开始游戏</button>
+                <button id="selectLevelBtn" class="btn secondary">选择关卡</button>
+                <button id="selectFeatherBtn" class="btn secondary">选择羽毛</button>
+            </div>
+            <div class="controls-hint">
+                <p>操作说明：</p>
+                <p>← → 或 A D 控制左右</p>
+                <p>ESC 暂停游戏</p>
+            </div>
+        </div>
+
+        <div id="levelSelectScreen" class="screen hidden">
+            <h2>选择关卡</h2>
+            <div id="levelGrid" class="level-grid"></div>
+            <button id="backToStartBtn" class="btn secondary">返回</button>
+        </div>
+
+        <div id="featherSelectScreen" class="screen hidden">
+            <h2>选择羽毛</h2>
+            <div id="featherGrid" class="feather-grid"></div>
+            <button id="backToStartBtn2" class="btn secondary">返回</button>
+        </div>
+
+        <div id="pauseMenu" class="overlay hidden">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resumeBtn" class="btn primary">继续游戏</button>
+                <button id="restartBtn" class="btn secondary">重新开始</button>
+                <button id="quitBtn" class="btn secondary">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="menu-box">
+                <h2 id="gameOverTitle">游戏结束</h2>
+                <p id="gameOverMessage"></p>
+                <button id="retryBtn" class="btn primary">再试一次</button>
+                <button id="menuBtn" class="btn secondary">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="levelCompleteScreen" class="overlay hidden">
+            <div class="menu-box">
+                <h2>关卡完成！</h2>
+                <p id="levelScore">得分：0</p>
+                <p id="levelStars">⭐⭐⭐</p>
+                <button id="nextLevelBtn" class="btn primary">下一关</button>
+                <button id="replayBtn" class="btn secondary">重玩</button>
+            </div>
+        </div>
+
+        <div id="gameHUD" class="hud hidden">
+            <div class="hud-left">
+                <span id="levelDisplay">关卡 1</span>
+                <span id="scoreDisplay">得分: 0</span>
+            </div>
+            <div class="hud-right">
+                <button id="pauseBtn" class="btn-small">⏸</button>
+            </div>
+        </div>
+
+        <div id="unlockNotification" class="notification hidden">
+            <p id="unlockText"></p>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/audio.js"></script>
+    <script src="js/config/levels.js"></script>
+    <script src="js/config/feathers.js"></script>
+    <script src="js/game/physics.js"></script>
+    <script src="js/game/feather.js"></script>
+    <script src="js/game/obstacles.js"></script>
+    <script src="js/game/powerups.js"></script>
+    <script src="js/game/wind.js"></script>
+    <script src="js/game/renderer.js"></script>
+    <script src="js/ui/menu.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
