@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐔 菜鸡互啄 - 呆萌农场</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 1200px;
+            height: 700px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .menu-overlay.hidden {
+            display: none;
+        }
+
+        .menu-panel {
+            background: linear-gradient(145deg, #FFF8DC, #FFEFD5);
+            padding: 50px;
+            border-radius: 40px;
+            text-align: center;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            border: 6px solid #FFB347;
+        }
+
+        .menu-panel h1 {
+            font-size: 52px;
+            color: #FF6B6B;
+            text-shadow: 4px 4px 0 #FFD93D;
+            margin-bottom: 15px;
+        }
+
+        .menu-panel h2 {
+            font-size: 38px;
+            color: #FF6B6B;
+            margin-bottom: 30px;
+        }
+
+        .subtitle {
+            font-size: 22px;
+            color: #8B4513;
+            margin-bottom: 35px;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 18px 50px;
+            margin: 15px 0;
+            font-size: 24px;
+            font-family: inherit;
+            background: linear-gradient(145deg, #FF6B6B, #FF8E53);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.6);
+        }
+
+        .char-grid {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .char-card {
+            flex: 1;
+            padding: 25px;
+            background: linear-gradient(145deg, #FFFACD, #FAFAD2);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 4px solid transparent;
+        }
+
+        .char-card:hover {
+            transform: translateY(-8px);
+            border-color: #FFB347;
+            box-shadow: 0 12px 35px rgba(255, 179, 71, 0.4);
+        }
+
+        .char-card.selected {
+            border-color: #FF6B6B;
+            background: linear-gradient(145deg, #FFE4E1, #FFEFD5);
+            transform: scale(1.05);
+        }
+
+        .char-icon {
+            font-size: 70px;
+            margin-bottom: 12px;
+        }
+
+        .char-card h3 {
+            font-size: 26px;
+            color: #8B4513;
+            margin-bottom: 8px;
+        }
+
+        .char-type {
+            color: #FF6B6B;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .char-stats {
+            display: flex;
+            justify-content: space-around;
+            font-size: 15px;
+            color: #666;
+        }
+
+        #game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5000;
+        }
+
+        #game-hud.hidden {
+            display: none;
+        }
+
+        .hud-player {
+            width: 320px;
+        }
+
+        .player-name {
+            font-size: 26px;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+            color: #FFD93D;
+        }
+
+        .hud-right .player-name {
+            text-align: right;
+            color: #FF6B6B;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 28px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 18px;
+            overflow: hidden;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #32CD32, #7CFC00);
+            transition: width 0.3s ease;
+            border-radius: 14px;
+        }
+
+        .pause-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 28px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 4px solid #FFB347;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .pause-btn:hover {
+            transform: scale(1.15);
+            background: #FFF;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 5000;
+        }
+
+        #controls-hint.hidden {
+            display: none;
+        }
+
+        .hint-box {
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 18px 24px;
+            border-radius: 20px;
+            font-size: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .hint-box p {
+            margin: 6px 0;
+        }
+
+        .hint-box strong {
+            color: #FFD93D;
+        }
+
+        @media (max-width: 1250px) {
+            #game-container {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+            .char-grid {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="main-menu" class="menu-overlay">
+            <div class="menu-panel">
+                <h1>🐔 菜鸡互啄 🐔</h1>
+                <p class="subtitle">🌾 农场乱斗，呆萌开战！ 🌾</p>
+                <button class="menu-btn" id="start-btn">开始游戏</button>
+                <button class="menu-btn" id="select-char-btn">选择角色</button>
+            </div>
+        </div>
+
+        <div id="char-select" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h2>🐥 选择你的菜鸡 🦆</h2>
+                <div class="char-grid">
+                    <div class="char-card selected" data-char="yellow">
+                        <div class="char-icon">🐥</div>
+                        <h3>小黄鸡</h3>
+                        <p class="char-type">均衡型</p>
+                        <div class="char-stats">
+                            <span>❤️ 110</span>
+                            <span>⚔️ 10</span>
+                            <span>🛡️ 6</span>
+                        </div>
+                    </div>
+                    <div class="char-card" data-char="black">
+                        <div class="char-icon">🐓</div>
+                        <h3>小黑鸡</h3>
+                        <p class="char-type">攻击型</p>
+                        <div class="char-stats">
+                            <span>❤️ 100</span>
+                            <span>⚔️ 13</span>
+                            <span>🛡️ 4</span>
+                        </div>
+                    </div>
+                    <div class="char-card" data-char="duck">
+                        <div class="char-icon">🦆</div>
+                        <h3>小鸭鸭</h3>
+                        <p class="char-type">速度型</p>
+                        <div class="char-stats">
+                            <span>❤️ 95</span>
+                            <span>⚔️ 8</span>
+                            <span>🛡️ 7</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="menu-btn" id="back-to-menu">返回</button>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h2>⏸️ 游戏暂停</h2>
+                <button class="menu-btn" id="resume-btn">继续游戏</button>
+                <button class="menu-btn" id="restart-btn">重新开始</button>
+                <button class="menu-btn" id="quit-btn">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-result" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h2 id="result-title">游戏结束</h2>
+                <p id="result-message"></p>
+                <button class="menu-btn" id="result-restart">再来一局</button>
+                <button class="menu-btn" id="result-menu">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="game-hud" class="hidden">
+            <div class="hud-player">
+                <div class="player-name" id="player1-name">小黄鸡</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="player1-health"></div>
+                </div>
+            </div>
+            <div>
+                <button class="pause-btn" id="pause-btn">⏸️</button>
+            </div>
+            <div class="hud-player hud-right">
+                <div class="player-name" id="player2-name">小黑鸡</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="player2-health"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-hint" class="hidden">
+            <div class="hint-box">
+                <p><strong>移动:</strong> ← → ↑ ↓ / WASD</p>
+                <p><strong>轻啄:</strong> J | <strong>重啄:</strong> K</p>
+                <p><strong>轻拍:</strong> U | <strong>重拍:</strong> I</p>
+                <p><strong>暂停:</strong> ESC</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CANVAS_WIDTH = 1200;
+        const CANVAS_HEIGHT = 700;
+        const GROUND_Y = 580;
+        const GRAVITY = 0.8;
+        const STORAGE_KEY = 'caiji_game_save_v2';
+
+        const CHARACTER_CONFIG = {
+            yellow: { name: '小黄鸡', maxHealth: 110, attack: 10, defense: 6, speed: 5.5, jumpForce: 15, bodyColor: '#FFE135', wingColor: '#FFA500', cheekColor: '#FFB6C1' },
+            black: { name: '小黑鸡', maxHealth: 100, attack: 13, defense: 4, speed: 6.5, jumpForce: 16, bodyColor: '#4A4A4A', wingColor: '#2A2A2A', cheekColor: '#FF6B6B' },
+            duck: { name: '小鸭鸭', maxHealth: 95, attack: 8, defense: 7, speed: 8.5, jumpForce: 14, bodyColor: '#F5DEB3', wingColor: '#DAA520', cheekColor: '#87CEEB' }
+        };
+
+        const ATTACKS = {
+            lightPeck: { damage: 6, startup: 50, recovery: 100, range: 70, knockback: 8 },
+            heavyPeck: { damage: 12, startup: 100, recovery: 200, range: 100, knockback: 15 },
+            lightWing: { damage: 5, startup: 30, recovery: 100, range: 90, knockback: 10 },
+            heavyWing: { damage: 13, startup: 120, recovery: 220, range: 130, knockback: 18 }
+        };
+
+        class Character {
+            constructor(charType, x, isPlayer) {
+                const config = CHARACTER_CONFIG[charType];
+                this.charType = charType;
+                this.name = config.name;
+                this.isPlayer = isPlayer;
+                
+                this.x = x;
+                this.y = GROUND_Y;
+                this.vx = 0;
+                this.vy = 0;
+                
+                this.maxHealth = config.maxHealth;
+                this.health = config.maxHealth;
+                this.attackPower = config.attack;
+                this.defense = config.defense;
+                this.speed = config.speed;
+                this.jumpForce = config.jumpForce;
+                
+                this.width = 90;
+                this.height = 100;
+                this.facing = isPlayer ? 1 : -1;
+                
+                this.isJumping = false;
+                this.isCrouching = false;
+                this.isAttacking = false;
+                this.isHurt = false;
+                
+                this.currentAttack = null;
+                this.attackTimer = 0;
+                this.attackPhase = 'idle';
+                
+                this.hurtTimer = 0;
+                this.bodyColor = config.bodyColor;
+                this.wingColor = config.wingColor;
+                this.cheekColor = config.cheekColor;
+                
+                this.aiState = 'idle';
+                this.aiTimer = 0;
+                this.bobOffset = Math.random() * Math.PI * 2;
+            }
+
+            update(deltaTime, input, opponent) {
+                this.bobOffset += deltaTime * 0.005;
+                
+                if (this.isPlayer) {
+                    this.handleInput(input);
+                } else {
+                    this.handleAI(opponent);
+                }
+                
+                this.applyPhysics();
+                this.checkBoundary();
+                this.checkCollision(opponent);
+                this.updateAttack(deltaTime, opponent);
+                this.updateHurt(deltaTime);
+            }
+
+            handleInput(input) {
+                if (this.isAttacking || this.isHurt) return;
+                
+                this.isCrouching = input.down && !this.isJumping;
+                
+                if (!this.isCrouching) {
+                    this.vx = (input.right - input.left) * this.speed;
+                    if (this.vx !== 0) this.facing = this.vx > 0 ? 1 : -1;
+                }
+                
+                if (input.up && !this.isJumping) {
+                    this.vy = -this.jumpForce;
+                    this.isJumping = true;
+                }
+                
+                if (input.lightPeck) this.startAttack('lightPeck');
+                else if (input.heavyPeck) this.startAttack('heavyPeck');
+                else if (input.lightWing) this.startAttack('lightWing');
+                else if (input.heavyWing) this.startAttack('heavyWing');
+            }
+
+            handleAI(opponent) {
+                if (this.isAttacking || this.isHurt) return;
+                
+                this.aiTimer -= 16;
+                if (this.aiTimer <= 0) {
+                    this.aiTimer = Math.random() * 800 + 400;
+                    
+                    const dist = opponent.x - this.x;
+                    this.facing = dist > 0 ? 1 : -1;
+                    const absDist = Math.abs(dist);
+                    
+                    if (absDist > 250) {
+                        this.aiState = 'approach';
+                    } else if (absDist < 100) {
+                        this.aiState = 'attack';
+                    } else if (absDist < 150) {
+                        this.aiState = Math.random() > 0.4 ? 'attack' : 'retreat';
+                    } else {
+                        this.aiState = Math.random() > 0.6 ? 'attack' : 'idle';
+                    }
+                    
+                    if (Math.random() > 0.88 && !this.isJumping) {
+                        this.vy = -this.jumpForce;
+                        this.isJumping = true;
+                    }
+                }
+                
+                if (this.aiState === 'approach') {
+                    const dist = opponent.x - this.x;
+                    this.vx = Math.sign(dist) * this.speed * 0.75;
+                } else if (this.aiState === 'retreat') {
+                    const dist = opponent.x - this.x;
+                    this.vx = -Math.sign(dist) * this.speed * 0.5;
+                } else if (this.aiState === 'attack') {
+                    const attacks = ['lightPeck', 'heavyPeck', 'lightWing', 'heavyWing'];
+                    const weights = [0.35, 0.25, 0.3, 0.1];
+                    let rand = Math.random();
+                    let attack = attacks[0];
+                    for (let i = 0; i < weights.length; i++) {
+                        rand -= weights[i];
+                        if (rand <= 0) {
+                            attack = attacks[i];
+                            break;
+                        }
+                    }
+                    this.startAttack(attack);
+                    this.aiState = 'idle';
+                } else {
+                    this.vx *= 0.8;
+                }
+            }
+
+            applyPhysics() {
+                this.vy += GRAVITY;
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.y >= GROUND_Y) {
+                    this.y = GROUND_Y;
+                    this.vy = 0;
+                    this.isJumping = false;
+                }
+                
+                if (!this.isAttacking) this.vx *= 0.85;
+            }
+
+            checkBoundary() {
+                const minX = this.width / 2 + 30;
+                const maxX = CANVAS_WIDTH - this.width / 2 - 30;
+                if (this.x < minX) {
+                    this.x = minX;
+                    this.vx = 0;
+                }
+                if (this.x > maxX) {
+                    this.x = maxX;
+                    this.vx = 0;
+                }
+            }
+
+            checkCollision(opponent) {
+                const dist = Math.abs(this.x - opponent.x);
+                const minDist = (this.width + opponent.width) / 2 - 10;
+                
+                if (dist < minDist) {
+                    const overlap = minDist - dist;
+                    if (this.isPlayer) {
+                        this.x -= overlap / 2;
+                        opponent.x += overlap / 2;
+                    } else {
+                        this.x += overlap / 2;
+                        opponent.x -= overlap / 2;
+                    }
+                    this.vx *= 0.5;
+                    opponent.vx *= 0.5;
+                }
+            }
+
+            startAttack(type) {
+                if (this.isAttacking || this.isHurt) return;
+                this.isAttacking = true;
+                this.currentAttack = type;
+                this.attackPhase = 'startup';
+                this.attackTimer = ATTACKS[type].startup;
+                this.vx *= 0.3;
+            }
+
+            updateAttack(deltaTime, opponent) {
+                if (!this.isAttacking) return;
+                
+                this.attackTimer -= deltaTime;
+                
+                if (this.attackPhase === 'startup' && this.attackTimer <= 0) {
+                    this.attackPhase = 'active';
+                    this.attackTimer = 120;
+                    this.vx = this.facing * 3;
+                } else if (this.attackPhase === 'active') {
+                    this.checkHit(opponent);
+                    if (this.attackTimer <= 0) {
+                        this.attackPhase = 'recovery';
+                        this.attackTimer = ATTACKS[this.currentAttack].recovery;
+                    }
+                } else if (this.attackPhase === 'recovery' && this.attackTimer <= 0) {
+                    this.isAttacking = false;
+                    this.currentAttack = null;
+                    this.attackPhase = 'idle';
+                }
+            }
+
+            checkHit(opponent) {
+                const range = ATTACKS[this.currentAttack].range;
+                const dx = opponent.x - this.x;
+                
+                if (Math.abs(dx) < range && Math.sign(dx) === this.facing && !opponent.isHurt) {
+                    const damage = ATTACKS[this.currentAttack].damage + this.attackPower * 0.3;
+                    const knockback = ATTACKS[this.currentAttack].knockback;
+                    opponent.takeDamage(damage, this.facing * knockback);
+                    this.attackPhase = 'recovery';
+                    this.attackTimer = ATTACKS[this.currentAttack].recovery;
+                }
+            }
+
+            takeDamage(damage, knockback) {
+                const actual = Math.max(1, damage - this.defense * 0.3);
+                this.health -= actual;
+                this.isHurt = true;
+                this.hurtTimer = 350;
+                this.vx = knockback;
+                this.vy = -4;
+                if (this.health <= 0) this.health = 0;
+            }
+
+            updateHurt(deltaTime) {
+                if (this.isHurt) {
+                    this.hurtTimer -= deltaTime;
+                    if (this.hurtTimer <= 0) this.isHurt = false;
+                }
+            }
+
+            getState() {
+                return {
+                    charType: this.charType,
+                    x: this.x,
+                    y: this.y,
+                    vx: this.vx,
+                    vy: this.vy,
+                    health: this.health,
+                    facing: this.facing,
+                    isJumping: this.isJumping,
+                    isCrouching: this.isCrouching
+                };
+            }
+
+            loadState(state) {
+                this.x = state.x;
+                this.y = state.y;
+                this.vx = state.vx;
+                this.vy = state.vy;
+                this.health = state.health;
+                this.facing = state.facing;
+                this.isJumping = state.isJumping;
+                this.isCrouching = state.isCrouching;
+            }
+        }
+
+        class Renderer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.canvas.width = CANVAS_WIDTH;
+                this.canvas.height = CANVAS_HEIGHT;
+                this.time = 0;
+            }
+
+            update(deltaTime) {
+                this.time += deltaTime;
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+
+            drawBackground() {
+                const ctx = this.ctx;
+                
+                const sky = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+                sky.addColorStop(0, '#74B9FF');
+                sky.addColorStop(0.4, '#A9DFF7');
+                sky.addColorStop(0.7, '#D6F0FF');
+                sky.addColorStop(1, '#F0F9FF');
+                ctx.fillStyle = sky;
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                this.drawSun(1080, 70);
+                
+                this.drawCloud(60, 80, 75, 0);
+                this.drawCloud(360, 45, 65, 0.6);
+                this.drawCloud(620, 100, 85, 1.2);
+                this.drawCloud(920, 60, 60, 1.8);
+                
+                this.drawHill(150, GROUND_Y - 20, 200, '#98FB98');
+                this.drawHill(500, GROUND_Y - 10, 250, '#90EE90');
+                this.drawHill(900, GROUND_Y - 15, 220, '#98FB98');
+                
+                for (let i = 0; i < 10; i++) {
+                    this.drawBush(i * 130 + 30, GROUND_Y + 5, 45 + Math.sin(i * 1.5) * 8);
+                }
+                
+                const ground = ctx.createLinearGradient(0, GROUND_Y - 5, 0, GROUND_Y + 50);
+                ground.addColorStop(0, '#A0522D');
+                ground.addColorStop(0.4, '#8B4513');
+                ground.addColorStop(1, '#654321');
+                ctx.fillStyle = ground;
+                ctx.beginPath();
+                ctx.ellipse(CANVAS_WIDTH / 2, GROUND_Y + 20, CANVAS_WIDTH / 2 + 50, 35, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                const grass = ctx.createLinearGradient(0, GROUND_Y + 25, 0, CANVAS_HEIGHT);
+                grass.addColorStop(0, '#7CFC00');
+                grass.addColorStop(0.3, '#32CD32');
+                grass.addColorStop(0.7, '#2ECC71');
+                grass.addColorStop(1, '#27AE60');
+                ctx.fillStyle = grass;
+                ctx.fillRect(0, GROUND_Y + 40, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y - 40);
+                
+                for (let i = 0; i < 60; i++) {
+                    this.drawGrassBlade(i * 22 + 5, GROUND_Y + 45);
+                }
+                
+                for (let i = 0; i < 15; i++) {
+                    this.drawFlower(i * 85 + 20, GROUND_Y + 50, i % 5);
+                }
+                
+                this.drawScarecrow(100, GROUND_Y - 45);
+                this.drawScarecrow(1100, GROUND_Y - 45);
+                
+                this.drawNest(600, GROUND_Y + 8);
+                
+                this.drawButterfly(200 + Math.sin(this.time * 0.001) * 50, 150 + Math.sin(this.time * 0.0015) * 30, 0);
+                this.drawButterfly(900 + Math.sin(this.time * 0.0012 + 2) * 40, 180 + Math.sin(this.time * 0.0018 + 2) * 25, 1);
+            }
+
+            drawSun(x, y) {
+                const ctx = this.ctx;
+                const pulse = Math.sin(this.time * 0.002) * 3;
+                
+                const sunGlow = ctx.createRadialGradient(x, y, 0, x, y, 80 + pulse);
+                sunGlow.addColorStop(0, 'rgba(255, 236, 179, 0.8)');
+                sunGlow.addColorStop(0.5, 'rgba(255, 193, 7, 0.4)');
+                sunGlow.addColorStop(1, 'rgba(255, 152, 0, 0)');
+                ctx.fillStyle = sunGlow;
+                ctx.beginPath();
+                ctx.arc(x, y, 80 + pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                const sunGrad = ctx.createRadialGradient(x - 10, y - 10, 0, x, y, 50);
+                sunGrad.addColorStop(0, '#FFF176');
+                sunGrad.addColorStop(0.5, '#FFD54F');
+                sunGrad.addColorStop(1, '#FFA726');
+                ctx.fillStyle = sunGrad;
+                ctx.beginPath();
+                ctx.arc(x, y, 50 + pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#FFF59D';
+                ctx.beginPath();
+                ctx.arc(x - 12, y - 12, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(255, 193, 7, 0.6)';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i / 10) * Math.PI * 2 + this.time * 0.0003;
+                    ctx.beginPath();
+                    ctx.moveTo(x + Math.cos(angle) * 60, y + Math.sin(angle) * 60);
+                    ctx.lineTo(x + Math.cos(angle) * 78, y + Math.sin(angle) * 78);
+                    ctx.stroke();
+                }
+            }
+
+            drawCloud(x, y, size, offset) {
+                const ctx = this.ctx;
+                const wave = Math.sin(this.time * 0.0002 + offset) * 10;
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.beginPath();
+                ctx.arc(x + wave, y, size * 0.5, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.35 + wave, y - size * 0.2, size * 0.4, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.7 + wave, y, size * 0.48, 0, Math.PI * 2);
+                ctx.arc(x + size * 1.05 + wave, y + size * 0.1, size * 0.38, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.3 + wave, y + size * 0.2, size * 0.35, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.65 + wave, y + size * 0.15, size * 0.32, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x + size * 0.15 + wave, y - size * 0.1, size * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawHill(x, y, width, color) {
+                const ctx = this.ctx;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(x, y, width, 40, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawBush(x, y, size) {
+                const ctx = this.ctx;
+                
+                const bushGrad = ctx.createRadialGradient(x - 5, y - 10, 0, x, y, size);
+                bushGrad.addColorStop(0, '#81C784');
+                bushGrad.addColorStop(0.5, '#4CAF50');
+                bushGrad.addColorStop(1, '#388E3C');
+                ctx.fillStyle = bushGrad;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.65, y - size * 0.15, size * 0.75, 0, Math.PI * 2);
+                ctx.arc(x + size * 1.2, y, size * 0.7, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.3, y + size * 0.1, size * 0.55, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.85, y + size * 0.15, size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawGrassBlade(x, y) {
+                const ctx = this.ctx;
+                const wave = Math.sin(this.time * 0.0025 + x * 0.08) * 4;
+                
+                ctx.strokeStyle = '#2E7D32';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + wave, y - 18, x + 4, y - 30);
+                ctx.stroke();
+                
+                ctx.strokeStyle = '#43A047';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + wave * 0.8, y - 15, x + 3, y - 25);
+                ctx.stroke();
+            }
+
+            drawFlower(x, y, type) {
+                const ctx = this.ctx;
+                const sway = Math.sin(this.time * 0.002 + x * 0.05) * 2;
+                const colors = ['#FF6B6B', '#FFE66D', '#4ECDC4', '#FF8ED4', '#A8E6CF'];
+                const color = colors[type];
+                
+                ctx.strokeStyle = '#2ECC71';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + sway, y - 12, x + sway * 0.5, y - 22);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#27AE60';
+                ctx.beginPath();
+                ctx.ellipse(x + sway + 5, y - 10, 6, 3, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = color;
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+                    ctx.beginPath();
+                    ctx.ellipse(
+                        x + sway * 0.5 + Math.cos(angle) * 7,
+                        y - 27 + Math.sin(angle) * 7,
+                        6, 4, angle, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                
+                ctx.fillStyle = '#F9E79F';
+                ctx.beginPath();
+                ctx.arc(x + sway * 0.5, y - 27, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#F1C40F';
+                ctx.beginPath();
+                ctx.arc(x + sway * 0.5, y - 27, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawScarecrow(x, y) {
+                const ctx = this.ctx;
+                const sway = Math.sin(this.time * 0.001 + x * 0.01) * 2;
+                
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.roundRect(x - 7 + sway, y, 14, 100, 3);
+                ctx.fill();
+                
+                ctx.fillStyle = '#D35400';
+                ctx.fillRect(x - 35 + sway, y + 10, 70, 8);
+                
+                const headGrad = ctx.createRadialGradient(x - 5 + sway, y - 28, 0, x + sway, y - 25, 32);
+                headGrad.addColorStop(0, '#FAD7A0');
+                headGrad.addColorStop(0.7, '#DEB887');
+                headGrad.addColorStop(1, '#D2B48C');
+                ctx.fillStyle = headGrad;
+                ctx.beginPath();
+                ctx.arc(x + sway, y - 25, 32, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#C0392B';
+                ctx.beginPath();
+                ctx.moveTo(x - 38 + sway, y - 38);
+                ctx.quadraticCurveTo(x + sway, y - 80, x + 38 + sway, y - 38);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.fillStyle = '#E74C3C';
+                ctx.beginPath();
+                ctx.ellipse(x + sway, y - 55, 15, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#1C2833';
+                ctx.lineWidth = 3.5;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(x - 20 + sway, y - 35);
+                ctx.lineTo(x - 8 + sway, y - 28);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x + 20 + sway, y - 35);
+                ctx.lineTo(x + 8 + sway, y - 28);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x - 15 + sway, y - 12);
+                ctx.quadraticCurveTo(x + sway, y - 5, x + 15 + sway, y - 12);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#3498DB';
+                ctx.beginPath();
+                ctx.roundRect(x - 32 + sway, y + 2, 64, 45, 5);
+                ctx.fill();
+                
+                ctx.fillStyle = '#2980B9';
+                ctx.fillRect(x - 28 + sway, y + 8, 56, 6);
+                ctx.fillRect(x - 28 + sway, y + 20, 56, 6);
+                ctx.fillRect(x - 28 + sway, y + 32, 56, 6);
+                
+                ctx.fillStyle = '#F1C40F';
+                ctx.beginPath();
+                ctx.arc(x + sway, y + 25, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawNest(x, y) {
+                const ctx = this.ctx;
+                
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.ellipse(x, y + 12, 60, 28, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#A0522D';
+                for (let i = 0; i < 7; i++) {
+                    const angle = (i / 7) * Math.PI * 2;
+                    const nx = x + Math.cos(angle) * 45;
+                    const ny = y + 10 + Math.sin(angle) * 14;
+                    ctx.beginPath();
+                    ctx.ellipse(nx, ny, 16, 7, angle, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.fillStyle = '#F5DEB3';
+                ctx.beginPath();
+                ctx.ellipse(x, y + 5, 45, 18, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                const eggColors = ['#FFF8DC', '#FAF0E6', '#FFFAF0'];
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillStyle = eggColors[i];
+                    ctx.beginPath();
+                    ctx.ellipse(x - 22 + i * 22, y + 3, 13, 10, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.beginPath();
+                    ctx.ellipse(x - 25 + i * 22, y, 4, 3, -0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            drawButterfly(x, y, type) {
+                const ctx = this.ctx;
+                const wingFlap = Math.sin(this.time * 0.015 + type) * 0.4;
+                const colors = [
+                    ['#FF69B4', '#FF1493'],
+                    ['#00CED1', '#20B2AA']
+                ];
+                const [light, dark] = colors[type];
+                
+                ctx.save();
+                ctx.translate(x, y);
+                
+                ctx.fillStyle = dark;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 3, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = dark;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-2, -8);
+                ctx.quadraticCurveTo(-5, -15, -3, -18);
+                ctx.moveTo(2, -8);
+                ctx.quadraticCurveTo(5, -15, 3, -18);
+                ctx.stroke();
+                
+                ctx.save();
+                ctx.scale(1 - wingFlap, 1);
+                ctx.fillStyle = light;
+                ctx.beginPath();
+                ctx.ellipse(-12, -3, 15, 10, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.ellipse(-15, -5, 5, 3, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                ctx.save();
+                ctx.scale(1 - wingFlap, 1);
+                ctx.fillStyle = light;
+                ctx.beginPath();
+                ctx.ellipse(12, -3, 15, 10, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.ellipse(15, -5, 5, 3, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                ctx.restore();
+            }
+
+            drawCharacter(char) {
+                const ctx = this.ctx;
+                const bob = Math.sin(char.bobOffset) * 4;
+                const attackBob = char.isAttacking ? Math.sin(this.time * 0.025) * 6 : 0;
+                const squish = char.isAttacking ? 0.95 : 1;
+                
+                ctx.save();
+                ctx.translate(char.x, char.y + bob + attackBob);
+                ctx.scale(char.facing, 1);
+                ctx.scale(1, squish);
+                
+                if (char.isHurt && Math.floor(char.hurtTimer / 50) % 2 === 0) {
+                    ctx.globalAlpha = 0.6;
+                }
+                
+                const bodyY = char.isCrouching ? -char.height * 0.4 : -char.height * 0.65;
+                const bodyH = char.isCrouching ? char.height * 0.45 : char.height * 0.7;
+                
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.ellipse(3, 8, 42, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                const bodyGrad = ctx.createRadialGradient(-5, bodyY + bodyH / 2 - 10, 0, 0, bodyY + bodyH / 2, char.width / 2 + 5);
+                bodyGrad.addColorStop(0, this.lightenColor(char.bodyColor, 30));
+                bodyGrad.addColorStop(0.7, char.bodyColor);
+                bodyGrad.addColorStop(1, this.darkenColor(char.bodyColor, 20));
+                ctx.fillStyle = bodyGrad;
+                ctx.beginPath();
+                ctx.ellipse(0, bodyY + bodyH / 2, char.width / 2 + 3, bodyH / 2 + 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = this.darkenColor(char.wingColor, 15);
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, bodyY + bodyH / 2 - 15 + i * 7, char.width / 2 - 2 - i * 5, 0.35, Math.PI - 0.35);
+                    ctx.stroke();
+                }
+                
+                const wingFlap = char.isAttacking ? Math.sin(this.time * 0.02) * 25 : 8;
+                const wingGrad = ctx.createRadialGradient(-25, bodyY + 15, 0, -25, bodyY + 15, 30);
+                wingGrad.addColorStop(0, this.lightenColor(char.wingColor, 20));
+                wingGrad.addColorStop(1, char.wingColor);
+                ctx.fillStyle = wingGrad;
+                ctx.save();
+                ctx.translate(-25, bodyY + 15);
+                ctx.rotate((-30 + wingFlap) * Math.PI / 180);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 30, 20, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = this.darkenColor(char.wingColor, 20);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+                
+                const headGrad = ctx.createRadialGradient(20, bodyY - 12, 0, 25, bodyY - 5, 35);
+                headGrad.addColorStop(0, this.lightenColor(char.bodyColor, 35));
+                headGrad.addColorStop(0.6, char.bodyColor);
+                headGrad.addColorStop(1, this.darkenColor(char.bodyColor, 15));
+                ctx.fillStyle = headGrad;
+                ctx.beginPath();
+                ctx.ellipse(25, bodyY - 3, 35, 33, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#FF6B6B';
+                ctx.beginPath();
+                ctx.moveTo(28, bodyY - 32);
+                ctx.quadraticCurveTo(38, bodyY - 52, 33, bodyY - 58);
+                ctx.quadraticCurveTo(28, bodyY - 52, 23, bodyY - 58);
+                ctx.quadraticCurveTo(18, bodyY - 52, 28, bodyY - 32);
+                ctx.fill();
+                ctx.fillStyle = '#FF4757';
+                ctx.beginPath();
+                ctx.ellipse(28, bodyY - 45, 4, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = char.cheekColor;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.ellipse(12, bodyY + 8, 10, 7, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(42, bodyY + 6, 9, 6, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                
+                ctx.fillStyle = '#FFA502';
+                ctx.beginPath();
+                ctx.moveTo(48, bodyY - 5);
+                ctx.quadraticCurveTo(65, bodyY - 2, 62, bodyY + 3);
+                ctx.quadraticCurveTo(65, bodyY + 8, 48, bodyY + 5);
+                ctx.quadraticCurveTo(50, bodyY, 48, bodyY - 5);
+                ctx.fill();
+                ctx.fillStyle = '#FF6348';
+                ctx.beginPath();
+                ctx.ellipse(52, bodyY, 3, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#FFF';
+                ctx.beginPath();
+                ctx.ellipse(35, bodyY - 10, 9, 11, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(18, bodyY - 8, 8, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#2C3E50';
+                ctx.beginPath();
+                ctx.arc(37, bodyY - 9, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(20, bodyY - 7, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#FFF';
+                ctx.beginPath();
+                ctx.arc(39, bodyY - 12, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(22, bodyY - 10, 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(35, bodyY - 7, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#2C3E50';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(30, bodyY - 18);
+                ctx.quadraticCurveTo(36, bodyY - 22, 42, bodyY - 18);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(12, bodyY - 16);
+                ctx.quadraticCurveTo(18, bodyY - 20, 24, bodyY - 16);
+                ctx.stroke();
+                
+                ctx.strokeStyle = '#E74C3C';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(30, bodyY + 10, 8, 0.15, Math.PI - 0.15);
+                ctx.stroke();
+                ctx.fillStyle = '#E74C3C';
+                ctx.beginPath();
+                ctx.ellipse(30, bodyY + 16, 2.5, 1.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                const legOffset = char.isJumping ? 10 : Math.sin(this.time * 0.008) * 5;
+                const legGrad = ctx.createLinearGradient(15, bodyY + bodyH, 15, bodyY + bodyH + 35);
+                legGrad.addColorStop(0, '#FFC312');
+                legGrad.addColorStop(1, '#F79F1F');
+                
+                ctx.fillStyle = legGrad;
+                ctx.beginPath();
+                ctx.roundRect(12, bodyY + bodyH - 3, 11, 32 + legOffset, 3);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.roundRect(42, bodyY + bodyH - 3, 11, 32 - legOffset, 3);
+                ctx.fill();
+                
+                ctx.fillStyle = '#EE5A24';
+                ctx.beginPath();
+                ctx.ellipse(17, bodyY + bodyH + 26 + legOffset, 14, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(47, bodyY + bodyH + 26 - legOffset, 14, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#D63031';
+                ctx.beginPath();
+                ctx.ellipse(10, bodyY + bodyH + 26 + legOffset, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(24, bodyY + bodyH + 26 + legOffset, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(40, bodyY + bodyH + 26 - legOffset, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(54, bodyY + bodyH + 26 - legOffset, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (char.isAttacking && char.attackPhase === 'active') {
+                    const attackPulse = Math.sin(this.time * 0.05) * 0.3 + 1;
+                    
+                    ctx.strokeStyle = 'rgba(255, 165, 0, 0.9)';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.arc(85, 0, 45 * attackPulse, -0.4, 0.4);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 0.6 - 0.3;
+                        const dist = 65 + Math.sin(this.time * 0.03 + i) * 15;
+                        const size = 4 + Math.sin(this.time * 0.04 + i * 0.5) * 3;
+                        ctx.beginPath();
+                        ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(95, 0, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                if (char.isHurt) {
+                    ctx.fillStyle = 'rgba(255, 50, 50, 0.25)';
+                    ctx.beginPath();
+                    ctx.arc(25, bodyY - 10, 50, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillText('💫', -10, bodyY - 50);
+                }
+                
+                ctx.restore();
+            }
+            
+            lightenColor(color, percent) {
+                const num = parseInt(color.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = Math.min(255, (num >> 16) + amt);
+                const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+                const B = Math.min(255, (num & 0x0000FF) + amt);
+                return `rgb(${R},${G},${B})`;
+            }
+            
+            darkenColor(color, percent) {
+                const num = parseInt(color.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = Math.max(0, (num >> 16) - amt);
+                const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
+                const B = Math.max(0, (num & 0x0000FF) - amt);
+                return `rgb(${R},${G},${B})`;
+            }
+
+            render(player1, player2) {
+                this.clear();
+                this.drawBackground();
+                this.drawCharacter(player2);
+                this.drawCharacter(player1);
+            }
+        }
+
+        class UIManager {
+            constructor(game) {
+                this.game = game;
+                this.selectedChar = 'yellow';
+                this.initEvents();
+            }
+
+            initEvents() {
+                document.getElementById('start-btn').onclick = () => this.game.startGame(this.selectedChar);
+                document.getElementById('select-char-btn').onclick = () => this.showCharSelect();
+                document.getElementById('back-to-menu').onclick = () => this.showMainMenu();
+                
+                document.querySelectorAll('.char-card').forEach(card => {
+                    card.onclick = () => {
+                        this.selectedChar = card.dataset.char;
+                        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                    };
+                });
+                
+                document.getElementById('pause-btn').onclick = () => this.game.pauseGame();
+                document.getElementById('resume-btn').onclick = () => this.game.resumeGame();
+                document.getElementById('restart-btn').onclick = () => this.game.restartGame();
+                document.getElementById('quit-btn').onclick = () => this.game.quitToMenu();
+                document.getElementById('result-restart').onclick = () => this.game.restartGame();
+                document.getElementById('result-menu').onclick = () => this.game.quitToMenu();
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Escape') {
+                        if (this.game.gameState === 'playing') this.game.pauseGame();
+                        else if (this.game.gameState === 'paused') this.game.resumeGame();
+                    }
+                });
+            }
+
+            showMainMenu() {
+                this.hideAll();
+                document.getElementById('main-menu').classList.remove('hidden');
+            }
+
+            showCharSelect() {
+                this.hideAll();
+                document.getElementById('char-select').classList.remove('hidden');
+            }
+
+            showPauseMenu() {
+                document.getElementById('pause-menu').classList.remove('hidden');
+            }
+
+            hidePauseMenu() {
+                document.getElementById('pause-menu').classList.add('hidden');
+            }
+
+            showHud() {
+                document.getElementById('game-hud').classList.remove('hidden');
+                document.getElementById('controls-hint').classList.remove('hidden');
+            }
+
+            hideHud() {
+                document.getElementById('game-hud').classList.add('hidden');
+                document.getElementById('controls-hint').classList.add('hidden');
+            }
+
+            showResult(playerWon) {
+                this.hideAll();
+                document.getElementById('game-result').classList.remove('hidden');
+                document.getElementById('result-title').textContent = playerWon ? '🎉 胜利！ 🎉' : '😢 失败 😢';
+                document.getElementById('result-message').textContent = playerWon ? '你打败了对手，成为了农场最强菜鸡！' : '被打败了... 下次再来挑战吧！';
+            }
+
+            hideAll() {
+                document.querySelectorAll('.menu-overlay').forEach(m => m.classList.add('hidden'));
+                this.hideHud();
+            }
+
+            updateHealth(player1, player2) {
+                const p1p = (player1.health / player1.maxHealth) * 100;
+                const p2p = (player2.health / player2.maxHealth) * 100;
+                
+                document.getElementById('player1-health').style.width = `${p1p}%`;
+                document.getElementById('player2-health').style.width = `${p2p}%`;
+                
+                document.getElementById('player1-name').textContent = player1.name;
+                document.getElementById('player2-name').textContent = player2.name;
+                
+                const color = p => p > 60 ? 'linear-gradient(90deg,#32CD32,#7CFC00)' : p > 30 ? 'linear-gradient(90deg,#FFD700,#FFA500)' : 'linear-gradient(90deg,#FF6B6B,#FF4500)';
+                document.getElementById('player1-health').style.background = color(p1p);
+                document.getElementById('player2-health').style.background = color(p2p);
+            }
+        }
+
+        class Game {
+            constructor(canvas) {
+                this.renderer = new Renderer(canvas);
+                this.ui = new UIManager(this);
+                this.gameState = 'menu';
+                this.selectedCharType = 'yellow';
+                this.player1 = null;
+                this.player2 = null;
+                this.input = { left: false, right: false, up: false, down: false, lightPeck: false, heavyPeck: false, lightWing: false, heavyWing: false };
+                
+                this.initInput();
+                this.lastTime = 0;
+                this.animationId = null;
+                this.saveTimer = 0;
+                
+                this.tryLoadGame();
+            }
+
+            initInput() {
+                const keys = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down', KeyJ: 'lightPeck', KeyK: 'heavyPeck', KeyU: 'lightWing', KeyI: 'heavyWing' };
+                
+                document.addEventListener('keydown', e => {
+                    if (keys[e.code]) this.input[keys[e.code]] = true;
+                });
+                document.addEventListener('keyup', e => {
+                    if (keys[e.code]) this.input[keys[e.code]] = false;
+                });
+            }
+
+            tryLoadGame() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        const age = Date.now() - data.timestamp;
+                        if (age < 10 * 60 * 1000) {
+                            console.log('发现存档，自动恢复');
+                        }
+                    }
+                } catch (e) {
+                    console.log('没有存档或存档失效');
+                }
+            }
+
+            saveGame() {
+                if (this.gameState !== 'playing') return;
+                
+                try {
+                    const data = {
+                        timestamp: Date.now(),
+                        selectedCharType: this.selectedCharType,
+                        player1: this.player1.getState(),
+                        player2: this.player2.getState()
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                } catch (e) {
+                    console.log('保存失败');
+                }
+            }
+
+            loadGame() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (!saved) return false;
+                    
+                    const data = JSON.parse(saved);
+                    const age = Date.now() - data.timestamp;
+                    
+                    if (age > 10 * 60 * 1000) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        return false;
+                    }
+                    
+                    this.selectedCharType = data.selectedCharType;
+                    this.player1 = new Character(data.player1.charType, 300, true);
+                    this.player1.loadState(data.player1);
+                    this.player2 = new Character('black', 900, false);
+                    this.player2.loadState(data.player2);
+                    
+                    console.log('游戏状态已恢复！');
+                    return true;
+                } catch (e) {
+                    console.log('恢复失败');
+                    return false;
+                }
+            }
+
+            clearSave() {
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                } catch (e) {}
+            }
+
+            startGame(charType) {
+                this.selectedCharType = charType;
+                
+                if (!this.loadGame()) {
+                    this.player1 = new Character(charType, 250, true);
+                    this.player2 = new Character('black', 950, false);
+                }
+                
+                this.gameState = 'playing';
+                this.ui.hideAll();
+                this.ui.showHud();
+                this.startLoop();
+                console.log('🐔 游戏开始！');
+            }
+
+            pauseGame() {
+                if (this.gameState !== 'playing') return;
+                this.gameState = 'paused';
+                this.ui.showPauseMenu();
+                this.stopLoop();
+                this.saveGame();
+            }
+
+            resumeGame() {
+                if (this.gameState !== 'paused') return;
+                this.gameState = 'playing';
+                this.ui.hidePauseMenu();
+                this.startLoop();
+            }
+
+            restartGame() {
+                this.stopLoop();
+                this.clearSave();
+                this.startGame(this.selectedCharType);
+            }
+
+            quitToMenu() {
+                this.stopLoop();
+                this.clearSave();
+                this.gameState = 'menu';
+                this.ui.showMainMenu();
+            }
+
+            startLoop() {
+                this.lastTime = performance.now();
+                this.gameLoop();
+            }
+
+            stopLoop() {
+                if (this.animationId) cancelAnimationFrame(this.animationId);
+            }
+
+            gameLoop() {
+                const now = performance.now();
+                const delta = Math.min(now - this.lastTime, 50);
+                this.lastTime = now;
+                
+                this.renderer.update(delta);
+                this.player1.update(delta, this.input, this.player2);
+                this.player2.update(delta, this.input, this.player1);
+                
+                this.ui.updateHealth(this.player1, this.player2);
+                
+                this.saveTimer += delta;
+                if (this.saveTimer >= 2000) {
+                    this.saveTimer = 0;
+                    this.saveGame();
+                }
+                
+                if (this.player1.health <= 0) {
+                    this.endGame(false);
+                    return;
+                }
+                if (this.player2.health <= 0) {
+                    this.endGame(true);
+                    return;
+                }
+                
+                this.renderer.render(this.player1, this.player2);
+                this.animationId = requestAnimationFrame(() => this.gameLoop());
+            }
+
+            endGame(playerWon) {
+                this.stopLoop();
+                this.clearSave();
+                this.gameState = 'gameover';
+                this.ui.showResult(playerWon);
+            }
+        }
+
+        window.onload = () => {
+            console.log('🐔 菜鸡互啄 - 呆萌农场版 加载完成！');
+            const canvas = document.getElementById('game-canvas');
+            const game = new Game(canvas);
+            window.game = game;
+        };
+    </script>
+</body>
+</html>

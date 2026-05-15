@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 菜鸡互啄 - 问题诊断</h1>
+    
+    <div id="results"></div>
+    
+    <h2>🔧 快速修复方案</h2>
+    <p>如果你的按钮不能点击，很可能是因为<strong>直接打开HTML文件导致ES模块加载失败</strong>。</p>
+    
+    <h3>👉 方案1：使用简单版游戏（推荐）</h3>
+    <button onclick="window.location.href='simple.html'">打开简单版游戏</button>
+    
+    <h3>👉 方案2：启动本地服务器</h3>
+    <p>在项目目录运行以下命令之一：</p>
+    <pre style="background:#333;color:#fff;padding:10px;border-radius:5px;">
+# Python 3
+python3 -m http.server 8000
+
+# Node.js (需要安装)
+npx serve .
+
+# PHP
+php -S localhost:8000
+    </pre>
+    <p>然后在浏览器访问: <code>http://localhost:8000</code></p>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(message, type) {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        addResult('📄 测试页面加载成功！', 'success');
+        addResult('🌐 当前协议: ' + window.location.protocol, 'info');
+        
+        if (window.location.protocol === 'file:') {
+            addResult('❌ 检测到使用 file:// 协议打开，ES模块可能无法工作！', 'error');
+            addResult('💡 请使用方案1或方案2解决', 'info');
+        } else {
+            addResult('✅ 使用HTTP协议，应该可以正常工作', 'success');
+        }
+        
+        addResult('🔍 正在检查原页面的按钮...', 'info');
+        
+        fetch('index.html')
+            .then(response => response.text())
+            .then(text => {
+                if (text.includes('start-btn')) {
+                    addResult('✅ 找到 start-btn 按钮', 'success');
+                } else {
+                    addResult('❌ 找不到 start-btn 按钮', 'error');
+                }
+                if (text.includes('type="module"')) {
+                    addResult('⚠️ 检测到使用ES模块 (type="module")', 'info');
+                }
+            })
+            .catch(e => {
+                addResult('❌ 无法读取index.html: ' + e.message, 'error');
+            });
+    </script>
+</body>
+</html>

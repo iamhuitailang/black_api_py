@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜鸡互啄 🐔</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="main-menu" class="menu-overlay">
+            <div class="menu-panel">
+                <h1>🐔 菜鸡互啄 🐔</h1>
+                <p class="subtitle">农场乱斗，呆萌开战！</p>
+                <button class="menu-btn" id="start-btn">开始游戏</button>
+                <button class="menu-btn" id="select-char-btn">选择角色</button>
+            </div>
+        </div>
+
+        <div id="char-select" class="menu-overlay hidden">
+            <div class="menu-panel char-select-panel">
+                <h2>选择你的菜鸡</h2>
+                <div class="char-grid">
+                    <div class="char-card" data-char="yellow">
+                        <div class="char-icon">🐥</div>
+                        <h3>小黄鸡</h3>
+                        <p class="char-type">均衡型</p>
+                        <div class="char-stats">
+                            <span>❤️ 110</span>
+                            <span>⚔️ 10</span>
+                            <span>🛡️ 6</span>
+                        </div>
+                    </div>
+                    <div class="char-card" data-char="black">
+                        <div class="char-icon">🐓</div>
+                        <h3>小黑鸡</h3>
+                        <p class="char-type">攻击型</p>
+                        <div class="char-stats">
+                            <span>❤️ 100</span>
+                            <span>⚔️ 13</span>
+                            <span>🛡️ 4</span>
+                        </div>
+                    </div>
+                    <div class="char-card" data-char="duck">
+                        <div class="char-icon">🦆</div>
+                        <h3>小鸭鸭</h3>
+                        <p class="char-type">速度型</p>
+                        <div class="char-stats">
+                            <span>❤️ 95</span>
+                            <span>⚔️ 8</span>
+                            <span>🛡️ 7</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="menu-btn" id="back-to-menu">返回</button>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h2>游戏暂停</h2>
+                <button class="menu-btn" id="resume-btn">继续游戏</button>
+                <button class="menu-btn" id="restart-btn">重新开始</button>
+                <button class="menu-btn" id="quit-btn">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-result" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h2 id="result-title">游戏结束</h2>
+                <p id="result-message"></p>
+                <button class="menu-btn" id="result-restart">再来一局</button>
+                <button class="menu-btn" id="result-menu">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="game-hud" class="hidden">
+            <div class="hud-player hud-left">
+                <div class="player-name" id="player1-name">小黄鸡</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="player1-health"></div>
+                </div>
+            </div>
+            <div class="hud-controls">
+                <button class="pause-btn" id="pause-btn">⏸️</button>
+            </div>
+            <div class="hud-player hud-right">
+                <div class="player-name" id="player2-name">电脑</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="player2-health"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-hint" class="hidden">
+            <div class="hint-box">
+                <p><strong>移动:</strong> ← → ↑ ↓</p>
+                <p><strong>轻啄:</strong> J | <strong>重啄:</strong> K</p>
+                <p><strong>轻拍:</strong> U | <strong>重拍:</strong> I</p>
+                <p><strong>必杀:</strong> 方向 + 攻击</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            const startBtn = document.getElementById('start-btn');
+            const selectCharBtn = document.getElementById('select-char-btn');
+            
+            console.log('🧪 内联测试：按钮元素检查');
+            console.log('  - 开始按钮:', startBtn);
+            console.log('  - 选择角色按钮:', selectCharBtn);
+            
+            if (startBtn) {
+                startBtn.addEventListener('mouseenter', () => {
+                    console.log('🖱️ 鼠标进入开始按钮');
+                });
+                startBtn.addEventListener('mouseleave', () => {
+                    console.log('🖱️ 鼠标离开开始按钮');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
