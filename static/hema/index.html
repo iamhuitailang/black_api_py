@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>河马大张嘴 🦛</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <div class="menu-box">
+                <h1>🦛 河马大张嘴</h1>
+                <p class="subtitle">称霸沼泽领地</p>
+                <div class="character-select">
+                    <h3>选择你的河马</h3>
+                    <div class="characters">
+                        <div class="character-card selected" data-type="normal">
+                            <div class="character-icon">🦛</div>
+                            <div class="character-name">巨口河马</div>
+                            <div class="character-type">均衡型</div>
+                            <div class="character-stats">
+                                <span>❤️ 120</span>
+                                <span>⚔️ 15</span>
+                                <span>🛡️ 5</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-type="fast">
+                            <div class="character-icon">⚡</div>
+                            <div class="character-name">闪电河马</div>
+                            <div class="character-type">速度型</div>
+                            <div class="character-stats">
+                                <span>❤️ 100</span>
+                                <span>⚔️ 10</span>
+                                <span>🛡️ 7</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-type="defense">
+                            <div class="character-icon">🛡️</div>
+                            <div class="character-name">铁甲河马</div>
+                            <div class="character-type">防御型</div>
+                            <div class="character-stats">
+                                <span>❤️ 150</span>
+                                <span>⚔️ 20</span>
+                                <span>🛡️ 4</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-btn" class="btn primary">开始游戏</button>
+                <div class="controls-info">
+                    <p>← → 移动 | ↑ 抬头 | ↓ 低头 | 空格 咬合</p>
+                    <p>↓↘↑ + 空格 = 必杀技</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="screen hidden">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn primary">继续游戏</button>
+                <button id="restart-btn" class="btn secondary">重新开始</button>
+                <button id="quit-btn" class="btn danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="screen hidden">
+            <div class="menu-box">
+                <h2 id="gameover-title">游戏结束</h2>
+                <p id="gameover-score">最终得分: 0</p>
+                <button id="retry-btn" class="btn primary">再来一局</button>
+                <button id="home-btn" class="btn secondary">返回主页</button>
+            </div>
+        </div>
+
+        <div id="game-ui" class="hidden">
+            <div class="hud">
+                <div class="hud-left">
+                    <div class="health-bar">
+                        <span class="label">生命值</span>
+                        <div class="bar-container">
+                            <div id="health-fill" class="bar-fill"></div>
+                        </div>
+                        <span id="health-text">120/120</span>
+                    </div>
+                    <div class="ultimate-bar">
+                        <span class="label">必杀技</span>
+                        <div class="bar-container">
+                            <div id="ultimate-fill" class="bar-fill ultimate"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="score-display">
+                        <span class="label">得分</span>
+                        <span id="score-text">0</span>
+                    </div>
+                    <div class="wave-display">
+                        <span class="label">波次</span>
+                        <span id="wave-text">1</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="enemies-display">
+                        <span class="label">剩余敌人</span>
+                        <span id="enemies-text">0</span>
+                    </div>
+                    <button id="pause-btn" class="pause-btn">⏸️</button>
+                </div>
+            </div>
+            <div id="combo-display" class="combo-display hidden">
+                <span id="combo-text"></span>
+            </div>
+            <div id="ultimate-ready" class="ultimate-ready hidden">
+                必杀技就绪！↓↘↑ + 空格
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/hippo.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
