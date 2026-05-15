@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>摩托特技小游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="start-menu" class="menu-overlay">
+            <div class="menu-content">
+                <h1>🏍️ 摩托特技</h1>
+                <p>完成高难度特技，挑战最高分！</p>
+                <div class="menu-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">最高分</span>
+                        <span class="stat-value" id="menu-highscore">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">当前关卡</span>
+                        <span class="stat-value" id="menu-level">1</span>
+                    </div>
+                </div>
+                <button class="menu-btn primary" id="startBtn">开始游戏</button>
+                <div class="controls-info">
+                    <h3>操作说明</h3>
+                    <div class="control-row">
+                        <span>↑/W</span><span>加速</span>
+                        <span>↓/S</span><span>刹车</span>
+                    </div>
+                    <div class="control-row">
+                        <span>←/A</span><span>抬前轮</span>
+                        <span>→/D</span><span>压前轮</span>
+                    </div>
+                    <div class="control-row">
+                        <span>J/K/L</span><span>特技动作</span>
+                        <span>R</span><span>重置</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <button class="menu-btn" id="resumeBtn">继续游戏</button>
+                <button class="menu-btn" id="restartBtn">重新开始</button>
+                <button class="menu-btn" id="quitBtn">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>💥 游戏结束</h2>
+                <div class="final-score">
+                    <span>最终得分</span>
+                    <span class="score-value" id="final-score">0</span>
+                </div>
+                <div class="final-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">完成特技</span>
+                        <span class="stat-value" id="final-tricks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最高连击</span>
+                        <span class="stat-value" id="final-combo">0</span>
+                    </div>
+                </div>
+                <button class="menu-btn primary" id="retryBtn">再来一次</button>
+                <button class="menu-btn" id="menuBtn">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="hud" class="hud hidden">
+            <div class="hud-left">
+                <div class="score-display">
+                    <span class="score-label">得分</span>
+                    <span class="score-value" id="score">0</span>
+                </div>
+                <div class="combo-display" id="combo-display">
+                    <span class="combo-label">连击</span>
+                    <span class="combo-value" id="combo">x1</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="time-display">
+                    <span class="time-label">时间</span>
+                    <span class="time-value" id="time">60</span>
+                </div>
+                <button class="pause-btn" id="pauseBtn">⏸️</button>
+            </div>
+            <div class="trick-indicator" id="trick-indicator"></div>
+        </div>
+
+        <div id="mobile-controls" class="mobile-controls hidden">
+            <div class="control-group left">
+                <button class="control-btn" id="btn-left">←</button>
+                <button class="control-btn" id="btn-right">→</button>
+            </div>
+            <div class="control-group right">
+                <button class="control-btn trick" id="btn-trick">特技</button>
+                <button class="control-btn brake" id="btn-brake">刹车</button>
+                <button class="control-btn gas" id="btn-gas">油门</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/motorcycle.js"></script>
+    <script src="js/terrain.js"></script>
+    <script src="js/trick.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
