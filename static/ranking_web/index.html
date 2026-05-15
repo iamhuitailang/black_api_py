@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通用排行榜系统 - DOTA风格</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="user-header" style="display: none;">
+        <div class="user-info">
+            <div class="avatar"></div>
+            <span class="username"></span>
+        </div>
+        <button class="logout-btn">退出登录</button>
+    </div>
+
+    <div class="header">
+        <h1>⚔️ 荣耀排行榜 ⚔️</h1>
+        <p>争夺至高荣耀，登顶传奇之巅</p>
+    </div>
+
+    <div class="nav" style="display: none;">
+        <button class="nav-btn active" data-page="leaderboard-page">排行榜</button>
+        <button class="nav-btn" data-page="game-page">游戏</button>
+        <button class="nav-btn" data-page="profile-page">个人中心</button>
+    </div>
+
+    <div class="container">
+        <div id="message" class="message"></div>
+
+        <div id="auth-page" class="page auth-page active">
+            <div class="card">
+                <h2>登录</h2>
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="loginUsername" required placeholder="请输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="loginPassword" required placeholder="请输入密码">
+                    </div>
+                    <button type="submit" class="btn">登录</button>
+                    <div class="auth-switch">
+                        还没有账号？<a href="#" class="switch-auth">立即注册</a>
+                    </div>
+                </form>
+
+                <form id="registerForm" class="auth-form" style="display: none;">
+                    <h2>注册</h2>
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="registerUsername" required placeholder="请输入用户名（3-20位字母数字下划线）">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="registerPassword" required placeholder="请输入密码（至少6位）">
+                    </div>
+                    <div class="form-group">
+                        <label>确认密码</label>
+                        <input type="password" id="registerConfirmPassword" required placeholder="请再次输入密码">
+                    </div>
+                    <button type="submit" class="btn">注册</button>
+                    <div class="auth-switch">
+                        已有账号？<a href="#" class="switch-auth">立即登录</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="leaderboard-page" class="page main-page">
+            <div class="card">
+                <h2>🏆 荣耀排行榜</h2>
+                <div class="leaderboard-tabs">
+                    <button class="tab-btn active" data-period="all">总榜</button>
+                    <button class="tab-btn" data-period="monthly">月榜</button>
+                    <button class="tab-btn" data-period="weekly">周榜</button>
+                    <button class="tab-btn" data-period="daily">日榜</button>
+                </div>
+                <div id="leaderboardList" class="leaderboard-list">
+                </div>
+            </div>
+        </div>
+
+        <div id="game-page" class="page main-page">
+            <div class="card">
+                <h2>🎮 游戏挑战</h2>
+                <div class="game-area">
+                    <div class="score-display">
+                        <span id="currentScore">0</span>
+                    </div>
+                    <div class="controls">
+                        <button id="startGameBtn" class="btn">开始游戏</button>
+                        <button id="submitScoreBtn" class="btn" style="display: none;">提交分数</button>
+                    </div>
+                    <p style="color: var(--text-muted); margin-top: 20px;">游戏持续5秒，分数将自动增加。结束后可提交分数到排行榜。</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="profile-page" class="page main-page">
+            <div class="card">
+                <h2>👤 个人数据</h2>
+                <div class="user-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="bestScore">0</div>
+                        <div class="stat-label">最高分数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="currentRank">-</div>
+                        <div class="stat-label">当前排名</div>
+                    </div>
+                </div>
+
+                <h3>最近记录</h3>
+                <div id="historyList" class="history-list">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

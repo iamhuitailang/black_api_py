@@ -24,6 +24,12 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.ranking import (
+    UserModel as RankingUserModel,
+    LeaderboardConfigModel,
+    ScoreRecordModel,
+    TokenModel as RankingTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +78,12 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    RankingUserModel.create_table()
+    RankingTokenModel.create_table()
+    LeaderboardConfigModel.create_table()
+    ScoreRecordModel.create_table()
+    LeaderboardConfigModel.init_default_leaderboards()
 
     migrate_database()
 
