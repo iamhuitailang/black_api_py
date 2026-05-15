@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跺脚联盟 · 生气擂台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="start-screen" class="screen active">
+                <h1>🦶 跺脚联盟 🦶</h1>
+                <h2>生气擂台</h2>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="select-char-btn" class="btn btn-secondary">选择角色</button>
+            </div>
+            
+            <div id="char-select-screen" class="screen">
+                <h2>选择你的角色</h2>
+                <div class="char-list">
+                    <div class="char-card" data-char="0">
+                        <div class="char-preview" data-char="0"></div>
+                        <h3>气鼓鼓</h3>
+                        <div class="char-stats">
+                            <p>💥 跺脚伤害: 100</p>
+                            <p>🛡️ 防御力: 11</p>
+                            <p>⚡ 移动速度: 9</p>
+                            <p>🔥 必杀技: 24</p>
+                        </div>
+                    </div>
+                    <div class="char-card" data-char="1">
+                        <div class="char-preview" data-char="1"></div>
+                        <h3>大脚怪</h3>
+                        <div class="char-stats">
+                            <p>💥 跺脚伤害: 110</p>
+                            <p>🛡️ 防御力: 15</p>
+                            <p>⚡ 移动速度: 5</p>
+                            <p>🔥 必杀技: 28</p>
+                        </div>
+                    </div>
+                    <div class="char-card" data-char="2">
+                        <div class="char-preview" data-char="2"></div>
+                        <h3>蹦蹦兔</h3>
+                        <div class="char-stats">
+                            <p>💥 跺脚伤害: 90</p>
+                            <p>🛡️ 防御力: 9</p>
+                            <p>⚡ 移动速度: 11</p>
+                            <p>🔥 必杀技: 20</p>
+                        </div>
+                    </div>
+                </div>
+                <button id="back-to-start-btn" class="btn btn-secondary">返回</button>
+            </div>
+            
+            <div id="game-hud" class="hud">
+                <div class="player-info left">
+                    <div class="player-name">玩家</div>
+                    <div class="rage-bar">
+                        <div class="rage-fill" id="player-rage"></div>
+                    </div>
+                </div>
+                <div class="timer" id="timer">90</div>
+                <div class="player-info right">
+                    <div class="player-name">对手</div>
+                    <div class="rage-bar">
+                        <div class="rage-fill" id="enemy-rage"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="pause-menu" class="menu hidden">
+                <div class="menu-content">
+                    <h2>游戏暂停</h2>
+                    <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                    <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                    <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+                </div>
+            </div>
+            
+            <div id="result-screen" class="screen hidden">
+                <h2 id="result-title"></h2>
+                <p id="result-message"></p>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-menu-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+            
+            <button id="pause-btn" class="pause-btn">⏸️</button>
+        </div>
+        
+        <div id="controls-hint" class="controls-hint">
+            <p>← → 移动 | ↑ 跳跃 | ↓ 蹲下</p>
+            <p>A: 轻踩 | S: 重踩 | D: 拍肚皮 | F: 生气吼 | G: 必杀踩</p>
+        </div>
+    </div>
+    
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
