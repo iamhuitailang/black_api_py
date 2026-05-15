@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简谱识谱练习 - 钢琴教室</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="piano-bg"></div>
+    
+    <div class="container">
+        <header class="header">
+            <h1>🎹 简谱识谱练习</h1>
+            <p class="subtitle">钢琴教室 · 古典风格</p>
+        </header>
+
+        <div class="main-content">
+            <div class="settings-panel">
+                <div class="setting-group">
+                    <label>难度选择：</label>
+                    <div class="difficulty-btns">
+                        <button class="diff-btn" data-difficulty="easy">🟢 简单</button>
+                        <button class="diff-btn" data-difficulty="medium">🟡 中等</button>
+                        <button class="diff-btn" data-difficulty="hard">🔴 困难</button>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label>题型选择：</label>
+                    <div class="mode-btns">
+                        <button class="mode-btn" data-mode="sing">识唱名</button>
+                        <button class="mode-btn" data-mode="pitch">识音名</button>
+                        <button class="mode-btn" data-mode="number">识简谱</button>
+                        <button class="mode-btn" data-mode="listen">听音辨谱</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-label">正确</span>
+                    <span class="stat-value correct" id="correctCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">错误</span>
+                    <span class="stat-value wrong" id="wrongCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">正确率</span>
+                    <span class="stat-value" id="accuracy">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">总用时</span>
+                    <span class="stat-value" id="totalTime">00:00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">单题用时</span>
+                    <span class="stat-value" id="questionTime">0.0s</span>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <canvas id="scoreCanvas" width="400" height="300"></canvas>
+                <div class="hint-text" id="hintText"></div>
+            </div>
+
+            <div class="answer-panel">
+                <div class="input-group">
+                    <input type="text" id="answerInput" placeholder="输入答案..." autocomplete="off">
+                    <button class="submit-btn" id="submitBtn">确认</button>
+                </div>
+                <div class="quick-btns" id="quickBtns"></div>
+            </div>
+
+            <div class="feedback" id="feedback"></div>
+
+            <div class="control-btns">
+                <button class="control-btn" id="playSoundBtn">🔊 播放声音</button>
+                <button class="control-btn" id="nextBtn">下一题 ➡️</button>
+                <button class="control-btn" id="resetBtn">🔄 重置</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
