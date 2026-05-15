@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫猫互挠 🐾 - 喵界霸主</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="start-screen" id="startScreen">
+            <div class="title">
+                <h1>🐾 猫猫互挠 🐾</h1>
+                <p>挠赢对手，成为喵界霸主！</p>
+            </div>
+            <div class="menu-buttons">
+                <button class="btn btn-primary" id="startBtn">开始游戏</button>
+                <button class="btn btn-secondary" id="characterBtn">角色选择</button>
+            </div>
+        </div>
+
+        <div class="character-screen" id="characterScreen" style="display: none;">
+            <h2>选择你的猫咪</h2>
+            <div class="character-list" id="characterList"></div>
+            <div class="menu-buttons">
+                <button class="btn btn-primary" id="confirmCharacter">确认选择</button>
+                <button class="btn btn-secondary" id="backToStart">返回</button>
+            </div>
+        </div>
+
+        <div class="game-screen" id="gameScreen" style="display: none;">
+            <div class="game-hud">
+                <div class="player-hud player1">
+                    <div class="cat-name" id="player1Name">布偶猫</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="player1Health"></div>
+                    </div>
+                </div>
+                <div class="game-controls">
+                    <button class="btn-small" id="pauseBtn">⏸️ 暂停</button>
+                </div>
+                <div class="player-hud player2">
+                    <div class="cat-name" id="player2Name">橘猫</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="player2Health"></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            <div class="combo-display" id="comboDisplay"></div>
+        </div>
+
+        <div class="pause-menu" id="pauseMenu" style="display: none;">
+            <div class="pause-content">
+                <h2>游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button class="btn btn-primary" id="resumeBtn">继续游戏</button>
+                    <button class="btn btn-secondary" id="restartBtn">重新开始</button>
+                    <button class="btn btn-danger" id="exitBtn">退出游戏</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-screen" id="resultScreen" style="display: none;">
+            <div class="result-content">
+                <h2 id="resultTitle">胜利！</h2>
+                <p id="resultMessage">你成为了喵界霸主！</p>
+                <div class="menu-buttons">
+                    <button class="btn btn-primary" id="playAgainBtn">再来一局</button>
+                    <button class="btn btn-secondary" id="backToMenuBtn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-hint" id="controlsHint">
+            <div class="hint-content">
+                <h3>操作说明</h3>
+                <div class="hint-grid">
+                    <div class="hint-item"><span class="key">← →</span> 移动</div>
+                    <div class="hint-item"><span class="key">↑</span> 跳跃</div>
+                    <div class="hint-item"><span class="key">↓</span> 趴下</div>
+                    <div class="hint-item"><span class="key">J</span> 轻爪</div>
+                    <div class="hint-item"><span class="key">K</span> 重爪</div>
+                    <div class="hint-item"><span class="key">U</span> 轻尾</div>
+                    <div class="hint-item"><span class="key">I</span> 重尾</div>
+                    <div class="hint-item"><span class="key">↓→ + J</span> 必杀技</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
