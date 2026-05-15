@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平底锅之夜 🥘 - 吃鸡战场</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">平底锅之夜 🥘</h1>
+            <p class="game-subtitle">吃鸡战场</p>
+            <div class="character-select">
+                <h3>选择你的角色</h3>
+                <div class="characters">
+                    <div class="character-card selected" data-character="soldier">
+                        <div class="character-icon">🪖</div>
+                        <h4>吃鸡特种兵</h4>
+                        <p class="character-type">均衡型</p>
+                        <div class="character-stats">
+                            <span>生命: 100</span>
+                            <span>攻击: 10</span>
+                            <span>防御: 5</span>
+                        </div>
+                    </div>
+                    <div class="character-card" data-character="girl">
+                        <div class="character-icon">👧</div>
+                        <h4>吃鸡少女</h4>
+                        <p class="character-type">速度型</p>
+                        <div class="character-stats">
+                            <span>生命: 90</span>
+                            <span>攻击: 8</span>
+                            <span>防御: 7</span>
+                        </div>
+                    </div>
+                    <div class="character-card" data-character="warrior">
+                        <div class="character-icon">🥷</div>
+                        <h4>蒙面战士</h4>
+                        <p class="character-type">攻击型</p>
+                        <div class="character-stats">
+                            <span>生命: 110</span>
+                            <span>攻击: 13</span>
+                            <span>防御: 4</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-buttons">
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary" style="display: none;">继续游戏</button>
+            </div>
+            <div class="controls-info">
+                <p>← → 移动 | ↑ 跳跃 | ↓ 下蹲</p>
+                <p>J 轻拍 | K 重拍 | 长按K 蓄力拍</p>
+                <p>↓↘→ + J 平底锅旋风必杀技</p>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-hud">
+                <div class="player-hud left">
+                    <div class="player-name">玩家</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="player-health"></div>
+                    </div>
+                    <div class="special-bar">
+                        <div class="special-fill" id="player-special"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <span id="timer">60</span>
+                    <button id="pause-btn" class="btn-small">⏸️</button>
+                </div>
+                <div class="player-hud right">
+                    <div class="player-name">AI对手</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="enemy-health"></div>
+                    </div>
+                    <div class="special-bar">
+                        <div class="special-fill" id="enemy-special"></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen overlay">
+            <div class="result-menu">
+                <h2 id="result-title">胜利！</h2>
+                <p id="result-message">恭喜你击败了对手！</p>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
