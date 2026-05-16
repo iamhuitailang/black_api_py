@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超市抢购王 🛒</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="start-menu" class="menu">
+            <div class="menu-content">
+                <h1>🛒 超市抢购王</h1>
+                <p class="subtitle">限时抢购，比拼金额！</p>
+                
+                <div class="character-select">
+                    <h3>选择角色</h3>
+                    <div class="characters">
+                        <div class="character-card selected" data-character="speed">
+                            <div class="character-icon">🏃</div>
+                            <div class="character-name">极速小哥</div>
+                            <div class="character-type">速度型</div>
+                            <div class="character-desc">快速冲刺</div>
+                            <div class="character-life">❤️❤️❤️</div>
+                        </div>
+                        <div class="character-card" data-character="pickup">
+                            <div class="character-icon">🛒</div>
+                            <div class="character-name">购物达人</div>
+                            <div class="character-type">拾取型</div>
+                            <div class="character-desc">双倍拾取</div>
+                            <div class="character-life">❤️❤️❤️❤️</div>
+                        </div>
+                        <div class="character-card" data-character="shield">
+                            <div class="character-icon">🧺</div>
+                            <div class="character-name">家庭主妇</div>
+                            <div class="character-type">均衡型</div>
+                            <div class="character-desc">护盾免疫</div>
+                            <div class="character-life">❤️❤️❤️❤️❤️</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <p class="tips">操作说明：←→移动 | ↑跳跃 | ↓下蹲 | 空格拾取</p>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="menu hidden">
+            <div class="menu-content small">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="game-over-menu" class="menu hidden">
+            <div class="menu-content">
+                <h2 id="result-title">游戏结束</h2>
+                <div id="result-content"></div>
+                <button id="play-again-btn" class="btn btn-primary">再玩一次</button>
+                <button id="back-menu-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+        
+        <button id="pause-btn" class="pause-btn hidden">⏸️</button>
+        
+        <div id="hud" class="hud hidden">
+            <div class="hud-left">
+                <div class="hud-item">
+                    <span class="label">💰 金额</span>
+                    <span id="money-display" class="value">¥0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">❤️ 生命</span>
+                    <span id="life-display" class="value">3</span>
+                </div>
+            </div>
+            <div class="hud-center">
+                <div class="timer">
+                    <span id="timer-display">03:00</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="hud-item">
+                    <span class="label">🛒 商品</span>
+                    <span id="item-count" class="value">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="skill-hint" class="skill-hint hidden"></div>
+    </div>
+    
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/clerk.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/skills.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
