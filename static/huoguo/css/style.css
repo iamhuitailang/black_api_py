@@ -1,0 +1,423 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #1a0a00 0%, #2d1810 50%, #1a0a00 100%);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+.screen.active {
+    display: flex;
+}
+
+.screen.overlay {
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+}
+
+#start-screen {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: 
+        radial-gradient(ellipse at 20% 20%, rgba(255, 100, 0, 0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255, 50, 0, 0.15) 0%, transparent 50%),
+        linear-gradient(180deg, #1a0a00 0%, #2d1810 50%, #1a0a00 100%);
+}
+
+.neon-title {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.neon-title h1 {
+    font-size: 72px;
+    color: #fff;
+    text-shadow: 
+        0 0 10px #fff,
+        0 0 20px #ff6600,
+        0 0 40px #ff6600,
+        0 0 80px #ff3300;
+    animation: neon-glow 2s infinite alternate;
+}
+
+.neon-title .subtitle {
+    font-size: 24px;
+    color: #ffcc00;
+    text-shadow: 
+        0 0 10px #ffcc00,
+        0 0 20px #ff9900;
+    margin-top: 10px;
+}
+
+@keyframes neon-glow {
+    0% {
+        text-shadow: 
+            0 0 10px #fff,
+            0 0 20px #ff6600,
+            0 0 40px #ff6600,
+            0 0 80px #ff3300;
+    }
+    100% {
+        text-shadow: 
+            0 0 15px #fff,
+            0 0 30px #ff6600,
+            0 0 60px #ff6600,
+            0 0 100px #ff3300;
+    }
+}
+
+.character-select {
+    margin-bottom: 40px;
+}
+
+.character-select h2 {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+    text-shadow: 0 0 15px #ff6600;
+}
+
+.characters {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+}
+
+.character-card {
+    background: linear-gradient(145deg, #3d2010, #2a1508);
+    border: 3px solid #ff6600;
+    border-radius: 15px;
+    padding: 25px;
+    width: 200px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(255, 102, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.character-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 200, 100, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.character-card:hover::before {
+    left: 100%;
+}
+
+.character-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 40px rgba(255, 102, 0, 0.6);
+    border-color: #ffcc00;
+}
+
+.character-card.selected {
+    border-color: #ffcc00;
+    box-shadow: 0 0 30px rgba(255, 204, 0, 0.7);
+}
+
+.character-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #ffcc00;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.character-emoji {
+    font-size: 64px;
+    margin-bottom: 10px;
+}
+
+.character-card h3 {
+    color: #fff;
+    font-size: 22px;
+    margin-bottom: 5px;
+}
+
+.character-card .type {
+    color: #ffcc00;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.character-card .stats {
+    text-align: left;
+}
+
+.character-card .stat {
+    display: flex;
+    justify-content: space-between;
+    color: #ccc;
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+.character-card .stat .label {
+    color: #ff9966;
+}
+
+.character-card .stat .value {
+    color: #fff;
+    font-weight: bold;
+}
+
+.menu-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-btn {
+    background: linear-gradient(145deg, #ff6600, #cc3300);
+    border: none;
+    color: #fff;
+    padding: 15px 50px;
+    font-size: 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 5px 15px rgba(255, 102, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.game-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.game-btn:hover::before {
+    left: 100%;
+}
+
+.game-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 30px rgba(255, 102, 0, 0.7);
+}
+
+.game-btn.neon-btn {
+    animation: button-pulse 2s infinite;
+}
+
+@keyframes button-pulse {
+    0%, 100% {
+        box-shadow: 0 5px 15px rgba(255, 102, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 5px 30px rgba(255, 204, 0, 0.6);
+    }
+}
+
+.controls-hint {
+    margin-top: 30px;
+    text-align: center;
+    color: #aaa;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px 30px;
+    border-radius: 15px;
+    border: 1px solid #ff6600;
+}
+
+.controls-hint p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+#game-screen {
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+#hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+    z-index: 10;
+}
+
+.player-hud {
+    width: 250px;
+}
+
+.player-hud.left {
+    text-align: left;
+}
+
+.player-hud.right {
+    text-align: right;
+}
+
+.health-bar, .energy-bar {
+    margin: 8px 0;
+}
+
+.health-bar .label, .energy-bar .label {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-shadow: 0 0 5px #000;
+}
+
+.bar-container {
+    width: 100%;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #666;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.bar {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 8px;
+}
+
+#player-health {
+    background: linear-gradient(90deg, #ff3300, #ff6600);
+    box-shadow: 0 0 10px #ff3300;
+    width: 100%;
+}
+
+#enemy-health {
+    background: linear-gradient(270deg, #3366ff, #00ccff);
+    box-shadow: 0 0 10px #3366ff;
+    width: 100%;
+}
+
+#player-energy-bar, #enemy-energy-bar {
+    background: linear-gradient(90deg, #ffcc00, #ff9900);
+    box-shadow: 0 0 10px #ffcc00;
+    height: 15px;
+    width: 0%;
+}
+
+#player-health-text, #enemy-health-text {
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: 10px;
+    text-shadow: 0 0 5px #000;
+}
+
+.center-hud {
+    text-align: center;
+}
+
+#round-info {
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 10px #ff6600;
+    margin-bottom: 10px;
+}
+
+.pause-btn {
+    background: rgba(255, 102, 0, 0.3);
+    border: 2px solid #ff6600;
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.pause-btn:hover {
+    background: rgba(255, 102, 0, 0.6);
+    transform: scale(1.1);
+}
+
+#game-canvas {
+    flex: 1;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#hud {
+    position: relative;
+    z-index: 10;
+}
+
+.pause-menu, .result-menu {
+    background: linear-gradient(145deg, #3d2010, #2a1508);
+    border: 3px solid #ff6600;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(255, 102, 0, 0.5);
+}
+
+.pause-menu h2, .result-menu h2 {
+    color: #fff;
+    font-size: 36px;
+    margin-bottom: 30px;
+    text-shadow: 0 0 15px #ff6600;
+}
+
+.result-menu p {
+    color: #ffcc00;
+    font-size: 20px;
+    margin-bottom: 30px;
+}
+
+.pause-menu .game-btn, .result-menu .game-btn {
+    display: block;
+    margin: 15px auto;
+    width: 200px;
+    padding: 12px 30px;
+    font-size: 18px;
+}

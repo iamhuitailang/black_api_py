@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火锅大作战 🍲</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <div class="neon-title">
+                <h1>火锅大作战</h1>
+                <p class="subtitle">夜市大排档 · 成为火锅之王</p>
+            </div>
+            <div class="character-select">
+                <h2>选择你的火锅</h2>
+                <div class="characters">
+                    <div class="character-card selected" data-character="spicy">
+                        <div class="character-emoji">🍲</div>
+                        <h3>麻辣锅</h3>
+                        <p class="type">攻击型</p>
+                        <div class="stats">
+                            <div class="stat"><span class="label">热量:</span><span class="value">95</span></div>
+                            <div class="stat"><span class="label">攻击:</span><span class="value">15</span></div>
+                            <div class="stat"><span class="label">防御:</span><span class="value">3</span></div>
+                        </div>
+                    </div>
+                    <div class="character-card" data-character="clear">
+                        <div class="character-emoji">🥔</div>
+                        <h3>清汤锅</h3>
+                        <p class="type">均衡型</p>
+                        <div class="stats">
+                            <div class="stat"><span class="label">热量:</span><span class="value">100</span></div>
+                            <div class="stat"><span class="label">攻击:</span><span class="value">12</span></div>
+                            <div class="stat"><span class="label">防御:</span><span class="value">5</span></div>
+                        </div>
+                    </div>
+                    <div class="character-card" data-character="tomato">
+                        <div class="character-emoji">🦐</div>
+                        <h3>番茄锅</h3>
+                        <p class="type">速度型</p>
+                        <div class="stats">
+                            <div class="stat"><span class="label">热量:</span><span class="value">90</span></div>
+                            <div class="stat"><span class="label">攻击:</span><span class="value">10</span></div>
+                            <div class="stat"><span class="label">防御:</span><span class="value">4</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-buttons">
+                <button id="start-btn" class="game-btn neon-btn">开始游戏</button>
+                <button id="continue-game-btn" class="game-btn neon-btn" style="display:none; margin-left:20px;">继续游戏</button>
+            </div>
+            <div class="controls-hint">
+                <p>← → 移动 | ↑ 跳跃 | ↓ 下蹲</p>
+                <p>Z 小食材 | X 大食材 | C 近战</p>
+                <p>空格 必杀技（需能量）</p>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="hud">
+                <div class="player-hud left">
+                    <div class="health-bar">
+                        <div class="label">玩家</div>
+                        <div class="bar-container">
+                            <div id="player-health" class="bar"></div>
+                        </div>
+                        <span id="player-health-text">100</span>
+                    </div>
+                    <div class="energy-bar">
+                        <div class="label">能量</div>
+                        <div class="bar-container">
+                            <div id="player-energy-bar" class="bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="center-hud">
+                    <div id="round-info">第 1 局</div>
+                    <button id="pause-btn" class="pause-btn">⏸️</button>
+                </div>
+                <div class="player-hud right">
+                    <div class="health-bar">
+                        <div class="label">对手</div>
+                        <div class="bar-container">
+                            <div id="enemy-health" class="bar"></div>
+                        </div>
+                        <span id="enemy-health-text">100</span>
+                    </div>
+                    <div class="energy-bar">
+                        <div class="label">能量</div>
+                        <div class="bar-container">
+                            <div id="enemy-energy-bar" class="bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="game-btn">继续游戏</button>
+                <button id="restart-btn" class="game-btn">重新开始</button>
+                <button id="quit-btn" class="game-btn">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen overlay">
+            <div class="result-menu">
+                <h2 id="result-title">胜利!</h2>
+                <p id="result-message">你成为了火锅之王!</p>
+                <button id="play-again-btn" class="game-btn">再来一局</button>
+                <button id="back-to-menu-btn" class="game-btn">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
