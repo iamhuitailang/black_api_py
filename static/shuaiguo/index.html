@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>办公室甩锅王 🖨️</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-menu" class="menu active">
+            <div class="menu-content">
+                <h1>🏢 办公室甩锅王</h1>
+                <p class="subtitle">在职场生存之战中，把锅甩给对手！</p>
+                
+                <div class="character-select">
+                    <h3>选择你的角色</h3>
+                    <div class="characters">
+                        <div class="character-card selected" data-character="programmer">
+                            <div class="character-icon">🧑‍💻</div>
+                            <div class="character-name">程序猿</div>
+                            <div class="character-type">均衡型</div>
+                            <div class="character-stats">
+                                <span>背锅:100</span>
+                                <span>伤害:12</span>
+                                <span>防御:5</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-character="product">
+                            <div class="character-icon">👩‍💼</div>
+                            <div class="character-name">产品经理</div>
+                            <div class="character-type">控制型</div>
+                            <div class="character-stats">
+                                <span>背锅:110</span>
+                                <span>伤害:10</span>
+                                <span>防御:7</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-character="designer">
+                            <div class="character-icon">📝</div>
+                            <div class="character-name">设计狮</div>
+                            <div class="character-type">速度型</div>
+                            <div class="character-stats">
+                                <span>背锅:90</span>
+                                <span>伤害:14</span>
+                                <span>防御:4</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="start-btn" class="btn primary">🎮 开始游戏</button>
+                <button id="resume-btn" class="btn secondary" style="display:none;">▶️ 继续游戏</button>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu">
+            <div class="menu-content small">
+                <h2>⏸️ 游戏暂停</h2>
+                <button id="resume-game-btn" class="btn primary">▶️ 继续游戏</button>
+                <button id="restart-game-btn" class="btn secondary">🔄 重新开始</button>
+                <button id="exit-game-btn" class="btn danger">🚪 退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over-menu" class="menu">
+            <div class="menu-content small">
+                <h2 id="game-result-title"></h2>
+                <p id="game-result-text"></p>
+                <button id="play-again-btn" class="btn primary">🔄 再来一局</button>
+                <button id="back-to-menu-btn" class="btn secondary">🏠 返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="game-screen">
+            <div class="game-hud">
+                <div class="hud-left">
+                    <div class="player-info">
+                        <span id="player-icon">🧑‍💻</span>
+                        <span id="player-name">程序猿</span>
+                    </div>
+                    <div class="blame-bar">
+                        <div class="bar-label">背锅值</div>
+                        <div class="bar-container">
+                            <div id="player-blame-bar" class="bar-fill"></div>
+                        </div>
+                        <span id="player-blame-value">0/100</span>
+                    </div>
+                </div>
+                
+                <div class="hud-center">
+                    <div id="timer" class="timer">02:00</div>
+                    <button id="pause-btn" class="btn-small">⏸️</button>
+                </div>
+                
+                <div class="hud-right">
+                    <div class="player-info">
+                        <span id="enemy-name">对手</span>
+                        <span id="enemy-icon">👩‍💼</span>
+                    </div>
+                    <div class="blame-bar">
+                        <div class="bar-label">背锅值</div>
+                        <div class="bar-container">
+                            <div id="enemy-blame-bar" class="bar-fill"></div>
+                        </div>
+                        <span id="enemy-blame-value">0/110</span>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="game-canvas"></canvas>
+
+            <div class="controls-hint">
+                <div class="control-group">
+                    <span class="key">←→</span>
+                    <span class="label">移动</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">↑</span>
+                    <span class="label">跳跃</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">↓</span>
+                    <span class="label">摸鱼防御</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">A</span>
+                    <span class="label">轻甩锅</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">S</span>
+                    <span class="label">重甩锅</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">D</span>
+                    <span class="label">吐槽攻击</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">W</span>
+                    <span class="label">拍桌警告</span>
+                </div>
+                <div class="control-group">
+                    <span class="key">↓→+A</span>
+                    <span class="label">必杀技</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
