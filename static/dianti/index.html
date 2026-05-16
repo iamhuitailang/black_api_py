@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电梯生存赛 🛗</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="main-menu" class="menu">
+            <h1>电梯生存赛 🛗</h1>
+            <p class="subtitle">在高速运行的电梯中坚守生存！</p>
+            
+            <div class="character-select">
+                <h3>选择角色</h3>
+                <div class="characters">
+                    <div class="character-card selected" data-character="agent">
+                        <div class="character-icon">🕵️</div>
+                        <div class="character-name">特工</div>
+                        <div class="character-type">均衡型</div>
+                        <div class="character-stats">
+                            <div>❤️ 100</div>
+                            <div>⚔️ 12</div>
+                            <div>🛡️ 5</div>
+                        </div>
+                    </div>
+                    <div class="character-card" data-character="runner">
+                        <div class="character-icon">🏃</div>
+                        <div class="character-name">跑酷达人</div>
+                        <div class="character-type">速度型</div>
+                        <div class="character-stats">
+                            <div>❤️ 90</div>
+                            <div>⚔️ 10</div>
+                            <div>🛡️ 6</div>
+                        </div>
+                    </div>
+                    <div class="character-card" data-character="security">
+                        <div class="character-icon">👮</div>
+                        <div class="character-name">安保</div>
+                        <div class="character-type">防御型</div>
+                        <div class="character-stats">
+                            <div>❤️ 110</div>
+                            <div>⚔️ 8</div>
+                            <div>🛡️ 8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            <button id="resume-btn" class="btn btn-secondary hidden">继续游戏</button>
+        </div>
+        
+        <div id="pause-menu" class="menu hidden">
+            <h2>游戏暂停</h2>
+            <button id="continue-btn" class="btn btn-primary">继续游戏</button>
+            <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+            <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+        </div>
+        
+        <div id="game-over-menu" class="menu hidden">
+            <h2 id="game-result"></h2>
+            <p id="game-stats"></p>
+            <button id="retry-btn" class="btn btn-primary">再来一局</button>
+            <button id="back-menu-btn" class="btn btn-secondary">返回主菜单</button>
+        </div>
+        
+        <div id="game-hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-left">
+                    <div class="health-bar">
+                        <span class="label">❤️ 生命值</span>
+                        <div class="bar">
+                            <div id="health-fill" class="fill"></div>
+                        </div>
+                        <span id="health-text">100/100</span>
+                    </div>
+                    <div class="skill-bar">
+                        <span class="label">⚡ 必杀技</span>
+                        <div class="bar">
+                            <div id="skill-fill" class="fill"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div id="timer" class="timer">02:00</div>
+                    <div id="floor-display" class="floor">1F</div>
+                </div>
+                <div class="hud-right">
+                    <button id="pause-btn" class="btn-pause">⏸️</button>
+                </div>
+            </div>
+            <div class="hud-bottom">
+                <div class="controls-hint">
+                    <span>↑↓←→ 移动</span>
+                    <span>空格 攻击/技能</span>
+                    <span>ESC 暂停</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/modules/storage.js"></script>
+    <script src="js/modules/constants.js"></script>
+    <script src="js/modules/input.js"></script>
+    <script src="js/modules/character.js"></script>
+    <script src="js/modules/enemy.js"></script>
+    <script src="js/modules/trap.js"></script>
+    <script src="js/modules/item.js"></script>
+    <script src="js/modules/renderer.js"></script>
+    <script src="js/modules/game.js"></script>
+    <script src="js/modules/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
