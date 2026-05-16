@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉字对决 ✍️</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="menu-overlay" class="menu-overlay hidden"></div>
+            
+            <div id="start-menu" class="menu bamboo-panel">
+                <h1 class="game-title">汉字对决</h1>
+                <div class="seal">墨</div>
+                <p class="subtitle">以字为剑，以词为招</p>
+                
+                <div class="character-select">
+                    <h3>选择角色</h3>
+                    <div class="character-grid">
+                        <div class="character-card" data-char="龙">
+                            <div class="char-icon">龙</div>
+                            <div class="char-name">龙字</div>
+                            <div class="char-type">均衡型</div>
+                        </div>
+                        <div class="character-card" data-char="凤">
+                            <div class="char-icon">凤</div>
+                            <div class="char-name">凤字</div>
+                            <div class="char-type">敏捷型</div>
+                        </div>
+                        <div class="character-card" data-char="儒">
+                            <div class="char-icon">儒</div>
+                            <div class="char-name">儒字</div>
+                            <div class="char-type">防御型</div>
+                        </div>
+                        <div class="character-card" data-char="烈">
+                            <div class="char-icon">烈</div>
+                            <div class="char-name">烈字</div>
+                            <div class="char-type">攻击型</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="startBtn" class="bamboo-btn">开始游戏</button>
+            </div>
+            
+            <div id="pause-menu" class="menu bamboo-panel hidden">
+                <h2>游戏暂停</h2>
+                <div class="seal">Pause</div>
+                <button id="resumeBtn" class="bamboo-btn">继续游戏</button>
+                <button id="restartBtn" class="bamboo-btn">重新开始</button>
+                <button id="quitBtn" class="bamboo-btn">退出游戏</button>
+            </div>
+            
+            <div id="game-over" class="menu bamboo-panel hidden">
+                <h2 id="result-text">胜利！</h2>
+                <div class="seal" id="result-seal">胜</div>
+                <button id="playAgainBtn" class="bamboo-btn">再来一局</button>
+                <button id="backToMenuBtn" class="bamboo-btn">返回主菜单</button>
+            </div>
+            
+            <div id="hud" class="hidden">
+                <div class="health-bar player-health">
+                    <div class="bar-label">玩家</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" id="playerHealthFill"></div>
+                    </div>
+                    <div class="bar-value" id="playerHealthValue">100/100</div>
+                </div>
+                
+                <div class="health-bar enemy-health">
+                    <div class="bar-label">对手</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" id="enemyHealthFill"></div>
+                    </div>
+                    <div class="bar-value" id="enemyHealthValue">100/100</div>
+                </div>
+                
+                <div class="timer" id="gameTimer">03:00</div>
+                
+                <button id="pauseBtn" class="pause-btn">⏸</button>
+                
+                <div class="input-display">
+                    <div class="input-label">输入招式</div>
+                    <input type="text" class="input-box" id="inputBox" autocomplete="off" maxlength="4">
+                </div>
+                
+                <div class="skill-bar">
+                    <div class="skill-btn" data-skill="ultimate1">
+                        <span class="skill-name">必杀技1</span>
+                    </div>
+                    <div class="skill-btn" data-skill="ultimate2">
+                        <span class="skill-name">必杀技2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/storage.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
