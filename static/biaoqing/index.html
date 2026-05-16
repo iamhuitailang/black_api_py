@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表情包乱斗 😂</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="main-menu" class="menu">
+            <h1>😂 表情包乱斗 😂</h1>
+            <p class="subtitle">操控魔性表情包，笑到对手认输！</p>
+            <button id="startBtn" class="btn btn-primary">开始游戏</button>
+            <button id="resumeBtn" class="btn btn-secondary" style="display: none;">继续游戏</button>
+        </div>
+
+        <div id="character-select" class="menu" style="display: none;">
+            <h2>选择你的表情包斗士</h2>
+            <div class="character-grid">
+                <div class="character-card" data-char="laugh">
+                    <div class="char-emoji">😂</div>
+                    <div class="char-name">笑哭脸</div>
+                    <div class="char-type">均衡型</div>
+                    <div class="char-skills">狂笑冲击、魔性甩头</div>
+                </div>
+                <div class="character-card" data-char="clown">
+                    <div class="char-emoji">🤡</div>
+                    <div class="char-name">小丑脸</div>
+                    <div class="char-type">攻击型</div>
+                    <div class="char-skills">滑稽炸弹、搞怪飞踢</div>
+                </div>
+                <div class="character-card" data-char="devil">
+                    <div class="char-emoji">😈</div>
+                    <div class="char-name">恶魔笑</div>
+                    <div class="char-type">速度型</div>
+                    <div class="char-skills">坏笑突袭、鬼脸震慑</div>
+                </div>
+                <div class="character-card" data-char="dog">
+                    <div class="char-emoji">🐶</div>
+                    <div class="char-name">修勾笑</div>
+                    <div class="char-type">防御型</div>
+                    <div class="char-skills">卖萌减伤、贴贴冲撞</div>
+                </div>
+            </div>
+            <button id="confirmCharBtn" class="btn btn-primary" style="display: none;">确认选择</button>
+            <button id="backToMenuBtn" class="btn btn-secondary">返回主菜单</button>
+        </div>
+
+        <div id="pause-menu" class="menu" style="display: none;">
+            <h2>游戏暂停</h2>
+            <button id="resumeGameBtn" class="btn btn-primary">继续游戏</button>
+            <button id="restartGameBtn" class="btn btn-secondary">重新开始</button>
+            <button id="exitGameBtn" class="btn btn-danger">退出游戏</button>
+        </div>
+
+        <div id="victory-screen" class="menu" style="display: none;">
+            <h2>🎉 胜利！ 🎉</h2>
+            <p>你把对手笑到认输了！</p>
+            <button id="nextRoundBtn" class="btn btn-primary">下一局</button>
+            <button id="backToMenuFromVictory" class="btn btn-secondary">返回主菜单</button>
+        </div>
+
+        <div id="defeat-screen" class="menu" style="display: none;">
+            <h2>😢 认输了...</h2>
+            <p>下次一定能赢！</p>
+            <button id="retryBtn" class="btn btn-primary">再来一局</button>
+            <button id="backToMenuFromDefeat" class="btn btn-secondary">返回主菜单</button>
+        </div>
+
+        <div id="hud" style="display: none;">
+            <div class="hud-player">
+                <div class="hud-name" id="playerName">玩家</div>
+                <div class="hud-bar">
+                    <div class="hud-fill" id="playerHealth"></div>
+                </div>
+            </div>
+            <div class="hud-enemy">
+                <div class="hud-name" id="enemyName">对手</div>
+                <div class="hud-bar">
+                    <div class="hud-fill" id="enemyHealth"></div>
+                </div>
+            </div>
+            <button id="pauseBtn" class="pause-btn">⏸️</button>
+        </div>
+
+        <div id="controls-hint" style="display: none;">
+            <div class="control-key">← → 移动</div>
+            <div class="control-key">↑ 跳跃</div>
+            <div class="control-key">↓ 蹲下</div>
+            <div class="control-key">J 轻拍</div>
+            <div class="control-key">K 重拍</div>
+            <div class="control-key">U 轻踢</div>
+            <div class="control-key">I 重踢</div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
