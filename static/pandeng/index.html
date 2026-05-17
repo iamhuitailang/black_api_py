@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>攀登山 · 巅峰挑战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiLayer">
+            <div id="hud" class="hidden">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="label">海拔</span>
+                        <span id="altitudeValue" class="value">0m</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">最高</span>
+                        <span id="bestAltitudeValue" class="value">0m</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="stamina-bar">
+                        <div class="stamina-fill" id="staminaFill"></div>
+                        <span class="stamina-text">体力</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <button id="pauseBtn" class="btn-icon">⏸</button>
+                </div>
+            </div>
+
+            <div id="startScreen" class="screen">
+                <div class="screen-content">
+                    <h1 class="title">攀登山</h1>
+                    <h2 class="subtitle">巅峰挑战</h2>
+                    <div class="mountain-icon">🏔️</div>
+                    <p class="description">
+                        征服雪山之巅，挑战你的极限！<br>
+                        点击抓握点向上攀登，管理体力，躲避障碍，登顶成功！
+                    </p>
+                    <div class="best-score">
+                        <span>最高海拔：</span>
+                        <span id="bestScore">0m</span>
+                    </div>
+                    <button id="startBtn" class="btn-primary">开始游戏</button>
+                    <div class="tips">
+                        <p>💡 提示：点击岩壁上的凸起抓握点进行跳跃</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pauseScreen" class="screen hidden">
+                <div class="screen-content">
+                    <h2 class="title">游戏暂停</h2>
+                    <div class="menu-buttons">
+                        <button id="resumeBtn" class="btn-primary">继续游戏</button>
+                        <button id="restartBtn" class="btn-secondary">重新开始</button>
+                        <button id="quitBtn" class="btn-secondary">退出游戏</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gameOverScreen" class="screen hidden">
+                <div class="screen-content">
+                    <h2 class="title game-over">挑战失败</h2>
+                    <div class="result-info">
+                        <div class="result-item">
+                            <span>本次海拔：</span>
+                            <span id="finalScore">0m</span>
+                        </div>
+                        <div class="result-item">
+                            <span>最高海拔：</span>
+                            <span id="finalBestScore">0m</span>
+                        </div>
+                        <div id="newRecord" class="new-record hidden">🎉 新纪录！</div>
+                    </div>
+                    <div class="menu-buttons">
+                        <button id="retryBtn" class="btn-primary">再试一次</button>
+                        <button id="backToMenuBtn" class="btn-secondary">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="victoryScreen" class="screen hidden">
+                <div class="screen-content">
+                    <h2 class="title victory">🎉 登顶成功！</h2>
+                    <div class="victory-icon">🏆</div>
+                    <p class="description">恭喜你征服了雪山之巅！</p>
+                    <div class="result-info">
+                        <div class="result-item">
+                            <span>登顶海拔：</span>
+                            <span id="victoryScore">8848m</span>
+                        </div>
+                    </div>
+                    <div class="menu-buttons">
+                        <button id="playAgainBtn" class="btn-primary">再玩一次</button>
+                        <button id="victoryBackBtn" class="btn-secondary">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
