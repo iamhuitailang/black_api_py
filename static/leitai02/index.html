@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双截龙 · 街头对决</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1200" height="600"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <div class="title-container">
+                <h1 class="game-title">双截龙</h1>
+                <h2 class="game-subtitle">街头对决</h2>
+            </div>
+            <div class="menu-buttons">
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary" style="display:none;">继续游戏</button>
+                <button id="records-btn" class="btn btn-secondary">最高记录</button>
+            </div>
+            <div class="controls-info">
+                <h3>操作说明</h3>
+                <div class="controls-grid">
+                    <div class="control-item"><span class="key">J</span><span>轻拳</span></div>
+                    <div class="control-item"><span class="key">K</span><span>重拳</span></div>
+                    <div class="control-item"><span class="key">L</span><span>轻脚</span></div>
+                    <div class="control-item"><span class="key">U</span><span>重脚</span></div>
+                    <div class="control-item"><span class="key">F</span><span>必杀</span></div>
+                    <div class="control-item"><span class="key">G</span><span>抓投</span></div>
+                    <div class="control-item"><span class="key">←/→ / A/D</span><span>移动</span></div>
+                    <div class="control-item"><span class="key">↑/空格</span><span>跳跃</span></div>
+                    <div class="control-item"><span class="key">↓</span><span>防御</span></div>
+                    <div class="control-item"><span class="key">ESC</span><span>暂停</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="screen hidden">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="gameover-screen" class="screen hidden">
+            <div class="gameover-menu">
+                <h2 id="gameover-title">游戏结束</h2>
+                <p id="gameover-message"></p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">本次连胜</span>
+                        <span id="current-win-streak" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最高记录</span>
+                        <span id="best-win-streak" class="stat-value">0</span>
+                    </div>
+                </div>
+                <button id="retry-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+        
+        <div id="victory-screen" class="screen hidden">
+            <div class="victory-menu">
+                <h2>恭喜！</h2>
+                <h3>街区冠军</h3>
+                <p>你击败了所有对手，成为了街头霸主！</p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">通关回合</span>
+                        <span id="victory-round" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最高记录</span>
+                        <span id="victory-best" class="stat-value">0</span>
+                    </div>
+                </div>
+                <button id="victory-retry-btn" class="btn btn-primary">再次挑战</button>
+                <button id="victory-back-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+        
+        <div id="records-screen" class="screen hidden">
+            <div class="records-menu">
+                <h2>最高记录</h2>
+                <div class="records-list">
+                    <div class="record-item">
+                        <span class="record-label">最高连胜</span>
+                        <span id="record-streak" class="record-value">0</span>
+                    </div>
+                </div>
+                <button id="records-back-btn" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+        
+        <div id="round-transition" class="screen hidden">
+            <div class="round-info">
+                <h2 id="round-title">第 1 回合</h2>
+                <p id="round-opponent">对手：街头混混</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/opponent.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
