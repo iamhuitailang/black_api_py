@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乒乓对决 · 巅峰球台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="arena-wrapper">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <div class="score-board">
+                <div class="score player-score">
+                    <span class="score-label">玩家</span>
+                    <span id="playerScore" class="score-value">0</span>
+                </div>
+                <div class="game-status">
+                    <span id="gameStatus">巅峰对决</span>
+                </div>
+                <div class="score ai-score">
+                    <span id="aiScore" class="score-value">0</span>
+                    <span class="score-label">对手</span>
+                </div>
+            </div>
+
+            <div class="combo-display" id="comboDisplay"></div>
+
+            <div class="overlay" id="startScreen">
+                <div class="menu-panel">
+                    <h1 class="game-title">🏆 乒乓对决</h1>
+                    <h2 class="game-subtitle">巅峰球台</h2>
+                    <div class="game-desc">专业赛事赛场 · 巅峰竞技</div>
+                    <button class="btn btn-primary" id="startBtn">开始游戏</button>
+                    <div class="controls-info">
+                        <div class="control-item">← → 左右移动球拍</div>
+                        <div class="control-item">↓ 下压削球防守</div>
+                        <div class="control-item">Z 普通挡球</div>
+                        <div class="control-item">X 蓄力扣杀</div>
+                        <div class="control-item">C 快速轻挡</div>
+                        <div class="control-item">↓↘→ + Z 上旋弧线球</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overlay hidden" id="pauseScreen">
+                <div class="menu-panel">
+                    <h2 class="menu-title">游戏暂停</h2>
+                    <button class="btn btn-primary" id="resumeBtn">继续游戏</button>
+                    <button class="btn btn-secondary" id="restartBtn">重新开始</button>
+                    <button class="btn btn-danger" id="quitBtn">退出游戏</button>
+                </div>
+            </div>
+
+            <div class="overlay hidden" id="gameOverScreen">
+                <div class="menu-panel">
+                    <h2 class="menu-title" id="gameOverTitle">游戏结束</h2>
+                    <div class="final-score">
+                        <span id="finalPlayerScore">0</span>
+                        <span class="score-separator">:</span>
+                        <span id="finalAiScore">0</span>
+                    </div>
+                    <div class="result-text" id="resultText"></div>
+                    <button class="btn btn-primary" id="playAgainBtn">再来一局</button>
+                    <button class="btn btn-danger" id="exitBtn">退出游戏</button>
+                </div>
+            </div>
+
+            <button class="pause-btn" id="pauseBtn" title="暂停">⏸</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ball.js"></script>
+    <script src="js/paddle.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
