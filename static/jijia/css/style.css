@@ -1,0 +1,359 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a2a 100%);
+    min-height: 100vh;
+    overflow: hidden;
+    color: #fff;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.screen {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#start-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, #1a1a4a 0%, #0a0a1a 70%);
+}
+
+.start-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.start-content h1 {
+    font-size: 48px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff; }
+    to { text-shadow: 0 0 30px #ff00ff, 0 0 60px #ff00ff; }
+}
+
+.subtitle {
+    font-size: 18px;
+    color: #aaa;
+    margin-bottom: 40px;
+}
+
+.mecha-select {
+    margin-bottom: 40px;
+}
+
+.mecha-select h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #00ffff;
+}
+
+.mecha-options {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mecha-option {
+    background: linear-gradient(145deg, #2a2a5a, #1a1a3a);
+    border: 2px solid #4a4a8a;
+    border-radius: 15px;
+    padding: 20px;
+    width: 200px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mecha-option:hover {
+    transform: translateY(-5px);
+    border-color: #00ffff;
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+}
+
+.mecha-option.selected {
+    border-color: #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+.mecha-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.mecha-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.mecha-desc {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 15px;
+}
+
+.mecha-stats {
+    display: flex;
+    justify-content: space-around;
+    font-size: 14px;
+}
+
+.btn {
+    padding: 15px 40px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.btn-primary {
+    background: linear-gradient(145deg, #00ffff, #0088ff);
+    color: #000;
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+}
+
+.btn-secondary {
+    background: linear-gradient(145deg, #4a4a8a, #3a3a6a);
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(100, 100, 200, 0.5);
+}
+
+.btn-danger {
+    background: linear-gradient(145deg, #ff4444, #cc2222);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+}
+
+.btn-small {
+    padding: 8px 15px;
+    font-size: 14px;
+}
+
+#game-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: linear-gradient(90deg, #1a1a3a, #2a2a5a, #1a1a3a);
+    border-bottom: 2px solid #4a4a8a;
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mecha-icon-small {
+    font-size: 24px;
+}
+
+.health-bar {
+    width: 150px;
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #666;
+}
+
+.health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff00, #88ff00);
+    transition: width 0.3s ease;
+}
+
+.health-text {
+    font-size: 14px;
+    min-width: 70px;
+}
+
+.game-timer {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffff00;
+    text-shadow: 0 0 10px #ffff00;
+}
+
+.ammo-info {
+    font-size: 16px;
+}
+
+.skill-bar {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    background: rgba(30, 30, 60, 0.8);
+}
+
+.skill-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 15px;
+    background: linear-gradient(145deg, #3a3a6a, #2a2a4a);
+    border-radius: 10px;
+    border: 2px solid #5a5a9a;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 70px;
+}
+
+.skill-item:hover {
+    border-color: #00ffff;
+    transform: translateY(-2px);
+}
+
+.skill-item.selected {
+    border-color: #00ff00;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+.skill-item.ultimate {
+    border-color: #ffaa00;
+}
+
+.skill-icon {
+    font-size: 24px;
+}
+
+.skill-name {
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.charge-bar {
+    width: 60px;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.charge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffaa00, #ffff00);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+#game-canvas {
+    flex: 1;
+    background: linear-gradient(180deg, #0a0a2a 0%, #1a1a4a 50%, #0a0a3a 100%);
+    cursor: crosshair;
+    z-index: 10;
+    position: relative;
+    pointer-events: auto;
+}
+
+.defense-modules {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(30, 30, 60, 0.8);
+    border-top: 2px solid #4a4a8a;
+}
+
+.modules-container {
+    display: flex;
+    gap: 5px;
+}
+
+.module {
+    width: 30px;
+    height: 20px;
+    background: linear-gradient(145deg, #00aaff, #0066cc);
+    border-radius: 5px;
+    border: 2px solid #00ccff;
+    transition: all 0.3s ease;
+}
+
+.module.destroyed {
+    background: #333;
+    border-color: #555;
+    opacity: 0.5;
+}
+
+.menu-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.menu-content {
+    background: linear-gradient(145deg, #2a2a5a, #1a1a3a);
+    border: 3px solid #4a4a8a;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+}
+
+.menu-content h2 {
+    font-size: 36px;
+    margin-bottom: 30px;
+    color: #00ffff;
+    text-shadow: 0 0 15px #00ffff;
+}
+
+.menu-content button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+}

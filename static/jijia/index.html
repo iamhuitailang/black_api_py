@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 机甲弹珠战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <div class="start-content">
+                <h1>🤖 机甲弹珠战</h1>
+                <p class="subtitle">操控机甲，发射弹珠，击败BOSS！</p>
+                <div class="mecha-select">
+                    <h3>选择你的机甲</h3>
+                    <div class="mecha-options">
+                        <div class="mecha-option selected" data-mecha="thunder">
+                            <div class="mecha-icon">⚡</div>
+                            <div class="mecha-name">雷霆机甲</div>
+                            <div class="mecha-desc">速度型 · 电磁弹珠</div>
+                            <div class="mecha-stats">
+                                <span>❤️ 120</span>
+                                <span>⚔️ 15</span>
+                                <span>🛡️ 30</span>
+                            </div>
+                        </div>
+                        <div class="mecha-option" data-mecha="flame">
+                            <div class="mecha-icon">🔥</div>
+                            <div class="mecha-name">烈焰机甲</div>
+                            <div class="mecha-desc">攻击型 · 火焰弹珠</div>
+                            <div class="mecha-stats">
+                                <span>❤️ 100</span>
+                                <span>⚔️ 18</span>
+                                <span>🛡️ 25</span>
+                            </div>
+                        </div>
+                        <div class="mecha-option" data-mecha="shield">
+                            <div class="mecha-icon">🛡️</div>
+                            <div class="mecha-name">壁垒机甲</div>
+                            <div class="mecha-desc">防御型 · 护盾弹珠</div>
+                            <div class="mecha-stats">
+                                <span>❤️ 150</span>
+                                <span>⚔️ 12</span>
+                                <span>🛡️ 40</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen hidden">
+            <div class="game-header">
+                <div class="player-info">
+                    <div class="mecha-icon-small" id="player-icon">⚡</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="player-health"></div>
+                    </div>
+                    <span class="health-text" id="player-health-text">120/120</span>
+                </div>
+                <div class="game-timer">
+                    <span id="timer">02:00</span>
+                </div>
+                <div class="ammo-info">
+                    <span>🎯 弹珠: </span>
+                    <span id="ammo-count">5</span>
+                </div>
+                <button id="pause-btn" class="btn btn-small">⏸️</button>
+            </div>
+
+            <div class="skill-bar">
+                <div class="skill-item" data-skill="normal">
+                    <div class="skill-icon">🔵</div>
+                    <span class="skill-name">普通</span>
+                </div>
+                <div class="skill-item" data-skill="pierce">
+                    <div class="skill-icon">💜</div>
+                    <span class="skill-name">穿透</span>
+                </div>
+                <div class="skill-item" data-skill="explosive">
+                    <div class="skill-icon">💥</div>
+                    <span class="skill-name">爆破</span>
+                </div>
+                <div class="skill-item ultimate" data-skill="ultimate">
+                    <div class="skill-icon">⭐</div>
+                    <span class="skill-name">必杀</span>
+                    <div class="charge-bar">
+                        <div class="charge-fill" id="ultimate-charge"></div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="game-canvas"></canvas>
+
+            <div class="defense-modules">
+                <span>防御模块: </span>
+                <div class="modules-container" id="defense-modules"></div>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2 id="game-result">游戏结束</h2>
+                <p id="game-message"></p>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-to-menu-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/mecha.js"></script>
+    <script src="js/ball.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
