@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法工坊 · 药水大师</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <div class="title-container">
+                <h1 class="game-title">✨ 魔法工坊 ✨</h1>
+                <h2 class="game-subtitle">药水大师</h2>
+                <p class="title-desc">操控魔法学徒，调配魔法药水，成为顶尖药水大师！</p>
+            </div>
+            
+            <div class="character-select">
+                <h3>选择你的学徒</h3>
+                <div class="character-list">
+                    <div class="character-card" data-character="forest">
+                        <div class="character-icon">🧝</div>
+                        <div class="character-name">林间学徒</div>
+                        <div class="character-desc">均衡型 · 稳定成功率</div>
+                        <div class="character-talent">天赋：普通药水小幅暴击加成</div>
+                    </div>
+                    <div class="character-card" data-character="flame">
+                        <div class="character-icon">🧙</div>
+                        <div class="character-name">烈焰学徒</div>
+                        <div class="character-desc">技巧型 · 擅长火候把控</div>
+                        <div class="character-talent">天赋：火候失误容错率提升</div>
+                    </div>
+                    <div class="character-card" data-character="star">
+                        <div class="character-icon">🧚</div>
+                        <div class="character-name">星光学徒</div>
+                        <div class="character-desc">幸运型 · 稀有产出更高</div>
+                        <div class="character-talent">天赋：高阶配方保底触发</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="start-btn" class="magic-btn">开始游戏</button>
+            <button id="continue-btn" class="magic-btn secondary" style="display: none;">继续游戏</button>
+        </div>
+        
+        <div id="game-ui" class="screen hidden">
+            <div class="top-bar">
+                <div class="player-info">
+                    <div class="player-icon" id="player-icon">🧝</div>
+                    <div class="player-stats">
+                        <div class="level">Lv.<span id="player-level">1</span></div>
+                        <div class="exp-bar">
+                            <div class="exp-fill" id="exp-fill"></div>
+                        </div>
+                        <div class="exp-text"><span id="current-exp">0</span>/<span id="max-exp">100</span> EXP</div>
+                    </div>
+                </div>
+                <div class="resources">
+                    <div class="resource-item">
+                        <span class="resource-icon">💰</span>
+                        <span id="gold">100</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="resource-icon">🧪</span>
+                        <span id="potion-count">0</span>
+                    </div>
+                </div>
+                <div class="top-buttons">
+                    <button id="pause-btn" class="icon-btn" title="暂停">⏸️</button>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="left-panel">
+                    <div class="panel-section">
+                        <h3>材料库存</h3>
+                        <div class="materials-list" id="materials-list"></div>
+                    </div>
+                    
+                    <div class="panel-section">
+                        <h3>配方手册</h3>
+                        <div class="recipes-list" id="recipes-list"></div>
+                    </div>
+                </div>
+                
+                <div class="center-panel">
+                    <div class="cauldron-area">
+                        <div class="cauldron-container">
+                            <canvas id="cauldron-canvas" width="400" height="400"></canvas>
+                            <div class="cauldron-status" id="cauldron-status">等待投放材料...</div>
+                        </div>
+                        
+                        <div class="brewing-controls">
+                            <div class="control-group">
+                                <label>火候控制</label>
+                                <div class="heat-slider">
+                                    <input type="range" id="heat-slider" min="0" max="100" value="50">
+                                    <span id="heat-value">50%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label>搅拌次数</label>
+                                <div class="stir-controls">
+                                    <button id="stir-btn" class="magic-btn small">搅拌 (0次)</button>
+                                </div>
+                            </div>
+                            
+                            <div class="control-group buttons-row">
+                                <button id="brew-btn" class="magic-btn primary">开始炼制</button>
+                                <button id="clear-btn" class="magic-btn secondary">清空坩埚</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="right-panel">
+                    <div class="panel-section">
+                        <h3>坩埚内容</h3>
+                        <div class="cauldron-contents" id="cauldron-contents">
+                            <div class="empty-text">尚未投放材料</div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-section">
+                        <h3>NPC提示</h3>
+                        <div class="npc-tip" id="npc-tip">
+                            <div class="npc-avatar">🧙‍♂️</div>
+                            <div class="npc-message">欢迎来到魔法工坊！选择材料开始你的炼金之旅吧~</div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-section">
+                        <h3>炼制日志</h3>
+                        <div class="brew-log" id="brew-log"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="modal hidden">
+            <div class="modal-content">
+                <h2>游戏暂停</h2>
+                <div class="modal-buttons">
+                    <button id="resume-btn" class="magic-btn primary">继续游戏</button>
+                    <button id="restart-btn" class="magic-btn secondary">重新开始</button>
+                    <button id="quit-btn" class="magic-btn danger">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="result-modal" class="modal hidden">
+            <div class="modal-content result-content">
+                <h2 id="result-title">炼制成功！</h2>
+                <div id="result-content"></div>
+                <button id="result-close-btn" class="magic-btn primary">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
