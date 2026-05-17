@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>游泳竞速大赛</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- 主菜单 -->
+        <div id="main-menu" class="menu-overlay">
+            <div class="menu-content">
+                <h1 class="game-title">🏊 游泳竞速大赛</h1>
+                <p class="game-subtitle">体验真实的游泳竞技</p>
+                <div class="menu-buttons">
+                    <button id="btn-start" class="btn btn-primary">开始游戏</button>
+                    <button id="btn-select-stroke" class="btn btn-secondary">选择泳姿</button>
+                    <button id="btn-training" class="btn btn-secondary">训练模式</button>
+                    <button id="btn-records" class="btn btn-secondary">历史记录</button>
+                </div>
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">速度</span>
+                        <div class="stat-bar">
+                            <div id="stat-speed" class="stat-fill"></div>
+                        </div>
+                        <span id="stat-speed-value" class="stat-value">60</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">体力</span>
+                        <div class="stat-bar">
+                            <div id="stat-stamina" class="stat-fill"></div>
+                        </div>
+                        <span id="stat-stamina-value" class="stat-value">100</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">恢复</span>
+                        <div class="stat-bar">
+                            <div id="stat-recovery" class="stat-fill"></div>
+                        </div>
+                        <span id="stat-recovery-value" class="stat-value">5/s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 泳姿选择 -->
+        <div id="stroke-select" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>选择泳姿</h2>
+                <div class="stroke-list">
+                    <div class="stroke-item" data-stroke="freestyle">
+                        <div class="stroke-icon">🏊</div>
+                        <div class="stroke-info">
+                            <h3>自由泳</h3>
+                            <p>速度快，体力消耗中等</p>
+                            <div class="stroke-stats">
+                                <span>速度: ★★★★★</span>
+                                <span>体力: ★★★☆☆</span>
+                                <span>难度: ★★☆☆☆</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stroke-item" data-stroke="breaststroke">
+                        <div class="stroke-icon">🐸</div>
+                        <div class="stroke-info">
+                            <h3>蛙泳</h3>
+                            <p>速度较慢，体力消耗低</p>
+                            <div class="stroke-stats">
+                                <span>速度: ★★★☆☆</span>
+                                <span>体力: ★★★★★</span>
+                                <span>难度: ★☆☆☆☆</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stroke-item" data-stroke="butterfly">
+                        <div class="stroke-icon">🦋</div>
+                        <div class="stroke-info">
+                            <h3>蝶泳</h3>
+                            <p>速度极快，体力消耗高</p>
+                            <div class="stroke-stats">
+                                <span>速度: ★★★★★</span>
+                                <span>体力: ★☆☆☆☆</span>
+                                <span>难度: ★★★★★</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stroke-item" data-stroke="backstroke">
+                        <div class="stroke-icon">🔄</div>
+                        <div class="stroke-info">
+                            <h3>仰泳</h3>
+                            <p>速度中等，无需换气</p>
+                            <div class="stroke-stats">
+                                <span>速度: ★★★★☆</span>
+                                <span>体力: ★★★★☆</span>
+                                <span>难度: ★★☆☆☆</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="btn-back-menu" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+        
+        <!-- 游戏HUD -->
+        <div id="game-hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-item">
+                    <span class="hud-label">🏆 排名</span>
+                    <span id="hud-position" class="hud-value">1/5</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">⏱️ 时间</span>
+                    <span id="hud-time" class="hud-value">00:00.00</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">📍 进度</span>
+                    <span id="hud-progress" class="hud-value">0%</span>
+                </div>
+            </div>
+            
+            <div class="hud-bars">
+                <div class="bar-container">
+                    <span class="bar-label">💨 氧气</span>
+                    <div class="bar-wrapper">
+                        <div id="oxygen-bar" class="bar oxygen-bar"></div>
+                    </div>
+                    <span id="oxygen-value" class="bar-value">100%</span>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label">⚡ 体力</span>
+                    <div class="bar-wrapper">
+                        <div id="stamina-bar" class="bar stamina-bar"></div>
+                    </div>
+                    <span id="stamina-value" class="bar-value">100%</span>
+                </div>
+            </div>
+            
+            <div class="hud-bottom">
+                <button id="btn-breathe" class="btn btn-action btn-breathe">💨 换气 (空格)</button>
+                <button id="btn-pause" class="btn btn-action">⏸️ 暂停</button>
+            </div>
+            
+            <div id="turn-indicator" class="turn-indicator hidden">
+                <div class="turn-text">🏊 转身！</div>
+                <div class="turn-hint">快速交替按 A/D 或 ←/→</div>
+                <div class="turn-progress-container">
+                    <div id="turn-progress" class="turn-progress"></div>
+                </div>
+            </div>
+            
+            <div id="rhythm-guide" class="rhythm-guide">
+                <div class="rhythm-ring"></div>
+                <div class="rhythm-text">点击节奏</div>
+            </div>
+        </div>
+        
+        <!-- 暂停菜单 -->
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="btn-resume" class="btn btn-primary">继续游戏</button>
+                    <button id="btn-restart" class="btn btn-secondary">重新开始</button>
+                    <button id="btn-quit" class="btn btn-danger">退出游戏</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 比赛结束 -->
+        <div id="result-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2 id="result-title">🎉 比赛结束！</h2>
+                <div class="result-stats">
+                    <div class="result-item">
+                        <span class="result-label">最终排名</span>
+                        <span id="result-position" class="result-value">第 1 名</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">比赛用时</span>
+                        <span id="result-time" class="result-value">00:45.23</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">最高速度</span>
+                        <span id="result-speed" class="result-value">2.5 m/s</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">平均速度</span>
+                        <span id="result-avg-speed" class="result-value">1.8 m/s</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">转身次数</span>
+                        <span id="result-turns" class="result-value">3</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">换气次数</span>
+                        <span id="result-breaths" class="result-value">8</span>
+                    </div>
+                </div>
+                <div id="result-badges" class="result-badges"></div>
+                <div class="menu-buttons">
+                    <button id="btn-again" class="btn btn-primary">再来一局</button>
+                    <button id="btn-back" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 历史记录 -->
+        <div id="records-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>📊 历史记录</h2>
+                <div id="records-list" class="records-list"></div>
+                <button id="btn-clear-records" class="btn btn-danger">清除记录</button>
+                <button id="btn-back-records" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+        
+        <!-- 操作提示 -->
+        <div id="control-hint" class="control-hint hidden">
+            <p>💡 操作提示：有节奏地点击屏幕或按 A/D 键来划水！</p>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
