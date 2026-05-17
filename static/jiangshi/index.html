@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>植物大战僵尸・极简闯关版</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="screen active">
+            <div class="title">🌿 植物大战僵尸</div>
+            <div class="subtitle">极简闯关版</div>
+            <div class="difficulty-select">
+                <div class="label">选择难度</div>
+                <div class="difficulty-buttons">
+                    <button class="diff-btn" data-difficulty="easy">
+                        <span class="diff-icon">😊</span>
+                        <span class="diff-name">简单</span>
+                        <span class="diff-desc">僵尸慢速</span>
+                    </button>
+                    <button class="diff-btn active" data-difficulty="normal">
+                        <span class="diff-icon">😐</span>
+                        <span class="diff-name">普通</span>
+                        <span class="diff-desc">原版节奏</span>
+                    </button>
+                    <button class="diff-btn" data-difficulty="hard">
+                        <span class="diff-icon">😈</span>
+                        <span class="diff-name">困难</span>
+                        <span class="diff-desc">僵尸快跑+高血量</span>
+                    </button>
+                </div>
+            </div>
+            <button id="start-btn" class="primary-btn">开始游戏</button>
+            <div class="stats-preview">
+                <div class="stat-item">
+                    <span class="stat-icon">🏆</span>
+                    <span class="stat-label">最高波次</span>
+                    <span id="highest-wave-preview" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">💀</span>
+                    <span class="stat-label">消灭僵尸</span>
+                    <span id="total-kills-preview" class="stat-value">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="top-bar">
+                <div class="top-info">
+                    <div class="info-item">
+                        <span class="info-icon">🌊</span>
+                        <span class="info-label">波次</span>
+                        <span id="current-wave" class="info-value">1</span>
+                        <span class="info-sep">/</span>
+                        <span id="total-waves" class="info-value">10</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">💀</span>
+                        <span class="info-label">消灭</span>
+                        <span id="kill-count" class="info-value">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">🏆</span>
+                        <span class="info-label">最高</span>
+                        <span id="highest-wave" class="info-value">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">⭐</span>
+                        <span class="info-label">得分</span>
+                        <span id="score" class="info-value">0</span>
+                    </div>
+                </div>
+                <div class="top-controls">
+                    <button id="pause-btn" class="control-btn">⏸️ 暂停</button>
+                    <button id="restart-btn" class="control-btn">🔄 重开</button>
+                    <button id="next-wave-btn" class="control-btn">⚡ 下一波</button>
+                </div>
+            </div>
+
+            <div class="game-main">
+                <div class="plant-bar">
+                    <div class="sun-display">
+                        <span class="sun-icon">☀️</span>
+                        <span id="sun-count" class="sun-count">50</span>
+                    </div>
+                    <div class="plant-cards">
+                        <div class="plant-card" data-plant="sunflower">
+                            <div class="plant-icon">🌻</div>
+                            <div class="plant-cost">50</div>
+                            <div class="plant-name">向日葵</div>
+                        </div>
+                        <div class="plant-card" data-plant="peashooter">
+                            <div class="plant-icon">🌱</div>
+                            <div class="plant-cost">100</div>
+                            <div class="plant-name">豌豆射手</div>
+                        </div>
+                        <div class="plant-card" data-plant="iceshooter">
+                            <div class="plant-icon">❄️</div>
+                            <div class="plant-cost">175</div>
+                            <div class="plant-name">寒冰射手</div>
+                        </div>
+                        <div class="plant-card" data-plant="wallnut">
+                            <div class="plant-icon">🥜</div>
+                            <div class="plant-cost">50</div>
+                            <div class="plant-name">坚果墙</div>
+                        </div>
+                    </div>
+                    <div class="wave-indicator">
+                        <span id="wave-status">准备中...</span>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="game-canvas" width="900" height="500"></canvas>
+                    <div id="pause-overlay" class="overlay hidden">
+                        <div class="overlay-content">
+                            <div class="overlay-title">游戏暂停</div>
+                            <div class="overlay-buttons">
+                                <button id="resume-btn" class="primary-btn">继续游戏</button>
+                                <button id="overlay-restart-btn" class="secondary-btn">重新开始</button>
+                                <button id="quit-btn" class="secondary-btn">退出游戏</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="gameover-overlay" class="overlay hidden">
+                        <div class="overlay-content">
+                            <div class="overlay-title">游戏结束</div>
+                            <div class="gameover-stats">
+                                <div class="gameover-stat">
+                                    <span class="stat-label">坚持波次</span>
+                                    <span id="final-wave" class="stat-value">0</span>
+                                </div>
+                                <div class="gameover-stat">
+                                    <span class="stat-label">消灭僵尸</span>
+                                    <span id="final-kills" class="stat-value">0</span>
+                                </div>
+                                <div class="gameover-stat">
+                                    <span class="stat-label">本局得分</span>
+                                    <span id="final-score" class="stat-value">0</span>
+                                </div>
+                            </div>
+                            <div class="overlay-buttons">
+                                <button id="gameover-restart-btn" class="primary-btn">再来一局</button>
+                                <button id="gameover-quit-btn" class="secondary-btn">返回主页</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="victory-overlay" class="overlay hidden">
+                        <div class="overlay-content">
+                            <div class="overlay-title">🎉 恭喜通关！</div>
+                            <div class="gameover-stats">
+                                <div class="gameover-stat">
+                                    <span class="stat-label">消灭僵尸</span>
+                                    <span id="victory-kills" class="stat-value">0</span>
+                                </div>
+                                <div class="gameover-stat">
+                                    <span class="stat-label">本局得分</span>
+                                    <span id="victory-score" class="stat-value">0</span>
+                                </div>
+                            </div>
+                            <div class="overlay-buttons">
+                                <button id="victory-restart-btn" class="primary-btn">再来一局</button>
+                                <button id="victory-quit-btn" class="secondary-btn">返回主页</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/plants.js"></script>
+    <script src="js/zombies.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
