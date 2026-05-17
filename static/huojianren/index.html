@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火柴人大战 · 弓箭手的挑战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="1200" height="600"></canvas>
+        
+        <div id="start-screen" class="screen-overlay">
+            <div class="menu-box">
+                <h1 class="game-title">火柴人大战</h1>
+                <h2 class="game-subtitle">弓箭手的挑战</h2>
+                <p class="game-desc">落日弓场 · 热血竞技</p>
+                
+                <div class="character-select">
+                    <h3>选择角色</h3>
+                    <div class="character-list">
+                        <div class="character-card" data-char="balanced">
+                            <div class="char-icon">🧍</div>
+                            <div class="char-name">平衡弓箭手</div>
+                            <div class="char-desc">均衡型，射速伤害兼顾</div>
+                            <div class="char-stats">
+                                <span>❤ 100</span>
+                                <span>⚔ 12</span>
+                                <span>💨 5</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-char="power">
+                            <div class="char-icon">🔥</div>
+                            <div class="char-name">强攻弓箭手</div>
+                            <div class="char-desc">攻击型，单发伤害极高</div>
+                            <div class="char-stats">
+                                <span>❤ 95</span>
+                                <span>⚔ 14</span>
+                                <span>💨 4</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-char="speed">
+                            <div class="char-icon">💨</div>
+                            <div class="char-name">疾风弓箭手</div>
+                            <div class="char-desc">速度型，移动闪避灵活</div>
+                            <div class="char-stats">
+                                <span>❤ 90</span>
+                                <span>⚔ 10</span>
+                                <span>💨 6</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            </div>
+        </div>
+        
+        <div id="game-hud" class="hidden">
+            <div class="hud-left">
+                <div class="player-info">
+                    <div class="player-name">玩家</div>
+                    <div class="health-bar">
+                        <div id="player-health" class="health-fill"></div>
+                        <span id="player-health-text">100/100</span>
+                    </div>
+                    <div class="skill-bar">
+                        <div id="player-skill" class="skill-fill"></div>
+                        <span>技能</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hud-center">
+                <div id="game-timer">00:00</div>
+                <div id="round-info">第 1 局</div>
+            </div>
+            
+            <div class="hud-right">
+                <div class="enemy-info">
+                    <div class="player-name">敌人</div>
+                    <div class="health-bar">
+                        <div id="enemy-health" class="health-fill enemy"></div>
+                        <span id="enemy-health-text">100/100</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="pause-btn" class="btn btn-small">⏸ 暂停</button>
+        </div>
+        
+        <div id="pause-screen" class="screen-overlay hidden">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="result-screen" class="screen-overlay hidden">
+            <div class="menu-box">
+                <h2 id="result-title">胜利!</h2>
+                <p id="result-desc">恭喜你击败了对手!</p>
+                <div class="result-stats">
+                    <div>用时: <span id="result-time">00:00</span></div>
+                    <div>命中: <span id="result-hits">0</span></div>
+                    <div>躲避: <span id="result-dodges">0</span></div>
+                </div>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-menu-btn" class="btn">返回主菜单</button>
+            </div>
+        </div>
+        
+        <div id="controls-hint" class="hidden">
+            <div class="hint-item"><kbd>←</kbd><kbd>→</kbd> 移动</div>
+            <div class="hint-item"><kbd>↓</kbd> 下蹲</div>
+            <div class="hint-item"><kbd>J</kbd> 普通箭</div>
+            <div class="hint-item"><kbd>K</kbd> 蓄力箭</div>
+            <div class="hint-item"><kbd>L</kbd> 特技箭</div>
+        </div>
+    </div>
+    
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/arrow.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
