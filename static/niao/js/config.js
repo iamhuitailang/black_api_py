@@ -1,0 +1,105 @@
+const CONFIG = {
+    GAME: {
+        WIDTH: 480,
+        HEIGHT: 800,
+        GROUND_HEIGHT: 100,
+        PIPE_SPEED: 2.5,
+        PIPE_SPAWN_INTERVAL: 2000,
+        PIPE_GAP_BASE: 200,
+        PIPE_GAP_MIN: 150,
+        PIPE_WIDTH: 70,
+        DIFFICULTY_INCREASE_RATE: 0.3,
+    },
+    
+    BIRDS: {
+        yellow: {
+            name: '小黄鸟',
+            radius: 20,
+            hitboxScale: 0.8,
+            jumpForce: 7.5,
+            gravity: 4.5,
+            maxVelocity: 12,
+            color: '#FFD700',
+            colorLight: '#FFE066',
+            beakColor: '#FF8C00',
+            wingColor: '#FFA500',
+            particleColor: '#FFE066',
+        },
+        blue: {
+            name: '蓝羽鸟',
+            radius: 17,
+            hitboxScale: 0.7,
+            jumpForce: 6.8,
+            gravity: 4.8,
+            maxVelocity: 12,
+            color: '#4169E1',
+            colorLight: '#87CEEB',
+            beakColor: '#1E90FF',
+            wingColor: '#00BFFF',
+            particleColor: '#87CEEB',
+        },
+        red: {
+            name: '烈火鸟',
+            radius: 20,
+            hitboxScale: 0.8,
+            jumpForce: 8.5,
+            gravity: 4.0,
+            maxVelocity: 12,
+            color: '#DC143C',
+            colorLight: '#FF6B6B',
+            beakColor: '#FF4500',
+            wingColor: '#FF6347',
+            particleColor: '#FF6B6B',
+        }
+    },
+    
+    THEMES: {
+        sky: {
+            name: '晴空绿野',
+            skyTop: '#87CEEB',
+            skyBottom: '#98D8C8',
+            groundTop: '#90EE90',
+            groundBottom: '#228B22',
+            pipeTop: '#228B22',
+            pipeBottom: '#006400',
+            pipeCap: '#32CD32',
+            cloudColor: 'rgba(255, 255, 255, 0.8)',
+        },
+        sunset: {
+            name: '落日黄昏',
+            skyTop: '#FF7F50',
+            skyBottom: '#FFB347',
+            groundTop: '#8B4513',
+            groundBottom: '#654321',
+            pipeTop: '#CD853F',
+            pipeBottom: '#8B4513',
+            pipeCap: '#DEB887',
+            cloudColor: 'rgba(255, 200, 100, 0.6)',
+        },
+        night: {
+            name: '星空夜景',
+            skyTop: '#0a0a2e',
+            skyBottom: '#1a1a4e',
+            groundTop: '#2d2d5a',
+            groundBottom: '#1a1a2e',
+            pipeTop: '#4B0082',
+            pipeBottom: '#2F0F4F',
+            pipeCap: '#6A5ACD',
+            cloudColor: 'rgba(100, 100, 150, 0.4)',
+        }
+    },
+    
+    STORAGE_KEYS: {
+        HIGH_SCORE: 'niao_high_score',
+        GAME_STATE: 'niao_game_state',
+        SELECTED_CHARACTER: 'niao_character',
+        SELECTED_THEME: 'niao_theme',
+    },
+    
+    GAME_STATE: {
+        MENU: 'menu',
+        PLAYING: 'playing',
+        PAUSED: 'paused',
+        GAME_OVER: 'game_over',
+    }
+};

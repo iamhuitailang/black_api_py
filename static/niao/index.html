@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小鸟穿越管道</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <h1 class="game-title">小鸟穿越管道</h1>
+            <div class="character-select">
+                <h3>选择角色</h3>
+                <div class="character-list">
+                    <div class="character-item" data-character="yellow">
+                        <div class="character-preview yellow-bird"></div>
+                        <p class="character-name">小黄鸟</p>
+                        <p class="character-desc">标准体型，手感均衡</p>
+                    </div>
+                    <div class="character-item" data-character="blue">
+                        <div class="character-preview blue-bird"></div>
+                        <p class="character-name">蓝羽鸟</p>
+                        <p class="character-desc">体型偏小，更易穿管道</p>
+                    </div>
+                    <div class="character-item" data-character="red">
+                        <div class="character-preview red-bird"></div>
+                        <p class="character-name">烈火鸟</p>
+                        <p class="character-desc">起跳力度大，下落稍慢</p>
+                    </div>
+                </div>
+            </div>
+            <div class="theme-select">
+                <h3>选择主题</h3>
+                <div class="theme-list">
+                    <div class="theme-item" data-theme="sky">
+                        <div class="theme-preview sky-theme"></div>
+                        <p>晴空绿野</p>
+                    </div>
+                    <div class="theme-item" data-theme="sunset">
+                        <div class="theme-preview sunset-theme"></div>
+                        <p>落日黄昏</p>
+                    </div>
+                    <div class="theme-item" data-theme="night">
+                        <div class="theme-preview night-theme"></div>
+                        <p>星空夜景</p>
+                    </div>
+                </div>
+            </div>
+            <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            <p class="high-score-display">最高分: <span id="menu-high-score">0</span></p>
+        </div>
+        
+        <div id="game-ui" class="hidden">
+            <div class="score-display">
+                <span class="current-score">0</span>
+            </div>
+            <button id="pause-btn" class="pause-btn">⏸</button>
+        </div>
+        
+        <div id="pause-screen" class="screen hidden">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="game-over-screen" class="screen hidden">
+            <div class="game-over-menu">
+                <h2>游戏结束</h2>
+                <div class="final-score">
+                    <p>本局得分</p>
+                    <span id="final-score">0</span>
+                </div>
+                <div class="best-score">
+                    <p>最高纪录</p>
+                    <span id="best-score">0</span>
+                </div>
+                <div id="new-record" class="hidden">🎉 新纪录！</div>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/background.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/bird.js"></script>
+    <script src="js/pipe.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
