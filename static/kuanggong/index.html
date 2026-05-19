@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>矿工挂机 ⛏️</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="900" height="600"></canvas>
+        
+        <div id="start-screen" class="overlay">
+            <div class="start-content">
+                <h1 class="game-title">⛏️ 矿工挂机 ⛏️</h1>
+                <p class="subtitle">挖掘稀有矿石，升级装备，成为最强矿工！</p>
+                <div class="character-select">
+                    <h3>选择你的矿工</h3>
+                    <div class="character-list">
+                        <div class="character-card" data-character="0">
+                            <div class="character-icon">👷</div>
+                            <div class="character-name">新手矿工</div>
+                            <div class="character-desc">均衡基础型</div>
+                            <div class="character-buff">基础挖矿速度+10%</div>
+                        </div>
+                        <div class="character-card" data-character="1">
+                            <div class="character-icon">👴</div>
+                            <div class="character-name">老矿工长</div>
+                            <div class="character-desc">资源收益型</div>
+                            <div class="character-buff">矿石掉落概率+15%</div>
+                        </div>
+                        <div class="character-card" data-character="2">
+                            <div class="character-icon">🤖</div>
+                            <div class="character-name">机械矿工</div>
+                            <div class="character-desc">极速挂机型</div>
+                            <div class="character-buff">自动挖矿效率+25%</div>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-btn" class="pixel-btn large">开始挖矿</button>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="pixel-btn">继续游戏</button>
+                <button id="restart-btn" class="pixel-btn warn">重新开始</button>
+                <button id="quit-btn" class="pixel-btn danger">退出游戏</button>
+            </div>
+        </div>
+        
+        <div id="offline-reward" class="overlay hidden">
+            <div class="reward-content">
+                <h2>🎉 离线收益</h2>
+                <p id="offline-time">你离开了 00:00:00</p>
+                <div id="offline-items"></div>
+                <button id="claim-btn" class="pixel-btn">领取收益</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
