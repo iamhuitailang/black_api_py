@@ -333,17 +333,14 @@ export class Game {
 
     restartGame() {
         Storage.clear();
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-        }
         this.startGame();
     }
 
     quitToMenu() {
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
+        Storage.clear();
+        this.player = null;
+        this.enemy = null;
+        this.ai = null;
         this.state = GAME_STATE.MENU;
         this.ui.showStartScreen(Storage.hasSave());
     }
