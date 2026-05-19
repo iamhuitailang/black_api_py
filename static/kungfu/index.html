@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功夫街头 - 市井擂台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="960" height="540"></canvas>
+        
+        <div id="main-menu" class="overlay">
+            <div class="menu-box">
+                <h1 class="game-title">功夫街头</h1>
+                <p class="game-subtitle">市井擂台 · 国风武者对决</p>
+                <div class="character-select">
+                    <h3>选择你的武者</h3>
+                    <div class="character-list">
+                        <div class="character-card" data-character="monk">
+                            <div class="character-icon">👋</div>
+                            <div class="character-name">少林武僧</div>
+                            <div class="character-desc">均衡稳重型</div>
+                        </div>
+                        <div class="character-card" data-character="boxer">
+                            <div class="character-icon">🥊</div>
+                            <div class="character-name">街头拳王</div>
+                            <div class="character-desc">强攻爆发型</div>
+                        </div>
+                        <div class="character-card" data-character="swallow">
+                            <div class="character-icon">👊</div>
+                            <div class="character-name">女侠飞燕</div>
+                            <div class="character-desc">高速灵动型</div>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary" style="display:none;">继续游戏</button>
+                <div class="controls-hint">
+                    <p>← → 移动 | ↑ 跳跃 | ↓ 格挡</p>
+                    <p>J 轻拳 | K 重拳 | U 轻脚 | I 重脚 | L 绝学</p>
+                    <p>ESC 暂停</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="overlay hidden">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="game-over" class="overlay hidden">
+            <div class="menu-box">
+                <h2 id="result-title">对局结束</h2>
+                <p id="result-text"></p>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
