@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绝境突围 - 末世俯视角射击</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1280" height="720"></canvas>
+        
+        <div id="startScreen" class="screen">
+            <div class="menu-box">
+                <h1 class="game-title">绝境突围</h1>
+                <p class="game-subtitle">末世废墟 · 生存之战</p>
+                <div class="character-select">
+                    <h3>选择角色</h3>
+                    <div class="character-list">
+                        <div class="character-card" data-class="assault">
+                            <div class="character-icon">🔫</div>
+                            <h4>突击兵</h4>
+                            <p>均衡全能 · 换弹快速</p>
+                            <div class="stats">
+                                <span>生命: 100</span>
+                                <span>伤害: 1.0x</span>
+                                <span>暴击: 10%</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-class="heavy">
+                            <div class="character-icon">🛡️</div>
+                            <h4>重装兵</h4>
+                            <p>高血量 · 伤害减免15%</p>
+                            <div class="stats">
+                                <span>生命: 130</span>
+                                <span>伤害: 0.9x</span>
+                                <span>暴击: 5%</span>
+                            </div>
+                        </div>
+                        <div class="character-card" data-class="scout">
+                            <div class="character-icon">🎯</div>
+                            <h4>侦察兵</h4>
+                            <p>高速移动 · 远程加成</p>
+                            <div class="stats">
+                                <span>生命: 80</span>
+                                <span>伤害: 1.2x</span>
+                                <span>暴击: 20%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <button id="continueBtn" class="btn btn-secondary" style="display:none;">继续游戏</button>
+            </div>
+        </div>
+
+        <div id="pauseScreen" class="screen hidden">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+                <button id="quitBtn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="screen hidden">
+            <div class="menu-box">
+                <h2 id="gameOverTitle">任务失败</h2>
+                <p id="gameOverStats"></p>
+                <button id="retryBtn" class="btn btn-primary">再来一局</button>
+                <button id="backToMenuBtn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="hud" class="hidden">
+            <div class="hud-top">
+                <div class="wave-info">
+                    <span id="waveText">波次: 1/5</span>
+                    <span id="enemyCount">敌人: 0</span>
+                </div>
+                <div class="timer">
+                    <span id="timerText">05:00</span>
+                </div>
+            </div>
+            <div class="hud-bottom">
+                <div class="health-bar">
+                    <div class="health-label">HP</div>
+                    <div class="health-bar-bg">
+                        <div id="healthFill" class="health-fill"></div>
+                        <span id="healthText">100/100</span>
+                    </div>
+                </div>
+                <div class="weapon-info">
+                    <div id="weaponIcon" class="weapon-icon">🔫</div>
+                    <div class="ammo-info">
+                        <span id="ammoText">12/12</span>
+                        <span id="weaponName">手枪</span>
+                    </div>
+                </div>
+                <div class="controls-hint">
+                    <span>WASD移动</span>
+                    <span>鼠标瞄准</span>
+                    <span>1/2/3切枪</span>
+                    <span>R换弹</span>
+                    <span>ESC暂停</span>
+                </div>
+            </div>
+            <div id="reloadIndicator" class="reload-indicator hidden">
+                <div class="reload-progress">
+                    <div id="reloadFill" class="reload-fill"></div>
+                </div>
+                <span>换弹中...</span>
+            </div>
+            <div id="waveAnnounce" class="wave-announce hidden">
+                <span id="waveAnnounceText"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/weapon.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
