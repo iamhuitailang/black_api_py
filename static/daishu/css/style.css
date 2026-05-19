@@ -1,0 +1,229 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: linear-gradient(135deg, #0c0d13 0%, #1a1b2e 50%, #0f0f1a 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 1200px;
+    height: 700px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(100, 150, 255, 0.3),
+                0 0 120px rgba(150, 100, 255, 0.2);
+}
+
+#game-canvas {
+    display: block;
+    background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #2a1a4a 100%);
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(10, 10, 30, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 10;
+}
+
+.screen.hidden {
+    display: none;
+}
+
+.game-title {
+    font-size: 64px;
+    color: #fff;
+    text-shadow: 0 0 20px #ff6b9d,
+                 0 0 40px #c44569,
+                 0 0 60px #ff6b9d;
+    margin-bottom: 16px;
+    animation: titleGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    from {
+        text-shadow: 0 0 20px #ff6b9d, 0 0 40px #c44569, 0 0 60px #ff6b9d;
+    }
+    to {
+        text-shadow: 0 0 30px #a29bfe, 0 0 50px #6c5ce7, 0 0 80px #a29bfe;
+    }
+}
+
+.game-subtitle {
+    font-size: 24px;
+    color: #a29bfe;
+    margin-bottom: 48px;
+    letter-spacing: 4px;
+}
+
+.menu-title {
+    font-size: 48px;
+    color: #fff;
+    text-shadow: 0 0 20px #74b9ff;
+    margin-bottom: 40px;
+}
+
+.victory-title {
+    font-size: 56px;
+    color: #ffeaa7;
+    text-shadow: 0 0 30px #fdcb6e,
+                 0 0 50px #f39c12,
+                 0 0 80px #e17055;
+    margin-bottom: 24px;
+    animation: victoryPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes victoryPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.victory-text {
+    font-size: 24px;
+    color: #dfe6e9;
+    margin-bottom: 40px;
+}
+
+.btn {
+    padding: 16px 48px;
+    font-size: 20px;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    margin: 10px;
+    transition: all 0.3s ease;
+    letter-spacing: 2px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(56, 239, 125, 0.4);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(56, 239, 125, 0.6);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(235, 51, 73, 0.4);
+}
+
+.btn-danger:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(235, 51, 73, 0.6);
+}
+
+.controls-info {
+    margin-top: 40px;
+    text-align: center;
+    color: #b2bec3;
+    font-size: 16px;
+    line-height: 2;
+}
+
+.controls-info p {
+    margin: 8px 0;
+}
+
+#game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 5;
+}
+
+#game-ui.hidden {
+    display: none;
+}
+
+.hud {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(10, 10, 30, 0.8) 0%, transparent 100%);
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+}
+
+.hud-label {
+    font-size: 14px;
+    color: #a29bfe;
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+}
+
+.hud-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.btn-pause {
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.btn-pause:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.gameover-text,
+.levelup-text {
+    font-size: 20px;
+    color: #dfe6e9;
+    margin-bottom: 32px;
+    text-align: center;
+    line-height: 1.8;
+}
