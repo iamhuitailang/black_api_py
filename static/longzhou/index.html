@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>龙舟冲锋 · 水上竞速争霸</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="main-menu" class="menu-screen">
+                <div class="menu-content">
+                    <h1 class="game-title">龙舟冲锋</h1>
+                    <p class="game-subtitle">水上竞速争霸</p>
+                    <div class="boat-selection">
+                        <h3>选择龙舟</h3>
+                        <div class="boat-options">
+                            <div class="boat-option selected" data-boat="green">
+                                <div class="boat-preview green-boat"></div>
+                                <div class="boat-info">
+                                    <div class="boat-name">青龙舟</div>
+                                    <div class="boat-desc">均衡型 · 速度稳定</div>
+                                </div>
+                            </div>
+                            <div class="boat-option" data-boat="red">
+                                <div class="boat-preview red-boat"></div>
+                                <div class="boat-info">
+                                    <div class="boat-name">烈焰赤龙舟</div>
+                                    <div class="boat-desc">速度型 · 起步迅猛</div>
+                                </div>
+                            </div>
+                            <div class="boat-option" data-boat="black">
+                                <div class="boat-preview black-boat"></div>
+                                <div class="boat-info">
+                                    <div class="boat-name">玄墨黑龙舟</div>
+                                    <div class="boat-desc">防御型 · 抗障稳定</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-display">
+                        <div class="stat-item">
+                            <span class="stat-label">最高纪录:</span>
+                            <span id="best-time">--:--:--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">累计积分:</span>
+                            <span id="total-score">0</span>
+                        </div>
+                    </div>
+                    <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                    <button id="reset-save-btn" class="btn btn-secondary" style="font-size: 14px; padding: 10px 20px;">清除存档</button>
+                    <div class="controls-hint">
+                        <p>← → 变道 | 空格 划桨 | Shift 冲刺 | E 护盾</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pause-menu" class="menu-screen hidden">
+                <div class="menu-content small">
+                    <h2>游戏暂停</h2>
+                    <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                    <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                    <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+                </div>
+            </div>
+
+            <div id="game-over" class="menu-screen hidden">
+                <div class="menu-content">
+                    <h2 id="result-title">比赛结束</h2>
+                    <div class="result-stats">
+                        <div class="result-item">
+                            <span class="result-label">名次:</span>
+                            <span id="result-rank">--</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">用时:</span>
+                            <span id="result-time">--:--:--</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">获得积分:</span>
+                            <span id="result-score">0</span>
+                        </div>
+                        <div class="result-item highlight">
+                            <span class="result-label">最高纪录:</span>
+                            <span id="result-best">--:--:--</span>
+                        </div>
+                    </div>
+                    <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                    <button id="back-menu-btn" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+
+            <div id="game-hud" class="hidden">
+                <div class="hud-top">
+                    <div class="hud-item">
+                        <span class="hud-label">时间</span>
+                        <span id="hud-time">00:00:00</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">速度</span>
+                        <span id="hud-speed">0 km/h</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">名次</span>
+                        <span id="hud-rank">1/4</span>
+                    </div>
+                    <button id="pause-btn" class="btn-pause">❚❚</button>
+                </div>
+                <div class="hud-bottom">
+                    <div class="skill-bar">
+                        <div class="skill-item">
+                            <div class="skill-icon sprint">⚡</div>
+                            <div class="skill-cooldown" id="sprint-cooldown"></div>
+                            <div class="skill-key">Shift</div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-icon shield">🛡️</div>
+                            <div class="skill-cooldown" id="shield-cooldown"></div>
+                            <div class="skill-key">E</div>
+                        </div>
+                    </div>
+                    <div class="rhythm-meter">
+                        <div class="rhythm-bar">
+                            <div class="rhythm-zone perfect"></div>
+                            <div class="rhythm-zone good"></div>
+                            <div class="rhythm-indicator" id="rhythm-indicator"></div>
+                        </div>
+                        <div class="rhythm-hint">空格: 轻划 | 长按: 重划</div>
+                    </div>
+                </div>
+                <div id="combo-display" class="hidden">
+                    <span id="combo-text">完美!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/boat.js"></script>
+    <script src="js/obstacle.js"></script>
+    <script src="js/skills.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
