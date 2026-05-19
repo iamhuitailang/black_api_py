@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洗衣大师 · 分类挑战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="game-header">
+            <h1 class="game-title">🧺 洗衣大师 · 分类挑战</h1>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">分数</span>
+                    <span id="score" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">连击</span>
+                    <span id="combo" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">生命</span>
+                    <span id="lives" class="stat-value">❤️❤️❤️</span>
+                </div>
+                <div class="stat-item" id="timer-container" style="display: none;">
+                    <span class="stat-label">时间</span>
+                    <span id="timer" class="stat-value">60</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">关卡</span>
+                    <span id="level" class="stat-value">1</span>
+                </div>
+                <div class="stat-item" id="progress-container">
+                    <span class="stat-label">进度</span>
+                    <span id="progress" class="stat-value">0/10</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div id="menu-screen" class="screen active">
+                <div class="menu-card">
+                    <h2>选择游戏模式</h2>
+                    <div class="mode-buttons">
+                        <button class="mode-btn" data-mode="learn">
+                            <span class="mode-icon">🎓</span>
+                            <span class="mode-name">学习模式</span>
+                            <span class="mode-desc">不扣分，显示正确答案</span>
+                        </button>
+                        <button class="mode-btn" data-mode="challenge" id="challenge-btn">
+                            <span class="mode-icon">⏱️</span>
+                            <span class="mode-name">限时挑战</span>
+                            <span class="mode-desc">60秒内尽可能多分类</span>
+                            <span class="mode-lock">🔒 第3关解锁</span>
+                        </button>
+                        <button class="mode-btn" data-mode="endless" id="endless-btn">
+                            <span class="mode-icon">🎯</span>
+                            <span class="mode-name">无尽模式</span>
+                            <span class="mode-desc">无限衣物，生命3条</span>
+                            <span class="mode-lock">🔒 第5关解锁</span>
+                        </button>
+                        <button class="mode-btn" data-mode="level">
+                            <span class="mode-icon">🏆</span>
+                            <span class="mode-name">闯关模式</span>
+                            <span class="mode-desc">每关10件，正确率≥80%</span>
+                        </button>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>分类维度</h3>
+                        <div class="dimension-buttons">
+                            <button class="dim-btn active" data-dim="color">🎨 颜色</button>
+                            <button class="dim-btn" data-dim="material">🧩 材质</button>
+                            <button class="dim-btn" data-dim="temp">🌡️ 水温</button>
+                            <button class="dim-btn" data-dim="wash">🮐 洗涤方式</button>
+                            <button class="dim-btn" data-dim="dry">🔄 烘干方式</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>主题选择</h3>
+                        <div class="theme-buttons">
+                            <button class="theme-btn active" data-theme="laundry">🧼 清新洗衣房</button>
+                            <button class="theme-btn" data-theme="sakura" id="sakura-theme">🌸 樱花洗衣店</button>
+                            <button class="theme-btn" data-theme="industrial" id="industrial-theme">🏭 工业洗衣坊</button>
+                            <button class="theme-btn" data-theme="christmas" id="christmas-theme">🎄 圣诞特别</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>音效设置</h3>
+                        <div class="sound-toggles">
+                            <label class="toggle-item">
+                                <input type="checkbox" id="sound-correct" checked>
+                                <span>正确音</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="sound-wrong" checked>
+                                <span>错误音</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="sound-combo" checked>
+                                <span>连击音</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="sound-bgm">
+                                <span>背景音乐</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="game-screen" class="screen">
+                <div class="game-container">
+                    <canvas id="game-canvas"></canvas>
+                    <div class="clothes-card" id="clothes-card">
+                        <div class="clothes-icon" id="clothes-icon">👕</div>
+                        <div class="clothes-info">
+                            <div class="clothes-name" id="clothes-name">白衬衫</div>
+                            <div class="clothes-tags" id="clothes-tags"></div>
+                            <div class="clothes-difficulty" id="clothes-difficulty">⭐</div>
+                        </div>
+                    </div>
+                    <div class="category-buttons" id="category-buttons"></div>
+                    <div class="feedback" id="feedback"></div>
+                    <button class="next-btn" id="next-btn" style="display: none;">下一件 →</button>
+                </div>
+            </div>
+
+            <div id="result-screen" class="screen">
+                <div class="result-card">
+                    <h2 id="result-title">游戏结束</h2>
+                    <div class="result-stats">
+                        <div class="result-item">
+                            <span class="result-label">最终得分</span>
+                            <span class="result-value" id="final-score">0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">正确数</span>
+                            <span class="result-value" id="correct-count">0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">错误数</span>
+                            <span class="result-value" id="wrong-count">0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">最高连击</span>
+                            <span class="result-value" id="max-combo">0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">正确率</span>
+                            <span class="result-value" id="accuracy">0%</span>
+                        </div>
+                    </div>
+                    <div class="result-buttons">
+                        <button class="action-btn" id="retry-btn">再来一局</button>
+                        <button class="action-btn secondary" id="menu-btn">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="game-footer">
+            <p>💡 提示：将衣物正确分类，养成良好洗衣习惯！</p>
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/gameState.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
