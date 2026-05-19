@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="screen-orientation" content="portrait">
+    <title>烛光计时 - Candle Timer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="app-header">
+            <h1 class="app-title">🕯️ 烛光计时</h1>
+            <div class="header-actions">
+                <button id="btnSettings" class="icon-btn" title="设置">⚙️</button>
+                <button id="btnHistory" class="icon-btn" title="历史记录">📋</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="candlesContainer" class="candles-container">
+            </div>
+
+            <div class="add-candle-wrapper">
+                <button id="btnAddCandle" class="add-candle-btn" title="添加蜡烛">
+                    <span class="plus-icon">+</span>
+                    <span class="add-text">添加蜡烛</span>
+                </button>
+            </div>
+        </main>
+
+        <div id="controlPanel" class="control-panel hidden">
+            <div class="panel-header">
+                <h3 id="panelTitle">设置蜡烛</h3>
+                <button id="btnClosePanel" class="close-btn">×</button>
+            </div>
+            
+            <div class="panel-content">
+                <div class="time-section">
+                    <label class="section-label">时长设置</label>
+                    <div class="time-display">
+                        <span id="timeDisplay">25:00</span>
+                    </div>
+                    <div class="time-controls">
+                        <button id="btnTimeDown" class="time-btn">-</button>
+                        <input type="range" id="timeSlider" min="1" max="120" value="25" class="time-slider">
+                        <button id="btnTimeUp" class="time-btn">+</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-minutes="5">5分钟</button>
+                        <button class="preset-btn" data-minutes="10">10分钟</button>
+                        <button class="preset-btn" data-minutes="15">15分钟</button>
+                        <button class="preset-btn active" data-minutes="25">25分钟</button>
+                        <button class="preset-btn" data-minutes="30">30分钟</button>
+                        <button class="preset-btn" data-minutes="60">60分钟</button>
+                    </div>
+                </div>
+
+                <div class="tag-section">
+                    <label class="section-label">场景标签</label>
+                    <div class="tag-buttons">
+                        <button class="tag-btn" data-tag="work">💼 专注</button>
+                        <button class="tag-btn" data-tag="break">☕ 短休</button>
+                        <button class="tag-btn" data-tag="meditation">🧘 冥想</button>
+                        <button class="tag-btn" data-tag="cooking">🍳 烹饪</button>
+                        <button class="tag-btn" data-tag="study">📚 学习</button>
+                        <button class="tag-btn active" data-tag="custom">✏️ 自定义</button>
+                    </div>
+                </div>
+
+                <div class="candle-type-section">
+                    <label class="section-label">蜡烛类型</label>
+                    <div class="candle-type-list" id="candleTypeList">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btnLight" class="primary-btn">🔥 点燃蜡烛</button>
+                    <button id="btnExtinguish" class="secondary-btn hidden">💨 熄灭</button>
+                    <button id="btnDelete" class="danger-btn hidden">🗑️ 删除</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>设置</h3>
+                    <button class="close-btn" data-close="settingsModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-item">
+                        <label>火焰闪烁频率</label>
+                        <select id="flickerSpeed">
+                            <option value="slow">慢</option>
+                            <option value="normal" selected>正常</option>
+                            <option value="fast">快</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>蜡烛燃烧速度 (视觉)</label>
+                        <select id="burnSpeed">
+                            <option value="slow">慢</option>
+                            <option value="normal" selected>正常</option>
+                            <option value="fast">快</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>背景亮度</label>
+                        <input type="range" id="bgBrightness" min="20" max="100" value="100">
+                        <span id="bgBrightnessValue">100%</span>
+                    </div>
+                    <div class="setting-item">
+                        <label>蜡油堆积效果</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="waxDrip" checked>
+                            <span class="slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>环境音效</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="ambientSound" checked>
+                            <span class="slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>屏幕常亮</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="keepAwake" checked>
+                            <span class="slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>结束震动 (移动端)</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="vibration" checked>
+                            <span class="slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>白噪音</label>
+                        <select id="whiteNoise">
+                            <option value="none" selected>无</option>
+                            <option value="rain">雨声</option>
+                            <option value="fireplace">壁炉</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="historyModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>历史记录</h3>
+                    <button class="close-btn" data-close="historyModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="history-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalSessions">0</span>
+                            <span class="stat-label">总计时次数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalMinutes">0</span>
+                            <span class="stat-label">总分钟数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="streakDays">0</span>
+                            <span class="stat-label">连续天数</span>
+                        </div>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <p class="empty-history">暂无历史记录</p>
+                    </div>
+                    <button id="btnClearHistory" class="danger-btn full-width">清空历史记录</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="breathingLight" class="breathing-light"></div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
