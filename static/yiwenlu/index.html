@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>山海异兽录 - 洪荒古擂台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="960" height="540"></canvas>
+        
+        <div id="start-screen" class="overlay">
+            <div class="menu-panel">
+                <h1 class="game-title">山海异兽录</h1>
+                <h2 class="game-subtitle">洪荒古擂台</h2>
+                <div class="character-select">
+                    <h3>选择你的异兽</h3>
+                    <div class="character-list">
+                        <div class="character-card" data-character="qinglong">
+                            <div class="char-icon">🐉</div>
+                            <div class="char-name">青龙</div>
+                            <div class="char-type">均衡水系</div>
+                        </div>
+                        <div class="character-card" data-character="zhuque">
+                            <div class="char-icon">🔥</div>
+                            <div class="char-name">朱雀</div>
+                            <div class="char-type">爆发火系</div>
+                        </div>
+                        <div class="character-card" data-character="xuanwu">
+                            <div class="char-icon">🐢</div>
+                            <div class="char-name">玄武</div>
+                            <div class="char-type">防御土系</div>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary" style="display:none;">继续游戏</button>
+                <div class="controls-info">
+                    <p>← → 移动 | ↓ 蓄力 | ↑ 跳跃</p>
+                    <p>J 轻击 | K 重击 | L 神通 | U 奥义</p>
+                    <p>ESC 暂停</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="overlay hidden">
+            <div class="menu-panel small">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="overlay hidden">
+            <div class="menu-panel small">
+                <h2 id="result-title">胜利！</h2>
+                <p id="result-text">你击败了对手！</p>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-menu-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="hud" class="hidden">
+            <div class="player-hud left">
+                <div class="hud-name" id="player-name">青龙</div>
+                <div class="hp-bar">
+                    <div class="hp-fill" id="player-hp"></div>
+                    <div class="hp-text" id="player-hp-text">100/100</div>
+                </div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="player-energy"></div>
+                </div>
+            </div>
+            <div class="vs-text">VS</div>
+            <div class="player-hud right">
+                <div class="hud-name" id="enemy-name">朱雀</div>
+                <div class="hp-bar">
+                    <div class="hp-fill enemy" id="enemy-hp"></div>
+                    <div class="hp-text" id="enemy-hp-text">92/92</div>
+                </div>
+                <div class="energy-bar">
+                    <div class="energy-fill enemy" id="enemy-energy"></div>
+                </div>
+            </div>
+            <button id="pause-btn" class="pause-btn">⏸</button>
+            <div class="round-info">
+                <span id="round-text">第 1 局</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
