@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹越野 · 极速穿梭</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="hud">
+                <div class="hud-item">
+                    <span class="hud-label">分数</span>
+                    <span id="score" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">最高分</span>
+                    <span id="high-score" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">距离</span>
+                    <span id="distance" class="hud-value">0m</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">生命</span>
+                    <div id="health-bar">
+                        <div id="health-fill"></div>
+                    </div>
+                </div>
+                <button id="pause-btn" class="icon-btn">⏸</button>
+            </div>
+        </div>
+
+        <div id="start-screen" class="overlay">
+            <div class="menu-box">
+                <h1 class="game-title">霓虹越野</h1>
+                <h2 class="game-subtitle">极速穿梭</h2>
+                <p class="game-desc">在量子隧道中高速穿梭，躲避障碍物，收集光点！</p>
+                <div class="controls-info">
+                    <p>← → 或 A D 键移动</p>
+                    <p>空格键 暂停</p>
+                </div>
+                <button id="start-btn" class="neon-btn">开始游戏</button>
+                <div class="record-info">
+                    <p>最高分: <span id="menu-high-score">0</span></p>
+                    <p>最远距离: <span id="menu-high-distance">0m</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="overlay hidden">
+            <div class="menu-box">
+                <h2 class="menu-title">游戏暂停</h2>
+                <button id="resume-btn" class="neon-btn">继续游戏</button>
+                <button id="restart-btn" class="neon-btn secondary">重新开始</button>
+                <button id="quit-btn" class="neon-btn danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="overlay hidden">
+            <div class="menu-box">
+                <h2 class="menu-title game-over">游戏结束</h2>
+                <div class="final-stats">
+                    <p>本次得分: <span id="final-score">0</span></p>
+                    <p>本次距离: <span id="final-distance">0m</span></p>
+                    <p class="new-record hidden">🎉 新纪录！</p>
+                </div>
+                <button id="play-again-btn" class="neon-btn">再来一局</button>
+                <button id="back-menu-btn" class="neon-btn secondary">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/tunnel.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/obstacles.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
