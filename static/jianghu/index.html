@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>锦衣夜行 · 江湖擂台</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="startScreen" class="screen">
+      <div class="decorative-border"></div>
+      <div class="decorative-corner top-left"></div>
+      <div class="decorative-corner top-right"></div>
+      <div class="decorative-corner bottom-left"></div>
+      <div class="decorative-corner bottom-right"></div>
+
+      <h1 class="game-title">锦衣夜行</h1>
+      <h2 class="game-subtitle">江 湖 擂 台</h2>
+
+      <div class="character-selection">
+        <div class="selection-group">
+          <label>选择你的角色</label>
+          <select id="characterSelect"></select>
+        </div>
+        <div class="selection-group">
+          <label>选择对手</label>
+          <select id="aiSelect"></select>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button id="startBtn" class="btn btn-primary">开 始 游 戏</button>
+        <button id="continueBtn" class="btn" style="display: none;">继 续 游 戏</button>
+      </div>
+    </div>
+
+    <div id="gameScreen" class="screen">
+      <canvas id="gameCanvas" width="1200" height="600"></canvas>
+
+      <div class="game-top-bar">
+        <div class="game-title-mini">锦衣夜行 · 江湖擂台</div>
+        <div class="game-controls">
+          <button id="toggleControlsBtn" class="small-btn">操作说明</button>
+          <button id="pauseBtn" class="small-btn">暂停</button>
+        </div>
+      </div>
+
+      <div id="controlsHelp" class="controls-help">
+        <h4>操作说明</h4>
+        <div><span class="key">←</span><span class="key">→</span> 左右移动</div>
+        <div><span class="key">↑</span> 轻功跳跃</div>
+        <div><span class="key">↓</span> 蹲身闪避</div>
+        <div><span class="key">J</span> 轻拳 <span class="key">K</span> 重拳</div>
+        <div><span class="key">U</span> 轻腿 <span class="key">I</span> 重腿</div>
+        <div><span class="key">O</span> 格挡</div>
+        <div><span class="key">L</span> 独门绝学</div>
+        <div><span class="key">↓</span><span class="key">→</span><span class="key">拳</span> 搓招释放</div>
+        <div><span class="key">ESC</span> 暂停游戏</div>
+      </div>
+
+      <div id="pauseScreen" class="screen">
+        <h2 class="pause-title">游 戏 暂 停</h2>
+        <div class="pause-buttons">
+          <button id="resumeBtn" class="btn btn-primary">继 续</button>
+          <button id="restartBtn" class="btn">重 新 开 始</button>
+          <button id="quitBtn" class="btn">退 出</button>
+        </div>
+      </div>
+
+      <div id="gameOverScreen" class="screen">
+        <h2 class="gameover-title">本 局 结 束</h2>
+        <p id="winnerText" class="winner-text"></p>
+        <div class="gameover-buttons">
+          <button id="nextRoundBtn" class="btn btn-primary">下 一 局</button>
+          <button id="gameOverRestartBtn" class="btn">重 新 开 始</button>
+          <button id="gameOverQuitBtn" class="btn">退 出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/character.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
