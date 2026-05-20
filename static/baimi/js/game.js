@@ -380,22 +380,15 @@ const Game = (() => {
             state.gamePhase = saved.gamePhase;
             state.mode = saved.mode || 'solo';
             state.weather = saved.weather || Weather.getRandomWeather();
-            state.runners = saved.runners || [];
+            state.player = saved.player;
             state.opponents = saved.opponents || [];
-            
-            if (state.runners.length > 0) {
-                state.player = state.runners[0];
-            } else {
-                state.player = saved.player;
-            }
-            
+            state.runners = saved.runners || [];
             state.raceTime = saved.raceTime || 0;
             state.gunTime = saved.gunTime || 0;
             state.time = saved.time || 0;
             state.tournamentRound = saved.tournamentRound || 0;
             state.gunFlashIntensity = 0;
             state.lastFrameTime = performance.now();
-            state.lastSaveTime = 0;
             
             const allFinished = state.runners.length > 0 && state.runners.every(r => r.isFinished);
             
@@ -404,7 +397,10 @@ const Game = (() => {
                 Storage.clearGameState();
             } else if (state.gamePhase === GAME_PHASES.RACING || state.gamePhase === GAME_PHASES.GO) {
                 startGameLoop();
-            } else if (state.gamePhase === GAME_PHASES.READY || state.gamePhase === GAME_PHASES.SET) {
+            } else if (state.gamePhase === GAME_PHASES.READY) {
+                state.gamePhase = GAME_PHASES.IDLE;
+                Storage.clearGameState();
+            } else if (state.gamePhase === GAME_PHASES.SET) {
                 state.gamePhase = GAME_PHASES.IDLE;
                 Storage.clearGameState();
             }
