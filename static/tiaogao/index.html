@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>走钢丝大师 · 平衡挑战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="main-menu" class="screen active">
+                <div class="menu-content">
+                    <h1 class="game-title">走钢丝大师</h1>
+                    <p class="game-subtitle">平衡挑战</p>
+                    <div class="menu-buttons">
+                        <button class="btn btn-primary" id="btn-start">开始游戏</button>
+                        <button class="btn" id="btn-characters">选择角色</button>
+                        <button class="btn" id="btn-scenes">选择场景</button>
+                        <button class="btn" id="btn-help">游戏说明</button>
+                    </div>
+                    <div class="stats-display">
+                        <span>最高分: <strong id="high-score">0</strong></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="character-select" class="screen">
+                <div class="menu-content">
+                    <h2>选择角色</h2>
+                    <div class="character-list" id="character-list"></div>
+                    <button class="btn btn-back" id="btn-back-char">返回</button>
+                </div>
+            </div>
+            
+            <div id="scene-select" class="screen">
+                <div class="menu-content">
+                    <h2>选择场景</h2>
+                    <div class="scene-list" id="scene-list"></div>
+                    <button class="btn btn-back" id="btn-back-scene">返回</button>
+                </div>
+            </div>
+            
+            <div id="help-screen" class="screen">
+                <div class="menu-content help-content">
+                    <h2>游戏说明</h2>
+                    <div class="help-text">
+                        <h3>操控方式</h3>
+                        <p>← → 或 A D: 左右微调重心</p>
+                        <p>Q E: 全力左右摆动</p>
+                        <p>空格键: 凝神稳身</p>
+                        <p>1-4: 使用道具</p>
+                        <p>ESC: 暂停游戏</p>
+                        <h3>游戏目标</h3>
+                        <p>在高空钢丝上保持平衡，躲避障碍，走到终点！</p>
+                        <h3>平衡系统</h3>
+                        <p>屏幕上方的平衡条显示当前状态，红色区域表示危险！</p>
+                    </div>
+                    <button class="btn btn-back" id="btn-back-help">返回</button>
+                </div>
+            </div>
+            
+            <div id="game-hud" class="screen">
+                <div class="hud-top">
+                    <div class="balance-bar-container">
+                        <div class="balance-label">平衡</div>
+                        <div class="balance-bar">
+                            <div class="balance-danger left"></div>
+                            <div class="balance-danger right"></div>
+                            <div class="balance-indicator" id="balance-indicator"></div>
+                        </div>
+                    </div>
+                    <div class="score-display">
+                        <span>得分: <strong id="current-score">0</strong></span>
+                        <span>距离: <strong id="distance">0</strong>m</span>
+                    </div>
+                </div>
+                <div class="hud-bottom">
+                    <div class="item-bar" id="item-bar"></div>
+                    <button class="btn btn-pause" id="btn-pause">⏸</button>
+                </div>
+            </div>
+            
+            <div id="pause-screen" class="screen">
+                <div class="menu-content">
+                    <h2>游戏暂停</h2>
+                    <div class="menu-buttons">
+                        <button class="btn btn-primary" id="btn-resume">继续游戏</button>
+                        <button class="btn" id="btn-restart">重新开始</button>
+                        <button class="btn btn-back" id="btn-quit">返回主菜单</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="game-over" class="screen">
+                <div class="menu-content">
+                    <h2 id="result-title">挑战失败</h2>
+                    <div class="result-stats">
+                        <p>最终得分: <strong id="final-score">0</strong></p>
+                        <p>行走距离: <strong id="final-distance">0</strong>m</p>
+                        <p id="new-record" class="hidden">🎉 新纪录！</p>
+                    </div>
+                    <div class="menu-buttons">
+                        <button class="btn btn-primary" id="btn-retry">再来一次</button>
+                        <button class="btn btn-back" id="btn-menu">返回主菜单</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/balance.js"></script>
+    <script src="js/obstacle.js"></script>
+    <script src="js/item.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/gameState.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
