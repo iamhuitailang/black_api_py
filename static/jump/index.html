@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳伞 · 精准着陆</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="hud">
+            <div class="hud-left">
+                <div class="altimeter">
+                    <div class="altimeter-label">高度</div>
+                    <div class="altimeter-value" id="altitude-value">0m</div>
+                    <div class="altimeter-bar">
+                        <div class="altimeter-fill" id="altitude-fill"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hud-right">
+                <div class="wind-indicator">
+                    <div class="wind-label">风速</div>
+                    <div class="wind-arrow" id="wind-arrow">→</div>
+                    <div class="wind-value" id="wind-value">0 m/s</div>
+                </div>
+                <div class="score-display">
+                    <div class="score-label">最高分</div>
+                    <div class="score-value" id="high-score">0</div>
+                </div>
+            </div>
+            
+            <div class="hud-center">
+                <div class="parachute-status" id="parachute-status">
+                    <span class="status-icon">🪂</span>
+                    <span class="status-text">按空格开伞</span>
+                </div>
+                <div class="current-score" id="current-score">当前得分: 0</div>
+                <div class="level-info">
+                    <span class="level-badge" id="level-badge">第 1 关</span>
+                </div>
+            </div>
+            
+            <div class="landing-indicator" id="landing-indicator">
+                <div class="indicator-arrow">↓</div>
+                <div class="indicator-text">靶心方向</div>
+            </div>
+        </div>
+        
+        <div id="start-menu" class="menu">
+            <h1 class="game-title">跳伞 · 精准着陆</h1>
+            <p class="game-subtitle">SKYDIVE · PRECISION LANDING</p>
+            <div class="menu-content">
+                <div class="high-score-display">
+                    <span>最高分: </span>
+                    <span id="menu-high-score">0</span>
+                </div>
+                <div class="level-select">
+                    <label>选择关卡:</label>
+                    <div class="level-grid" id="level-grid">
+                    </div>
+                </div>
+                <div class="terrain-select">
+                    <label>选择地形:</label>
+                    <select id="terrain-select">
+                        <option value="grass">草地 (1.0x)</option>
+                    </select>
+                </div>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="tutorial-btn" class="btn btn-secondary">操作说明</button>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="menu hidden">
+            <h2>游戏暂停</h2>
+            <div class="menu-content">
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出到菜单</button>
+            </div>
+        </div>
+        
+        <div id="game-over-menu" class="menu hidden">
+            <h2 id="game-over-title">着陆成功!</h2>
+            <div class="menu-content">
+                <div class="result-display">
+                    <div class="result-item">
+                        <span>距离靶心:</span>
+                        <span id="result-distance">0m</span>
+                    </div>
+                    <div class="result-item">
+                        <span>本次得分:</span>
+                        <span id="result-score">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span>最高分:</span>
+                        <span id="result-high-score">0</span>
+                    </div>
+                </div>
+                <button id="play-again-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-to-menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+        
+        <div id="tutorial-menu" class="menu hidden">
+            <h2>操作说明</h2>
+            <div class="tutorial-content">
+                <div class="control-group">
+                    <h3>基本操作</h3>
+                    <div class="control-item"><span class="key">← / A</span><span>向左飘移</span></div>
+                    <div class="control-item"><span class="key">→ / D</span><span>向右飘移</span></div>
+                    <div class="control-item"><span class="key">↑ / W</span><span>减速下降</span></div>
+                    <div class="control-item"><span class="key">↓ / S</span><span>加速下降</span></div>
+                    <div class="control-item"><span class="key">空格</span><span>开伞 (1500m以下可用)</span></div>
+                    <div class="control-item"><span class="key">ESC</span><span>暂停游戏</span></div>
+                    <div class="control-item"><span class="key">V</span><span>切换视角</span></div>
+                    <div class="control-item"><span class="key">1-0</span><span>快速选择已解锁关卡</span></div>
+                </div>
+                <div class="control-group">
+                    <h3>风速类型</h3>
+                    <div class="control-item"><span>🍃 微风</span><span>±1-2 m/s，持续影响</span></div>
+                    <div class="control-item"><span>💨 强风</span><span>±3-5 m/s，1500-3000m</span></div>
+                    <div class="control-item"><span>🌪️ 阵风</span><span>±2-4 m/s波动，500-2000m</span></div>
+                </div>
+                <div class="control-group">
+                    <h3>障碍物</h3>
+                    <div class="control-item"><span>☁️ 云层</span><span>遮挡视野，500-1500m</span></div>
+                    <div class="control-item"><span>🦅 鸟群</span><span>碰撞后方向偏移</span></div>
+                    <div class="control-item"><span>🎈 热气球</span><span>碰撞即失败</span></div>
+                </div>
+            </div>
+            <button id="close-tutorial-btn" class="btn btn-primary">知道了</button>
+        </div>
+        
+        <button id="pause-btn" class="pause-btn hidden">⏸️</button>
+        <button id="camera-btn" class="camera-btn hidden">📷</button>
+        
+        <div id="low-altitude-warning" class="low-altitude-warning hidden"></div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/wind.js"></script>
+    <script src="js/obstacles.js"></script>
+    <script src="js/terrain.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
