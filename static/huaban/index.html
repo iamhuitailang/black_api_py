@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>滑板特技大师 - Skateboard Master</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiLayer">
+            <div id="mainMenu" class="screen active">
+                <h1 class="title">滑板特技大师</h1>
+                <p class="subtitle">SKATEBOARD MASTER</p>
+                <div class="menu-buttons">
+                    <button class="btn btn-primary" data-mode="endless">无尽跑酷</button>
+                    <button class="btn btn-primary" data-mode="trick">特技挑战</button>
+                    <button class="btn btn-primary" data-mode="versus">双人对抗</button>
+                    <button class="btn btn-secondary" id="characterSelectBtn">选择角色</button>
+                    <button class="btn btn-secondary" id="howToPlayBtn">操作说明</button>
+                </div>
+                <div class="high-score">
+                    <span>最高分: </span><span id="menuHighScore">0</span>
+                </div>
+            </div>
+            
+            <div id="characterSelect" class="screen">
+                <h2>选择角色</h2>
+                <div id="characterList" class="character-list"></div>
+                <button class="btn btn-back" data-back="mainMenu">返回</button>
+            </div>
+            
+            <div id="howToPlay" class="screen">
+                <h2>操作说明</h2>
+                <div class="controls-info">
+                    <div class="control-item">
+                        <span class="key">Space / ↑</span>
+                        <span class="desc">起跳 (按住增加高度)</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">← / →</span>
+                        <span class="desc">空中旋转 / 地面移动</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">↓</span>
+                        <span class="desc">下蹲蓄力</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">J / K</span>
+                        <span class="desc">特技1 - 抓板</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">L / U</span>
+                        <span class="desc">特技2 - 踢板</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">Shift</span>
+                        <span class="desc">磨板 (靠近栏杆时)</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">ESC / P</span>
+                        <span class="desc">暂停游戏</span>
+                    </div>
+                </div>
+                <button class="btn btn-back" data-back="mainMenu">返回</button>
+            </div>
+            
+            <div id="gameHUD" class="screen">
+                <div class="hud-top">
+                    <div class="hud-item">
+                        <span class="label">分数</span>
+                        <span id="score" class="value">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">最高</span>
+                        <span id="highScore" class="value">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">距离</span>
+                        <span id="distance" class="value">0m</span>
+                    </div>
+                    <div class="hud-item" id="timerContainer" style="display: none;">
+                        <span class="label">时间</span>
+                        <span id="timer" class="value">60</span>
+                    </div>
+                </div>
+                <div class="hud-combo" id="comboDisplay"></div>
+                <div class="hud-trick" id="trickDisplay"></div>
+                <div class="hud-bottom">
+                    <div class="boost-bar">
+                        <div class="boost-fill" id="boostFill"></div>
+                        <span class="boost-label">加速</span>
+                    </div>
+                    <button class="btn-pause" id="pauseBtn">II</button>
+                </div>
+            </div>
+            
+            <div id="pauseMenu" class="screen overlay">
+                <div class="pause-content">
+                    <h2>游戏暂停</h2>
+                    <div class="menu-buttons">
+                        <button class="btn btn-primary" id="resumeBtn">继续游戏</button>
+                        <button class="btn btn-secondary" id="restartBtn">重新开始</button>
+                        <button class="btn btn-secondary" id="quitBtn">退出到菜单</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="gameOver" class="screen overlay">
+                <div class="gameover-content">
+                    <h2 id="gameOverTitle">游戏结束</h2>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="label">本局得分</span>
+                            <span id="finalScore" class="value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">最高记录</span>
+                            <span id="finalHighScore" class="value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">跑动距离</span>
+                            <span id="finalDistance" class="value">0m</span>
+                        </div>
+                        <div class="stat-item" id="newRecord" style="display: none; color: #ffd700;">
+                            🎉 新纪录！
+                        </div>
+                    </div>
+                    <div class="menu-buttons">
+                        <button class="btn btn-primary" id="playAgainBtn">再来一局</button>
+                        <button class="btn btn-secondary" id="backToMenuBtn">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="trickPopup" class="trick-popup"></div>
+        </div>
+    </div>
+    
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/collision.js"></script>
+    <script src="js/tricks.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/scenes.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
