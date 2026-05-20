@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>独轮车竞速 · 混乱赛道</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1200" height="700"></canvas>
+        
+        <div id="startScreen" class="overlay">
+            <div class="menu-panel">
+                <h1 class="game-title">🌾 独轮车竞速</h1>
+                <h2 class="game-subtitle">混乱赛道</h2>
+                <div class="rider-selection">
+                    <h3>选择车手</h3>
+                    <div class="riders">
+                        <div class="rider-card" data-rider="boy">
+                            <div class="rider-icon">👦</div>
+                            <div class="rider-name">少年骑手</div>
+                            <div class="rider-desc">均衡通用型</div>
+                            <div class="rider-stats">
+                                <span>速度: ⭐⭐⭐</span>
+                                <span>平衡: ⭐⭐⭐⭐</span>
+                            </div>
+                        </div>
+                        <div class="rider-card" data-rider="girl">
+                            <div class="rider-icon">👧</div>
+                            <div class="rider-name">疾风少女</div>
+                            <div class="rider-desc">极速冲刺型</div>
+                            <div class="rider-stats">
+                                <span>速度: ⭐⭐⭐⭐⭐</span>
+                                <span>平衡: ⭐⭐⭐</span>
+                            </div>
+                        </div>
+                        <div class="rider-card" data-rider="uncle">
+                            <div class="rider-icon">👨</div>
+                            <div class="rider-name">蛮力大叔</div>
+                            <div class="rider-desc">稳重型</div>
+                            <div class="rider-stats">
+                                <span>速度: ⭐⭐⭐⭐</span>
+                                <span>平衡: ⭐⭐⭐⭐⭐</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <div class="controls-hint">
+                    <p>← → 控制方向 | ↑ 前倾加速 | ↓ 后仰减速</p>
+                    <p>空格键 使用道具 | ESC 暂停游戏</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pauseScreen" class="overlay hidden">
+            <div class="menu-panel">
+                <h2>游戏暂停</h2>
+                <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+                <button id="quitBtn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="finishScreen" class="overlay hidden">
+            <div class="menu-panel">
+                <h2 id="finishTitle">比赛结束</h2>
+                <div id="finishStats" class="finish-stats"></div>
+                <button id="playAgainBtn" class="btn btn-primary">再来一局</button>
+                <button id="backToMenuBtn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-item">
+                    <span class="hud-label">排名</span>
+                    <span id="hudRank" class="hud-value">1</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">速度</span>
+                    <span id="hudSpeed" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">进度</span>
+                    <span id="hudProgress" class="hud-value">0%</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">时间</span>
+                    <span id="hudTime" class="hud-value">0:00</span>
+                </div>
+            </div>
+            <div class="hud-bottom">
+                <div class="balance-bar">
+                    <div class="balance-label">平衡</div>
+                    <div class="balance-track">
+                        <div id="balanceFill" class="balance-fill"></div>
+                    </div>
+                </div>
+                <div class="item-slot">
+                    <div class="item-label">道具</div>
+                    <div id="itemSlot" class="item-box">空</div>
+                </div>
+                <button id="pauseBtn" class="btn-pause">⏸</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
