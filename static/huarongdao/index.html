@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华容道 · 横刀立马</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>华容道 · 横刀立马</h1>
+        </header>
+
+        <div class="game-info">
+            <div class="info-item">
+                <span class="label">布局</span>
+                <select id="layoutSelect">
+                    <option value="hengdaolima">横刀立马 ★★★★ (81步)</option>
+                    <option value="cengcengshefang">层层设防 ★★★ (55步)</option>
+                    <option value="binglinchengxia">兵临城下 ★★★★ (70步)</option>
+                    <option value="qiandanghouzu">前挡后阻 ★★★★★ (98步)</option>
+                    <option value="yilujinjun">一路进军 ★★ (38步)</option>
+                    <option value="qitoubingjin">齐头并进 ★★★ (62步)</option>
+                    <option value="jiangyongcaoying">将拥曹营 ★★★★ (85步)</option>
+                    <option value="wuhushangjiang">五虎上将 ★★★★★ (110步)</option>
+                </select>
+            </div>
+            <div class="info-item">
+                <span class="label">步数</span>
+                <span id="stepCount">0</span>
+            </div>
+            <div class="info-item">
+                <span class="label">时间</span>
+                <span id="timer">00:00</span>
+            </div>
+            <div class="info-item">
+                <span class="label">最佳</span>
+                <span id="bestRecord">-</span>
+            </div>
+        </div>
+
+        <div class="game-board-wrapper">
+            <canvas id="gameCanvas" width="300" height="400"></canvas>
+            <div class="exit-indicator">
+                <span>出口</span>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button id="startBtn" class="btn btn-primary">开始游戏</button>
+            <button id="pauseBtn" class="btn btn-secondary" disabled>暂停</button>
+            <button id="undoBtn" class="btn btn-secondary" disabled>撤销</button>
+            <button id="resetBtn" class="btn btn-danger">重置</button>
+        </div>
+
+        <div class="direction-controls">
+            <div class="direction-row">
+                <button class="direction-btn" data-dir="up">↑</button>
+            </div>
+            <div class="direction-row">
+                <button class="direction-btn" data-dir="left">←</button>
+                <button class="direction-btn" data-dir="down">↓</button>
+                <button class="direction-btn" data-dir="right">→</button>
+            </div>
+        </div>
+
+        <div class="game-tips">
+            <p>💡 点击选中方块，使用方向键或方向按钮移动，让曹操从底部出口逃脱！</p>
+        </div>
+    </div>
+
+    <div id="pauseModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>游戏暂停</h2>
+            <div class="modal-buttons">
+                <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+                <button id="exitBtn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="winModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🎉 恭喜通关！</h2>
+            <div class="win-stats">
+                <p>本次步数: <span id="finalSteps">0</span></p>
+                <p>用时: <span id="finalTime">00:00</span></p>
+                <p id="newRecord" class="new-record hidden">🏆 新纪录！</p>
+            </div>
+            <div class="modal-buttons">
+                <button id="playAgainBtn" class="btn btn-primary">再玩一次</button>
+                <button id="closeWinBtn" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
