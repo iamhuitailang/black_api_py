@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高空秋千 · 空中接力</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="start-menu" class="menu-screen">
+                <div class="menu-content">
+                    <h1 class="game-title">高空秋千</h1>
+                    <h2 class="game-subtitle">空中接力</h2>
+                    <p class="game-desc">操控秋千腾空起跳，精准完成空中接力</p>
+                    <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                    <button id="continue-btn" class="btn btn-secondary" style="display:none;">继续游戏</button>
+                    <div class="controls-info">
+                        <p>← → 调整摆幅 | 空格 蓄力/释放 | ↑ 滞空 | ↓ 俯冲</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="pause-menu" class="menu-screen" style="display:none;">
+                <div class="menu-content">
+                    <h2>游戏暂停</h2>
+                    <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                    <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                    <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+                </div>
+            </div>
+            
+            <div id="gameover-menu" class="menu-screen" style="display:none;">
+                <div class="menu-content">
+                    <h2 id="gameover-title">闯关失败</h2>
+                    <p id="gameover-message"></p>
+                    <div class="score-display">
+                        <p>得分: <span id="final-score">0</span></p>
+                        <p>用时: <span id="final-time">0</span>秒</p>
+                    </div>
+                    <button id="retry-btn" class="btn btn-primary">再试一次</button>
+                    <button id="back-menu-btn" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="victory-menu" class="menu-screen" style="display:none;">
+                <div class="menu-content">
+                    <h2>🎉 闯关成功！</h2>
+                    <div class="score-display">
+                        <p>得分: <span id="victory-score">0</span></p>
+                        <p>用时: <span id="victory-time">0</span>秒</p>
+                        <p>评价: <span id="victory-rating"></span></p>
+                    </div>
+                    <button id="next-level-btn" class="btn btn-primary">下一关</button>
+                    <button id="victory-menu-btn" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="game-hud" style="display:none;">
+                <div class="hud-top">
+                    <div class="hud-item">
+                        <span class="hud-label">关卡</span>
+                        <span class="hud-value" id="level-display">1</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">得分</span>
+                        <span class="hud-value" id="score-display">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">时间</span>
+                        <span class="hud-value" id="time-display">0</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <button id="pause-btn" class="btn-icon" title="暂停">⏸</button>
+                </div>
+                <div class="charge-bar-container">
+                    <div class="charge-bar" id="charge-bar"></div>
+                    <div class="charge-label" id="charge-label">蓄力</div>
+                </div>
+                <div class="miss-counter">
+                    <span>失误: <span id="miss-count">0</span>/3</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
