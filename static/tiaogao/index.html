@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>大家来跳高 - 奥运竞赛</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiLayer">
+            <div id="topBar">
+                <div class="info-item">
+                    <span class="label">当前高度</span>
+                    <span id="currentHeight" class="value">1.70m</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">最好成绩</span>
+                    <span id="bestHeight" class="value">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">试跳次数</span>
+                    <span id="attemptCount" class="value">0/0</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">名次</span>
+                    <span id="rank" class="value">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">天气</span>
+                    <span id="weather" class="value">☀️</span>
+                </div>
+            </div>
+            
+            <div id="chargeBarContainer" class="hidden">
+                <div id="chargeBar"></div>
+                <span id="chargeText">蓄力中...</span>
+            </div>
+            
+            <div id="hintText"></div>
+            
+            <div id="startScreen" class="screen">
+                <h1 class="title">大家来跳高</h1>
+                <p class="subtitle">奥运竞赛</p>
+                <div class="mode-select">
+                    <h3>选择模式</h3>
+                    <div class="mode-buttons">
+                        <button class="mode-btn" data-mode="training">
+                            <span class="mode-name">训练模式</span>
+                            <span class="mode-desc">练习起跳 · 无对手</span>
+                        </button>
+                        <button class="mode-btn" data-mode="school">
+                            <span class="mode-name">校际赛</span>
+                            <span class="mode-desc">轻松比赛 · 3对手</span>
+                        </button>
+                        <button class="mode-btn" data-mode="national">
+                            <span class="mode-name">全国赛</span>
+                            <span class="mode-desc">激烈竞争 · 6对手</span>
+                        </button>
+                        <button class="mode-btn" data-mode="olympic">
+                            <span class="mode-name">奥运决赛</span>
+                            <span class="mode-desc">巅峰对决 · 8对手</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="controls-hint">
+                    <p>⌨️ Space/↑ 起跳 | ←→ 调整姿态 | R 重置</p>
+                    <p>📱 点击起跳 | 左右滑动调整姿态 | 长按重置</p>
+                </div>
+            </div>
+            
+            <div id="resultScreen" class="screen hidden">
+                <div class="result-content">
+                    <h2 id="resultTitle">比赛结束</h2>
+                    <div id="resultDetails"></div>
+                    <div class="result-buttons">
+                        <button id="continueBtn">继续比赛</button>
+                        <button id="restartBtn">重新开始</button>
+                        <button id="menuBtn">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="pauseBtn" class="hidden">⏸</button>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/opponent.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
