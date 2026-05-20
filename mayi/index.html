@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蚂蚁战争 · Colony Defense</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1200" height="800"></canvas>
+        
+        <div id="start-screen" class="overlay">
+            <div class="menu-box">
+                <h1>🐜 蚂蚁战争 🐜</h1>
+                <p class="subtitle">Colony Defense</p>
+                <p class="record">最高波次: <span id="highest-wave-display">0</span></p>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="continue-btn" class="btn btn-secondary" style="display:none;">继续游戏</button>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="overlay" style="display:none;">
+            <div class="menu-box">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="overlay" style="display:none;">
+            <div class="menu-box">
+                <h2>游戏结束</h2>
+                <p class="record">坚持到第 <span id="final-wave">0</span> 波</p>
+                <p class="record" id="new-record" style="display:none;color:#ffd700;">🎉 新纪录！</p>
+                <button id="retry-btn" class="btn btn-primary">再来一局</button>
+                <button id="back-btn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="wave-notification" class="wave-notification" style="display:none;">
+            <span id="wave-text">第 1 波来袭！</span>
+        </div>
+
+        <div id="ui-top">
+            <div class="resource-bar">
+                <div class="resource-item">
+                    <span class="icon">🍃</span>
+                    <span id="food-count">0</span>
+                    <span class="max">/999</span>
+                </div>
+                <div class="resource-item">
+                    <span class="icon">🪨</span>
+                    <span id="stone-count">0</span>
+                    <span class="max">/999</span>
+                </div>
+                <div class="resource-item">
+                    <span class="icon">💎</span>
+                    <span id="honey-count">0</span>
+                    <span class="max">/99</span>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="wave-info">
+                    <span>波次: </span>
+                    <span id="current-wave">0</span>
+                    <span> / 10</span>
+                </div>
+                <div class="unit-info">
+                    <span>单位: </span>
+                    <span id="unit-count">0</span>
+                    <span> / </span>
+                    <span id="unit-max">20</span>
+                </div>
+                <div class="hp-bar">
+                    <div class="hp-fill" id="hp-fill"></div>
+                    <span class="hp-text" id="hp-text">200/200</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="ui-bottom">
+            <div class="panel">
+                <h3>孵化蚂蚁</h3>
+                <div class="unit-buttons" id="unit-buttons">
+                </div>
+                <div class="queue-info" id="queue-info">
+                    <span>孵化队列: </span>
+                    <span id="queue-count">0</span>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>升级巢穴</h3>
+                <div class="upgrade-buttons" id="upgrade-buttons">
+                </div>
+            </div>
+
+            <div class="panel control-panel">
+                <button id="pause-btn" class="btn btn-small">⏸ 暂停</button>
+                <button id="speed-btn" class="btn btn-small">⏩ 1x</button>
+            </div>
+        </div>
+
+        <div id="hatch-progress" class="hatch-progress" style="display:none;">
+            <div class="hatch-bar" id="hatch-bar"></div>
+            <span class="hatch-text" id="hatch-text">孵化中...</span>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/gameState.js"></script>
+    <script src="js/entities/Colony.js"></script>
+    <script src="js/entities/Unit.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/ResourcePoint.js"></script>
+    <script src="js/systems/RenderSystem.js"></script>
+    <script src="js/systems/AISystem.js"></script>
+    <script src="js/systems/CombatSystem.js"></script>
+    <script src="js/systems/WaveSystem.js"></script>
+    <script src="js/systems/UISystem.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

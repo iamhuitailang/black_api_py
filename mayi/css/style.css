@@ -1,0 +1,425 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 1200px;
+    height: 800px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+#game-canvas {
+    display: block;
+    background: linear-gradient(180deg, #87ceeb 0%, #98fb98 50%, #8b4513 100%);
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.menu-box {
+    background: linear-gradient(145deg, #2d2d44, #1a1a2e);
+    padding: 40px 60px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border: 2px solid #4a4a6a;
+}
+
+.menu-box h1 {
+    font-size: 48px;
+    color: #ffd700;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.menu-box h2 {
+    font-size: 36px;
+    color: #ff6b6b;
+    margin-bottom: 20px;
+}
+
+.menu-box .subtitle {
+    font-size: 18px;
+    color: #888;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+.menu-box .record {
+    font-size: 20px;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.menu-box .record span {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 28px;
+}
+
+.btn {
+    display: block;
+    width: 200px;
+    margin: 10px auto;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-primary {
+    background: linear-gradient(145deg, #4ecdc4, #44a08d);
+    color: white;
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.6);
+}
+
+.btn-secondary {
+    background: linear-gradient(145deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.btn-danger {
+    background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+.btn-small {
+    width: 70px;
+    padding: 6px 8px;
+    font-size: 11px;
+    margin: 2px;
+}
+
+.wave-notification {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+    color: white;
+    padding: 20px 60px;
+    border-radius: 50px;
+    font-size: 32px;
+    font-weight: bold;
+    z-index: 50;
+    animation: waveAnim 2s ease-out forwards;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 30px rgba(255, 107, 107, 0.6);
+}
+
+@keyframes waveAnim {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    40% { transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+#ui-top {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.resource-bar {
+    display: flex;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.resource-item .icon {
+    font-size: 24px;
+}
+
+.resource-item .max {
+    color: #888;
+    font-size: 14px;
+}
+
+.status-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.wave-info, .unit-info {
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.wave-info span:first-child,
+.unit-info span:first-child {
+    color: #aaa;
+}
+
+.hp-bar {
+    width: 200px;
+    height: 24px;
+    background: #333;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid #555;
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b6b, #ee5a5a);
+    transition: width 0.3s ease;
+    width: 100%;
+}
+
+.hp-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+#ui-bottom {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    right: 5px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.panel {
+    background: rgba(0, 0, 0, 0.65);
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.panel h3 {
+    color: #ffd700;
+    font-size: 11px;
+    margin-bottom: 4px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.unit-buttons, .upgrade-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 480px;
+}
+
+.unit-btn, .upgrade-btn {
+    background: linear-gradient(145deg, #3a3a5a, #2a2a4a);
+    color: white;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+    position: relative;
+}
+
+.unit-btn:hover:not(:disabled),
+.upgrade-btn:hover:not(:disabled) {
+    border-color: #ffd700;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.unit-btn:disabled,
+.upgrade-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.unit-btn .unit-icon {
+    font-size: 18px;
+    margin-bottom: 1px;
+}
+
+.unit-btn .unit-name {
+    font-size: 9px;
+    margin-bottom: 1px;
+}
+
+.unit-btn .unit-cost {
+    font-size: 9px;
+    color: #90EE90;
+}
+
+.unit-btn.locked {
+    opacity: 0.4;
+}
+
+.unit-btn .lock-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #ff6b6b;
+}
+
+.upgrade-btn {
+    min-width: 75px;
+}
+
+.upgrade-btn .upgrade-name {
+    font-size: 9px;
+    margin-bottom: 1px;
+}
+
+.upgrade-btn .upgrade-level {
+    font-size: 8px;
+    color: #ffd700;
+    margin-bottom: 1px;
+}
+
+.upgrade-btn .upgrade-cost {
+    font-size: 8px;
+    color: #87CEEB;
+}
+
+.queue-info {
+    color: #aaa;
+    font-size: 10px;
+    margin-top: 4px;
+    text-align: center;
+}
+
+.queue-info span:last-child {
+    color: #90EE90;
+    font-weight: bold;
+}
+
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.hatch-progress {
+    position: absolute;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid #ffd700;
+    z-index: 20;
+}
+
+.hatch-bar {
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.hatch-bar::before {
+    content: '';
+    display: block;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: linear-gradient(90deg, #ffd700, #ffa500);
+    transition: width 0.1s linear;
+}
+
+.hatch-text {
+    color: white;
+    font-size: 12px;
+    text-align: center;
+    display: block;
+}
