@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞刀表演 · 惊险投掷 🗡️</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">飞刀表演</h1>
+        
+        <div class="game-wrapper">
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="900" height="600"></canvas>
+                
+                <div class="top-controls">
+                    <button id="pauseBtn" class="btn btn-secondary">暂停</button>
+                </div>
+                
+                <div id="hitFeedback" class="hit-feedback"></div>
+                
+                <div id="menuScreen" class="overlay">
+                    <h2 class="overlay-title">🎪 飞刀表演 🎪</h2>
+                    <p class="overlay-subtitle">精准操控，瞄准靶心，挑战极限高分！</p>
+                    
+                    <div class="menu-options">
+                        <div class="panel-section">
+                            <h3 class="section-title">选择场景</h3>
+                            <select id="sceneSelect">
+                                <option value="street">街头小擂台</option>
+                                <option value="market">夜市杂耍场</option>
+                                <option value="high">高空惊险台</option>
+                                <option value="night">暗夜极限场</option>
+                            </select>
+                        </div>
+                        
+                        <div class="panel-section">
+                            <h3 class="section-title">选择飞刀</h3>
+                            <select id="knifeSelect">
+                                <option value="normal">普通飞刀</option>
+                                <option value="swift">疾风飞刀</option>
+                                <option value="heavy">重刃飞刀</option>
+                                <option value="trick">花式回旋刀</option>
+                            </select>
+                        </div>
+                        
+                        <div class="panel-section">
+                            <h3 class="section-title">投掷力度</h3>
+                            <select id="strengthSelect">
+                                <option value="light">轻投 (5分)</option>
+                                <option value="medium" selected>中投 (10分)</option>
+                                <option value="heavy">重投 (18分)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-display" style="grid-template-columns: 1fr 1fr; width: 100%; max-width: 280px; margin-bottom: 15px;">
+                        <div class="stat-item">
+                            <div class="stat-label">最高分</div>
+                            <div class="stat-value" id="menuHighScoreDisplay">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">当前关卡</div>
+                            <div class="stat-value" id="menuLevelDisplay">1</div>
+                        </div>
+                    </div>
+                    
+                    <div class="instructions" style="width: 100%; max-width: 320px; margin-bottom: 15px; padding: 10px;">
+                        <h4 style="font-size: 1em; margin-bottom: 8px;">🎮 操作说明</h4>
+                        <ul style="font-size: 0.85em; padding-left: 20px; margin: 0;">
+                            <li>拖动滑块调整投掷角度</li>
+                            <li>调整力度控制飞刀速度</li>
+                            <li>点击「投掷」或按空格键发射</li>
+                            <li>命中靶心获得更高分数</li>
+                            <li>按 ESC 键暂停游戏</li>
+                        </ul>
+                    </div>
+                    
+                    <button id="startBtn" class="btn btn-gold">开始游戏</button>
+                </div>
+                
+                <div id="pauseScreen" class="overlay" style="display: none;">
+                    <h2 class="overlay-title">⏸️ 游戏暂停</h2>
+                    <div class="overlay-stats">
+                        <div class="overlay-stat">
+                            <div class="overlay-stat-label">当前分数</div>
+                            <div class="overlay-stat-value" id="pauseScore">0</div>
+                        </div>
+                        <div class="overlay-stat">
+                            <div class="overlay-stat-label">剩余飞刀</div>
+                            <div class="overlay-stat-value" id="pauseKnives">0</div>
+                        </div>
+                    </div>
+                    <div class="overlay-buttons">
+                        <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                        <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+                        <button id="quitBtn" class="btn btn-secondary">退出到菜单</button>
+                    </div>
+                </div>
+                
+                <div id="gameOverScreen" class="overlay" style="display: none;">
+                    <h2 class="overlay-title">💔 游戏结束</h2>
+                    <div class="overlay-stats">
+                        <div class="overlay-stat">
+                            <div class="overlay-stat-label">本局得分</div>
+                            <div class="overlay-stat-value" id="finalScore">0</div>
+                        </div>
+                        <div class="overlay-stat">
+                            <div class="overlay-stat-label">最高记录</div>
+                            <div class="overlay-stat-value" id="finalHighScore">0</div>
+                        </div>
+                    </div>
+                    <p class="overlay-subtitle">再接再厉，挑战更高分数！</p>
+                    <div class="overlay-buttons">
+                        <button id="playAgainBtn" class="btn btn-gold">再来一局</button>
+                        <button id="quitBtn2" class="btn btn-secondary">返回菜单</button>
+                    </div>
+                </div>
+                
+                <div id="levelCompleteScreen" class="overlay" style="display: none;">
+                    <h2 class="overlay-title">🎉 关卡通过！</h2>
+                    <div class="overlay-stats">
+                        <div class="overlay-stat">
+                            <div class="overlay-stat-label">得分</div>
+                            <div class="overlay-stat-value" id="levelScore">0</div>
+                        </div>
+                        <div class="overlay-stat">
+                            <div class="overlay-stat-label">命中次数</div>
+                            <div class="overlay-stat-value" id="levelHits">0</div>
+                        </div>
+                    </div>
+                    <p class="overlay-subtitle">恭喜完成本关！准备迎接更难的挑战吧！</p>
+                    <div class="overlay-buttons">
+                        <button id="nextLevelBtn" class="btn btn-gold">下一关</button>
+                        <button id="quitBtn3" class="btn btn-secondary">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-panel" id="controlPanel" style="display: none;">
+                <div class="panel-section">
+                    <h3 class="section-title">📊 游戏状态</h3>
+                    <div class="stats-display">
+                        <div class="stat-item">
+                            <div class="stat-label">本局分数</div>
+                            <div class="stat-value" id="scoreDisplay">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">总分数</div>
+                            <div class="stat-value" id="totalScoreDisplay">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">剩余飞刀</div>
+                            <div class="stat-value" id="knivesLeftDisplay">10</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">关卡</div>
+                            <div class="stat-value" id="levelDisplay2">1</div>
+                        </div>
+                    </div>
+                    <div class="stat-item" style="margin-top: 10px;">
+                        <div class="stat-label">靶盘状态</div>
+                        <div class="stat-value" id="targetStateDisplay">静止固定</div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3 class="section-title">🎯 投掷控制</h3>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>投掷角度</span>
+                            <span class="control-value" id="angleValue">45°</span>
+                        </div>
+                        <input type="range" id="angleSlider" min="10" max="80" value="45" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>投掷力度</span>
+                            <span class="control-value" id="powerValue">50%</span>
+                        </div>
+                        <input type="range" id="powerSlider" min="10" max="100" value="50" step="1">
+                    </div>
+                    <button id="throwBtn" class="btn btn-primary">投掷飞刀</button>
+                </div>
+                
+                <div class="panel-section">
+                    <h3 class="section-title">🗡️ 飞刀选择</h3>
+                    <select id="knifeSelect2">
+                        <option value="normal">普通飞刀 - 稳定轨迹</option>
+                        <option value="swift">疾风飞刀 - 高速轻盈</option>
+                        <option value="heavy">重刃飞刀 - 高伤精准</option>
+                        <option value="trick">花式回旋刀 - 特技表演</option>
+                    </select>
+                </div>
+                
+                <div class="panel-section">
+                    <h3 class="section-title">💡 提示</h3>
+                    <div class="instructions">
+                        <ul>
+                            <li>调整角度和力度后点击投掷</li>
+                            <li>靶心50分，越靠近中心分数越高</li>
+                            <li>避开障碍物，精准击打靶盘</li>
+                            <li>达到目标分数即可过关</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/knife.js"></script>
+    <script src="js/target.js"></script>
+    <script src="js/obstacle.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('gameCanvas');
+            const game = new Game(canvas);
+            
+            document.getElementById('quitBtn2').addEventListener('click', function() {
+                game.quitToMenu();
+            });
+            
+            document.getElementById('quitBtn3').addEventListener('click', function() {
+                game.quitToMenu();
+            });
+            
+            document.getElementById('knifeSelect2').addEventListener('change', function(e) {
+                game.state.currentKnifeType = e.target.value;
+            });
+        });
+    </script>
+</body>
+</html>
