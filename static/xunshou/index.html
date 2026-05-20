@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>火圈跳跃 · 驯兽表演 🎪</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="main-menu" class="screen active">
+                <div class="menu-content">
+                    <h1 class="game-title">🎪 火圈跳跃</h1>
+                    <h2 class="game-subtitle">驯兽表演</h2>
+                    <p class="game-desc">操控萌兽穿越火圈，完成精彩表演！</p>
+                    
+                    <div class="character-select">
+                        <h3>选择你的灵兽</h3>
+                        <div class="character-list" id="character-list"></div>
+                    </div>
+                    
+                    <div class="level-select">
+                        <h3>选择关卡</h3>
+                        <div class="level-list" id="level-list"></div>
+                    </div>
+                    
+                    <button id="start-btn" class="btn btn-primary">开始表演</button>
+                    
+                    <div class="high-score">
+                        <span>🏆 最高分：</span>
+                        <span id="high-score-display">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="game-hud" class="screen">
+                <div class="hud-top">
+                    <div class="hud-left">
+                        <div class="score-display">
+                            <span>🎯 分数：</span>
+                            <span id="score-display">0</span>
+                        </div>
+                        <div class="health-display">
+                            <span>❤️ 生命：</span>
+                            <span id="health-display"></span>
+                        </div>
+                    </div>
+                    <div class="hud-right">
+                        <div class="level-display">
+                            <span>🎪 关卡：</span>
+                            <span id="level-display">1</span>
+                        </div>
+                        <button id="pause-btn" class="btn btn-small">⏸️</button>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+            
+            <div id="pause-menu" class="screen modal">
+                <div class="modal-content">
+                    <h2>⏸️ 游戏暂停</h2>
+                    <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                    <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                    <button id="quit-btn" class="btn btn-danger">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="game-over" class="screen modal">
+                <div class="modal-content">
+                    <h2 id="game-over-title">🎭 表演结束</h2>
+                    <p id="game-over-message"></p>
+                    <div class="final-score">
+                        <span>本次得分：</span>
+                        <span id="final-score">0</span>
+                    </div>
+                    <div class="new-record" id="new-record">🎉 新纪录！</div>
+                    <button id="retry-btn" class="btn btn-primary">再来一次</button>
+                    <button id="menu-btn" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="level-complete" class="screen modal">
+                <div class="modal-content">
+                    <h2>🎊 表演成功！</h2>
+                    <p id="level-complete-message"></p>
+                    <div class="level-score">
+                        <span>关卡得分：</span>
+                        <span id="level-score">0</span>
+                    </div>
+                    <button id="next-level-btn" class="btn btn-primary">下一关</button>
+                    <button id="back-menu-btn" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="mobile-controls" class="mobile-controls">
+                <button id="left-btn" class="control-btn">⬅️</button>
+                <div class="center-controls">
+                    <button id="down-btn" class="control-btn">⬇️</button>
+                    <button id="jump-btn" class="control-btn jump-btn">⬆️</button>
+                </div>
+                <button id="right-btn" class="control-btn">➡️</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config/characters.js"></script>
+    <script src="js/config/levels.js"></script>
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/core/input.js"></script>
+    <script src="js/core/renderer.js"></script>
+    <script src="js/entities/player.js"></script>
+    <script src="js/entities/obstacle.js"></script>
+    <script src="js/entities/fireHoop.js"></script>
+    <script src="js/ui/uiManager.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
