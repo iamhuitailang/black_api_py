@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人间大炮 · 炮弹飞人 💣</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1200" height="700"></canvas>
+        
+        <div id="startScreen" class="overlay">
+            <div class="menu-box">
+                <h1 class="title">人间大炮<br>🎪 炮弹飞人 🎪</h1>
+                <p class="subtitle">操控炮台蓄力发射，精准轰击对手！</p>
+                <div class="cannon-select">
+                    <h3>选择你的炮台</h3>
+                    <div class="cannon-options">
+                        <div class="cannon-card" data-cannon="basic">
+                            <div class="cannon-icon">🎯</div>
+                            <h4>基础人间大炮</h4>
+                            <p>均衡通用</p>
+                            <div class="stats">
+                                <span>血量: 100</span>
+                                <span>威力: 15</span>
+                            </div>
+                        </div>
+                        <div class="cannon-card" data-cannon="flame">
+                            <div class="cannon-icon">🔥</div>
+                            <h4>烈焰巨炮</h4>
+                            <p>高伤远距</p>
+                            <div class="stats">
+                                <span>血量: 85</span>
+                                <span>威力: 22</span>
+                            </div>
+                        </div>
+                        <div class="cannon-card" data-cannon="wind">
+                            <div class="cannon-icon">💨</div>
+                            <h4>疾风速射炮</h4>
+                            <p>攻速灵活</p>
+                            <div class="stats">
+                                <span>血量: 90</span>
+                                <span>威力: 12</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <button id="continueBtn" class="btn btn-secondary hidden">继续上次游戏</button>
+                <p class="tips">↑↓调整角度 | 长按空格蓄力 | 松开发射</p>
+            </div>
+        </div>
+
+        <div id="pauseScreen" class="overlay hidden">
+            <div class="menu-box">
+                <h2>⏸️ 游戏暂停</h2>
+                <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+                <button id="quitBtn" class="btn btn-danger">退出游戏</button>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="menu-box">
+                <h2 id="gameOverTitle">🎉 胜利！</h2>
+                <p id="gameOverText">你成功击败了对手！</p>
+                <div class="stats-display">
+                    <div class="stat-item">
+                        <span>总伤害</span>
+                        <strong id="totalDamage">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>命中次数</span>
+                        <strong id="hitCount">0</strong>
+                    </div>
+                </div>
+                <button id="playAgainBtn" class="btn btn-primary">再来一局</button>
+                <button id="backToMenuBtn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="gameUI" class="hidden">
+            <div class="hud">
+                <div class="player-info">
+                    <div class="health-bar">
+                        <div class="health-label">我方炮台</div>
+                        <div class="health-bar-bg">
+                            <div id="playerHealth" class="health-fill"></div>
+                        </div>
+                        <span id="playerHealthText">100/100</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <div class="turn-indicator">
+                        <span id="turnText">你的回合</span>
+                    </div>
+                    <button id="pauseBtn" class="btn btn-small">⏸️ 暂停</button>
+                </div>
+                <div class="enemy-info">
+                    <div class="health-bar enemy">
+                        <div class="health-label">敌方炮台</div>
+                        <div class="health-bar-bg">
+                            <div id="enemyHealth" class="health-fill enemy"></div>
+                        </div>
+                        <span id="enemyHealthText">100/100</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="power-bar-container">
+                <div class="power-bar">
+                    <div id="powerFill" class="power-fill"></div>
+                </div>
+                <span id="powerText">威力: 0%</span>
+            </div>
+
+            <div class="angle-display">
+                <span>角度: <strong id="angleText">45°</strong></span>
+            </div>
+
+            <div id="skillIndicator" class="skill-indicator hidden">
+                <span id="skillText">特殊技能触发！</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/projectile.js"></script>
+    <script src="js/cannon.js"></script>
+    <script src="js/enemyAI.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
