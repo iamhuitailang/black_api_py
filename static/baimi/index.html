@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百米赛跑 - 100m Sprint</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header class="game-header">
+            <h1>🏃 百米赛跑 100m Sprint</h1>
+            <div class="header-info">
+                <div class="weather-display" id="weatherDisplay">
+                    <span class="weather-icon">☀️</span>
+                    <span class="weather-text">晴天</span>
+                </div>
+                <div class="best-record">
+                    <span>最佳成绩: </span>
+                    <span id="bestRecord">--</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div class="game-canvas-wrapper">
+                <canvas id="gameCanvas" width="1200" height="500"></canvas>
+                <div class="game-overlay" id="gameOverlay">
+                    <div class="overlay-content" id="overlayContent"></div>
+                </div>
+            </div>
+
+            <div class="game-info-panel">
+                <div class="info-section">
+                    <h3>当前模式</h3>
+                    <div class="mode-display" id="modeDisplay">单人计时</div>
+                </div>
+                
+                <div class="info-section">
+                    <h3>实时数据</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">当前速度</span>
+                            <span class="stat-value" id="currentSpeed">0.0</span>
+                            <span class="stat-unit">m/s</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已跑距离</span>
+                            <span class="stat-value" id="currentDistance">0.00</span>
+                            <span class="stat-unit">m</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">用时</span>
+                            <span class="stat-value" id="currentTime">0.00</span>
+                            <span class="stat-unit">s</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">体力</span>
+                            <div class="stamina-bar">
+                                <div class="stamina-fill" id="staminaFill"></div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">起跑反应</span>
+                            <span class="stat-value" id="reactionTime">--</span>
+                            <span class="stat-unit">s</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">当前名次</span>
+                            <span class="stat-value" id="currentRank">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>操作说明</h3>
+                    <div class="controls-info">
+                        <p><kbd>空格</kbd> / <kbd>点击</kbd> - 加速冲刺</p>
+                        <p>快速点击获得更高速度</p>
+                        <p>注意体力消耗，保持节奏</p>
+                    </div>
+                </div>
+
+                <div class="info-section opponents-section">
+                    <h3>对手列表</h3>
+                    <div class="opponents-list" id="opponentsList"></div>
+                </div>
+            </div>
+        </main>
+
+        <div class="game-controls">
+            <button class="btn btn-primary" id="startBtn">开始比赛</button>
+            <button class="btn btn-secondary" id="modeBtn">选择模式</button>
+            <button class="btn btn-secondary" id="resetBtn">重置记录</button>
+        </div>
+
+        <div class="modal" id="modeModal">
+            <div class="modal-content">
+                <h2>选择游戏模式</h2>
+                <div class="mode-options" id="modeOptions"></div>
+                <button class="btn btn-close" id="closeModalBtn">关闭</button>
+            </div>
+        </div>
+
+        <div class="modal" id="resultModal">
+            <div class="modal-content result-modal">
+                <h2>比赛结果</h2>
+                <div class="result-details" id="resultDetails"></div>
+                <div class="result-actions">
+                    <button class="btn btn-primary" id="raceAgainBtn">再来一局</button>
+                    <button class="btn btn-secondary" id="closeResultBtn">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js?v=20260520006"></script>
+    <script src="js/weather.js?v=20260520006"></script>
+    <script src="js/mode.js?v=20260520006"></script>
+    <script src="js/runner.js?v=20260520006"></script>
+    <script src="js/renderer.js?v=20260520006"></script>
+    <script src="js/game.js?v=20260520006"></script>
+    <script src="js/app.js?v=20260520006"></script>
+</body>
+</html>
