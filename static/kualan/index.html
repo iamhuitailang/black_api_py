@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>110米跨栏 - 竞技游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="startScreen" class="screen">
+            <div class="title">
+                <h1>110米跨栏</h1>
+                <p>速度与激情的较量</p>
+            </div>
+            
+            <div class="mode-selection">
+                <h2>选择模式</h2>
+                <div class="mode-buttons">
+                    <button class="mode-btn" data-mode="1">
+                        <span class="mode-name">个人计时</span>
+                        <span class="mode-desc">自我挑战</span>
+                        <span class="mode-rivals">0对手</span>
+                    </button>
+                    <button class="mode-btn" data-mode="2">
+                        <span class="mode-name">地区赛</span>
+                        <span class="mode-desc">休闲</span>
+                        <span class="mode-rivals">3对手</span>
+                    </button>
+                    <button class="mode-btn" data-mode="3">
+                        <span class="mode-name">全国赛</span>
+                        <span class="mode-desc">竞争</span>
+                        <span class="mode-rivals">6对手</span>
+                    </button>
+                    <button class="mode-btn" data-mode="4">
+                        <span class="mode-name">世锦赛</span>
+                        <span class="mode-desc">顶级</span>
+                        <span class="mode-rivals">8对手</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="controls-info">
+                <h3>操作说明</h3>
+                <div class="control-item">
+                    <span class="key">Space连点</span>
+                    <span class="action">加速冲刺</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">↑ / 上滑</span>
+                    <span class="action">起跳过栏</span>
+                </div>
+            </div>
+            
+            <button id="startBtn" class="start-btn">开始游戏</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden">
+            <div class="game-hud">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="label">用时</span>
+                        <span id="timeDisplay" class="value">0.00s</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">距离</span>
+                        <span id="distanceDisplay" class="value">110m</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="hud-item">
+                        <span class="label">完美过栏</span>
+                        <span id="perfectDisplay" class="value">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">名次</span>
+                        <span id="rankDisplay" class="value">1</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="hud-item">
+                        <span class="label">天气</span>
+                        <span id="weatherDisplay" class="value">☀️</span>
+                    </div>
+                    <button id="pauseBtn" class="pause-btn">⏸️</button>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas"></canvas>
+
+            <div class="touch-controls">
+                <div class="touch-accelerate" id="touchAccelerate">
+                    <span>点击加速</span>
+                </div>
+                <div class="touch-jump" id="touchJump">
+                    <span>上滑起跳</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="pauseMenu" class="modal hidden">
+            <div class="modal-content">
+                <h2>游戏暂停</h2>
+                <div class="modal-buttons">
+                    <button id="resumeBtn" class="modal-btn">继续游戏</button>
+                    <button id="restartBtn" class="modal-btn">重新开始</button>
+                    <button id="quitBtn" class="modal-btn">退出游戏</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultScreen" class="screen hidden">
+            <div class="result-content">
+                <h1>比赛结束</h1>
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">最终成绩</span>
+                        <span id="finalTime" class="stat-value">0.00s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最终名次</span>
+                        <span id="finalRank" class="stat-value">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">完美过栏</span>
+                        <span id="finalPerfect" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">基础得分</span>
+                        <span id="baseScore" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">完美加分</span>
+                        <span id="bonusScore" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item total">
+                        <span class="stat-label">总得分</span>
+                        <span id="totalScore" class="stat-value">0</span>
+                    </div>
+                </div>
+                <div class="result-buttons">
+                    <button id="playAgainBtn" class="result-btn">再来一局</button>
+                    <button id="backToMenuBtn" class="result-btn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/opponent.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
