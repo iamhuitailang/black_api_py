@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔术箱逃脱 · 极限计时</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="top-bar">
+                <div class="timer-display">
+                    <span class="timer-icon">⏱️</span>
+                    <span id="timer-text">04:00</span>
+                </div>
+                <div class="level-display">
+                    <span id="level-text">第一关：魔术暗箱</span>
+                </div>
+                <div class="control-buttons">
+                    <button id="pause-btn" class="control-btn">⏸️ 暂停</button>
+                    <button id="hint-btn" class="control-btn">💡 提示</button>
+                </div>
+            </div>
+            
+            <div id="inventory-bar">
+                <div class="inventory-title">🎒 道具背包</div>
+                <div id="inventory-slots" class="inventory-slots"></div>
+            </div>
+            
+            <div id="message-area"></div>
+        </div>
+        
+        <div id="start-screen" class="modal-overlay">
+            <div class="modal-content start-modal">
+                <h1 class="game-title">🎩 魔术箱逃脱</h1>
+                <h2 class="game-subtitle">极限计时 · 密室逃生</h2>
+                <div class="game-description">
+                    <p>你被困在神秘的魔术密室中...</p>
+                    <p>在4分钟内解开所有谜题，成功逃脱！</p>
+                </div>
+                <div class="best-record" id="best-record-display">
+                    <p>🏆 最快通关记录：--:--</p>
+                </div>
+                <div class="start-buttons">
+                    <button id="new-game-btn" class="game-btn primary-btn">🎮 开始新游戏</button>
+                    <button id="continue-btn" class="game-btn secondary-btn" style="display: none;">📂 继续游戏</button>
+                </div>
+                <div class="level-select">
+                    <h3>选择关卡</h3>
+                    <div id="level-buttons" class="level-buttons"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="pause-screen" class="modal-overlay" style="display: none;">
+            <div class="modal-content pause-modal">
+                <h2>⏸️ 游戏暂停</h2>
+                <p>计时已暂停</p>
+                <div class="pause-buttons">
+                    <button id="resume-btn" class="game-btn primary-btn">▶️ 继续游戏</button>
+                    <button id="restart-btn" class="game-btn secondary-btn">🔄 重新开始</button>
+                    <button id="quit-btn" class="game-btn danger-btn">🚪 返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="puzzle-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content puzzle-modal">
+                <div class="puzzle-header">
+                    <h2 id="puzzle-title">谜题</h2>
+                    <button id="close-puzzle-btn" class="close-btn">✕</button>
+                </div>
+                <div id="puzzle-content"></div>
+            </div>
+        </div>
+        
+        <div id="item-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content item-modal">
+                <div class="item-view">
+                    <div class="item-image" id="item-image"></div>
+                    <div class="item-info">
+                        <h3 id="item-name">道具名称</h3>
+                        <p id="item-desc">道具描述</p>
+                    </div>
+                </div>
+                <div class="item-actions">
+                    <button id="use-item-btn" class="game-btn primary-btn">使用道具</button>
+                    <button id="combine-item-btn" class="game-btn secondary-btn">组合道具</button>
+                    <button id="close-item-btn" class="game-btn danger-btn">关闭</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="victory-screen" class="modal-overlay" style="display: none;">
+            <div class="modal-content victory-modal">
+                <h1>🎉 恭喜通关！</h1>
+                <h2 id="victory-level"></h2>
+                <div class="victory-stats">
+                    <p>用时：<span id="victory-time">--:--</span></p>
+                    <p id="new-record" style="display: none; color: #ffd700;">🏆 新纪录！</p>
+                </div>
+                <div class="victory-buttons">
+                    <button id="next-level-btn" class="game-btn primary-btn">下一关 ➡️</button>
+                    <button id="replay-btn" class="game-btn secondary-btn">🔄 重玩本关</button>
+                    <button id="victory-quit-btn" class="game-btn danger-btn">🚪 返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="gameover-screen" class="modal-overlay" style="display: none;">
+            <div class="modal-content gameover-modal">
+                <h1>💀 时间耗尽</h1>
+                <p>魔术密室将你永远困在了这里...</p>
+                <div class="gameover-buttons">
+                    <button id="retry-btn" class="game-btn primary-btn">🔄 重新挑战</button>
+                    <button id="gameover-quit-btn" class="game-btn danger-btn">🚪 返回主菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/puzzles.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/timer.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
