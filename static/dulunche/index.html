@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>独轮车竞速 · 混乱赛道</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="startScreen" class="screen">
+            <div class="title">
+                <h1>独轮车竞速</h1>
+                <p>混乱赛道</p>
+            </div>
+            <div class="theme-selector">
+                <h3>选择赛道主题</h3>
+                <div class="themes">
+                    <button class="theme-btn active" data-theme="countryside">
+                        <span class="theme-icon">🌾</span>
+                        <span>乡间小路</span>
+                    </button>
+                    <button class="theme-btn" data-theme="forest">
+                        <span class="theme-icon">🌲</span>
+                        <span>森林小径</span>
+                    </button>
+                    <button class="theme-btn" data-theme="sunset">
+                        <span class="theme-icon">🌅</span>
+                        <span>日落大道</span>
+                    </button>
+                </div>
+            </div>
+            <div class="menu">
+                <button id="startBtn" class="btn">开始游戏</button>
+                <button id="resumeBtn" class="btn secondary">继续游戏</button>
+                <button id="howToPlayBtn" class="btn secondary">操作说明</button>
+            </div>
+        </div>
+
+        <div id="howToPlayScreen" class="screen hidden">
+            <div class="instructions">
+                <h2>操作说明</h2>
+                <div class="instruction-item">
+                    <span class="key">←</span><span class="key">→</span>
+                    <span>左右变道</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">↑</span>
+                    <span>前倾加速</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">↓</span>
+                    <span>后仰减速</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">空格</span>
+                    <span>释放道具</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">ESC</span>
+                    <span>暂停游戏</span>
+                </div>
+                <h3>道具说明</h3>
+                <div class="item-desc">
+                    <span class="item-icon boost">⚡</span>
+                    <span>加速冲刺</span>
+                </div>
+                <div class="item-desc">
+                    <span class="item-icon shield">🛡️</span>
+                    <span>护盾保护</span>
+                </div>
+                <div class="item-desc">
+                    <span class="item-icon bomb">💣</span>
+                    <span>炸弹干扰</span>
+                </div>
+                <div class="item-desc">
+                    <span class="item-icon trap">🕳️</span>
+                    <span>陷阱放置</span>
+                </div>
+                <button id="backBtn" class="btn">返回</button>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="screen hidden">
+            <canvas id="gameCanvas"></canvas>
+            <div id="hud">
+                <div class="hud-left">
+                    <div class="time-display">
+                        <span class="label">时间</span>
+                        <span id="timeValue">00:00.00</span>
+                    </div>
+                    <div class="speed-display">
+                        <span class="label">速度</span>
+                        <span id="speedValue">0</span>
+                        <span class="unit">km/h</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="rank-display">
+                        <span class="label">排名</span>
+                        <span id="rankValue">1/4</span>
+                    </div>
+                    <div class="progress-display">
+                        <span class="label">进度</span>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="itemSlot" class="item-slot">
+                <span id="itemIcon" class="item-icon empty">空</span>
+                <span class="item-hint">空格</span>
+            </div>
+            <div id="pauseOverlay" class="pause-overlay hidden">
+                <div class="pause-menu">
+                    <h2>游戏暂停</h2>
+                    <button id="resumeGameBtn" class="btn">继续游戏</button>
+                    <button id="restartBtn" class="btn secondary">重新开始</button>
+                    <button id="quitBtn" class="btn secondary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultScreen" class="screen hidden">
+            <div class="result-content">
+                <h2 id="resultTitle">比赛结束</h2>
+                <div class="result-stats">
+                    <div class="stat">
+                        <span class="stat-label">最终排名</span>
+                        <span id="finalRank" class="stat-value">1</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">完成时间</span>
+                        <span id="finalTime" class="stat-value">00:00.00</span>
+                    </div>
+                </div>
+                <div class="result-ranks">
+                    <h3>排名榜</h3>
+                    <div id="ranksList"></div>
+                </div>
+                <div class="result-buttons">
+                    <button id="playAgainBtn" class="btn">再来一局</button>
+                    <button id="backToMenuBtn" class="btn secondary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v=2.0"></script>
+    <script src="js/storage.js?v=2.0"></script>
+    <script src="js/utils.js?v=2.0"></script>
+    <script src="js/player.js?v=2.0"></script>
+    <script src="js/ai.js?v=2.0"></script>
+    <script src="js/items.js?v=2.0"></script>
+    <script src="js/obstacles.js?v=2.0"></script>
+    <script src="js/track.js?v=2.0"></script>
+    <script src="js/renderer.js?v=2.0"></script>
+    <script src="js/game.js?v=2.0"></script>
+    <script src="js/app.js?v=2.0"></script>
+</body>
+</html>
