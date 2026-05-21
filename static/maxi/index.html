@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 马戏团表演对决 🎪</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-title">🎪 马戏团表演对决 🎪</div>
+        
+        <div id="character-select" class="screen">
+            <h2>选择你的角色</h2>
+            <div class="character-list">
+                <div class="character-card" data-character="clown">
+                    <div class="character-emoji">🤡</div>
+                    <div class="character-name">欢乐小丑</div>
+                    <div class="character-type">全能均衡型</div>
+                    <div class="character-stats">
+                        <div>活力: 100</div>
+                        <div>攻击: 11</div>
+                        <div>防御: 5</div>
+                    </div>
+                </div>
+                <div class="character-card" data-character="tamer">
+                    <div class="character-emoji">🦁</div>
+                    <div class="character-name">猎兽师</div>
+                    <div class="character-type">力量爆发型</div>
+                    <div class="character-stats">
+                        <div>活力: 92</div>
+                        <div>攻击: 15</div>
+                        <div>防御: 3</div>
+                    </div>
+                </div>
+                <div class="character-card" data-character="dancer">
+                    <div class="character-emoji">💃</div>
+                    <div class="character-name">杂技舞者</div>
+                    <div class="character-type">灵动敏捷型</div>
+                    <div class="character-stats">
+                        <div>活力: 88</div>
+                        <div>攻击: 9</div>
+                        <div>防御: 7</div>
+                    </div>
+                </div>
+            </div>
+            <button id="start-btn">开始表演！</button>
+        </div>
+
+        <div id="game-screen" class="screen hidden">
+            <div id="hud">
+                <div class="player-hud left">
+                    <div class="player-name" id="player1-name">玩家</div>
+                    <div class="health-bar-container">
+                        <div class="health-bar" id="player1-health"></div>
+                    </div>
+                    <div class="health-text" id="player1-health-text">100/100</div>
+                    <div class="atmosphere-bar-container">
+                        <div class="atmosphere-bar" id="player1-atmosphere"></div>
+                    </div>
+                </div>
+                <div class="timer" id="timer">90</div>
+                <div class="player-hud right">
+                    <div class="player-name" id="player2-name">NPC对手</div>
+                    <div class="health-bar-container">
+                        <div class="health-bar" id="player2-health"></div>
+                    </div>
+                    <div class="health-text" id="player2-health-text">100/100</div>
+                    <div class="atmosphere-bar-container">
+                        <div class="atmosphere-bar" id="player2-atmosphere"></div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="game-canvas" width="1200" height="600"></canvas>
+
+            <div id="controls-hint">
+                <div class="control-group">
+                    <span>← → 走位</span>
+                    <span>↑ 跳跃</span>
+                    <span>↓ 弯腰</span>
+                </div>
+                <div class="control-group">
+                    <span>A 轻杂耍击</span>
+                    <span>S 重舞台击</span>
+                    <span>D 轻花式踢</span>
+                    <span>F 重腾空踢</span>
+                    <span>G 专属特技</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen hidden">
+            <div id="result-title"></div>
+            <div id="result-message"></div>
+            <button id="restart-btn">再来一场！</button>
+            <button id="back-btn">返回选择</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
