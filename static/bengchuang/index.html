@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 马戏团蹦床大战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🎪 马戏团蹦床大战 🎪</h1>
+            <div class="game-status">
+                <span id="gameStatus">选择角色开始游戏</span>
+            </div>
+        </div>
+
+        <div class="character-select" id="characterSelect">
+            <h2>选择你的角色</h2>
+            <div class="character-grid">
+                <div class="character-card" data-char="clown">
+                    <div class="character-emoji">🤡</div>
+                    <div class="character-name">滑稽小丑</div>
+                    <div class="character-type">均衡通用型</div>
+                    <div class="character-special">特技: 回旋弹跳撞</div>
+                    <div class="character-stats">
+                        <span>弹跳: ⭐⭐⭐</span>
+                        <span>体重: ⭐⭐⭐</span>
+                        <span>灵活: ⭐⭐⭐</span>
+                    </div>
+                </div>
+                <div class="character-card" data-char="bear">
+                    <div class="character-emoji">🐻</div>
+                    <div class="character-name">呆萌狗熊</div>
+                    <div class="character-type">力量重型</div>
+                    <div class="character-special">特技: 重压坠击</div>
+                    <div class="character-stats">
+                        <span>弹跳: ⭐⭐</span>
+                        <span>体重: ⭐⭐⭐⭐⭐</span>
+                        <span>灵活: ⭐⭐</span>
+                    </div>
+                </div>
+                <div class="character-card" data-char="rabbit">
+                    <div class="character-emoji">🐰</div>
+                    <div class="character-name">灵巧白兔</div>
+                    <div class="character-type">敏捷轻盈型</div>
+                    <div class="character-special">特技: 连环空踢</div>
+                    <div class="character-stats">
+                        <span>弹跳: ⭐⭐⭐⭐⭐</span>
+                        <span>体重: ⭐</span>
+                        <span>灵活: ⭐⭐⭐⭐⭐</span>
+                    </div>
+                </div>
+                <div class="character-card" data-char="lion">
+                    <div class="character-emoji">🦁</div>
+                    <div class="character-name">威风狮子</div>
+                    <div class="character-type">爆发突进型</div>
+                    <div class="character-special">特技: 猛扑冲撞</div>
+                    <div class="character-stats">
+                        <span>弹跳: ⭐⭐⭐</span>
+                        <span>体重: ⭐⭐⭐⭐</span>
+                        <span>灵活: ⭐⭐⭐</span>
+                    </div>
+                </div>
+            </div>
+            <button id="startBtn" class="start-btn disabled" disabled>开始对战</button>
+        </div>
+
+        <div class="game-canvas-container" id="gameCanvasContainer" style="display: none;">
+            <canvas id="gameCanvas" width="1000" height="600"></canvas>
+            
+            <div class="hud">
+                <div class="hud-player">
+                    <div class="hud-name" id="player1Name">玩家</div>
+                    <div class="hud-bar">
+                        <div class="hud-label">体力</div>
+                        <div class="stamina-bar">
+                            <div class="stamina-fill" id="player1Stamina"></div>
+                        </div>
+                    </div>
+                    <div class="hud-status" id="player1Status">在场</div>
+                </div>
+                
+                <div class="hud-vs">VS</div>
+                
+                <div class="hud-player">
+                    <div class="hud-name" id="player2Name">AI对手</div>
+                    <div class="hud-bar">
+                        <div class="hud-label">体力</div>
+                        <div class="stamina-bar">
+                            <div class="stamina-fill" id="player2Stamina"></div>
+                        </div>
+                    </div>
+                    <div class="hud-status" id="player2Status">在场</div>
+                </div>
+            </div>
+
+            <div class="controls-hint">
+                <div>⬅️➡️ 移动 | ⬆️⬇️ 弹跳高低 | Z 冲撞 | X 飞踢 | C 特技</div>
+            </div>
+        </div>
+
+        <div class="game-over-modal" id="gameOverModal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="winnerText">胜利!</h2>
+                <div class="winner-emoji" id="winnerEmoji">🎉</div>
+                <div class="modal-buttons">
+                    <button id="restartBtn" class="modal-btn">再来一局</button>
+                    <button id="changeCharBtn" class="modal-btn">更换角色</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
