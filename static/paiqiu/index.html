@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>奥运排球 - Olympic Volleyball</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="main-menu" class="menu-screen">
+            <div class="menu-content">
+                <h1 class="game-title">🏐 奥运排球</h1>
+                <p class="subtitle">Olympic Volleyball</p>
+                <div class="menu-buttons">
+                    <button id="btn-training" class="menu-btn">🎯 训练模式</button>
+                    <button id="btn-friendly" class="menu-btn">🤝 友谊赛</button>
+                    <button id="btn-tournament" class="menu-btn">🏆 锦标赛</button>
+                    <button id="btn-olympic" class="menu-btn gold">🥇 奥运决赛</button>
+                </div>
+                <div class="stats-preview">
+                    <div class="stat-item">
+                        <span class="stat-label">总得分</span>
+                        <span id="total-score" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">胜场</span>
+                        <span id="total-wins" class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mode-select" class="menu-screen hidden">
+            <div class="menu-content">
+                <h2>选择对手</h2>
+                <div class="opponent-list">
+                    <button class="opponent-btn" data-opponent="junior">
+                        <span class="opponent-name">初中队</span>
+                        <span class="opponent-desc">扣球弱 · 难度 0.7x</span>
+                    </button>
+                    <button class="opponent-btn" data-opponent="high">
+                        <span class="opponent-name">高中队</span>
+                        <span class="opponent-desc">中等 · 难度 0.85x</span>
+                    </button>
+                    <button class="opponent-btn selected" data-opponent="college">
+                        <span class="opponent-name">大学队</span>
+                        <span class="opponent-desc">攻防均衡 · 难度 1.0x</span>
+                    </button>
+                    <button class="opponent-btn" data-opponent="national">
+                        <span class="opponent-name">国家队</span>
+                        <span class="opponent-desc">强力扣杀 · 难度 1.3x</span>
+                    </button>
+                </div>
+                <div class="menu-buttons">
+                    <button id="btn-start-match" class="menu-btn primary">开始比赛</button>
+                    <button id="btn-back-menu" class="menu-btn">返回</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-hud" class="hidden">
+            <div class="score-board">
+                <div class="team-score">
+                    <span class="team-name">我方</span>
+                    <span id="player-score" class="score">0</span>
+                </div>
+                <div class="set-score">
+                    <span id="player-sets">0</span>
+                    <span class="divider">:</span>
+                    <span id="enemy-sets">0</span>
+                </div>
+                <div class="team-score">
+                    <span class="team-name">对方</span>
+                    <span id="enemy-score" class="score">0</span>
+                </div>
+            </div>
+            <div class="game-stats">
+                <div class="stat">
+                    <span class="stat-icon">🔥</span>
+                    <span id="combo" class="stat-text">0连击</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">💥</span>
+                    <span id="spike-count" class="stat-text">扣球: 0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">🛡️</span>
+                    <span id="block-count" class="stat-text">拦网: 0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">🎾</span>
+                    <span id="serve-count" class="stat-text">发球: 0</span>
+                </div>
+            </div>
+            <div class="environment-indicator" id="env-indicator">
+                <span id="env-icon">🏟️</span>
+                <span id="env-text">室内</span>
+            </div>
+            <button id="btn-pause" class="pause-btn">⏸️</button>
+        </div>
+
+        <div id="pause-menu" class="menu-screen hidden">
+            <div class="menu-content small">
+                <h2>游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="btn-resume" class="menu-btn primary">继续游戏</button>
+                    <button id="btn-restart" class="menu-btn">重新开始</button>
+                    <button id="btn-quit" class="menu-btn danger">退出比赛</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-over" class="menu-screen hidden">
+            <div class="menu-content">
+                <h2 id="result-title">比赛结束</h2>
+                <div class="result-stats">
+                    <div class="result-score">
+                        <span id="final-player-score">0</span>
+                        <span class="divider">-</span>
+                        <span id="final-enemy-score">0</span>
+                    </div>
+                    <div class="result-detail">
+                        <div class="detail-item">
+                            <span>局分</span>
+                            <span id="final-sets">0:0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>扣球</span>
+                            <span id="final-spikes">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>拦网</span>
+                            <span id="final-blocks">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>发球得分</span>
+                            <span id="final-serves">0</span>
+                        </div>
+                    </div>
+                    <div class="points-earned">
+                        <span>获得积分</span>
+                        <span id="points-earned" class="points">+0</span>
+                    </div>
+                </div>
+                <div class="menu-buttons">
+                    <button id="btn-rematch" class="menu-btn primary">再来一局</button>
+                    <button id="btn-back-to-menu" class="menu-btn">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-hint" class="controls-hint hidden">
+            <div class="control-group">
+                <span class="key">WASD</span>
+                <span class="action">移动</span>
+            </div>
+            <div class="control-group">
+                <span class="key">J</span>
+                <span class="action">接球/传球</span>
+            </div>
+            <div class="control-group">
+                <span class="key">K</span>
+                <span class="action">扣球/发球</span>
+            </div>
+            <div class="control-group">
+                <span class="key">L</span>
+                <span class="action">拦网</span>
+            </div>
+        </div>
+
+        <div id="touch-controls" class="touch-controls hidden">
+            <div class="joystick-area" id="joystick-area">
+                <div class="joystick" id="joystick"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn receive" id="btn-receive">接球</button>
+                <button class="action-btn spike" id="btn-spike">扣球</button>
+                <button class="action-btn block" id="btn-block">拦网</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/objects.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
