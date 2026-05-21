@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>传递地狱 - 多人杂耍对决</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <h1 class="game-title">🔥 传递地狱 🔥</h1>
+            <p class="subtitle">多人杂耍对决</p>
+            
+            <div class="menu-panel">
+                <div class="settings-group">
+                    <label>电脑对手数量:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="ai-count" value="1" checked> 1人 (2人对局)</label>
+                        <label><input type="radio" name="ai-count" value="2"> 2人 (3人对局)</label>
+                        <label><input type="radio" name="ai-count" value="3"> 3人 (4人对局)</label>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <label>选择角色:</label>
+                    <div class="character-select" id="character-select"></div>
+                </div>
+                
+                <div class="settings-group">
+                    <label>选择主题:</label>
+                    <div class="theme-select">
+                        <button class="theme-btn active" data-theme="hell">🌋 炼狱</button>
+                        <button class="theme-btn" data-theme="circus">🎪 马戏团</button>
+                        <button class="theme-btn" data-theme="street">🏙️ 街头</button>
+                    </div>
+                </div>
+                
+                <button id="start-btn" class="start-btn">开始游戏</button>
+                <button id="resume-btn" class="resume-btn" style="display:none;">继续游戏</button>
+            </div>
+            
+            <div class="controls-info">
+                <h3>操作说明</h3>
+                <p>← → 方向键: 调整站位</p>
+                <p>空格键: 普通抛接</p>
+                <p>Z键: 快速传递</p>
+                <p>X键: 特技技能</p>
+            </div>
+        </div>
+        
+        <div id="game-screen" class="screen hidden">
+            <div id="hud">
+                <div id="timer">时间: 00:00</div>
+                <div id="round-info">第 1 回合</div>
+                <div id="score-board"></div>
+            </div>
+            
+            <canvas id="game-canvas"></canvas>
+            
+            <div id="buffs-display"></div>
+            
+            <div id="skill-cooldown">
+                <div class="cooldown-bar">
+                    <span>特技</span>
+                    <div class="cooldown-fill" id="skill-fill"></div>
+                </div>
+            </div>
+            
+            <button id="pause-btn" class="pause-btn">⏸️ 暂停</button>
+        </div>
+        
+        <div id="pause-screen" class="overlay hidden">
+            <div class="pause-panel">
+                <h2>游戏暂停</h2>
+                <button id="resume-game-btn">继续游戏</button>
+                <button id="restart-btn">重新开始</button>
+                <button id="quit-btn">返回主菜单</button>
+            </div>
+        </div>
+        
+        <div id="game-over-screen" class="overlay hidden">
+            <div class="gameover-panel">
+                <h1 id="winner-title">游戏结束</h1>
+                <div id="final-scores"></div>
+                <button id="play-again-btn">再来一局</button>
+                <button id="back-menu-btn">返回主菜单</button>
+            </div>
+        </div>
+        
+        <div id="elimination-popup" class="popup hidden">
+            <div class="popup-content">
+                <h2 id="elimination-name">玩家出局!</h2>
+                <p>血量归零，被淘汰了</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/item.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
