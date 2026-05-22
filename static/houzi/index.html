@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猴子空中抢香蕉 - 丛林乐园</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen" class="screen">
+            <h1 class="game-title">🐵 猴子空中抢香蕉 🍌</h1>
+            <p class="game-subtitle">丛林乐园大冒险</p>
+            <button class="btn btn-primary" id="btn-start">开始游戏</button>
+            <button class="btn btn-secondary" id="btn-continue" style="display:none;">继续游戏</button>
+            <button class="btn btn-secondary" id="btn-quick-start">快速开始</button>
+            <button class="btn btn-tertiary" id="btn-how">玩法说明</button>
+        </div>
+
+        <div id="character-screen" class="screen" style="display:none;">
+            <h2 class="screen-title">选择你的小猴</h2>
+            <div class="character-list" id="character-list"></div>
+            <button class="btn btn-secondary" id="btn-back-start">返回</button>
+        </div>
+
+        <div id="how-screen" class="screen" style="display:none;">
+            <h2 class="screen-title">玩法说明</h2>
+            <div class="how-content">
+                <div class="how-section">
+                    <h3>🎮 操作方式</h3>
+                    <ul>
+                        <li><span class="key">←</span> <span class="key">→</span> 左右移动</li>
+                        <li><span class="key">↑</span> 跳跃（空中可二段跳）</li>
+                        <li><span class="key">↑</span> 长按 高空滑翔</li>
+                        <li><span class="key">Shift</span> 护盾格挡</li>
+                        <li><span class="key">空格</span> 极速抓取</li>
+                    </ul>
+                </div>
+                <div class="how-section">
+                    <h3>🎯 游戏目标</h3>
+                    <ul>
+                        <li>收集 <strong>50根香蕉</strong> 直接获胜</li>
+                        <li>时间结束时香蕉多者获胜</li>
+                        <li>躲避石块、飞鸟、荆棘</li>
+                        <li>体力归零则游戏失败</li>
+                    </ul>
+                </div>
+                <div class="how-section">
+                    <h3>⚡ 专属技能</h3>
+                    <ul>
+                        <li><strong>极速抓取</strong>：抓取屏幕所有香蕉（冷却8秒）</li>
+                        <li><strong>高空滑翔</strong>：长按上键缓慢下落</li>
+                        <li><strong>护盾格挡</strong>：抵挡一次伤害（冷却12秒）</li>
+                    </ul>
+                </div>
+            </div>
+            <button class="btn btn-secondary" id="btn-back-start2">返回</button>
+        </div>
+
+        <div id="game-over-screen" class="screen" style="display:none;">
+            <h2 class="screen-title" id="game-over-title">游戏结束</h2>
+            <div class="result-content">
+                <p class="result-text" id="result-text"></p>
+                <div class="result-stats" id="result-stats"></div>
+            </div>
+            <button class="btn btn-primary" id="btn-restart">再来一局</button>
+            <button class="btn btn-secondary" id="btn-back-menu">返回主菜单</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/banana.js"></script>
+    <script src="js/obstacle.js"></script>
+    <script src="js/skill.js"></script>
+    <script src="js/effect.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/characterSelect.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
