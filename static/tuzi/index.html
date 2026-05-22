@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>魔术师找兔子 🐰</title>
+<link rel="stylesheet" href="css/style.css?v=20260522e">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="ui-layer">
+      <div id="start-screen" class="screen">
+        <div class="title-wrap">
+          <h1 class="game-title">🎩 魔术师找兔子</h1>
+          <p class="subtitle">翻开魔术帽，找出小兔子！</p>
+        </div>
+        <div class="highscore-display">
+          <div class="score-item"><span>🏆 最高分</span><strong id="highScore">0</strong></div>
+          <div class="score-item"><span>⭐ 最高层数</span><strong id="highLevel">1</strong></div>
+        </div>
+        <button class="btn-primary" id="btn-start">开始游戏</button>
+        <button class="btn-secondary" id="btn-howto">玩法说明</button>
+      </div>
+
+      <div id="howto-screen" class="screen hidden">
+        <h2>📖 玩法说明</h2>
+        <div class="howto-list">
+          <p>🎩 <strong>魔术帽</strong>：点击翻开帽子</p>
+          <p>🐇 <strong>真兔子</strong>：找到它！通关目标</p>
+          <p>🐸 <strong>假玩偶</strong>：小心！点到扣血</p>
+          <p>✨ <strong>魔法迷雾</strong>：高关卡干扰</p>
+          <p>🪄 <strong>换位幻术</strong>：帽子会悄悄换位</p>
+          <p>⏰ <strong>限时</strong>：找到全部兔子通关</p>
+        </div>
+        <button class="btn-primary" id="btn-back-start">返回</button>
+      </div>
+
+      <div id="game-over-screen" class="screen hidden">
+        <h2 id="gameOverTitle">游戏结束</h2>
+        <div class="result-stats">
+          <p>通关层数：<strong id="finalLevel">1</strong></p>
+          <p>累计得分：<strong id="finalScore">0</strong></p>
+          <p>历史最高：<strong id="finalHigh">0</strong></p>
+        </div>
+        <button class="btn-primary" id="btn-retry">再来一局</button>
+        <button class="btn-secondary" id="btn-home">返回主页</button>
+      </div>
+
+      <div id="level-clear-screen" class="screen hidden">
+        <h2>🎉 通关成功！</h2>
+        <p class="level-clear-text">第 <span id="clearedLevel">1</span> 层</p>
+        <button class="btn-primary" id="btn-next">下一层</button>
+      </div>
+
+      <div id="pause-screen" class="screen hidden">
+        <h2>⏸ 游戏暂停</h2>
+        <button class="btn-primary" id="btn-resume">继续游戏</button>
+        <button class="btn-secondary" id="btn-quit">放弃本局</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=20260522e"></script>
+  <script src="js/storage.js?v=20260522e"></script>
+  <script src="js/effects.js?v=20260522e"></script>
+  <script src="js/hat.js?v=20260522e"></script>
+  <script src="js/renderer.js?v=20260522e"></script>
+  <script src="js/game.js?v=20260522e"></script>
+  <script src="js/ui.js?v=20260522e"></script>
+  <script src="js/main.js?v=20260522e"></script>
+</body>
+</html>
