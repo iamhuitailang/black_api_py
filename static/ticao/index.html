@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>体操大作战 - Gymnastics Battle</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="960" height="640"></canvas>
+        
+        <div id="main-menu" class="screen">
+            <div class="menu-title">
+                <h1>体操大作战</h1>
+                <p class="subtitle">Gymnastics Battle</p>
+            </div>
+            <div class="menu-buttons">
+                <button class="btn btn-primary" id="btn-start">开始游戏</button>
+                <button class="btn" id="btn-continue">继续游戏</button>
+                <button class="btn" id="btn-reset">重置存档</button>
+            </div>
+            <div class="menu-footer">
+                <p>按节奏QTE完成动作串联，落地站稳得分！</p>
+            </div>
+        </div>
+        
+        <div id="mode-select" class="screen hidden">
+            <h2>选择模式</h2>
+            <div class="mode-cards">
+                <div class="mode-card" data-mode="training" tabindex="0">
+                    <div class="mode-icon">🎯</div>
+                    <h3>训练模式</h3>
+                    <p>单个动作练习，自选项目</p>
+                </div>
+                <div class="mode-card" data-mode="allaround" tabindex="0">
+                    <div class="mode-icon">🏆</div>
+                    <h3>全能赛</h3>
+                    <p>四项总分：自由操+跳马+双杠+单杠</p>
+                </div>
+                <div class="mode-card" data-mode="final" tabindex="0">
+                    <div class="mode-icon">⭐</div>
+                    <h3>单项决赛</h3>
+                    <p>单项目比拼，任选其一</p>
+                </div>
+            </div>
+            <button class="btn btn-back" id="btn-back-menu">返回</button>
+        </div>
+        
+        <div id="event-select" class="screen hidden">
+            <h2>选择项目</h2>
+            <div class="event-cards">
+                <div class="event-card" data-event="floor" tabindex="0">
+                    <div class="event-icon">🤸</div>
+                    <h3>自由操</h3>
+                </div>
+                <div class="event-card" data-event="vault" tabindex="0">
+                    <div class="event-icon">🦘</div>
+                    <h3>跳马</h3>
+                </div>
+                <div class="event-card" data-event="bars" tabindex="0">
+                    <div class="event-icon">💪</div>
+                    <h3>双杠</h3>
+                </div>
+                <div class="event-card" data-event="horizontal" tabindex="0">
+                    <div class="event-icon">🌟</div>
+                    <h3>单杠</h3>
+                </div>
+            </div>
+            <button class="btn btn-back" id="btn-back-mode">返回</button>
+        </div>
+        
+        <div id="opponent-select" class="screen hidden">
+            <h2>选择对手</h2>
+            <div class="opponent-cards">
+                <div class="opponent-card" data-opponent="club" tabindex="0">
+                    <h3>俱乐部队</h3>
+                    <p>平均分：12.5分</p>
+                    <p>难度：0.7x</p>
+                </div>
+                <div class="opponent-card" data-opponent="province" tabindex="0">
+                    <h3>省级队</h3>
+                    <p>平均分：13.8分</p>
+                    <p>难度：0.85x</p>
+                </div>
+                <div class="opponent-card" data-opponent="national" tabindex="0">
+                    <h3>国家队</h3>
+                    <p>平均分：14.8分</p>
+                    <p>难度：1.0x</p>
+                </div>
+                <div class="opponent-card" data-opponent="olympic" tabindex="0">
+                    <h3>奥运冠军</h3>
+                    <p>平均分：15.5分</p>
+                    <p>难度：1.3x</p>
+                </div>
+            </div>
+            <button class="btn btn-back" id="btn-back-event">返回</button>
+        </div>
+        
+        <div id="pause-menu" class="screen hidden overlay">
+            <div class="pause-dialog">
+                <h2>游戏暂停</h2>
+                <div class="pause-buttons">
+                    <button class="btn btn-primary" id="btn-resume">继续游戏</button>
+                    <button class="btn" id="btn-restart">重新开始</button>
+                    <button class="btn" id="btn-quit">退出比赛</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="result-screen" class="screen hidden">
+            <div class="result-container">
+                <h2 id="result-title">比赛结果</h2>
+                <div class="result-rank">
+                    <div class="rank-icon" id="rank-icon">🏅</div>
+                    <div class="rank-title" id="rank-title">传奇</div>
+                </div>
+                <div class="result-scores">
+                    <div class="score-item">
+                        <span class="score-label">难度分</span>
+                        <span class="score-value" id="difficulty-score">0.0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">完成分</span>
+                        <span class="score-value" id="execution-score">0.0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">落地分</span>
+                        <span class="score-value" id="landing-score">0.0</span>
+                    </div>
+                    <div class="score-item total">
+                        <span class="score-label">总分</span>
+                        <span class="score-value" id="total-score">0.0</span>
+                    </div>
+                </div>
+                <div class="result-opponent" id="result-opponent"></div>
+                <div class="result-buttons">
+                    <button class="btn btn-primary" id="btn-next">下一项</button>
+                    <button class="btn" id="btn-result-back">返回菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-left">
+                    <span class="hud-label">项目</span>
+                    <span class="hud-value" id="hud-event">自由操</span>
+                </div>
+                <div class="hud-center">
+                    <span class="hud-label">动作</span>
+                    <span class="hud-value" id="hud-action">--</span>
+                </div>
+                <div class="hud-right">
+                    <button class="btn-pause" id="btn-pause">⏸</button>
+                </div>
+            </div>
+            <div class="hud-bottom">
+                <div class="score-display">
+                    <span class="score-label">难度</span>
+                    <span class="score-value" id="hud-difficulty">0.0</span>
+                </div>
+                <div class="score-display">
+                    <span class="score-label">完成</span>
+                    <span class="score-value" id="hud-execution">0.0</span>
+                </div>
+                <div class="score-display">
+                    <span class="score-label">落地</span>
+                    <span class="score-value" id="hud-landing">0.0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="combo-display" class="hidden">
+            <span id="combo-count">0</span>
+            <span class="combo-label">连击!</span>
+        </div>
+        
+        <div id="score-popup" class="hidden">
+            <span id="score-popup-text">+100</span>
+        </div>
+    </div>
+    
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/scoring.js"></script>
+    <script src="js/opponent.js"></script>
+    <script src="js/environment.js"></script>
+    <script src="js/qte.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/states.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
