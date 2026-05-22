@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>4×100米 热血接力</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="menuScreen" class="screen active">
+      <div class="menu-content">
+        <h1 class="title">4×100米 热血接力</h1>
+        <p class="subtitle">热血激昂的团队接力游戏</p>
+        <button id="continueSavedBtn" class="btn btn-primary" style="display:none;">继续游戏</button>
+        <button id="startBtn" class="btn btn-primary">开始游戏</button>
+        <div class="menu-info">
+          <p>🎮 操作说明</p>
+          <p>SPACE / 点击: 交接棒</p>
+          <p>D / 连点: 加速</p>
+          <p>ESC: 暂停</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="modeScreen" class="screen">
+      <div class="mode-content">
+        <h2>选择模式</h2>
+        <div class="mode-grid">
+          <button class="mode-btn" data-mode="practice">
+            <span class="mode-name">练习模式</span>
+            <span class="mode-desc">只练交接 · 1队</span>
+          </button>
+          <button class="mode-btn" data-mode="friendly">
+            <span class="mode-name">友谊赛</span>
+            <span class="mode-desc">3队角逐</span>
+          </button>
+          <button class="mode-btn" data-mode="tournament">
+            <span class="mode-name">锦标赛</span>
+            <span class="mode-desc">淘汰制 · 8队</span>
+          </button>
+          <button class="mode-btn" data-mode="olympic">
+            <span class="mode-name">奥运决赛</span>
+            <span class="mode-desc">最强8队</span>
+          </button>
+        </div>
+        <button id="backToMenuBtn" class="btn btn-secondary">返回</button>
+      </div>
+    </div>
+
+    <div id="gameScreen" class="screen">
+      <div id="hud">
+        <div class="hud-item">
+          <span class="hud-label">棒次</span>
+          <span id="currentLeg" class="hud-value">1/4 棒</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">用时</span>
+          <span id="totalTime" class="hud-value">0.00s</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">交接</span>
+          <span id="handoffStatus" class="hud-value handoff-status">等待交接</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">名次</span>
+          <span id="rankDisplay" class="hud-value">-</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">得分</span>
+          <span id="scoreDisplay" class="hud-value">-</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">天气</span>
+          <span id="weatherDisplay" class="hud-value">-</span>
+        </div>
+      </div>
+
+      <canvas id="gameCanvas"></canvas>
+
+      <div id="controls">
+        <button id="accelBtn" class="ctrl-btn accel-btn">加速 (D)</button>
+        <button id="handoffBtn" class="ctrl-btn handoff-btn">交接棒 (Space)</button>
+        <button id="pauseBtn" class="ctrl-btn pause-btn">⏸</button>
+      </div>
+    </div>
+
+    <div id="pauseScreen" class="screen overlay">
+      <div class="pause-content">
+        <h2>游戏暂停</h2>
+        <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+        <button id="quitBtn" class="btn btn-danger">退出比赛</button>
+      </div>
+    </div>
+
+    <div id="resultScreen" class="screen">
+      <div class="result-content">
+        <h2>比赛结束</h2>
+        <div class="result-stats">
+          <div class="stat-item">
+            <span class="stat-label">最终用时</span>
+            <span id="finalTime" class="stat-value">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">最终排名</span>
+            <span id="finalRank" class="stat-value">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">最终得分</span>
+            <span id="finalScore" class="stat-value">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">交接统计</span>
+            <span id="handoffSummary" class="stat-value">-</span>
+          </div>
+        </div>
+        <button id="restartBtn" class="btn btn-primary">再来一局</button>
+        <button id="backToMenuBtn2" class="btn btn-secondary">返回菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=11"></script>
+  <script src="js/storage.js?v=11"></script>
+  <script src="js/runner.js?v=11"></script>
+  <script src="js/team.js?v=11"></script>
+  <script src="js/handoff.js?v=11"></script>
+  <script src="js/weather.js?v=11"></script>
+  <script src="js/input.js?v=11"></script>
+  <script src="js/renderer.js?v=11"></script>
+  <script src="js/ui.js?v=11"></script>
+  <script src="js/game.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
+  <script>
+    document.getElementById('backToMenuBtn2').addEventListener('click', function() {
+      document.getElementById('resultScreen').classList.remove('active');
+      document.getElementById('menuScreen').classList.add('active');
+      document.getElementById('continueSavedBtn').style.display = 'none';
+    });
+    document.getElementById('pauseBtn').addEventListener('click', function() {
+      if (GameInstance.gameState === 'running' || GameInstance.gameState === 'handoff') {
+        GameInstance.pause();
+      }
+    });
+  </script>
+</body>
+</html>
