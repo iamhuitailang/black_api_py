@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>10米跳台 - 跳水比赛</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="game-container">
+  <canvas id="game-canvas" width="800" height="600"></canvas>
+  
+  <!-- 主菜单 -->
+  <div id="main-menu" class="screen">
+    <div class="menu-content">
+      <h1 class="title">🏊 10米跳台</h1>
+      <p class="subtitle">奥运跳水比赛</p>
+      <div class="menu-buttons">
+        <button id="btn-continue-game" class="btn btn-continue hidden">继续比赛</button>
+        <button id="btn-start" class="btn btn-primary">开始比赛</button>
+        <button id="btn-practice" class="btn">练习模式</button>
+        <button id="btn-howto" class="btn">操作说明</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 模式选择 -->
+  <div id="mode-select" class="screen hidden">
+    <div class="menu-content">
+      <h2 class="title">选择比赛模式</h2>
+      <div class="menu-buttons">
+        <button id="btn-prelim" class="btn btn-primary">预赛</button>
+        <button id="btn-final" class="btn btn-primary">决赛</button>
+        <button id="btn-back-mode" class="btn">返回</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 对手选择 -->
+  <div id="opponent-select" class="screen hidden">
+    <div class="menu-content">
+      <h2 class="title">选择对手级别</h2>
+      <div class="opponent-list">
+        <button class="opponent-btn" data-level="junior">
+          <span class="opp-name">少年队</span>
+          <span class="opp-info">平均 6.5分 | 难度 0.7x</span>
+        </button>
+        <button class="opponent-btn" data-level="provincial">
+          <span class="opp-name">省队</span>
+          <span class="opp-info">平均 7.8分 | 难度 0.85x</span>
+        </button>
+        <button class="opponent-btn" data-level="national">
+          <span class="opp-name">国家队</span>
+          <span class="opp-info">平均 8.5分 | 难度 1.0x</span>
+        </button>
+        <button class="opponent-btn" data-level="champion">
+          <span class="opp-name">奥运冠军</span>
+          <span class="opp-info">平均 9.2分 | 难度 1.3x</span>
+        </button>
+      </div>
+      <button id="btn-back-opponent" class="btn" style="margin-top:20px">返回</button>
+    </div>
+  </div>
+  
+  <!-- 动作选择 -->
+  <div id="action-select" class="screen hidden">
+    <div class="menu-content">
+      <h2 class="title">选择动作 - 第 <span id="current-round">1</span>/6 跳</h2>
+      <div id="action-list" class="action-list"></div>
+      <div class="action-info">
+        <p id="action-desc">请选择一个跳水动作</p>
+        <p id="action-difficulty">难度系数: -</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 比赛界面 -->
+  <div id="game-hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-item">
+        <span class="hud-label">第</span>
+        <span id="hud-round" class="hud-value">1</span>
+        <span class="hud-label">/6跳</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">本跳得分</span>
+        <span id="hud-current-score" class="hud-value">-</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">总分</span>
+        <span id="hud-total-score" class="hud-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">难度</span>
+        <span id="hud-difficulty" class="hud-value">-</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">名次</span>
+        <span id="hud-rank" class="hud-value">-</span>
+      </div>
+    </div>
+    <div class="hud-bottom">
+      <div id="control-hint">按 [空格] 起跳</div>
+      <div class="progress-bar">
+        <div id="power-fill" class="power-fill"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 打分屏 -->
+  <div id="score-screen" class="screen hidden">
+    <div class="score-content">
+      <h2 class="score-title">裁判打分</h2>
+      <div id="judge-scores" class="judge-scores"></div>
+      <div class="score-summary">
+        <p>平均分: <span id="avg-score">0</span></p>
+        <p>难度系数: <span id="diff-coef">0</span></p>
+        <p class="final-score">本跳得分: <span id="final-score">0</span></p>
+        <p class="rating" id="rating-text">-</p>
+      </div>
+      <button id="btn-next-dive" class="btn btn-primary">下一跳</button>
+    </div>
+  </div>
+  
+  <!-- 排名屏 -->
+  <div id="rank-screen" class="screen hidden">
+    <div class="rank-content">
+      <h2 class="title">当前排名</h2>
+      <div id="rank-list" class="rank-list"></div>
+      <button id="btn-continue" class="btn btn-primary">继续比赛</button>
+    </div>
+  </div>
+  
+  <!-- 比赛结束 -->
+  <div id="end-screen" class="screen hidden">
+    <div class="end-content">
+      <h1 id="end-title" class="title">比赛结束</h1>
+      <p id="end-rank" class="subtitle">第 - 名</p>
+      <p id="end-score" class="subtitle">总分: -</p>
+      <div id="end-rank-list" class="rank-list"></div>
+      <div class="menu-buttons">
+        <button id="btn-replay" class="btn btn-primary">重新比赛</button>
+        <button id="btn-home" class="btn">返回主页</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 操作说明 -->
+  <div id="howto-screen" class="screen hidden">
+    <div class="menu-content">
+      <h2 class="title">操作说明</h2>
+      <div class="howto-content">
+        <p><strong>键盘操作:</strong></p>
+        <p>🎮 [空格] - 起跳 / 入水</p>
+        <p>🎮 [↑/↓] - 控制翻腾方向</p>
+        <p>🎮 [←/→] - 控制转体方向</p>
+        <p>🎮 [1-6] - 快速选择动作</p>
+        <p style="margin-top:15px"><strong>触摸操作:</strong></p>
+        <p>👆 点击 - 起跳 / 入水</p>
+        <p>👆 上下滑动 - 控制翻腾</p>
+        <p>👆 左右滑动 - 控制转体</p>
+        <p>👆 滑动菜单 - 选择动作</p>
+        <p style="margin-top:15px"><strong>游戏技巧:</strong></p>
+        <p>• 起跳时注意力量条</p>
+        <p>• 空中控制翻腾和转体</p>
+        <p>• 入水时保持垂直，压好水花</p>
+      </div>
+      <button id="btn-back-howto" class="btn" style="margin-top:20px">返回</button>
+    </div>
+  </div>
+  
+  <!-- 暂停菜单 -->
+  <div id="pause-menu" class="screen hidden">
+    <div class="menu-content">
+      <h2 class="title">比赛暂停</h2>
+      <div class="menu-buttons">
+        <button id="btn-resume" class="btn btn-primary">继续比赛</button>
+        <button id="btn-quit" class="btn">放弃比赛</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 环境提示 -->
+  <div id="env-hint" class="env-hint hidden"></div>
+  
+  <!-- 慢动作特效 -->
+  <div id="slowmo-effect" class="slowmo-effect hidden">
+    <div class="slowmo-text">⭐ 完美动作 ⭐</div>
+  </div>
+</div>
+
+<script src="js/data.js?v=3"></script>
+<script src="js/storage.js?v=3"></script>
+<script src="js/input.js?v=3"></script>
+<script src="js/physics.js?v=3"></script>
+<script src="js/diver.js?v=3"></script>
+<script src="js/renderer.js?v=3"></script>
+<script src="js/competition.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
+<script src="js/game.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
+</body>
+</html>
