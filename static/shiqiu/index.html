@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>终极十球挑战</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 主菜单 -->
+    <section id="screen-menu" class="screen active">
+      <div class="menu-inner">
+        <h1 class="title">终极十球挑战</h1>
+        <p class="subtitle">Ultimate Ten Ball Challenge</p>
+        <div class="menu-buttons">
+          <button class="btn primary" data-action="start">开始挑战</button>
+          <button class="btn" data-action="continue" id="btn-continue">继续挑战</button>
+          <button class="btn" data-action="character">选择角色</button>
+          <button class="btn" data-action="stadium">选择场地</button>
+          <button class="btn" data-action="records">历史战绩</button>
+          <button class="btn" data-action="howto">操作说明</button>
+        </div>
+        <div class="menu-stats">
+          <div>最高分：<span id="menu-best">0</span></div>
+          <div>通关次数：<span id="menu-clear">0</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 角色选择 -->
+    <section id="screen-character" class="screen">
+      <div class="panel">
+        <h2>选择射手</h2>
+        <div id="char-list" class="card-grid"></div>
+        <div class="panel-footer">
+          <button class="btn" data-action="back-menu">返回</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 场地选择 -->
+    <section id="screen-stadium" class="screen">
+      <div class="panel">
+        <h2>选择场地</h2>
+        <div id="stadium-list" class="card-grid"></div>
+        <div class="panel-footer">
+          <button class="btn" data-action="back-menu">返回</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 操作说明 -->
+    <section id="screen-howto" class="screen">
+      <div class="panel">
+        <h2>操作说明</h2>
+        <ul class="howto-list">
+          <li>🖱️ 左右拖动鼠标：调整射门瞄准角度</li>
+          <li>⬆️⬇️ 竖向滑动鼠标：增减射门出力大小</li>
+          <li>⏱️ 长按鼠标按键：持续蓄力强化射门威力</li>
+          <li>🎯 数字键 1/2/3：切换射门招式（平射/抽射/弧线吊射）</li>
+          <li>⚡ 连续进球触发连击加成，得分翻倍！</li>
+          <li>🔁 十轮全部挑战完成，总分达标即通关</li>
+        </ul>
+        <div class="panel-footer">
+          <button class="btn" data-action="back-menu">返回</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 历史战绩 -->
+    <section id="screen-records" class="screen">
+      <div class="panel">
+        <h2>历史战绩</h2>
+        <div class="records">
+          <div>🏆 最高分：<span id="rec-best">0</span></div>
+          <div>🎖️ 通关次数：<span id="rec-clear">0</span></div>
+          <div>🎯 总射门数：<span id="rec-shots">0</span></div>
+          <div>⚽ 总进球数：<span id="rec-goals">0</span></div>
+          <div>🔥 最高连击：<span id="rec-combo">0</span></div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn" data-action="reset-records">清空记录</button>
+          <button class="btn" data-action="back-menu">返回</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 游戏主画面 -->
+    <section id="screen-game" class="screen">
+      <div id="hud">
+        <div class="hud-left">
+          <div>第 <span id="hud-round">1</span>/10 轮</div>
+          <div>得分：<span id="hud-score">0</span></div>
+          <div>连击：<span id="hud-combo">0</span>x</div>
+        </div>
+        <div class="hud-right">
+          <div id="hud-shot">射门招式：<span id="hud-shot-name">平射</span></div>
+          <button class="btn small" id="btn-pause">暂停</button>
+        </div>
+      </div>
+      <canvas id="canvas" width="960" height="600"></canvas>
+      <div id="tip">左右拖动调整角度 · 竖向滑动控制力度 · 长按蓄力 · 松开鼠标射门</div>
+    </section>
+
+    <!-- 暂停 -->
+    <section id="screen-pause" class="screen overlay">
+      <div class="panel center">
+        <h2>游戏暂停</h2>
+        <div class="panel-footer">
+          <button class="btn primary" data-action="resume">继续</button>
+          <button class="btn" data-action="quit">放弃挑战</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 结算 -->
+    <section id="screen-result" class="screen overlay">
+      <div class="panel center">
+        <h2 id="result-title">挑战结束</h2>
+        <div class="result-stats">
+          <div>总得分：<span id="result-score">0</span></div>
+          <div>进球数：<span id="result-goals">0</span>/10</div>
+          <div>最高连击：<span id="result-combo">0</span>x</div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn primary" data-action="retry">再来一次</button>
+          <button class="btn" data-action="back-menu">返回主菜单</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/goalkeeper.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
