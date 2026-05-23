@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>篝火聚会 · 社交计时器</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="campfire-canvas"></canvas>
+
+  <div id="top-bar">
+    <div class="room-info">
+      <span class="fire-icon">🔥</span>
+      <span id="room-name">我的篝火</span>
+      <button id="room-btn" class="icon-btn" title="房间管理">🏕️</button>
+    </div>
+    <div class="timer-display">
+      <span id="active-count">0</span> 根燃烧中
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <button id="add-wood-btn" class="action-btn">
+      <span class="btn-icon">🪵</span>
+      <span>添加木柴</span>
+    </button>
+  </div>
+
+  <div id="fire-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>🪵 添加木柴</h2>
+      <div class="form-group">
+        <label>任务名称</label>
+        <input type="text" id="task-name" placeholder="输入你的任务..." maxlength="20">
+      </div>
+      <div class="form-group">
+        <label>木材类型</label>
+        <div class="wood-types">
+          <div class="wood-type selected" data-type="pine">
+            <span class="wood-icon">🌲</span>
+            <span class="wood-name">松木</span>
+            <span class="wood-desc">标准燃烧</span>
+          </div>
+          <div class="wood-type" data-type="oak">
+            <span class="wood-icon">🌳</span>
+            <span class="wood-name">橡木</span>
+            <span class="wood-desc">耐久 +20%</span>
+          </div>
+          <div class="wood-type" data-type="cherry">
+            <span class="wood-icon">🌸</span>
+            <span class="wood-name">樱桃木</span>
+            <span class="wood-desc">散发花香</span>
+          </div>
+          <div class="wood-type" data-type="magic">
+            <span class="wood-icon">🔮</span>
+            <span class="wood-name">魔法蓝焰</span>
+            <span class="wood-desc">神秘蓝光</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>燃烧时长</label>
+        <div class="duration-selector">
+          <button class="dur-btn" data-min="5">5分</button>
+          <button class="dur-btn selected" data-min="15">15分</button>
+          <button class="dur-btn" data-min="30">30分</button>
+          <button class="dur-btn" data-min="60">1小时</button>
+          <button class="dur-btn" data-min="120">2小时</button>
+          <button class="dur-btn" data-min="180">3小时</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="cancel-wood" class="btn-secondary">取消</button>
+        <button id="confirm-wood" class="btn-primary">投入篝火</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="room-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>🏕️ 篝火房间</h2>
+      <div class="form-group">
+        <label>房间名称</label>
+        <input type="text" id="room-name-input" placeholder="给你的篝火起个名字..." maxlength="15">
+      </div>
+      <div class="form-group">
+        <label>当前房间ID</label>
+        <div class="room-id-display">
+          <span id="room-id-display-text">--</span>
+          <button id="copy-room-id" class="btn-small">复制</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>加入房间</label>
+        <div class="join-room">
+          <input type="text" id="join-room-id" placeholder="输入房间ID...">
+          <button id="join-room-btn" class="btn-small">加入</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>创建新房间</label>
+        <button id="new-room-btn" class="btn-secondary full-width">🔥 点燃新篝火</button>
+      </div>
+      <div class="modal-actions">
+        <button id="close-room-modal" class="btn-secondary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <div id="celebration" class="celebration hidden">
+    <div class="celebration-content">
+      <div class="sparkles">✨🎉✨</div>
+      <h2 id="celebration-title">任务完成！</h2>
+      <p id="celebration-task">你真棒！</p>
+      <button id="close-celebration" class="btn-primary">太棒了！</button>
+    </div>
+  </div>
+
+  <div id="wood-popup" class="wood-popup hidden">
+    <div class="popup-content">
+      <h3 id="popup-task-name">任务</h3>
+      <div class="popup-info">
+        <div class="popup-row">
+          <span>状态</span>
+          <span id="popup-status">未点燃</span>
+        </div>
+        <div class="popup-row">
+          <span>剩余</span>
+          <span id="popup-remaining">--</span>
+        </div>
+        <div class="popup-row">
+          <span>加油</span>
+          <span id="popup-boost">0 次</span>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button id="popup-light" class="btn-primary">🔥 点燃</button>
+        <button id="popup-boost-btn" class="btn-secondary">👏 添柴 +5%</button>
+        <button id="popup-delete" class="btn-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/wood.js"></script>
+  <script src="js/particle.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
