@@ -1,0 +1,246 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1a0f0a;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  user-select: none;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #d4762f 0%, #c45e2a 40%, #8b3e20 100%);
+}
+
+#game-canvas {
+  display: block;
+  background: transparent;
+}
+
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#menu-overlay,
+#pause-overlay,
+#gameover-overlay,
+#tutorial-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: rgba(26, 15, 10, 0.85);
+}
+
+#menu-overlay.hidden,
+#pause-overlay.hidden,
+#gameover-overlay.hidden,
+#tutorial-overlay.hidden {
+  display: none;
+}
+
+.title {
+  font-size: 48px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 3px 3px 0 #8b3e20, 6px 6px 10px rgba(0,0,0,0.5);
+  margin-bottom: 20px;
+  letter-spacing: 8px;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #f5deb3;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.menu-btn {
+  display: block;
+  width: 220px;
+  padding: 14px 0;
+  margin: 10px 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff5e1;
+  background: linear-gradient(180deg, #c45e2a 0%, #8b3e20 100%);
+  border: 3px solid #ffd700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  letter-spacing: 4px;
+  font-family: inherit;
+}
+
+.menu-btn:hover {
+  background: linear-gradient(180deg, #d4762f 0%, #a04e28 100%);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.menu-btn:active {
+  transform: scale(0.98);
+}
+
+.menu-btn.selected {
+  background: linear-gradient(180deg, #ffd700 0%, #c45e2a 100%);
+  color: #1a0f0a;
+  border-color: #fff5e1;
+}
+
+.carriage-select {
+  display: flex;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.carriage-card {
+  width: 140px;
+  padding: 15px 10px;
+  background: rgba(139, 62, 32, 0.6);
+  border: 3px solid #8b3e20;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.carriage-card:hover {
+  border-color: #ffd700;
+  transform: translateY(-4px);
+}
+
+.carriage-card.selected {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.carriage-card .carriage-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.carriage-card .carriage-desc {
+  font-size: 11px;
+  color: #f5deb3;
+  line-height: 1.6;
+}
+
+.carriage-card .carriage-stats {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #ffd700;
+  text-align: left;
+  padding: 0 5px;
+}
+
+.score-panel {
+  font-size: 20px;
+  color: #ffd700;
+  margin: 15px 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.score-panel span {
+  color: #fff5e1;
+  margin-left: 8px;
+}
+
+.record-display {
+  font-size: 16px;
+  color: #f5deb3;
+  margin-top: 10px;
+}
+
+.new-record {
+  color: #ffd700;
+  font-weight: bold;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.tutorial-content {
+  max-width: 500px;
+  text-align: center;
+  color: #f5deb3;
+  line-height: 2;
+  font-size: 15px;
+  padding: 0 20px;
+}
+
+.tutorial-content h3 {
+  color: #ffd700;
+  font-size: 22px;
+  margin-bottom: 15px;
+  letter-spacing: 4px;
+}
+
+.tutorial-content .key-hint {
+  display: inline-block;
+  padding: 4px 12px;
+  margin: 0 4px;
+  background: #8b3e20;
+  border: 2px solid #ffd700;
+  border-radius: 4px;
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.pause-text {
+  font-size: 42px;
+  color: #ffd700;
+  margin-bottom: 20px;
+  letter-spacing: 12px;
+  text-shadow: 3px 3px 0 #8b3e20;
+}
+
+.gameover-title {
+  font-size: 42px;
+  color: #ff6347;
+  margin-bottom: 15px;
+  letter-spacing: 10px;
+  text-shadow: 3px 3px 0 #8b3e20;
+}
+
+@media (max-width: 768px) {
+  .title { font-size: 32px; letter-spacing: 4px; }
+  .subtitle { font-size: 14px; }
+  .menu-btn { width: 180px; font-size: 15px; padding: 12px 0; }
+  .carriage-card { width: 110px; padding: 10px 6px; }
+  .carriage-card .carriage-name { font-size: 14px; }
+  .carriage-card .carriage-desc { font-size: 10px; }
+  .score-panel { font-size: 16px; }
+  .pause-text, .gameover-title { font-size: 30px; }
+}
