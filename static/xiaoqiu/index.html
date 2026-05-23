@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多球人间地狱</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ========== MENU ========== -->
+  <div id="menu">
+    <div class="menu-title">多球人间地狱</div>
+    <div class="menu-subtitle">MULTI-BALL HELL</div>
+
+    <div class="menu-stats">
+      <span>🏆 最佳时长：<strong id="bestTime">0:00</strong></span>
+      <span>⚡ 最佳阶段：<strong id="bestStage">空闲生成</strong></span>
+      <span>🎮 总局数：<strong id="totalRuns">0</strong></span>
+    </div>
+
+    <div class="section-title">选择角色</div>
+    <div class="char-list" id="charList"></div>
+
+    <div class="section-title">选择主题</div>
+    <div class="theme-list" id="themeList"></div>
+
+    <div class="menu-btn-group" id="menuBtnGroup">
+      <button class="start-btn" id="continueBtn" onclick="Game.resume()">继 续 游 戏</button>
+      <button class="start-btn secondary" onclick="Game.start()">开 始 游 戏</button>
+    </div>
+
+    <div class="menu-controls">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 移动　
+      <kbd>Shift</kbd> 冲刺　
+      <kbd>Space</kbd> 技能　
+      <kbd>ESC</kbd> 暂停
+    </div>
+  </div>
+
+  <!-- ========== GAME ========== -->
+  <div id="gameContainer">
+    <div id="canvasContainer">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- HUD -->
+      <div id="hud">
+        <div class="hud-left">
+          <div class="hud-panel">
+            <div class="hp-bar-container">
+              <div class="hp-bar" id="hpBar" style="width:100%"></div>
+            </div>
+            <div class="hp-text" id="hpText">100 / 100</div>
+          </div>
+        </div>
+
+        <div class="hud-right" style="text-align:right">
+          <div class="hud-panel">
+            <div class="char-display">
+              <div class="char-icon" id="charIcon">◉</div>
+              <div class="char-display-info">
+                <div class="name" id="charName">均衡光球</div>
+                <div class="skill" id="skillName">全域减速</div>
+              </div>
+            </div>
+            <div class="skill-cooldown-container">
+              <span class="skill-cooldown-label">技能</span>
+              <div class="cooldown-bar"><div class="fill" id="skillCooldownBar" style="width:0%"></div></div>
+            </div>
+            <div class="dash-cooldown-container">
+              <span class="skill-cooldown-label">冲刺</span>
+              <div class="cooldown-bar"><div class="fill" id="dashCooldownBar" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div class="hud-panel">
+            <div class="time-text" id="timeText">存活 0:00 / 通关 2:00</div>
+            <div class="stage-text" id="stageText">阶段：空闲生成</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage Banner -->
+      <div id="stageBanner"></div>
+
+      <!-- Bottom hint -->
+      <div class="bottom-hint">
+        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动　
+        <kbd>Shift</kbd> 冲刺　
+        <kbd>Space</kbd> 技能　
+        <kbd>ESC</kbd> 暂停
+      </div>
+
+      <!-- Pause Overlay -->
+      <div id="pauseOverlay">
+        <div class="pause-title">游 戏 暂 停</div>
+        <div class="pause-btns">
+          <button class="pause-btn primary" onclick="Game.togglePause()">继续游戏</button>
+          <button class="pause-btn" onclick="UI.restart()">重新开局</button>
+          <button class="pause-btn" onclick="UI.backToMenu()">返回菜单</button>
+        </div>
+      </div>
+
+      <!-- Game Over Overlay -->
+      <div id="gameOver">
+        <div class="go-title">游戏结束</div>
+        <div class="go-stats"></div>
+        <div class="go-win"></div>
+        <div class="go-btns">
+          <button class="pause-btn primary" onclick="UI.restart()">再 来 一 局</button>
+          <button class="pause-btn" onclick="UI.backToMenu()">返 回 菜 单</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/constants.js?v=3"></script>
+<script src="js/storage.js?v=3"></script>
+<script src="js/theme.js?v=3"></script>
+<script src="js/skill.js?v=3"></script>
+<script src="js/enemy.js?v=3"></script>
+<script src="js/player.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
+<script src="js/game.js?v=3"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    Game.init();
+    UI.init();
+  });
+</script>
+</body>
+</html>
