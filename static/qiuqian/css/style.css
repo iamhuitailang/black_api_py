@@ -1,0 +1,150 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    padding: 20px;
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.game-wrapper {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+#gameCanvas {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+    display: block;
+    width: 800px;
+    height: 533px;
+}
+
+.game-info {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px;
+    width: 180px;
+    color: white;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.info-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 12px;
+    flex-wrap: wrap;
+}
+
+.info-item span:last-child {
+    flex: 1;
+    margin-left: 8px;
+}
+
+.key {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.key + .key {
+    margin-left: 4px;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.game-container {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.info-title {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@media (max-width: 1100px) {
+    .game-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .game-info {
+        width: 800px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 15px;
+    }
+    
+    .info-title {
+        width: 100%;
+    }
+    
+    .info-item {
+        margin-bottom: 0;
+    }
+}
+
+@media (max-width: 850px) {
+    #gameCanvas {
+        width: 100%;
+        max-width: 800px;
+        height: auto;
+    }
+    
+    .game-info {
+        width: 100%;
+        max-width: 800px;
+    }
+}
