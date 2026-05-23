@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🐾 动物道具接力赛</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div id="start-screen" class="screen active">
+            <div class="start-content">
+                <h1>🐾 动物道具接力赛</h1>
+                <p class="subtitle">操控可爱小动物组队，沿途拾取趣味道具、躲避障碍，完成接力闯关！</p>
+                <div class="character-preview">
+                    <div class="char-card">
+                        <div class="char-emoji">🐰</div>
+                        <div class="char-name">兔子</div>
+                        <div class="char-desc">极速敏捷型</div>
+                    </div>
+                    <div class="char-card">
+                        <div class="char-emoji">🐻</div>
+                        <div class="char-name">小熊</div>
+                        <div class="char-desc">力量稳重型</div>
+                    </div>
+                    <div class="char-card">
+                        <div class="char-emoji">🐹</div>
+                        <div class="char-name">狐狸</div>
+                        <div class="char-desc">灵巧智慧型</div>
+                    </div>
+                    <div class="char-card">
+                        <div class="char-emoji">🐢</div>
+                        <div class="char-name">乌龟</div>
+                        <div class="char-desc">续航防御型</div>
+                    </div>
+                </div>
+                <div class="level-select">
+                    <h3>选择关卡</h3>
+                    <div class="level-buttons">
+                        <button class="level-btn" data-level="1">
+                            <span class="level-icon">🏜️</span>
+                            <span>沙漠戈壁</span>
+                            <span class="level-stars" id="stars-1"></span>
+                        </button>
+                        <button class="level-btn" data-level="2">
+                            <span class="level-icon">🏔️</span>
+                            <span>峡谷山路</span>
+                            <span class="level-stars" id="stars-2"></span>
+                        </button>
+                        <button class="level-btn" data-level="3">
+                            <span class="level-icon">🪨</span>
+                            <span>荒野石林</span>
+                            <span class="level-stars" id="stars-3"></span>
+                        </button>
+                    </div>
+                </div>
+                <button id="start-btn" class="btn-primary">开始游戏</button>
+                <div class="controls-hint">
+                    <p>⌨️ 方向键移动 | 空格使用道具 | 回车切换角色</p>
+                    <p>📱 移动端：使用屏幕虚拟按键操作</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="hud">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="hud-label">关卡</span>
+                        <span id="hud-level">1</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">时间</span>
+                        <span id="hud-time">00:00</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">分数</span>
+                        <span id="hud-score">0</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="team-display" id="team-display"></div>
+                </div>
+                <div class="hud-right">
+                    <button id="pause-btn" class="btn-icon">⏸️</button>
+                </div>
+            </div>
+            <div id="item-slot">
+                <div class="item-slot-inner">
+                    <span id="current-item" class="item-icon">📦</span>
+                    <span class="item-slot-label">道具</span>
+                </div>
+            </div>
+            <div id="stamina-bar">
+                <div class="stamina-fill" id="stamina-fill"></div>
+                <span class="stamina-label">耐力</span>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="pause-content">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen overlay">
+            <div class="result-content">
+                <h2 id="result-title">关卡完成！</h2>
+                <div class="stars-display" id="stars-display">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">通关时间</span>
+                        <span id="result-time">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最终得分</span>
+                        <span id="result-score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最佳记录</span>
+                        <span id="best-time">--</span>
+                    </div>
+                </div>
+                <button id="next-level-btn" class="btn-primary">下一关</button>
+                <button id="replay-btn" class="btn-secondary">重玩本关</button>
+                <button id="menu-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="mobile-controls" class="mobile-only">
+            <div class="dpad">
+                <button class="dpad-btn up" data-dir="up">▲</button>
+                <button class="dpad-btn left" data-dir="left">◀</button>
+                <button class="dpad-btn right" data-dir="right">▶</button>
+                <button class="dpad-btn down" data-dir="down">▼</button>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" data-action="switch">🔄</button>
+                <button class="action-btn" data-action="item">🎁</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/obstacles.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
