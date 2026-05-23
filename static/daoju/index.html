@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>🍎🔪 苹果刀具狂接</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-title">🍎🔪 苹果刀具狂接</div>
+        <div class="game-subtitle">接住水果刀具，躲避危险物品！</div>
+        
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas"></canvas>
+            <button id="centerBtn" class="canvas-top-btn canvas-top-btn-left">⇔ 居中</button>
+            <button id="themeBtn" class="canvas-top-btn canvas-top-btn-right">🎨 主题</button>
+        </div>
+        
+        <div class="mobile-controls">
+            <button id="leftBtn" class="mobile-ctrl-btn mobile-ctrl-left">◀</button>
+            <button id="rightBtn" class="mobile-ctrl-btn mobile-ctrl-right">▶</button>
+        </div>
+        
+        <div class="controls-hint">
+            <div class="control-item">
+                <span class="key">←</span>
+                <span class="key">→</span>
+                <span>移动</span>
+            </div>
+            <div class="control-item">
+                <span class="key">空格</span>
+                <span>居中</span>
+            </div>
+            <div class="control-item">
+                <span class="key">P</span>
+                <span>暂停</span>
+            </div>
+        </div>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <span>🏆 最高分:</span>
+                <span class="info-value" id="highScoreDisplay">0</span>
+            </div>
+            <div class="info-item">
+                <span>🔥 最高连击:</span>
+                <span class="info-value" id="highComboDisplay">0</span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+    
+    <script>
+        window.addEventListener('load', () => {
+            const updateInfoDisplay = () => {
+                try {
+                    const highScore = localStorage.getItem('daoju_high_score') || '0';
+                    const highCombo = localStorage.getItem('daoju_high_combo') || '0';
+                    document.getElementById('highScoreDisplay').textContent = JSON.parse(highScore);
+                    document.getElementById('highComboDisplay').textContent = JSON.parse(highCombo);
+                } catch(e) {
+                    console.error('Update display error:', e);
+                }
+            };
+            
+            updateInfoDisplay();
+            
+            setInterval(updateInfoDisplay, 1000);
+        });
+    </script>
+</body>
+</html>
