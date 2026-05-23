@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>崩塌看台逃生</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1200" height="700"></canvas>
+        
+        <div id="hud">
+            <div class="hud-row">
+                <div class="hud-item">
+                    <span class="hud-label">剩余时间</span>
+                    <span id="time-display" class="hud-value">120</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">生命值</span>
+                    <div class="health-bar">
+                        <div id="health-fill" class="health-fill"></div>
+                        <span id="health-text" class="health-text">100/100</span>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">分数</span>
+                    <span id="score-display" class="hud-value">0</span>
+                </div>
+            </div>
+            <div class="hud-row phase-row">
+                <div class="phase-indicator">
+                    <span id="phase-label" class="phase-label">第一阶段: 零星掉落</span>
+                    <div class="phase-progress-bar">
+                        <div id="phase-progress-fill" class="phase-progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="buffs-container" class="buffs-container"></div>
+        </div>
+        
+        <div id="start-menu" class="overlay">
+            <div class="menu-content">
+                <h1 class="game-title">崩塌看台逃生</h1>
+                <p class="game-subtitle">赛场突发坍塌，快速逃离险境！</p>
+                
+                <div class="scene-selector">
+                    <p class="selector-label">选择场景：</p>
+                    <div class="scene-options">
+                        <div class="scene-option active" data-scene="0">
+                            <div class="scene-preview" style="background: linear-gradient(135deg, #4a90d9, #2c5aa0);"></div>
+                            <span>体育场</span>
+                        </div>
+                        <div class="scene-option" data-scene="1">
+                            <div class="scene-preview" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                            <span>音乐厅</span>
+                        </div>
+                        <div class="scene-option" data-scene="2">
+                            <div class="scene-preview" style="background: linear-gradient(135deg, #27ae60, #1e8449);"></div>
+                            <span>会议中心</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-buttons">
+                    <button id="btn-start" class="menu-btn primary">开始逃生</button>
+                    <button id="btn-continue" class="menu-btn">继续游戏</button>
+                    <button id="btn-records" class="menu-btn">通关记录</button>
+                    <button id="btn-help" class="menu-btn">操作说明</button>
+                </div>
+                
+                <div class="high-score-display">
+                    最高分：<span id="high-score">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="records-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">通关记录</h2>
+                <div id="records-list" class="records-list"></div>
+                <button id="btn-back-from-records" class="menu-btn">返回</button>
+            </div>
+        </div>
+        
+        <div id="help-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">操作说明</h2>
+                <div class="help-content">
+                    <div class="help-section">
+                        <h3>基本操作</h3>
+                        <ul>
+                            <li><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span> 或 <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>：移动角色</li>
+                            <li><span class="key">空格</span>：蹲伏规避坠落伤害</li>
+                            <li><span class="key">ESC</span>：暂停游戏</li>
+                        </ul>
+                    </div>
+                    <div class="help-section">
+                        <h3>道具效果</h3>
+                        <ul>
+                            <li><span class="item-icon speed"></span> 加速靴：移动速度提升50%</li>
+                            <li><span class="item-icon shield"></span> 防护盾：免疫一次伤害</li>
+                            <li><span class="item-icon heal"></span> 急救包：恢复30点生命值</li>
+                            <li><span class="item-icon clear"></span> 驱散剂：清除周围人群</li>
+                        </ul>
+                    </div>
+                    <div class="help-section">
+                        <h3>危险提示</h3>
+                        <ul>
+                            <li>小心头顶掉落的碎石和栏杆</li>
+                            <li>躲避倾倒的座椅和坍塌墙体</li>
+                            <li>人群密集处通行困难，注意绕行</li>
+                            <li>场地会随时间推移逐渐坍塌</li>
+                        </ul>
+                    </div>
+                </div>
+                <button id="btn-back-from-help" class="menu-btn">返回</button>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2 class="menu-title">游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="btn-resume" class="menu-btn primary">继续游戏</button>
+                    <button id="btn-save" class="menu-btn">保存进度</button>
+                    <button id="btn-quit" class="menu-btn">放弃逃生</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="game-over-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2 id="game-over-title" class="menu-title">逃生失败</h2>
+                <p id="game-over-reason" class="game-over-reason"></p>
+                <div class="game-over-stats">
+                    <div class="stat-row"><span>最终得分</span><span id="final-score">0</span></div>
+                    <div class="stat-row"><span>存活时间</span><span id="survival-time">0</span>秒</div>
+                    <div class="stat-row"><span>躲避障碍</span><span id="dodged-count">0</span></div>
+                </div>
+                <div id="new-record-badge" class="new-record-badge hidden">新纪录！</div>
+                <div class="menu-buttons">
+                    <button id="btn-retry" class="menu-btn primary">再次挑战</button>
+                    <button id="btn-menu" class="menu-btn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="victory-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2 class="menu-title victory">成功逃生！</h2>
+                <div class="game-over-stats">
+                    <div class="stat-row"><span>通关用时</span><span id="victory-time">0</span>秒</div>
+                    <div class="stat-row"><span>剩余生命</span><span id="victory-health">0</span></div>
+                    <div class="stat-row"><span>获得分数</span><span id="victory-score">0</span></div>
+                </div>
+                <div id="new-record-badge-v" class="new-record-badge hidden">新纪录！</div>
+                <div class="menu-buttons">
+                    <button id="btn-next" class="menu-btn primary">再来一局</button>
+                    <button id="btn-menu-v" class="menu-btn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/hazards.js"></script>
+    <script src="js/crowd.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/hud.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
