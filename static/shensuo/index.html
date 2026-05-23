@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神索荡桥 - 热带雨林冒险</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="startScreen" class="screen active">
+            <h1 class="game-title">神索荡桥</h1>
+            <p class="game-subtitle">热带雨林冒险</p>
+            <div class="character-select">
+                <h3>选择角色</h3>
+                <div class="character-list">
+                    <div class="character-card" data-character="explorer">
+                        <div class="character-icon">🧑‍🌾</div>
+                        <h4>少年探险家</h4>
+                        <p>综合能力均衡</p>
+                    </div>
+                    <div class="character-card" data-character="girl">
+                        <div class="character-icon">👧</div>
+                        <h4>轻盈少女</h4>
+                        <p>摆动操控灵活</p>
+                    </div>
+                    <div class="character-card" data-character="warrior">
+                        <div class="character-icon">💪</div>
+                        <h4>健壮勇士</h4>
+                        <p>蓄力爆发强劲</p>
+                    </div>
+                </div>
+            </div>
+            <button id="startBtn" class="btn btn-primary">开始游戏</button>
+            <div class="game-records">
+                <p>最高关卡: <span id="highestLevel">1</span></p>
+                <p>最佳记录:</p>
+                <div id="bestTimes">暂无记录</div>
+            </div>
+        </div>
+
+        <div id="gameUI" class="screen hidden">
+            <div class="ui-top">
+                <div class="power-container">
+                    <div class="power-label">蓄力</div>
+                    <div class="power-bar">
+                        <div id="powerFill" class="power-fill"></div>
+                    </div>
+                </div>
+                <div class="level-info">
+                    <span>关卡 <span id="currentLevel">1</span></span>
+                    <span>用时 <span id="timer">0.0s</span></span>
+                </div>
+            </div>
+            <div class="ui-controls">
+                <div class="control-hint">
+                    <p>按住鼠标/空格蓄力，松开释放</p>
+                    <p>A/D键调整方向</p>
+                </div>
+                <button id="pauseBtn" class="btn btn-small">暂停</button>
+            </div>
+        </div>
+
+        <div id="levelCompleteScreen" class="screen hidden">
+            <h2 class="screen-title">闯关成功！</h2>
+            <div class="result-info" id="levelCompleteInfo">
+                <p>用时: 0.00 秒</p>
+            </div>
+            <div class="screen-buttons">
+                <button id="nextLevelBtn" class="btn btn-primary">下一关</button>
+                <button id="replayBtn" class="btn btn-secondary">再玩一次</button>
+                <button id="backToMenuBtn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="screen hidden">
+            <h2 class="screen-title fail">闯关失败</h2>
+            <p id="failReason">掉下来了！</p>
+            <div class="screen-buttons">
+                <button id="retryBtn" class="btn btn-primary">重新挑战</button>
+                <button id="gameOverBackBtn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="pauseScreen" class="screen hidden">
+            <h2 class="screen-title">游戏暂停</h2>
+            <div class="screen-buttons">
+                <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+                <button id="pauseBackBtn" class="btn btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                if (typeof radius === 'number') {
+                    radius = {tl: radius, tr: radius, br: radius, bl: radius};
+                } else {
+                    radius = {tl: 0, tr: 0, br: 0, bl: 0, ...radius};
+                }
+                this.beginPath();
+                this.moveTo(x + radius.tl, y);
+                this.lineTo(x + width - radius.tr, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+                this.lineTo(x + width, y + height - radius.br);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+                this.lineTo(x + radius.bl, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+                this.lineTo(x, y + radius.tl);
+                this.quadraticCurveTo(x, y, x + radius.tl, y);
+                this.closePath();
+                return this;
+            };
+        }
+    </script>
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
