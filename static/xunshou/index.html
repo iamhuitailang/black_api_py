@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>明星驯兽师 🐾</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1200" height="750"></canvas>
+        <div id="loading-screen" class="screen-overlay">
+            <div class="loading-content">
+                <h1>🐾 明星驯兽师 🐾</h1>
+                <p>立志成为真正的驯兽师</p>
+                <div class="loading-bar-container">
+                    <div id="loading-bar" class="loading-bar"></div>
+                </div>
+                <p id="loading-text">正在加载...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data/monsters.js"></script>
+    <script src="js/data/skills.js"></script>
+    <script src="js/data/levels.js"></script>
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/canvas.js"></script>
+    <script src="js/utils/monster_renderer.js"></script>
+    <script src="js/core/game_state.js"></script>
+    <script src="js/game/battle.js"></script>
+    <script src="js/game/exploration.js"></script>
+    <script src="js/game/training.js"></script>
+    <script src="js/game/team.js"></script>
+    <script src="js/ui/menu.js"></script>
+    <script src="js/ui/battle_ui.js"></script>
+    <script src="js/ui/exploration_ui.js"></script>
+    <script src="js/ui/training_ui.js"></script>
+    <script src="js/ui/collection_ui.js"></script>
+    <script src="js/ui/shop_ui.js"></script>
+    <script src="js/ui/screen.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
