@@ -44,6 +44,7 @@ class SQLiteDB:
                 isolation_level=None
             )
             self._local.connection.row_factory = sqlite3.Row
+            self._local.connection.execute("PRAGMA encoding = 'UTF-8'")
             self._local.cursor = self._local.connection.cursor()
         return self._local.connection, self._local.cursor
 

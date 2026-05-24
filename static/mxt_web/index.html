@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 马戏团招聘系统 - 最奇葩的工作等你来！</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="confetti-container" id="confettiContainer"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <h1 class="title">🎪 马戏团招聘</h1>
+            <p class="subtitle">最奇葩的工作，等你来挑战！</p>
+            <div class="coin-display">
+                <span class="coin-icon">🪙</span>
+                <span id="coinBalance">0</span>
+                <span class="coin-label">金币</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="section hot-section">
+            <h2 class="section-title">🔥 今日热招</h2>
+            <div class="hot-jobs" id="hotJobsContainer">
+            </div>
+            <button class="btn-refresh-hot" id="refreshHotBtn">
+                🔄 刷新今日推荐 (5金币)
+            </button>
+        </section>
+
+        <section class="section jobs-section">
+            <h2 class="section-title">🎯 奇葩职位列表</h2>
+            <div class="jobs-grid" id="jobsContainer">
+            </div>
+        </section>
+
+        <section class="section welfare-section">
+            <h2 class="section-title">🎁 马戏团福利</h2>
+            <div class="welfare-grid" id="welfareContainer">
+            </div>
+        </section>
+
+        <section class="section daily-login-section">
+            <h2 class="section-title">📅 每日签到</h2>
+            <button class="btn-daily-login" id="dailyLoginBtn">
+                🎉 领取每日奖励 (+3金币)
+            </button>
+            <p class="login-hint" id="loginHint"></p>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="jobModal">
+        <div class="modal job-modal">
+            <div class="modal-header">
+                <span class="job-icon" id="modalJobIcon">🦁</span>
+                <h2 class="modal-title" id="modalJobName">职位名称</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="job-description">
+                    <h3>📝 职位描述</h3>
+                    <p id="modalJobDesc">职位描述内容</p>
+                </div>
+                <div class="job-requirements">
+                    <h3>🎭 奇葩要求</h3>
+                    <p id="modalJobReq">奇葩要求内容</p>
+                </div>
+                
+                <div class="application-form" id="applicationForm">
+                    <h3>📨 投递你的简历</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">你的名字 <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="applicantName" placeholder="可以是网名/花名，如'铁柱'">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">年龄: <span id="ageDisplay">25</span>岁</label>
+                        <input type="range" class="form-control" id="applicantAge" min="18" max="99" value="25">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">是否有马戏团经验</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="experience" value="1" checked>
+                                <span>有（吹过气球也算）</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="experience" value="0">
+                                <span>没有（但我很有热情）</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">特长（多选）</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="搞笑">
+                                <span>😂 搞笑</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="力气大">
+                                <span>💪 力气大</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="身体软">
+                                <span>🤸 身体软</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="嗓门大">
+                                <span>📢 嗓门大</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="不怕动物">
+                                <span>🐾 不怕动物</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="脸皮厚">
+                                <span>😎 脸皮厚</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialty" value="其他">
+                                <span>✨ 其他</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">为什么想来马戏团</label>
+                        <textarea class="form-control" id="applicantReason" maxlength="100" placeholder="限100字，如'我从小就觉得自己是个小丑'"></textarea>
+                        <span class="char-count" id="charCount">0/100</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">上传"才艺证明"</label>
+                        <button type="button" class="btn-fake-upload" id="fakeUploadBtn">
+                            📎 点击上传
+                        </button>
+                    </div>
+                    
+                    <div class="form-group urgent-option">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="urgentApply">
+                            <span>⚡ 加急处理 (消耗10金币，HR回复更快)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                <button type="button" class="btn btn-primary" id="submitBtn">
+                    <span class="btn-text">📨 投递简历</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal result-modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="resultTitle">HR回复</h2>
+                <button class="modal-close" id="resultClose">&times;</button>
+            </div>
+            <div class="modal-body result-body">
+                <div class="result-icon" id="resultIcon">🎉</div>
+                <div class="result-status" id="resultStatus">恭喜你！</div>
+                <div class="result-reply" id="resultReply"></div>
+            </div>
+            <div class="modal-footer result-footer" id="resultFooter">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cardModal">
+        <div class="modal card-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🎪 马戏团员工证</h2>
+                <button class="modal-close" id="cardClose">&times;</button>
+            </div>
+            <div class="modal-body card-body">
+                <div class="employee-card" id="employeeCard">
+                    <div class="card-header">
+                        <span class="card-logo">🎪</span>
+                        <span class="card-title">马戏团员工证</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-row">
+                            <span class="card-label">姓名</span>
+                            <span class="card-value" id="cardName">-</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-label">职位</span>
+                            <span class="card-value" id="cardJob">-</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-label">员工编号</span>
+                            <span class="card-value" id="cardNo">-</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-label">有效期</span>
+                            <span class="card-value" id="cardValid">-</span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <span>马戏团人力资源部</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer card-footer-actions">
+                <button class="btn btn-secondary" id="closeCardBtn">关闭</button>
+                <button class="btn btn-secondary" id="downloadCardBtn">
+                    📥 保存图片
+                </button>
+                <button class="btn btn-primary" id="shareCardBtn">
+                    📤 分享 (+5金币)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <footer class="footer">
+        <p>🎪 马戏团招聘系统 | 最奇葩的工作，最搞笑的回复</p>
+        <p class="footer-sub">本系统所有职位均为虚构，请勿当真！</p>
+    </footer>
+
+    <script src="js/sounds.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

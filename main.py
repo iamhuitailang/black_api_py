@@ -2,9 +2,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import Response
 from contextlib import asynccontextmanager
 import sys
 import os
+import json
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -12,6 +14,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.mxt import JobModel, ApplicationModel, EmployeeCardModel, CoinModel, CoinLogModel, DailyHotModel, WelfareModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +37,17 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    
+    JobModel.create_table()
+    ApplicationModel.create_table()
+    EmployeeCardModel.create_table()
+    CoinModel.create_table()
+    CoinLogModel.create_table()
+    DailyHotModel.create_table()
+    WelfareModel.create_table()
+    
+    JobModel.seed_default_data()
+    WelfareModel.seed_default_data()
     
     migrate_database()
     
@@ -62,6 +76,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def ensure_utf8_encoding(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    return response
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
