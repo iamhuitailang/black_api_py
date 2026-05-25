@@ -24,6 +24,17 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.xiaozu import (
+    UserModel as XzUserModel,
+    TokenModel as XzTokenModel,
+    TeamModel as XzTeamModel,
+    TeamMemberModel as XzTeamMemberModel,
+    TaskModel as XzTaskModel,
+    TaskCommentModel as XzTaskCommentModel,
+    TaskLogModel as XzTaskLogModel,
+    WorkHourModel as XzWorkHourModel,
+    NotificationModel as XzNotificationModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +83,16 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    XzUserModel.create_table()
+    XzTokenModel.create_table()
+    XzTeamModel.create_table()
+    XzTeamMemberModel.create_table()
+    XzTaskModel.create_table()
+    XzTaskCommentModel.create_table()
+    XzTaskLogModel.create_table()
+    XzWorkHourModel.create_table()
+    XzNotificationModel.create_table()
 
     migrate_database()
 
@@ -151,6 +172,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8128,
         reload=True
     )
