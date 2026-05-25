@@ -24,6 +24,7 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.zhuiju import DramaModel, ReminderModel
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +73,10 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DramaModel.create_table()
+    ReminderModel.create_table()
+    DramaModel.init_default_dramas()
 
     migrate_database()
 
@@ -151,6 +156,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8444,
         reload=True
     )
