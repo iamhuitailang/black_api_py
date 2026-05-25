@@ -24,6 +24,17 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.baoxiu import (
+    UserModel as BaoxiuUserModel,
+    TokenModel as BaoxiuTokenModel,
+    StudentDetailModel as BaoxiuStudentDetailModel,
+    RepairmanDetailModel as BaoxiuRepairmanDetailModel,
+    OrderModel as BaoxiuOrderModel,
+    RepairRecordModel as BaoxiuRepairRecordModel,
+    DormitoryModel as BaoxiuDormitoryModel,
+    NotificationModel as BaoxiuNotificationModel,
+    LogModel as BaoxiuLogModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +83,19 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    BaoxiuUserModel.create_table()
+    BaoxiuTokenModel.create_table()
+    BaoxiuStudentDetailModel.create_table()
+    BaoxiuRepairmanDetailModel.create_table()
+    BaoxiuOrderModel.create_table()
+    BaoxiuRepairRecordModel.create_table()
+    BaoxiuDormitoryModel.create_table()
+    BaoxiuNotificationModel.create_table()
+    BaoxiuLogModel.create_table()
+
+    BaoxiuUserModel.init_default_admin()
+    BaoxiuDormitoryModel.init_default_dormitories()
 
     migrate_database()
 
@@ -151,6 +175,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8119,
         reload=True
     )
