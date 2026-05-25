@@ -24,6 +24,17 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.tucao import (
+    UserModel as TucaoUserModel,
+    PostModel as TucaoPostModel,
+    ReplyModel as TucaoReplyModel,
+    LikeModel as TucaoLikeModel,
+    ReportModel as TucaoReportModel,
+    CategoryModel as TucaoCategoryModel,
+    AdminModel as TucaoAdminModel,
+    TucaoTokenModel,
+    TucaoAdminTokenModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +83,19 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    TucaoUserModel.create_table()
+    TucaoTokenModel.create_table()
+    TucaoPostModel.create_table()
+    TucaoReplyModel.create_table()
+    TucaoLikeModel.create_table()
+    TucaoReportModel.create_table()
+    TucaoCategoryModel.create_table()
+    TucaoAdminModel.create_table()
+    TucaoAdminTokenModel.create_table()
+
+    TucaoAdminModel.init_default_admin()
+    TucaoCategoryModel.init_default_categories()
 
     migrate_database()
 
@@ -151,6 +175,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8111,
         reload=True
     )
