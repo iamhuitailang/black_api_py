@@ -1,0 +1,271 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f5f7fa;
+  color: #303133;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.nav-logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: white;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-bottom: 1px solid #e4e7ed;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.empty-container {
+  text-align: center;
+  padding: 60px 0;
+  color: #909399;
+}
+
+.card-movie {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-movie:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.movie-poster {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+}
+
+.movie-poster-placeholder {
+  width: 100%;
+  height: 280px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  border-radius: 8px 8px 0 0;
+}
+
+.seat-map {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.screen {
+  width: 80%;
+  height: 30px;
+  background: linear-gradient(180deg, #d4d4d4 0%, #f0f0f0 100%);
+  border-radius: 4px;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #666;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.seat-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.seat {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.seat-available {
+  background: #e8f5e9;
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.seat-available:hover {
+  background: #c8e6c9;
+}
+
+.seat-selected {
+  background: #4caf50;
+  color: white;
+  border: 1px solid #4caf50;
+}
+
+.seat-sold {
+  background: #e0e0e0;
+  color: #9e9e9e;
+  border: 1px solid #e0e0e0;
+  cursor: not-allowed;
+}
+
+.seat-legend {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.seat-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px 4px 0 0;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-card {
+  width: 400px;
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #303133;
+}
+
+.admin-layout {
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+.admin-header {
+  background: #001529;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+}
+
+.admin-logo {
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.admin-content {
+  padding: 24px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card-title {
+  color: #909399;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.detail-poster {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+}
+
+.tabs-container {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+}

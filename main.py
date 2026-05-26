@@ -24,6 +24,14 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.movie import (
+    UserModel as MovieUserModel,
+    TokenModel as MovieTokenModel,
+    MovieModel,
+    ShowtimeModel,
+    OrderModel as MovieOrderModel,
+    ReviewModel as MovieReviewModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +80,15 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    MovieUserModel.create_table()
+    MovieTokenModel.create_table()
+    MovieModel.create_table()
+    ShowtimeModel.create_table()
+    MovieOrderModel.create_table()
+    MovieReviewModel.create_table()
+
+    MovieUserModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +168,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=5178,
         reload=True
     )
