@@ -119,11 +119,91 @@ class ResumeBusiness:
         projects = self.project_model.get_by_resume_id(resume_id)
         skills = self.skill_model.get_by_resume_id(resume_id)
 
-        result = self.resume_model.to_public_dict(resume)
-        result['educations'] = [self.education_model.to_public_dict(e) for e in educations]
-        result['works'] = [self.work_model.to_public_dict(w) for w in works]
-        result['projects'] = [self.project_model.to_public_dict(p) for p in projects]
-        result['skills'] = [self.skill_model.to_public_dict(s) for s in skills]
+        basic_info = {
+            'name': resume.get('name', ''),
+            'gender': resume.get('gender', ''),
+            'phone': resume.get('phone', ''),
+            'email': resume.get('email', ''),
+            'birthday': resume.get('birthday', ''),
+            'address': resume.get('address', ''),
+            'avatar': resume.get('avatar', ''),
+            'job_intention': resume.get('job_intention', ''),
+            'expected_salary': resume.get('expected_salary', ''),
+            'work_years': resume.get('work_years', ''),
+            'self_evaluation': resume.get('self_evaluation', '')
+        }
+
+        education_list = []
+        for e in educations:
+            edu = self.education_model.to_public_dict(e)
+            education_list.append({
+                'id': edu.get('id'),
+                'school': edu.get('school_name', ''),
+                'major': edu.get('major', ''),
+                'degree': edu.get('degree', ''),
+                'start_time': edu.get('start_date', ''),
+                'end_time': edu.get('end_date', ''),
+                'description': edu.get('description', ''),
+                'sort_order': edu.get('sort_order', 0)
+            })
+
+        work_list = []
+        for w in works:
+            work = self.work_model.to_public_dict(w)
+            work_list.append({
+                'id': work.get('id'),
+                'company': work.get('company_name', ''),
+                'position': work.get('position', ''),
+                'start_time': work.get('start_date', ''),
+                'end_time': work.get('end_date', ''),
+                'description': work.get('description', ''),
+                'achievements': work.get('achievements', ''),
+                'sort_order': work.get('sort_order', 0)
+            })
+
+        project_list = []
+        for p in projects:
+            proj = self.project_model.to_public_dict(p)
+            project_list.append({
+                'id': proj.get('id'),
+                'name': proj.get('project_name', ''),
+                'role': proj.get('role', ''),
+                'start_time': proj.get('start_date', ''),
+                'end_time': proj.get('end_date', ''),
+                'description': proj.get('description', ''),
+                'responsibilities': proj.get('responsibilities', ''),
+                'technologies': proj.get('responsibilities', ''),
+                'achievements': proj.get('achievements', ''),
+                'sort_order': proj.get('sort_order', 0)
+            })
+
+        skill_list = []
+        for s in skills:
+            skill = self.skill_model.to_public_dict(s)
+            skill_list.append({
+                'id': skill.get('id'),
+                'name': skill.get('skill_name', ''),
+                'level': skill.get('skill_level', 0),
+                'description': skill.get('description', ''),
+                'sort_order': skill.get('sort_order', 0)
+            })
+
+        result = {
+            'id': resume.get('id'),
+            'user_id': resume.get('user_id'),
+            'template_id': resume.get('template_id'),
+            'title': resume.get('title'),
+            'status': resume.get('status'),
+            'status_text': resume.get('status_text'),
+            'download_count': resume.get('download_count'),
+            'last_edited_at': resume.get('last_edited_at'),
+            'created_at': resume.get('created_at'),
+            'basic_info': basic_info,
+            'education_list': education_list,
+            'work_list': work_list,
+            'project_list': project_list,
+            'skill_list': skill_list
+        }
 
         return {
             'code': 0,
