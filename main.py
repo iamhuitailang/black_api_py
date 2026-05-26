@@ -24,6 +24,14 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.audio import (
+    SongModel,
+    PlaylistModel,
+    PlaylistSongModel,
+    FavoriteModel,
+    PlayHistoryModel,
+    SearchHistoryModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +80,15 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    SongModel.create_table()
+    PlaylistModel.create_table()
+    PlaylistSongModel.create_table()
+    FavoriteModel.create_table()
+    PlayHistoryModel.create_table()
+    SearchHistoryModel.create_table()
+
+    SongModel.init_preset_songs()
 
     migrate_database()
 
@@ -151,6 +168,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8450,
         reload=True
     )

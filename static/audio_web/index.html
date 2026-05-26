@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线音乐播放器</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .app-container { max-width: 1200px; margin: 0 auto; }
+        .app-header { background: #fff; padding: 16px 24px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .app-header h1 { font-size: 24px; color: #667eea; }
+        .nav-menu { display: flex; gap: 8px; flex-wrap: wrap; }
+        .main-content { background: #fff; border-radius: 16px; padding: 24px; min-height: 300px; }
+        .player-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 30, 40, 0.98); padding: 12px 24px; display: flex; align-items: center; gap: 20px; z-index: 1000; min-height: 70px; }
+        .player-cover { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .player-song-info { color: #fff; }
+        .player-song-title { font-size: 14px; font-weight: 500; }
+        .player-song-artist { font-size: 12px; color: #999; }
+        .player-controls { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .control-buttons { display: flex; gap: 16px; align-items: center; }
+        .control-btn { color: #ccc; cursor: pointer; font-size: 18px; background: none; border: none; }
+        .control-btn:hover { color: #fff; }
+        .control-btn.play-main { font-size: 28px; color: #667eea; }
+        .progress-container { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 400px; }
+        .progress-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; cursor: pointer; }
+        .progress-fill { height: 100%; background: #667eea; border-radius: 2px; width: 0%; }
+        .progress-time { color: #999; font-size: 12px; min-width: 45px; text-align: center; }
+        .song-table { width: 100%; border-collapse: collapse; }
+        .song-table th, .song-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eee; }
+        .song-table th { background: #f5f7fa; color: #333; font-weight: 500; }
+        .song-cover { font-size: 20px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 6px; }
+        .play-btn { cursor: pointer; padding: 6px 12px; background: #667eea; color: #fff; border: none; border-radius: 4px; }
+        .play-btn:hover { background: #5a67d8; }
+        .fav-btn { cursor: pointer; padding: 6px 12px; border: 1px solid #ddd; background: #fff; border-radius: 4px; margin-left: 4px; }
+        .fav-btn.active { background: #fff1f0; border-color: #ffa39e; color: #ff4d4f; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <div class="app-header">
+            <h1>🎵 在线音乐播放器</h1>
+            <div class="nav-menu">
+                <button class="play-btn" @click="setRoute('home')" :style="{ opacity: currentRoute === 'home' ? 1 : 0.7 }">音乐库</button>
+                <button class="play-btn" @click="setRoute('search')" :style="{ opacity: currentRoute === 'search' ? 1 : 0.7 }">搜索</button>
+                <button class="play-btn" @click="setRoute('playlists')" :style="{ opacity: currentRoute === 'playlists' ? 1 : 0.7 }">歌单</button>
+                <button class="play-btn" @click="setRoute('profile')" :style="{ opacity: currentRoute === 'profile' ? 1 : 0.7 }">个人中心</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div v-if="currentRoute === 'home'">
+                <h2 style="margin-bottom: 16px;">音乐库 ({{ songs.length }}首)</h2>
+                <div v-if="loading" class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <div>加载中...</div>
+                </div>
+                <table v-else class="song-table">
+                    <thead>
+                        <tr>
+                            <th width="60">#</th>
+                            <th width="60">封面</th>
+                            <th>歌曲</th>
+                            <th width="120">歌手</th>
+                            <th width="120">专辑</th>
+                            <th width="80">时长</th>
+                            <th width="180">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(song, idx) in songs" :key="song.id">
+                            <td>{{ idx + 1 }}</td>
+                            <td><div class="song-cover">{{ song.cover }}</div></td>
+                            <td>{{ song.title }}</td>
+                            <td>{{ song.artist }}</td>
+                            <td>{{ song.album || '-' }}</td>
+                            <td>{{ song.duration }}</td>
+                            <td>
+                                <button class="play-btn" @click="playSong(song, idx)">▶️ 播放</button>
+                                <button class="fav-btn" :class="{ active: isFavorited(song.id) }" @click="toggleFav(song.id)">
+                                    {{ isFavorited(song.id) ? '❤️' : '🤍' }}
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div v-if="currentRoute === 'search'">
+                <h2 style="margin-bottom: 16px;">搜索</h2>
+                <input type="text" v-model="searchKw" @keyup.enter="doSearch" placeholder="输入歌曲名/歌手" style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 16px;">
+                <div v-if="searchResults.length === 0" class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div>{{ searchKw ? '未找到结果' : '输入关键词搜索' }}</div>
+                </div>
+                <table v-else class="song-table">
+                    <thead>
+                        <tr><th width="60">#</th><th width="60">封面</th><th>歌曲</th><th width="120">歌手</th><th width="180">操作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(song, idx) in searchResults" :key="song.id">
+                            <td>{{ idx + 1 }}</td>
+                            <td><div class="song-cover">{{ song.cover }}</div></td>
+                            <td>{{ song.title }}</td>
+                            <td>{{ song.artist }}</td>
+                            <td>
+                                <button class="play-btn" @click="playSong(song, idx)">▶️ 播放</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div v-if="currentRoute === 'playlists'">
+                <h2 style="margin-bottom: 16px;">歌单管理</h2>
+                <button class="play-btn" @click="createPlaylist" style="margin-bottom: 16px;">+ 新建歌单</button>
+                <div v-if="playlists.length === 0" class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div>暂无歌单</div>
+                </div>
+                <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+                    <div v-for="pl in playlists" :key="pl.id" @click="openPlaylist(pl)" style="padding: 16px; background: #f9f9f9; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 40px; margin-bottom: 8px;">{{ pl.cover || '📀' }}</div>
+                        <div style="font-weight: 500;">{{ pl.name }}</div>
+                        <div style="color: #999; font-size: 12px;">{{ pl.song_count }} 首歌</div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentRoute === 'playlist-detail'">
+                <button @click="setRoute('playlists')" style="background: none; border: none; color: #667eea; cursor: pointer; margin-bottom: 16px;">← 返回歌单列表</button>
+                <h2 style="margin-bottom: 16px;">{{ currentPlaylist?.name }} ({{ playlistSongs.length }}首)</h2>
+                <button class="play-btn" @click="playAll" style="margin-bottom: 16px;" :disabled="playlistSongs.length === 0">▶️ 播放全部</button>
+                <div v-if="playlistSongs.length === 0" class="empty-state">
+                    <div class="empty-state-icon">📀</div>
+                    <div>歌单为空</div>
+                </div>
+                <table v-else class="song-table">
+                    <thead>
+                        <tr><th width="60">#</th><th width="60">封面</th><th>歌曲</th><th width="120">歌手</th><th width="180">操作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(song, idx) in playlistSongs" :key="song.id">
+                            <td>{{ idx + 1 }}</td>
+                            <td><div class="song-cover">{{ song.cover }}</div></td>
+                            <td>{{ song.title }}</td>
+                            <td>{{ song.artist }}</td>
+                            <td>
+                                <button class="play-btn" @click="playSongFromPlaylist(song, idx)">▶️ 播放</button>
+                                <button class="fav-btn" @click="removeFromPlaylist(song.id)">移除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div v-if="currentRoute === 'profile'">
+                <h2 style="margin-bottom: 16px;">个人中心</h2>
+                <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: #fff; margin-bottom: 20px;">
+                    <div style="font-size: 20px; font-weight: 600;">👤 小朋友</div>
+                    <div style="opacity: 0.9; margin-top: 8px;">收藏 {{ favoriteIds.length }} 首 | 歌单 {{ playlists.length }} 个</div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <button class="play-btn" @click="profileTab = 'history'" :style="{ opacity: profileTab === 'history' ? 1 : 0.7 }">播放历史</button>
+                    <button class="play-btn" @click="profileTab = 'favorites'" :style="{ opacity: profileTab === 'favorites' ? 1 : 0.7 }">收藏歌曲</button>
+                </div>
+                <div v-if="profileTab === 'history'">
+                    <div v-if="playHistory.length === 0" class="empty-state"><div class="empty-state-icon">⏰</div><div>暂无播放记录</div></div>
+                    <table v-else class="song-table">
+                        <thead><tr><th width="60">#</th><th width="60">封面</th><th>歌曲</th><th width="120">歌手</th><th width="180">操作</th></tr></thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in playHistory" :key="'h'+idx">
+                                <td>{{ idx + 1 }}</td>
+                                <td><div class="song-cover">{{ item.cover }}</div></td>
+                                <td>{{ item.title }}</td>
+                                <td>{{ item.artist }}</td>
+                                <td><button class="play-btn" @click="playSong(item, idx)">▶️ 播放</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div v-if="profileTab === 'favorites'">
+                    <div v-if="favoriteSongs.length === 0" class="empty-state"><div class="empty-state-icon">❤️</div><div>暂无收藏</div></div>
+                    <table v-else class="song-table">
+                        <thead><tr><th width="60">#</th><th width="60">封面</th><th>歌曲</th><th width="120">歌手</th><th width="180">操作</th></tr></thead>
+                        <tbody>
+                            <tr v-for="(song, idx) in favoriteSongs" :key="'f'+song.id">
+                                <td>{{ idx + 1 }}</td>
+                                <td><div class="song-cover">{{ song.cover }}</div></td>
+                                <td>{{ song.title }}</td>
+                                <td>{{ song.artist }}</td>
+                                <td>
+                                    <button class="play-btn" @click="playSong(song, idx)">▶️ 播放</button>
+                                    <button class="fav-btn active" @click="toggleFav(song.id)">❤️</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="player-bar">
+            <div class="player-cover">{{ currentSong?.cover || '🎵' }}</div>
+            <div class="player-song-info">
+                <div class="player-song-title">{{ currentSong?.title || '未选择歌曲' }}</div>
+                <div class="player-song-artist">{{ currentSong?.artist || '' }}</div>
+            </div>
+            <div class="player-controls">
+                <div class="control-buttons">
+                    <button class="control-btn" @click="playPrev">⏮️</button>
+                    <button class="control-btn play-main" @click="togglePlay">{{ isPlaying ? '⏸️' : '▶️' }}</button>
+                    <button class="control-btn" @click="playNext">⏭️</button>
+                </div>
+                <div class="progress-container">
+                    <span class="progress-time">{{ formatTime(currentTime) }}</span>
+                    <div class="progress-bar" @click="seek">
+                        <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
+                    </div>
+                    <span class="progress-time">{{ formatTime(duration) }}</span>
+                </div>
+            </div>
+            <div style="color: #fff;">
+                {{ playModeText }} {{ playModeIcon }}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const log = () => {};
+        try {
+            const { createApp, reactive, ref, computed, onMounted } = Vue;
+
+            const API = {
+                async get(url, params = {}) {
+                    const query = new URLSearchParams(params).toString();
+                    const fullUrl = query ? `/api${url}?${query}` : `/api${url}`;
+                    const res = await fetch(fullUrl);
+                    return await res.json();
+                },
+                async post(url, body = {}) {
+                    const res = await fetch(`/api${url}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    return await res.json();
+                }
+            };
+
+            const state = reactive({
+                currentRoute: 'home',
+                songs: [],
+                searchResults: [],
+                playlists: [],
+                currentPlaylist: null,
+                playlistSongs: [],
+                favoriteIds: [],
+                favoriteSongs: [],
+                playHistory: [],
+                loading: false,
+                searchKw: '',
+                profileTab: 'history',
+                currentSong: null,
+                isPlaying: false,
+                currentTime: 0,
+                duration: 0,
+                playMode: 'sequence',
+                playList: [],
+                currentIndex: -1
+            });
+
+            let progressTimer = null;
+
+            const App = {
+                setup() {
+                    const currentRoute = computed(() => state.currentRoute);
+
+                    async function loadSongs() {
+                        state.loading = true;
+                        try {
+                            const res = await API.get('/audio/song/list/get', { page: 1, page_size: 50 });
+                            if (res.code === 0) {
+                                state.songs = res.data.items || [];
+                            }
+                        } catch (e) {
+                        } finally {
+                            state.loading = false;
+                        }
+                    }
+
+                    async function doSearch() {
+                        if (!state.searchKw.trim()) {
+                            state.searchResults = [];
+                            return;
+                        }
+                        try {
+                            const res = await API.get('/audio/song/search/get', {
+                                keyword: state.searchKw,
+                                search_type: 'song',
+                                page: 1,
+                                page_size: 50
+                            });
+                            if (res.code === 0) {
+                                state.searchResults = res.data.items || [];
+                            }
+                        } catch (e) {
+                        }
+                    }
+
+                    async function loadPlaylists() {
+                        try {
+                            const res = await API.get('/audio/playlist/list/get', { page: 1, page_size: 50 });
+                            if (res.code === 0) {
+                                state.playlists = res.data.items || [];
+                            }
+                        } catch (e) {
+                            log('加载歌单失败: ' + e.message, 'error');
+                        }
+                    }
+
+                    async function loadFavoriteIds() {
+                        try {
+                            const res = await API.get('/audio/favorite/ids/get');
+                            if (res.code === 0) {
+                                state.favoriteIds = res.data || [];
+                                log('收藏ID列表: ' + state.favoriteIds.length + ' 个', 'success');
+                            }
+                        } catch (e) {
+                            log('加载收藏失败: ' + e.message, 'error');
+                        }
+                    }
+
+                    async function loadFavoriteSongs() {
+                        try {
+                            const res = await API.get('/audio/favorite/list/get', { page: 1, page_size: 100 });
+                            if (res.code === 0) {
+                                state.favoriteSongs = (res.data.items || []).map(item => item.song);
+                                log('收藏歌曲: ' + state.favoriteSongs.length + ' 首', 'success');
+                            }
+                        } catch (e) {}
+                    }
+
+                    async function loadPlayHistory() {
+                        try {
+                            const res = await API.get('/audio/playhistory/list/get', { page: 1, page_size: 100 });
+                            if (res.code === 0) {
+                                state.playHistory = (res.data.items || []).map(item => item.song);
+                                log('播放历史: ' + state.playHistory.length + ' 首', 'success');
+                            }
+                        } catch (e) {}
+                    }
+
+                    async function createPlaylist() {
+                        const name = prompt('请输入歌单名称:');
+                        if (!name) return;
+                        try {
+                            await API.post('/audio/playlist/create', { name, cover: '📀', description: '' });
+                            loadPlaylists();
+                            log('创建歌单成功', 'success');
+                        } catch (e) {
+                            log('创建歌单失败: ' + e.message, 'error');
+                        }
+                    }
+
+                    async function openPlaylist(pl) {
+                        state.currentPlaylist = pl;
+                        state.currentRoute = 'playlist-detail';
+                        try {
+                            const res = await API.get('/audio/playlist/detail/get', { playlist_id: pl.id });
+                            if (res.code === 0) {
+                                state.playlistSongs = res.data.songs || [];
+                                log('歌单详情: ' + state.playlistSongs.length + ' 首', 'success');
+                            }
+                        } catch (e) {}
+                    }
+
+                    async function removeFromPlaylist(songId) {
+                        if (!state.currentPlaylist) return;
+                        try {
+                            await API.post(`/audio/playlist/removesong?playlist_id=${state.currentPlaylist.id}&song_id=${songId}`);
+                            openPlaylist(state.currentPlaylist);
+                        } catch (e) {}
+                    }
+
+                    function isFavorited(songId) {
+                        return state.favoriteIds.includes(songId);
+                    }
+
+                    async function toggleFav(songId) {
+                        try {
+                            const res = await API.post(`/audio/favorite/toggle?song_id=${songId}`);
+                            if (res.code === 0) {
+                                if (res.data?.favorited) {
+                                    if (!state.favoriteIds.includes(songId)) state.favoriteIds.push(songId);
+                                } else {
+                                    state.favoriteIds = state.favoriteIds.filter(id => id !== songId);
+                                }
+                                if (state.profileTab === 'favorites') loadFavoriteSongs();
+                                log((res.data?.favorited ? '收藏' : '取消收藏') + '成功', 'success');
+                            }
+                        } catch (e) {
+                            log('收藏失败: ' + e.message, 'error');
+                        }
+                    }
+
+                    function parseDuration(d) {
+                        if (!d) return 0;
+                        const p = d.split(':');
+                        return p.length === 2 ? parseInt(p[0]) * 60 + parseInt(p[1]) : 0;
+                    }
+
+                    function formatTime(sec) {
+                        const m = Math.floor(sec / 60);
+                        const s = Math.floor(sec % 60);
+                        return `${m}:${s.toString().padStart(2, '0')}`;
+                    }
+
+                    async function recordHistory(songId) {
+                        try {
+                            await API.post(`/audio/playhistory/record?song_id=${songId}`);
+                        } catch (e) {}
+                    }
+
+                    function playSong(song, index) {
+                        state.currentSong = song;
+                        state.isPlaying = true;
+                        state.currentTime = 0;
+                        state.duration = parseDuration(song.duration);
+                        state.playList = [...state.songs];
+                        state.currentIndex = index;
+                        recordHistory(song.id);
+                        startProgressTimer();
+                        log('播放: ' + song.title, 'success');
+                    }
+
+                    function playSongFromPlaylist(song, index) {
+                        state.currentSong = song;
+                        state.isPlaying = true;
+                        state.currentTime = 0;
+                        state.duration = parseDuration(song.duration);
+                        state.playList = [...state.playlistSongs];
+                        state.currentIndex = index;
+                        recordHistory(song.id);
+                        startProgressTimer();
+                    }
+
+                    function playAll() {
+                        if (state.playlistSongs.length === 0) return;
+                        playSongFromPlaylist(state.playlistSongs[0], 0);
+                    }
+
+                    function togglePlay() {
+                        state.isPlaying = !state.isPlaying;
+                        if (state.isPlaying) startProgressTimer();
+                        else stopProgressTimer();
+                    }
+
+                    function playPrev() {
+                        if (state.playList.length === 0) return;
+                        let idx = state.currentIndex - 1;
+                        if (idx < 0) idx = state.playList.length - 1;
+                        if (state.playMode === 'random') idx = Math.floor(Math.random() * state.playList.length);
+                        const song = state.playList[idx];
+                        playSong(song, idx);
+                    }
+
+                    function playNext() {
+                        if (state.playList.length === 0) return;
+                        let idx;
+                        if (state.playMode === 'random') {
+                            idx = Math.floor(Math.random() * state.playList.length);
+                        } else if (state.playMode === 'single') {
+                            idx = state.currentIndex;
+                        } else {
+                            idx = (state.currentIndex + 1) % state.playList.length;
+                        }
+                        const song = state.playList[idx];
+                        playSong(song, idx);
+                    }
+
+                    function seek(e) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const pct = (e.clientX - rect.left) / rect.width;
+                        state.currentTime = pct * state.duration;
+                    }
+
+                    function cycleMode() {
+                        const modes = ['sequence', 'single', 'random'];
+                        const i = modes.indexOf(state.playMode);
+                        state.playMode = modes[(i + 1) % modes.length];
+                    }
+
+                    const playModeText = computed(() => {
+                        const t = { sequence: '顺序播放', single: '单曲循环', random: '随机播放' };
+                        return t[state.playMode];
+                    });
+
+                    const playModeIcon = computed(() => {
+                        const i = { sequence: '🔁', single: '🔂', random: '🔀' };
+                        return i[state.playMode];
+                    });
+
+                    const progressPercent = computed(() => {
+                        if (state.duration === 0) return 0;
+                        return (state.currentTime / state.duration) * 100;
+                    });
+
+                    function setRoute(r) {
+                        state.currentRoute = r;
+                        if (r === 'profile') {
+                            loadFavoriteSongs();
+                            loadPlayHistory();
+                        }
+                    }
+
+                    function startProgressTimer() {
+                        stopProgressTimer();
+                        progressTimer = setInterval(() => {
+                            if (state.isPlaying && state.duration > 0) {
+                                let t = state.currentTime + 1;
+                                if (t >= state.duration) {
+                                    if (state.playMode === 'single') {
+                                        state.currentTime = 0;
+                                    } else {
+                                        playNext();
+                                    }
+                                } else {
+                                    state.currentTime = t;
+                                }
+                            }
+                        }, 1000);
+                    }
+
+                    function stopProgressTimer() {
+                        if (progressTimer) {
+                            clearInterval(progressTimer);
+                            progressTimer = null;
+                        }
+                    }
+
+                    onMounted(async () => {
+                        await loadSongs();
+                        await loadPlaylists();
+                        await loadFavoriteIds();
+                    });
+
+                    return {
+                        currentRoute,
+                        songs: computed(() => state.songs),
+                        searchResults: computed(() => state.searchResults),
+                        playlists: computed(() => state.playlists),
+                        currentPlaylist: computed(() => state.currentPlaylist),
+                        playlistSongs: computed(() => state.playlistSongs),
+                        favoriteIds: computed(() => state.favoriteIds),
+                        favoriteSongs: computed(() => state.favoriteSongs),
+                        playHistory: computed(() => state.playHistory),
+                        loading: computed(() => state.loading),
+                        searchKw: computed({ get: () => state.searchKw, set: v => state.searchKw = v }),
+                        profileTab: computed({ get: () => state.profileTab, set: v => state.profileTab = v }),
+                        currentSong: computed(() => state.currentSong),
+                        isPlaying: computed(() => state.isPlaying),
+                        currentTime: computed(() => state.currentTime),
+                        duration: computed(() => state.duration),
+                        playModeText,
+                        playModeIcon,
+                        progressPercent,
+                        loadSongs,
+                        doSearch,
+                        createPlaylist,
+                        openPlaylist,
+                        removeFromPlaylist,
+                        isFavorited,
+                        toggleFav,
+                        formatTime,
+                        playSong,
+                        playSongFromPlaylist,
+                        playAll,
+                        togglePlay,
+                        playPrev,
+                        playNext,
+                        seek,
+                        cycleMode,
+                        setRoute
+                    };
+                }
+            };
+
+            const app = createApp(App);
+            app.mount('#app');
+
+        } catch (e) {
+            console.error('App error:', e);
+            document.body.innerHTML = '<div style="padding: 40px; color: red; font-size: 16px;">' +
+                '<h2>应用加载失败</h2>' +
+                '<p>错误信息: ' + e.message + '</p>' +
+                '</div>';
+        }
+    </script>
+</body>
+</html>
