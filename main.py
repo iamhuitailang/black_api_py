@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.xuanke import (
+    UserModel as XuankeUserModel,
+    TokenModel as XuankeTokenModel,
+    CourseModel as XuankeCourseModel,
+    EnrollmentModel as XuankeEnrollmentModel,
+    GradeModel as XuankeGradeModel,
+    ReviewModel as XuankeReviewModel,
+    SelectionRuleModel as XuankeSelectionRuleModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,18 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    XuankeUserModel.create_table()
+    XuankeTokenModel.create_table()
+    XuankeCourseModel.create_table()
+    XuankeEnrollmentModel.create_table()
+    XuankeGradeModel.create_table()
+    XuankeReviewModel.create_table()
+    XuankeSelectionRuleModel.create_table()
+
+    XuankeUserModel.init_default_admin()
+    XuankeCourseModel.init_default_courses()
+    XuankeSelectionRuleModel.init_default_rules()
 
     migrate_database()
 
@@ -151,6 +172,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8338,
         reload=True
     )
