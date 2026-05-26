@@ -24,6 +24,20 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jianli import (
+    UserModel as JianliUserModel,
+    TokenModel as JianliTokenModel,
+    AdminModel as JianliAdminModel,
+    AdminTokenModel as JianliAdminTokenModel,
+    TemplateCategoryModel as JianliTemplateCategoryModel,
+    TemplateModel as JianliTemplateModel,
+    ResumeModel as JianliResumeModel,
+    ResumeEducationModel as JianliResumeEducationModel,
+    ResumeWorkModel as JianliResumeWorkModel,
+    ResumeProjectModel as JianliResumeProjectModel,
+    ResumeSkillModel as JianliResumeSkillModel,
+    SystemSettingsModel as JianliSystemSettingsModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -73,6 +87,26 @@ def init_database():
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
 
+    # 简历平台数据库表
+    JianliUserModel.create_table()
+    JianliTokenModel.create_table()
+    JianliAdminModel.create_table()
+    JianliAdminTokenModel.create_table()
+    JianliTemplateCategoryModel.create_table()
+    JianliTemplateModel.create_table()
+    JianliResumeModel.create_table()
+    JianliResumeEducationModel.create_table()
+    JianliResumeWorkModel.create_table()
+    JianliResumeProjectModel.create_table()
+    JianliResumeSkillModel.create_table()
+    JianliSystemSettingsModel.create_table()
+
+    # 简历平台初始化数据
+    JianliAdminModel.init_default_admin()
+    JianliTemplateCategoryModel.init_default_categories()
+    JianliTemplateModel.init_default_templates()
+    JianliSystemSettingsModel.init_default_settings()
+
     migrate_database()
 
     print("Database initialized successfully")
@@ -117,7 +151,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 router_registry = get_router_registry()
+print("\n=== Registering Routes ===")
 api_router = router_registry.register_all(prefix="/api")
+print(f"Total routes registered: {len(api_router.routes)}")
+jianli_routes = [route for route in api_router.routes if hasattr(route, 'path') and 'jianli' in route.path]
+print(f"Jianli routes registered: {len(jianli_routes)}")
+for route in jianli_routes[:10]:
+    print(f"  {list(route.methods)[0]} {route.path}")
+print("=== Route Registration Complete ===\n")
 app.include_router(api_router)
 
 
@@ -151,6 +192,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8002,
         reload=True
     )
