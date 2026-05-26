@@ -24,6 +24,14 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.todo import (
+    TodoUserModel,
+    TodoTokenModel,
+    TodoProjectModel,
+    TodoTaskModel,
+    TodoTaskTagModel,
+    TodoReminderModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +80,13 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    TodoUserModel.create_table()
+    TodoTokenModel.create_table()
+    TodoProjectModel.create_table()
+    TodoTaskModel.create_table()
+    TodoTaskTagModel.create_table()
+    TodoReminderModel.create_table()
 
     migrate_database()
 
