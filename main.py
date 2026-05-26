@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.manhua import (
+    UserModel as ManhuaUserModel,
+    TokenModel as ManhuaTokenModel,
+    ComicModel as ManhuaComicModel,
+    ChapterModel as ManhuaChapterModel,
+    FavoriteModel as ManhuaFavoriteModel,
+    HistoryModel as ManhuaHistoryModel,
+    CommentModel as ManhuaCommentModel,
+    ReadingSettingsModel as ManhuaReadingSettingsModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +82,18 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ManhuaUserModel.create_table()
+    ManhuaTokenModel.create_table()
+    ManhuaComicModel.create_table()
+    ManhuaChapterModel.create_table()
+    ManhuaFavoriteModel.create_table()
+    ManhuaHistoryModel.create_table()
+    ManhuaCommentModel.create_table()
+    ManhuaReadingSettingsModel.create_table()
+
+    ManhuaComicModel.init_default_comics()
+    ManhuaChapterModel.init_default_chapters()
 
     migrate_database()
 
