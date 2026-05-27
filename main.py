@@ -24,6 +24,21 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jiaoyi import (
+    UserModel as JiaoyiUserModel,
+    TokenModel as JiaoyiTokenModel,
+    AdminModel as JiaoyiAdminModel,
+    AdminTokenModel as JiaoyiAdminTokenModel,
+    CategoryModel as JiaoyiCategoryModel,
+    BookModel as JiaoyiBookModel,
+    FavoriteModel as JiaoyiFavoriteModel,
+    ReviewModel as JiaoyiReviewModel,
+    OrderModel as JiaoyiOrderModel,
+    AnnouncementModel as JiaoyiAnnouncementModel,
+    ChatModel as JiaoyiChatModel,
+    RefundModel as JiaoyiRefundModel,
+    ReportModel as JiaoyiReportModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +87,26 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JiaoyiUserModel.create_table()
+    JiaoyiTokenModel.create_table()
+    JiaoyiAdminModel.create_table()
+    JiaoyiAdminTokenModel.create_table()
+    JiaoyiCategoryModel.create_table()
+    JiaoyiBookModel.create_table()
+    JiaoyiFavoriteModel.create_table()
+    JiaoyiReviewModel.create_table()
+    JiaoyiOrderModel.create_table()
+    JiaoyiAnnouncementModel.create_table()
+    JiaoyiChatModel.create_table()
+    JiaoyiRefundModel.create_table()
+    JiaoyiReportModel.create_table()
+
+    JiaoyiAdminModel.init_default_admin()
+    JiaoyiCategoryModel.init_default_categories()
+    JiaoyiUserModel.init_default_users()
+    JiaoyiBookModel.init_default_books()
+    JiaoyiAnnouncementModel.init_default_announcements()
 
     migrate_database()
 
@@ -151,6 +186,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8231,
         reload=True
     )
