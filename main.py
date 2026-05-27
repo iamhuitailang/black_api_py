@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.daka import (
+    UserModel as DakaUserModel,
+    TokenModel as DakaTokenModel,
+    TaskModel as DakaTaskModel,
+    RecordModel as DakaRecordModel,
+    AchievementModel as DakaAchievementModel,
+    UserAchievementModel as DakaUserAchievementModel,
+    ReminderModel as DakaReminderModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,17 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DakaUserModel.create_table()
+    DakaTokenModel.create_table()
+    DakaTaskModel.create_table()
+    DakaRecordModel.create_table()
+    DakaAchievementModel.create_table()
+    DakaUserAchievementModel.create_table()
+    DakaReminderModel.create_table()
+
+    DakaTaskModel.init_default_tasks()
+    DakaAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +171,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8881,
         reload=True
     )
