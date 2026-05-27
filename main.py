@@ -24,6 +24,7 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.cai import AnimalModel, RoomModel, GameModel, ScoreModel
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +73,13 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    AnimalModel.create_table()
+    RoomModel.create_table()
+    GameModel.create_table()
+    ScoreModel.create_table()
+
+    AnimalModel().init_default_data()
 
     migrate_database()
 
@@ -151,6 +159,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8888,
         reload=True
     )

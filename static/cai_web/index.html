@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你画我猜 - 动物版</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .app-container { min-height: 100vh; padding: 20px; }
+        
+        .game-title {
+            font-size: 3rem; font-weight: bold; color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 30px; text-align: center;
+        }
+        
+        .card { border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); border: none; }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none; border-radius: 10px; padding: 12px 30px;
+            font-weight: bold; transition: transform 0.2s;
+        }
+        
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border: none; border-radius: 10px;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            border: none; border-radius: 10px;
+        }
+        
+        .drawing-canvas {
+            border: 3px solid #667eea; border-radius: 10px;
+            background: white; cursor: crosshair; touch-action: none;
+            max-width: 100%; height: auto;
+        }
+        
+        .color-picker {
+            width: 40px; height: 40px; border-radius: 50%;
+            cursor: pointer; border: 3px solid transparent;
+            transition: transform 0.2s;
+        }
+        
+        .color-picker:hover { transform: scale(1.1); }
+        .color-picker.active { border-color: #667eea; transform: scale(1.1); }
+        
+        .tool-btn {
+            width: 50px; height: 50px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+            background: #f0f0f0; border: none;
+        }
+        
+        .tool-btn:hover { background: #e0e0e0; }
+        .tool-btn.active { background: #667eea; color: white; }
+        
+        .score-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 10px 20px; border-radius: 10px; font-weight: bold;
+        }
+        
+        .timer-display {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white; padding: 10px 20px; border-radius: 10px;
+            font-weight: bold; font-size: 1.5rem;
+        }
+        
+        .topic-display {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 10px 20px; border-radius: 10px;
+            font-weight: bold; font-size: 1.2rem;
+        }
+        
+        .chat-message {
+            padding: 8px 15px; margin: 5px 0; border-radius: 10px;
+            max-width: 80%; word-wrap: break-word;
+        }
+        
+        .chat-message.correct {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;
+        }
+        
+        .chat-message.wrong { background: #f0f0f0; color: #333; }
+        
+        .chat-message.system {
+            background: #667eea; color: white; text-align: center; max-width: 100%;
+        }
+        
+        .leaderboard-item {
+            display: flex; align-items: center; padding: 10px;
+            border-radius: 10px; margin-bottom: 10px; background: #f8f9fa;
+        }
+        
+        .leaderboard-rank {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; margin-right: 15px; flex-shrink: 0;
+        }
+        
+        .rank-1 { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #333; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%); color: #333; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32 0%, #daa06d 100%); color: white; }
+        
+        .mode-card {
+            cursor: pointer; transition: all 0.3s; border: 3px solid transparent;
+        }
+        
+        .mode-card:hover { transform: translateY(-5px); border-color: #667eea; }
+        .mode-card.selected { border-color: #667eea; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3); }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); display: flex; align-items: center;
+            justify-content: center; z-index: 1050;
+        }
+        
+        .modal-content-custom {
+            background: white; border-radius: 15px; max-width: 500px;
+            width: 90%; max-height: 80vh; overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <div class="container">
+            <h1 class="game-title">🎨 你画我猜 🐱</h1>
+            
+            <div v-if="currentPage === 'home'">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card p-4">
+                            <h3 class="text-center mb-4">选择游戏模式</h3>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">你的昵称</label>
+                                <input type="text" class="form-control" v-model="playerName" placeholder="请输入昵称">
+                            </div>
+                            
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <div class="card mode-card p-3 text-center" :class="{selected: gameMode === 1}" @click="gameMode = 1">
+                                        <div style="font-size: 3rem;">🤖</div>
+                                        <h5>单人模式</h5>
+                                        <p class="text-muted small">与AI对战</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card mode-card p-3 text-center" :class="{selected: gameMode === 2}" @click="gameMode = 2">
+                                        <div style="font-size: 3rem;">👥</div>
+                                        <h5>双人模式</h5>
+                                        <p class="text-muted small">与好友对战</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div v-if="gameMode === 2" class="mb-4">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary flex-grow-1" @click="createRoom">创建房间</button>
+                                    <button class="btn btn-success flex-grow-1" @click="showJoinModal = true">加入房间</button>
+                                </div>
+                                
+                                <div v-if="waitingRooms.length > 0" class="mt-3">
+                                    <h6>等待中的房间：</h6>
+                                    <div class="list-group">
+                                        <button v-for="room in waitingRooms" :key="room.id" 
+                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                @click="quickJoinRoom(room.room_code)">
+                                            <span>{{ room.player1_name }} 的房间</span>
+                                            <span class="badge bg-primary">{{ room.room_code }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button v-if="gameMode === 1" class="btn btn-primary w-100" @click="startSingleGame">
+                                开始游戏
+                            </button>
+                            
+                            <div class="mt-4">
+                                <button class="btn btn-outline-primary w-100" @click="loadLeaderboardData">
+                                    🏆 查看排行榜
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-if="currentPage === 'waiting'">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card p-5 text-center">
+                            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                            <h3>等待玩家加入...</h3>
+                            <p class="mt-3">房间号: <span class="badge bg-primary fs-5">{{ currentRoom?.room_code }}</span></p>
+                            <p class="text-muted">请将房间号分享给好友</p>
+                            <button class="btn btn-danger mt-3" @click="exitGame">取消等待</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-if="currentPage === 'game'">
+                <div class="row">
+                    <div class="col-md-9">
+                        <div class="card p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div class="score-display">
+                                    {{ currentRoom.player1_name }}: {{ currentRoom.player1_score }} 
+                                    vs 
+                                    {{ currentRoom.player2_name }}: {{ currentRoom.player2_score }}
+                                </div>
+                                <div class="topic-display" v-if="isDrawer">
+                                    题目: {{ currentRoom.current_animal_name }}
+                                </div>
+                                <div class="topic-display bg-secondary" v-else>
+                                    请猜这是什么动物？
+                                </div>
+                                <div class="timer-display" :class="{ 'bg-danger': timeLeft <= 10 }">
+                                    ⏱️ {{ timeLeft }}s
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mb-2">
+                                <span class="badge bg-info">第 {{ currentRoom.round }} / {{ currentRoom.max_rounds * 2 }} 轮</span>
+                                <span class="badge bg-warning ms-2">{{ isDrawer ? '你是作画者' : '你是猜题者' }}</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-center">
+                                <canvas ref="canvas" class="drawing-canvas" width="800" height="500"></canvas>
+                            </div>
+                            
+                            <div v-if="isDrawer" class="d-flex justify-content-center gap-3 mt-3 flex-wrap">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span>颜色:</span>
+                                    <div v-for="color in colors" :key="color" 
+                                         class="color-picker" 
+                                         :class="{active: currentColor === color}"
+                                         :style="{background: color}"
+                                         @click="selectColor(color)"></div>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <button class="tool-btn" :class="{active: currentTool === 'pen'}" @click="currentTool = 'pen'">✏️</button>
+                                    <button class="tool-btn" :class="{active: currentTool === 'eraser'}" @click="currentTool = 'eraser'">🧹</button>
+                                </div>
+                                
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span>粗细:</span>
+                                    <input type="range" min="1" max="20" v-model="brushSize" class="form-range" style="width: 100px;">
+                                </div>
+                                
+                                <button class="btn btn-danger" @click="clearCanvas">🗑️ 清空</button>
+                            </div>
+                        </div>
+                        
+                        <div v-if="!isDrawer" class="card p-3">
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control" v-model="guessAnswer" 
+                                       placeholder="输入你的答案..." 
+                                       @keyup.enter="submitGuess"
+                                       :disabled="guessResult !== null || roundEnded">
+                                <button class="btn btn-success" @click="submitGuess" :disabled="guessResult !== null || roundEnded || !guessAnswer">
+                                    提交
+                                </button>
+                            </div>
+                            
+                            <div v-if="guessResult !== null" class="mt-2">
+                                <div v-if="guessResult" class="alert alert-success">🎉 答对了！获得 {{ lastScore }} 分！</div>
+                                <div v-else class="alert alert-danger">😅 答错了，继续加油！</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card p-3 mb-3" style="height: 400px; overflow-y: auto;">
+                            <h6>💬 聊天记录</h6>
+                            <div v-for="(msg, index) in chatMessages" :key="index" 
+                                 class="chat-message"
+                                 :class="msg.type">
+                                <strong>{{ msg.name }}:</strong> {{ msg.content }}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button v-if="roundEnded" class="btn btn-primary" @click="nextRound">下一轮</button>
+                            <button class="btn btn-outline-danger" @click="exitGame">退出游戏</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-if="currentPage === 'result'">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card p-5 text-center">
+                            <div style="font-size: 5rem;">{{ playerWon ? '🎉' : '😢' }}</div>
+                            <h2 class="mt-3">{{ playerWon ? '恭喜获胜！' : '再接再厉！' }}</h2>
+                            
+                            <div class="mt-4">
+                                <h4>最终得分</h4>
+                                <div class="d-flex justify-content-around mt-3">
+                                    <div class="text-center">
+                                        <div class="score-display mb-2">{{ currentRoom.player1_name }}</div>
+                                        <div style="font-size: 2rem; font-weight: bold;">{{ currentRoom.player1_score }}</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="score-display mb-2">{{ currentRoom.player2_name }}</div>
+                                        <div style="font-size: 2rem; font-weight: bold;">{{ currentRoom.player2_score }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button class="btn btn-primary" @click="playAgain">再来一局</button>
+                                <button class="btn btn-outline-secondary" @click="goHome">返回首页</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="showJoinModal" class="modal-overlay" @click.self="showJoinModal = false">
+            <div class="modal-content-custom">
+                <div class="modal-header">
+                    <h5 class="modal-title">加入房间</h5>
+                    <button type="button" class="btn-close" @click="showJoinModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">房间号</label>
+                        <input type="text" class="form-control" v-model="joinRoomCode" placeholder="请输入6位房间号" maxlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="showJoinModal = false">取消</button>
+                    <button type="button" class="btn btn-primary" @click="joinRoom">加入</button>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="showLeaderboard" class="modal-overlay" @click.self="showLeaderboard = false">
+            <div class="modal-content-custom">
+                <div class="modal-header">
+                    <h5 class="modal-title">🏆 排行榜</h5>
+                    <button type="button" class="btn-close" @click="showLeaderboard = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div v-for="(score, index) in leaderboard" :key="score.id" class="leaderboard-item">
+                        <div class="leaderboard-rank" :class="'rank-' + (index + 1)" v-if="index < 3">{{ index + 1 }}</div>
+                        <div class="leaderboard-rank bg-secondary text-white" v-else>{{ index + 1 }}</div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">{{ score.player_name }}</div>
+                            <div class="text-muted small">胜率: {{ score.win_rate }}% | 正确率: {{ score.accuracy }}%</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-primary">{{ score.highest_score }}</div>
+                            <div class="text-muted small">最高分</div>
+                        </div>
+                    </div>
+                    <div v-if="leaderboard.length === 0" class="text-center text-muted py-4">暂无排行数据</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
+        
+        const API_BASE = 'http://localhost:8888/api/cai';
+        const STORAGE_KEY = 'cai_game_state';
+        
+        const ANIMAL_DRAWINGS = {
+            '猫': {type:'cat', parts:[
+                {fn:'ellipse', x:400, y:280, rx:100, ry:80, color:'#f5a623'},
+                {fn:'circle', x:400, y:230, r:60, color:'#f5a623'},
+                {fn:'triangle', pts:[[350,190],[370,230],[330,230]], color:'#f5a623'},
+                {fn:'triangle', pts:[[450,190],[430,230],[470,230]], color:'#f5a623'},
+                {fn:'circle', x:380, y:225, r:8, color:'#333'},
+                {fn:'circle', x:420, y:225, r:8, color:'#333'},
+                {fn:'ellipse', x:400, y:245, rx:8, ry:5, color:'#ff69b4'},
+                {fn:'line', x1:360, y1:245, x2:330, y2:240, color:'#333', w:2},
+                {fn:'line', x1:440, y1:245, x2:470, y2:240, color:'#333', w:2},
+                {fn:'curve', pts:[[340,250],[360,270],[400,275],[440,270],[460,250]], color:'#333', w:2}
+            ]},
+            '狗': {type:'dog', parts:[
+                {fn:'ellipse', x:400, y:300, rx:110, ry:80, color:'#c89632'},
+                {fn:'circle', x:400, y:230, r:65, color:'#c89632'},
+                {fn:'ellipse', x:355, y:195, rx:20, ry:40, color:'#a07828'},
+                {fn:'ellipse', x:445, y:195, rx:20, ry:40, color:'#a07828'},
+                {fn:'circle', x:380, y:225, r:8, color:'#333'},
+                {fn:'circle', x:420, y:225, r:8, color:'#333'},
+                {fn:'ellipse', x:400, y:248, rx:12, ry:8, color:'#333'},
+                {fn:'ellipse', x:400, y:360, rx:30, ry:20, color:'#c89632'},
+                {fn:'curve', pts:[[390,260],[400,275],[410,260]], color:'#ff69b4', w:3}
+            ]},
+            '兔子': {type:'rabbit', parts:[
+                {fn:'ellipse', x:400, y:320, rx:80, ry:90, color:'#f0f0f0'},
+                {fn:'circle', x:400, y:240, r:55, color:'#f0f0f0'},
+                {fn:'ellipse', x:370, y:160, rx:15, ry:55, color:'#f0f0f0'},
+                {fn:'ellipse', x:430, y:160, rx:15, ry:55, color:'#f0f0f0'},
+                {fn:'ellipse', x:370, y:160, rx:8, ry:40, color:'#ffb6c1'},
+                {fn:'ellipse', x:430, y:160, rx:8, ry:40, color:'#ffb6c1'},
+                {fn:'circle', x:382, y:235, r:6, color:'#333'},
+                {fn:'circle', x:418, y:235, r:6, color:'#333'},
+                {fn:'triangle', pts:[[395,250],[405,250],[400,260]], color:'#ff69b4'},
+            ]},
+            '小鸡': {type:'chick', parts:[
+                {fn:'circle', x:400, y:320, r:70, color:'#ffe135'},
+                {fn:'circle', x:400, y:240, r:45, color:'#ffe135'},
+                {fn:'triangle', pts:[[395,230],[405,230],[400,215]], color:'#ff6600'},
+                {fn:'circle', x:385, y:235, r:5, color:'#333'},
+                {fn:'circle', x:415, y:235, r:5, color:'#333'},
+                {fn:'line', x1:390, y1:250, x2:410, y2:250, color:'#333', w:2},
+                {fn:'ellipse', x:440, y:300, rx:25, ry:15, color:'#ffe135'},
+                {fn:'line', x1:370, y1:385, x2:370, y2:410, color:'#ff6600', w:3},
+                {fn:'line', x1:430, y1:385, x2:430, y2:410, color:'#ff6600', w:3},
+            ]},
+            '老虎': {type:'tiger', parts:[
+                {fn:'ellipse', x:400, y:300, rx:120, ry:80, color:'#f5a623'},
+                {fn:'circle', x:400, y:230, r:65, color:'#f5a623'},
+                {fn:'circle', x:400, y:230, r:50, color:'#fff'},
+                {fn:'triangle', pts:[[355,180],[380,225],[330,225]], color:'#f5a623'},
+                {fn:'triangle', pts:[[445,180],[420,225],[470,225]], color:'#f5a623'},
+                {fn:'circle', x:380, y:220, r:8, color:'#333'},
+                {fn:'circle', x:420, y:220, r:8, color:'#333'},
+                {fn:'triangle', pts:[[395,240],[405,240],[400,255]], color:'#333'},
+                {fn:'line', x1:340, y1:240, x2:310, y2:235, color:'#333', w:2},
+                {fn:'line', x1:340, y1:250, x2:310, y2:255, color:'#333', w:2},
+                {fn:'line', x1:460, y1:240, x2:490, y2:235, color:'#333', w:2},
+                {fn:'line', x1:460, y1:250, x2:490, y2:255, color:'#333', w:2},
+                {fn:'rect', x:355, y:268, w:15, h:4, color:'#333'},
+                {fn:'rect', x:390, y:275, w:15, h:4, color:'#333'},
+                {fn:'rect', x:425, y:268, w:15, h:4, color:'#333'},
+            ]},
+            '狮子': {type:'lion', parts:[
+                {fn:'circle', x:400, y:260, r:90, color:'#d4a017'},
+                {fn:'circle', x:400, y:260, r:60, color:'#f5c623'},
+                {fn:'circle', x:380, y:250, r:8, color:'#333'},
+                {fn:'circle', x:420, y:250, r:8, color:'#333'},
+                {fn:'triangle', pts:[[395,270],[405,270],[400,285]], color:'#333'},
+                {fn:'line', x1:370, y1:280, x2:430, y2:280, color:'#333', w:2},
+                {fn:'ellipse', x:400, y:380, rx:90, ry:70, color:'#f5c623'},
+            ]},
+            '大象': {type:'elephant', parts:[
+                {fn:'ellipse', x:400, y:320, rx:130, ry:90, color:'#999'},
+                {fn:'circle', x:400, y:230, r:70, color:'#999'},
+                {fn:'ellipse', x:330, y:220, rx:40, ry:30, color:'#888'},
+                {fn:'ellipse', x:470, y:220, rx:40, ry:30, color:'#888'},
+                {fn:'circle', x:370, y:225, r:6, color:'#333'},
+                {fn:'circle', x:430, y:225, r:6, color:'#333'},
+                {fn:'curve', pts:[[400,260],[420,310],[410,360],[420,400]], color:'#888', w:15},
+                {fn:'line', x1:310, y1:400, x2:310, y2:440, color:'#888', w:12},
+                {fn:'line', x1:490, y1:400, x2:490, y2:440, color:'#888', w:12},
+            ]},
+            '熊猫': {type:'panda', parts:[
+                {fn:'ellipse', x:400, y:320, rx:100, ry:90, color:'#fff'},
+                {fn:'circle', x:400, y:230, r:65, color:'#fff'},
+                {fn:'ellipse', x:360, y:210, rx:22, ry:18, color:'#333'},
+                {fn:'ellipse', x:440, y:210, rx:22, ry:18, color:'#333'},
+                {fn:'ellipse', x:370, y:230, rx:12, ry:8, color:'#333'},
+                {fn:'ellipse', x:430, y:230, rx:12, ry:8, color:'#333'},
+                {fn:'ellipse', x:400, y:250, rx:8, ry:5, color:'#333'},
+                {fn:'curve', pts:[[380,260],[400,275],[420,260]], color:'#333', w:2},
+            ]},
+            '海豚': {type:'dolphin', parts:[
+                {fn:'curve', pts:[[280,300],[350,250],[450,260],[520,280],[530,300],[500,310],[450,290],[350,295],[300,310],[280,300]], color:'#4a90d9', w:40, fill:true},
+                {fn:'triangle', pts:[[280,300],[260,270],[290,280]], color:'#4a90d9'},
+                {fn:'circle', x:430, y:270, r:6, color:'#333'},
+                {fn:'curve', pts:[[520,280],[540,260],[530,250]], color:'#4a90d9', w:8},
+            ]},
+            '老鹰': {type:'eagle', parts:[
+                {fn:'ellipse', x:400, y:280, rx:60, ry:80, color:'#8B4513'},
+                {fn:'circle', x:400, y:210, r:35, color:'#fff'},
+                {fn:'circle', x:390, y:205, r:6, color:'#333'},
+                {fn:'circle', x:410, y:205, r:6, color:'#333'},
+                {fn:'triangle', pts:[[395,220],[405,220],[400,240]], color:'#f5a623'},
+                {fn:'curve', pts:[[300,280],[250,250],[200,280],[180,260]], color:'#8B4513', w:15},
+                {fn:'curve', pts:[[500,280],[550,250],[600,280],[620,260]], color:'#8B4513', w:15},
+            ]},
+            '企鹅': {type:'penguin', parts:[
+                {fn:'ellipse', x:400, y:310, rx:70, ry:100, color:'#333'},
+                {fn:'circle', x:400, y:210, r:45, color:'#333'},
+                {fn:'ellipse', x:400, y:310, rx:45, ry:80, color:'#fff'},
+                {fn:'circle', x:385, y:205, r:6, color:'#fff'},
+                {fn:'circle', x:415, y:205, r:6, color:'#fff'},
+                {fn:'triangle', pts:[[395,225],[405,225],[400,240]], color:'#f5a623'},
+                {fn:'ellipse', x:330, y:300, rx:30, ry:15, color:'#333'},
+                {fn:'ellipse', x:470, y:300, rx:30, ry:15, color:'#333'},
+            ]},
+            '金鱼': {type:'fish', parts:[
+                {fn:'ellipse', x:400, y:280, rx:100, ry:60, color:'#ff6600'},
+                {fn:'triangle', pts:[[280,280],[250,240],[250,320]], color:'#ff6600'},
+                {fn:'circle', x:440, y:270, r:8, color:'#fff'},
+                {fn:'circle', x:442, y:270, r:4, color:'#333'},
+                {fn:'curve', pts:[[370,240],[400,230],[430,240]], color:'#ff4400', w:3},
+            ]},
+            '鸭子': {type:'duck', parts:[
+                {fn:'ellipse', x:400, y:320, rx:80, ry:60, color:'#ffe135'},
+                {fn:'circle', x:430, y:240, r:40, color:'#ffe135'},
+                {fn:'ellipse', x:460, y:255, rx:25, ry:10, color:'#ff6600'},
+                {fn:'circle', x:420, y:235, r:5, color:'#333'},
+                {fn:'line', x1:350, y1:375, x2:350, y2:410, color:'#ff6600', w:3},
+                {fn:'line', x1:450, y1:375, x2:450, y2:410, color:'#ff6600', w:3},
+            ]},
+            '猪': {type:'pig', parts:[
+                {fn:'ellipse', x:400, y:300, rx:100, ry:80, color:'#ffb6c1'},
+                {fn:'circle', x:400, y:230, r:55, color:'#ffb6c1'},
+                {fn:'ellipse', x:400, y:250, rx:20, ry:15, color:'#ff69b4'},
+                {fn:'circle', x:393, y:248, r:4, color:'#333'},
+                {fn:'circle', x:407, y:248, r:4, color:'#333'},
+                {fn:'circle', x:375, y:225, r:8, color:'#333'},
+                {fn:'circle', x:425, y:225, r:8, color:'#333'},
+                {fn:'triangle', pts:[[360,195],[375,230],[345,230]], color:'#ffb6c1'},
+                {fn:'triangle', pts:[[440,195],[425,230],[455,230]], color:'#ffb6c1'},
+            ]},
+            '牛': {type:'cow', parts:[
+                {fn:'ellipse', x:400, y:310, rx:120, ry:80, color:'#fff'},
+                {fn:'circle', x:400, y:230, r:55, color:'#fff'},
+                {fn:'ellipse', x:355, y:190, rx:15, ry:30, color:'#fff'},
+                {fn:'ellipse', x:445, y:190, rx:15, ry:30, color:'#fff'},
+                {fn:'circle', x:380, y:225, r:6, color:'#333'},
+                {fn:'circle', x:420, y:225, r:6, color:'#333'},
+                {fn:'ellipse', x:400, y:250, rx:20, ry:12, color:'#ffb6c1'},
+                {fn:'circle', x:393, y:248, r:3, color:'#333'},
+                {fn:'circle', x:407, y:248, r:3, color:'#333'},
+                {fn:'line', x1:330, y1:400, x2:330, y2:450, color:'#fff', w:8},
+                {fn:'line', x1:470, y1:400, x2:470, y2:450, color:'#fff', w:8},
+            ]},
+            '羊': {type:'sheep', parts:[
+                {fn:'ellipse', x:400, y:310, rx:90, ry:70, color:'#f5f5dc'},
+                {fn:'circle', x:350, y:280, r:30, color:'#f5f5dc'},
+                {fn:'circle', x:450, y:280, r:30, color:'#f5f5dc'},
+                {fn:'circle', x:400, y:330, r:35, color:'#f5f5dc'},
+                {fn:'ellipse', x:400, y:230, rx:40, ry:35, color:'#f5f5dc'},
+                {fn:'circle', x:385, y:225, r:5, color:'#333'},
+                {fn:'circle', x:415, y:225, r:5, color:'#333'},
+                {fn:'line', x1:360, y1:380, x2:360, y2:420, color:'#333', w:4},
+                {fn:'line', x1:440, y1:380, x2:440, y2:420, color:'#333', w:4},
+            ]},
+            '狐狸': {type:'fox', parts:[
+                {fn:'ellipse', x:400, y:300, rx:90, ry:70, color:'#ff8c00'},
+                {fn:'circle', x:400, y:230, r:55, color:'#ff8c00'},
+                {fn:'triangle', pts:[[355,185],[385,230],[325,230]], color:'#ff8c00'},
+                {fn:'triangle', pts:[[445,185],[415,230],[475,230]], color:'#ff8c00'},
+                {fn:'ellipse', x:400, y:240, rx:30, ry:20, color:'#fff'},
+                {fn:'circle', x:385, y:230, r:5, color:'#333'},
+                {fn:'circle', x:415, y:230, r:5, color:'#333'},
+                {fn:'circle', x:400, y:248, r:5, color:'#333'},
+            ]},
+            '狼': {type:'wolf', parts:[
+                {fn:'ellipse', x:400, y:300, rx:100, ry:70, color:'#808080'},
+                {fn:'circle', x:400, y:230, r:55, color:'#808080'},
+                {fn:'triangle', pts:[[360,185],[385,225],[335,230]], color:'#808080'},
+                {fn:'triangle', pts:[[440,185],[415,225],[465,230]], color:'#808080'},
+                {fn:'circle', x:380, y:225, r:6, color:'#ffcc00'},
+                {fn:'circle', x:420, y:225, r:6, color:'#ffcc00'},
+                {fn:'triangle', pts:[[395,245],[405,245],[400,260]], color:'#333'},
+                {fn:'curve', pts:[[380,260],[400,280],[420,260]], color:'#333', w:2},
+            ]},
+            '猴子': {type:'monkey', parts:[
+                {fn:'ellipse', x:400, y:310, rx:80, ry:90, color:'#8B4513'},
+                {fn:'circle', x:400, y:230, r:55, color:'#8B4513'},
+                {fn:'circle', x:400, y:240, r:35, color:'#deb887'},
+                {fn:'circle', x:345, y:210, r:18, color:'#8B4513'},
+                {fn:'circle', x:455, y:210, r:18, color:'#8B4513'},
+                {fn:'circle', x:385, y:230, r:5, color:'#333'},
+                {fn:'circle', x:415, y:230, r:5, color:'#333'},
+                {fn:'ellipse', x:400, y:250, rx:8, ry:5, color:'#333'},
+                {fn:'curve', pts:[[385,265],[400,275],[415,265]], color:'#333', w:2},
+            ]},
+            '鲨鱼': {type:'shark', parts:[
+                {fn:'curve', pts:[[260,300],[350,260],[480,270],[560,290],[550,300],[480,295],[350,300],[260,300]], color:'#708090', w:35, fill:true},
+                {fn:'triangle', pts:[[380,260],[400,230],[420,260]], color:'#708090'},
+                {fn:'triangle', pts:[[540,290],[560,270],[550,310]], color:'#708090'},
+                {fn:'circle', x:490, y:280, r:5, color:'#333'},
+                {fn:'curve', pts:[[530,300],[510,310],[480,305]], color:'#333', w:2},
+            ]},
+            '天鹅': {type:'swan', parts:[
+                {fn:'ellipse', x:400, y:330, rx:100, ry:60, color:'#fff'},
+                {fn:'curve', pts:[[350,300],[330,240],[340,190],[370,170]], color:'#fff', w:18},
+                {fn:'circle', x:370, y:170, r:18, color:'#fff'},
+                {fn:'circle', x:365, y:167, r:3, color:'#333'},
+                {fn:'triangle', pts:[[355,170],[370,175],[355,178]], color:'#ff6600'},
+            ]},
+            '孔雀': {type:'peacock', parts:[
+                {fn:'ellipse', x:310, y:280, rx:120, ry:130, color:'#228B22'},
+                {fn:'circle', x:240, y:240, r:15, color:'#4169E1'},
+                {fn:'circle', x:320, y:200, r:15, color:'#4169E1'},
+                {fn:'circle', x:390, y:230, r:15, color:'#4169E1'},
+                {fn:'circle', x:280, y:340, r:15, color:'#4169E1'},
+                {fn:'circle', x:360, y:320, r:15, color:'#4169E1'},
+                {fn:'ellipse', x:420, y:330, rx:40, ry:55, color:'#1E90FF'},
+                {fn:'circle', x:420, y:280, r:22, color:'#1E90FF'},
+                {fn:'circle', x:415, y:275, r:4, color:'#333'},
+                {fn:'circle', x:425, y:275, r:4, color:'#333'},
+                {fn:'triangle', pts:[[418,285],[422,285],[420,295]], color:'#ff6600'},
+            ]},
+            '乌龟': {type:'turtle', parts:[
+                {fn:'ellipse', x:400, y:300, rx:100, ry:60, color:'#228B22'},
+                {fn:'ellipse', x:400, y:300, rx:80, ry:45, color:'#32CD32'},
+                {fn:'circle', x:490, y:285, r:25, color:'#228B22'},
+                {fn:'circle', x:485, y:280, r:4, color:'#333'},
+                {fn:'line', x1:310, y1:340, x2:290, y2:360, color:'#228B22', w:8},
+                {fn:'line', x1:490, y1:340, x2:510, y2:360, color:'#228B22', w:8},
+                {fn:'line', x1:330, y1:270, x2:310, y2:250, color:'#228B22', w:8},
+                {fn:'line', x1:470, y1:270, x2:490, y2:250, color:'#228B22', w:8},
+            ]},
+            '树懒': {type:'sloth', parts:[
+                {fn:'ellipse', x:400, y:300, rx:70, ry:90, color:'#8B7355'},
+                {fn:'circle', x:400, y:230, r:50, color:'#8B7355'},
+                {fn:'circle', x:400, y:240, r:30, color:'#DEB887'},
+                {fn:'circle', x:385, y:235, r:8, color:'#333'},
+                {fn:'circle', x:415, y:235, r:8, color:'#333'},
+                {fn:'circle', x:385, y:235, r:3, color:'#fff'},
+                {fn:'circle', x:415, y:235, r:3, color:'#fff'},
+                {fn:'curve', pts:[[385,260],[400,270],[415,260]], color:'#333', w:2},
+                {fn:'line', x1:330, y1:290, x2:280, y2:230, color:'#8B7355', w:10},
+                {fn:'line', x1:470, y1:290, x2:520, y2:230, color:'#8B7355', w:10},
+            ]},
+            '考拉': {type:'koala', parts:[
+                {fn:'ellipse', x:400, y:320, rx:80, ry:90, color:'#808080'},
+                {fn:'circle', x:400, y:240, r:55, color:'#808080'},
+                {fn:'circle', x:350, y:205, r:22, color:'#808080'},
+                {fn:'circle', x:450, y:205, r:22, color:'#808080'},
+                {fn:'circle', x:350, y:205, r:14, color:'#fff'},
+                {fn:'circle', x:450, y:205, r:14, color:'#fff'},
+                {fn:'circle', x:385, y:240, r:5, color:'#333'},
+                {fn:'circle', x:415, y:240, r:5, color:'#333'},
+                {fn:'ellipse', x:400, y:260, rx:15, ry:10, color:'#333'},
+            ]},
+            '羚羊': {type:'antelope', parts:[
+                {fn:'ellipse', x:400, y:310, rx:80, ry:60, color:'#D2B48C'},
+                {fn:'ellipse', x:400, y:240, rx:35, ry:45, color:'#D2B48C'},
+                {fn:'curve', pts:[[385,200],[375,140],[365,120]], color:'#333', w:4},
+                {fn:'curve', pts:[[415,200],[425,140],[435,120]], color:'#333', w:4},
+                {fn:'circle', x:388, y:235, r:4, color:'#333'},
+                {fn:'circle', x:412, y:235, r:4, color:'#333'},
+                {fn:'line', x1:360, y1:365, x2:355, y2:420, color:'#D2B48C', w:4},
+                {fn:'line', x1:440, y1:365, x2:445, y2:420, color:'#D2B48C', w:4},
+            ]},
+            '浣熊': {type:'raccoon', parts:[
+                {fn:'ellipse', x:400, y:310, rx:80, ry:70, color:'#808080'},
+                {fn:'circle', x:400, y:240, r:50, color:'#808080'},
+                {fn:'ellipse', x:400, y:250, rx:35, ry:30, color:'#fff'},
+                {fn:'ellipse', x:385, y:240, rx:8, ry:10, color:'#333'},
+                {fn:'ellipse', x:415, y:240, rx:8, ry:10, color:'#333'},
+                {fn:'ellipse', x:400, y:260, rx:8, ry:5, color:'#333'},
+                {fn:'circle', x:355, y:215, r:15, color:'#808080'},
+                {fn:'circle', x:445, y:215, r:15, color:'#808080'},
+                {fn:'line', x1:360, y1:375, x2:360, y2:415, color:'#333', w:4},
+                {fn:'line', x1:440, y1:375, x2:440, y2:415, color:'#333', w:4},
+            ]},
+            '食蚁兽': {type:'anteater', parts:[
+                {fn:'ellipse', x:400, y:320, rx:110, ry:70, color:'#8B7355'},
+                {fn:'curve', pts:[[490,300],[530,290],[560,280],[570,270]], color:'#8B7355', w:20},
+                {fn:'circle', x:560, y:268, r:8, color:'#333'},
+                {fn:'line', x1:350, y1:380, x2:340, y2:420, color:'#8B7355', w:6},
+                {fn:'line', x1:450, y1:380, x2:460, y2:420, color:'#8B7355', w:6},
+            ]},
+            '穿山甲': {type:'pangolin', parts:[
+                {fn:'ellipse', x:400, y:300, rx:90, ry:65, color:'#8B7355'},
+                {fn:'curve', pts:[[350,260],[370,240],[400,235],[430,240],[450,260]], color:'#A0522D', w:4},
+                {fn:'curve', pts:[[340,280],[370,265],[400,260],[430,265],[460,280]], color:'#A0522D', w:4},
+                {fn:'curve', pts:[[340,300],[370,290],[400,285],[430,290],[460,300]], color:'#A0522D', w:4},
+                {fn:'curve', pts:[[490,290],[520,280],[540,275]], color:'#8B7355', w:12},
+                {fn:'circle', x:535, y:272, r:5, color:'#333'},
+            ]},
+            '鸭嘴兽': {type:'platypus', parts:[
+                {fn:'ellipse', x:400, y:310, rx:90, ry:60, color:'#8B7355'},
+                {fn:'ellipse', x:400, y:250, rx:40, ry:35, color:'#8B7355'},
+                {fn:'ellipse', x:435, y:255, rx:25, ry:10, color:'#D2B48C'},
+                {fn:'circle', x:390, y:245, r:4, color:'#333'},
+                {fn:'circle', x:410, y:245, r:4, color:'#333'},
+                {fn:'line', x1:320, y1:340, x2:280, y2:330, color:'#8B7355', w:6},
+                {fn:'line', x1:480, y1:340, x2:520, y2:330, color:'#8B7355', w:6},
+            ]},
+            '水獭': {type:'otter', parts:[
+                {fn:'ellipse', x:400, y:300, rx:110, ry:55, color:'#8B4513'},
+                {fn:'circle', x:490, y:280, r:30, color:'#8B4513'},
+                {fn:'circle', x:485, y:275, r:5, color:'#333'},
+                {fn:'circle', x:495, y:275, r:5, color:'#333'},
+                {fn:'ellipse', x:490, y:290, rx:8, ry:5, color:'#333'},
+                {fn:'line', x1:310, y1:310, x2:270, y2:290, color:'#8B4513', w:8},
+                {fn:'line', x1:490, y1:350, x2:480, y2:390, color:'#8B4513', w:6},
+                {fn:'line', x1:510, y1:350, x2:520, y2:390, color:'#8B4513', w:6},
+            ]},
+        };
+        
+        const drawAnimalOnCanvas = (animalName, c, cv) => {
+            if (!c || !cv) return;
+            c.fillStyle = '#ffffff';
+            c.fillRect(0, 0, cv.width, cv.height);
+            
+            const drawing = ANIMAL_DRAWINGS[animalName];
+            if (!drawing) {
+                c.font = 'bold 60px Arial';
+                c.fillStyle = '#667eea';
+                c.textAlign = 'center';
+                c.textBaseline = 'middle';
+                c.fillText('🤔 ???', 400, 250);
+                return;
+            }
+            
+            for (const part of drawing.parts) {
+                c.save();
+                c.strokeStyle = part.color || '#333';
+                c.fillStyle = part.color || '#333';
+                c.lineWidth = part.w || 2;
+                c.lineCap = 'round';
+                c.lineJoin = 'round';
+                
+                switch(part.fn) {
+                    case 'circle':
+                        c.beginPath();
+                        c.arc(part.x, part.y, part.r, 0, Math.PI * 2);
+                        c.fill();
+                        break;
+                    case 'ellipse':
+                        c.beginPath();
+                        c.ellipse(part.x, part.y, part.rx, part.ry, 0, 0, Math.PI * 2);
+                        c.fill();
+                        break;
+                    case 'triangle':
+                        c.beginPath();
+                        c.moveTo(part.pts[0][0], part.pts[0][1]);
+                        c.lineTo(part.pts[1][0], part.pts[1][1]);
+                        c.lineTo(part.pts[2][0], part.pts[2][1]);
+                        c.closePath();
+                        c.fill();
+                        break;
+                    case 'line':
+                        c.beginPath();
+                        c.moveTo(part.x1, part.y1);
+                        c.lineTo(part.x2, part.y2);
+                        c.stroke();
+                        break;
+                    case 'rect':
+                        c.fillRect(part.x, part.y, part.w, part.h);
+                        break;
+                    case 'curve':
+                        c.beginPath();
+                        if (part.fill) {
+                            c.moveTo(part.pts[0][0], part.pts[0][1]);
+                            for (let i = 1; i < part.pts.length; i++) {
+                                c.lineTo(part.pts[i][0], part.pts[i][1]);
+                            }
+                            c.closePath();
+                            c.fill();
+                        } else {
+                            c.moveTo(part.pts[0][0], part.pts[0][1]);
+                            for (let i = 1; i < part.pts.length; i++) {
+                                c.lineTo(part.pts[i][0], part.pts[i][1]);
+                            }
+                            c.stroke();
+                        }
+                        break;
+                }
+                c.restore();
+            }
+        };
+        
+        createApp({
+            setup() {
+                const currentPage = ref('home');
+                const playerName = ref('');
+                const gameMode = ref(1);
+                const showJoinModal = ref(false);
+                const showLeaderboard = ref(false);
+                const joinRoomCode = ref('');
+                const waitingRooms = ref([]);
+                const leaderboard = ref([]);
+                
+                const currentRoom = ref(null);
+                const currentGame = ref(null);
+                const isDrawer = ref(true);
+                const timeLeft = ref(60);
+                const timerInterval = ref(null);
+                
+                const canvas = ref(null);
+                const ctx = ref(null);
+                const isDrawing = ref(false);
+                const lastX = ref(0);
+                const lastY = ref(0);
+                const colors = ['#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800'];
+                const currentColor = ref('#000000');
+                const currentTool = ref('pen');
+                const brushSize = ref(5);
+                
+                const guessAnswer = ref('');
+                const guessResult = ref(null);
+                const lastScore = ref(0);
+                const roundEnded = ref(false);
+                const chatMessages = ref([]);
+                const savedDrawingData = ref(null);
+                
+                const playerWon = computed(() => {
+                    if (!currentRoom.value) return false;
+                    const playerScore = isDrawer.value ? currentRoom.value.player1_score : currentRoom.value.player2_score;
+                    const opponentScore = isDrawer.value ? currentRoom.value.player2_score : currentRoom.value.player1_score;
+                    return playerScore > opponentScore;
+                });
+                
+                const getCanvasData = () => {
+                    if (canvas.value) {
+                        try { return canvas.value.toDataURL('image/png'); } catch(e) { return null; }
+                    }
+                    return null;
+                };
+                
+                const restoreCanvasData = (dataUrl) => {
+                    if (!dataUrl || !canvas.value || !ctx.value) return;
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.value.fillStyle = '#ffffff';
+                        ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height);
+                        ctx.value.drawImage(img, 0, 0);
+                    };
+                    img.src = dataUrl;
+                };
+                
+                let saveDebounceTimer = null;
+                const saveStateDebounced = () => {
+                    if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+                    saveDebounceTimer = setTimeout(() => {
+                        saveState();
+                    }, 300);
+                };
+                
+                const saveState = () => {
+                    try {
+                        const state = {
+                            currentPage: currentPage.value,
+                            playerName: playerName.value,
+                            gameMode: gameMode.value,
+                            currentRoom: currentRoom.value,
+                            currentGame: currentGame.value,
+                            isDrawer: isDrawer.value,
+                            timeLeft: timeLeft.value,
+                            chatMessages: chatMessages.value,
+                            guessResult: guessResult.value,
+                            lastScore: lastScore.value,
+                            roundEnded: roundEnded.value,
+                            savedDrawingData: getCanvasData(),
+                            timestamp: Date.now()
+                        };
+                        
+                        const jsonStr = JSON.stringify(state);
+                        if (jsonStr.length > 4000000) {
+                            console.warn('State size is large, not saving drawing data');
+                            state.savedDrawingData = null;
+                        }
+                        
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                        console.log('State saved:', { 
+                            page: state.currentPage, 
+                            roomId: state.currentRoom?.id, 
+                            isDrawer: state.isDrawer,
+                            animal: state.currentRoom?.current_animal_name,
+                            roundEnded: state.roundEnded
+                        });
+                    } catch(e) {
+                        console.error('Failed to save state:', e);
+                    }
+                };
+                
+                const loadState = () => {
+                    try {
+                        const saved = localStorage.getItem(STORAGE_KEY);
+                        if (!saved) {
+                            console.log('No saved state found');
+                            return false;
+                        }
+                        
+                        const state = JSON.parse(saved);
+                        console.log('Found saved state:', {
+                            page: state.currentPage,
+                            roomId: state.currentRoom?.id,
+                            gameId: state.currentGame?.id,
+                            timestamp: state.timestamp ? new Date(state.timestamp).toLocaleTimeString() : 'unknown'
+                        });
+                        
+                        if (state.currentRoom && state.currentPage === 'game') {
+                            currentPage.value = state.currentPage;
+                            playerName.value = state.playerName || '';
+                            gameMode.value = state.gameMode || 1;
+                            currentRoom.value = state.currentRoom;
+                            currentGame.value = state.currentGame;
+                            isDrawer.value = state.isDrawer !== undefined ? state.isDrawer : true;
+                            timeLeft.value = state.timeLeft || 60;
+                            chatMessages.value = state.chatMessages || [];
+                            guessResult.value = state.guessResult;
+                            lastScore.value = state.lastScore || 0;
+                            roundEnded.value = state.roundEnded || false;
+                            savedDrawingData.value = state.savedDrawingData || null;
+                            
+                            console.log('State loaded successfully:', {
+                                page: currentPage.value,
+                                roomId: currentRoom.value?.id,
+                                isDrawer: isDrawer.value,
+                                animal: currentRoom.value?.current_animal_name,
+                                roundEnded: roundEnded.value,
+                                hasSavedDrawing: !!savedDrawingData.value
+                            });
+                            return true;
+                        } else {
+                            console.log('Saved state is incomplete, ignoring');
+                            localStorage.removeItem(STORAGE_KEY);
+                            return false;
+                        }
+                    } catch (e) {
+                        console.error('Failed to load state:', e);
+                        localStorage.removeItem(STORAGE_KEY);
+                        return false;
+                    }
+                };
+                
+                const clearState = () => {
+                    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+                };
+                
+                const syncRoomFromServer = async () => {
+                    if (!currentRoom.value) return;
+                    const result = await apiRequest('/room/detail/get?room_id=' + currentRoom.value.id);
+                    if (result.code === 0) {
+                        currentRoom.value = result.data;
+                    }
+                };
+                
+                const apiRequest = async (url, method = 'GET', body = null) => {
+                    console.log(`API: ${method} ${API_BASE}${url}`, body);
+                    const options = {
+                        method,
+                        headers: { 'Content-Type': 'application/json' }
+                    };
+                    if (body && method !== 'GET') {
+                        options.body = JSON.stringify(body);
+                    }
+                    
+                    try {
+                        const response = await fetch(API_BASE + url, options);
+                        const result = await response.json();
+                        console.log('Response:', result);
+                        return result;
+                    } catch (e) {
+                        console.error('API Error:', e);
+                        return { code: -1, msg: '网络错误', data: null };
+                    }
+                };
+                
+                const loadWaitingRooms = async () => {
+                    const result = await apiRequest('/room/waiting/get');
+                    if (result.code === 0) {
+                        waitingRooms.value = result.data;
+                    }
+                };
+                
+                const loadLeaderboardData = async () => {
+                    const result = await apiRequest('/score/leaderboard/get?limit=10');
+                    if (result.code === 0) {
+                        leaderboard.value = result.data;
+                    }
+                    showLeaderboard.value = true;
+                };
+                
+                const createRoom = async () => {
+                    if (!playerName.value) { alert('请输入昵称'); return; }
+                    
+                    const result = await apiRequest('/room/create', 'POST', {
+                        mode: gameMode.value, player_name: playerName.value,
+                        player_id: 0, max_rounds: 5, time_limit: 60
+                    });
+                    
+                    if (result.code === 0) {
+                        currentRoom.value = result.data;
+                        alert(`房间创建成功！房间号: ${result.data.room_code}`);
+                        currentPage.value = 'waiting';
+                        saveState();
+                        
+                        if (gameMode.value === 1) {
+                            setTimeout(() => startGame(), 500);
+                        }
+                    } else {
+                        alert(result.msg || '创建房间失败');
+                    }
+                };
+                
+                const quickJoinRoom = async (roomCode) => {
+                    joinRoomCode.value = roomCode;
+                    await joinRoom();
+                };
+                
+                const joinRoom = async () => {
+                    if (!playerName.value) { alert('请输入昵称'); return; }
+                    if (!joinRoomCode.value || joinRoomCode.value.length !== 6) { alert('请输入6位房间号'); return; }
+                    
+                    const result = await apiRequest('/room/join', 'POST', {
+                        room_code: joinRoomCode.value,
+                        player_name: playerName.value,
+                        player_id: 0
+                    });
+                    
+                    if (result.code === 0) {
+                        currentRoom.value = result.data;
+                        showJoinModal.value = false;
+                        isDrawer.value = false;
+                        startGame();
+                    } else {
+                        alert(result.msg || '加入房间失败');
+                    }
+                };
+                
+                const startSingleGame = async () => {
+                    if (!playerName.value) { alert('请输入昵称'); return; }
+                    
+                    const result = await apiRequest('/room/create', 'POST', {
+                        mode: 1, player_name: playerName.value,
+                        player_id: 0, max_rounds: 5, time_limit: 60
+                    });
+                    
+                    if (result.code === 0) {
+                        currentRoom.value = result.data;
+                        startGame();
+                    } else {
+                        alert(result.msg || '创建房间失败');
+                    }
+                };
+                
+                const startGame = async () => {
+                    const startResult = await apiRequest('/room/start', 'POST', { room_id: currentRoom.value.id });
+                    if (startResult.code === 0) {
+                        currentRoom.value = startResult.data;
+                        
+                        const gameResult = await apiRequest('/game/create', 'POST', { room_id: currentRoom.value.id });
+                        if (gameResult.code === 0) {
+                            currentGame.value = gameResult.data;
+                        }
+                        
+                        currentPage.value = 'game';
+                        guessResult.value = null;
+                        roundEnded.value = false;
+                        savedDrawingData.value = null;
+                        saveState();
+                        
+                        await nextTick();
+                        initCanvas();
+                        bindCanvasEvents();
+                        
+                        if (!isDrawer.value && gameMode.value === 1) {
+                            drawAnimalOnCanvas(currentRoom.value.current_animal_name, ctx.value, canvas.value);
+                        }
+                        
+                        startTimer();
+                        addChatMessage('system', '系统', '游戏开始！');
+                        
+                        if (gameMode.value === 1 && !isDrawer.value) {
+                            setTimeout(() => aiGuess(), 2000);
+                        }
+                    } else {
+                        alert(startResult.msg || '开始游戏失败');
+                    }
+                };
+                
+                const initCanvas = () => {
+                    if (!canvas.value) {
+                        console.log('Canvas not ready yet');
+                        return false;
+                    }
+                    
+                    ctx.value = canvas.value.getContext('2d');
+                    ctx.value.lineCap = 'round';
+                    ctx.value.lineJoin = 'round';
+                    
+                    ctx.value.fillStyle = '#ffffff';
+                    ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height);
+                    
+                    if (savedDrawingData.value) {
+                        console.log('Restoring saved canvas data');
+                        restoreCanvasData(savedDrawingData.value);
+                    } else if (!isDrawer.value && gameMode.value === 1 && currentRoom.value?.current_animal_name) {
+                        console.log('Redrawing AI animal:', currentRoom.value.current_animal_name);
+                        drawAnimalOnCanvas(currentRoom.value.current_animal_name, ctx.value, canvas.value);
+                    }
+                    
+                    console.log('Canvas initialized successfully');
+                    return true;
+                };
+                
+                const bindCanvasEvents = () => {
+                    if (!canvas.value) return;
+                    
+                    canvas.value.addEventListener('mousedown', startDrawing);
+                    canvas.value.addEventListener('mousemove', draw);
+                    canvas.value.addEventListener('mouseup', stopDrawing);
+                    canvas.value.addEventListener('mouseleave', stopDrawing);
+                    canvas.value.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    canvas.value.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    canvas.value.addEventListener('touchend', stopDrawing);
+                };
+                
+                const startDrawing = (e) => {
+                    if (!isDrawer.value || roundEnded.value) return;
+                    isDrawing.value = true;
+                    const rect = canvas.value.getBoundingClientRect();
+                    const scaleX = canvas.value.width / rect.width;
+                    const scaleY = canvas.value.height / rect.height;
+                    lastX.value = (e.clientX - rect.left) * scaleX;
+                    lastY.value = (e.clientY - rect.top) * scaleY;
+                };
+                
+                const draw = (e) => {
+                    if (!isDrawing.value || !isDrawer.value || !ctx.value || roundEnded.value) return;
+                    
+                    const rect = canvas.value.getBoundingClientRect();
+                    const scaleX = canvas.value.width / rect.width;
+                    const scaleY = canvas.value.height / rect.height;
+                    const x = (e.clientX - rect.left) * scaleX;
+                    const y = (e.clientY - rect.top) * scaleY;
+                    
+                    ctx.value.beginPath();
+                    ctx.value.strokeStyle = currentTool.value === 'eraser' ? '#ffffff' : currentColor.value;
+                    ctx.value.lineWidth = currentTool.value === 'eraser' ? brushSize.value * 3 : brushSize.value;
+                    ctx.value.moveTo(lastX.value, lastY.value);
+                    ctx.value.lineTo(x, y);
+                    ctx.value.stroke();
+                    
+                    lastX.value = x;
+                    lastY.value = y;
+                };
+                
+                const stopDrawing = () => { 
+                    isDrawing.value = false;
+                    if (isDrawer.value && !roundEnded.value) {
+                        saveStateDebounced();
+                    }
+                };
+                
+                const handleTouchStart = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    startDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+                };
+                
+                const handleTouchMove = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    draw({ clientX: touch.clientX, clientY: touch.clientY });
+                };
+                
+                const selectColor = (color) => { currentColor.value = color; currentTool.value = 'pen'; };
+                
+                const clearCanvas = () => {
+                    if (ctx.value && canvas.value) {
+                        ctx.value.fillStyle = '#ffffff';
+                        ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height);
+                        saveState();
+                    }
+                };
+                
+                const startTimer = () => {
+                    if (timerInterval.value) clearInterval(timerInterval.value);
+                    timeLeft.value = currentRoom.value?.time_limit || 60;
+                    
+                    timerInterval.value = setInterval(() => {
+                        timeLeft.value--;
+                        if (timeLeft.value % 5 === 0) saveState();
+                        if (timeLeft.value <= 0) {
+                            clearInterval(timerInterval.value);
+                            handleTimeout();
+                        }
+                    }, 1000);
+                };
+                
+                const handleTimeout = async () => {
+                    if (!roundEnded.value) {
+                        roundEnded.value = true;
+                        addChatMessage('system', '系统', '时间到！');
+                        saveState();
+                        
+                        if (currentGame.value) {
+                            await apiRequest('/game/timeout', 'POST', {
+                                game_id: currentGame.value.id,
+                                time_used: currentRoom.value.time_limit
+                            });
+                        }
+                    }
+                };
+                
+                const submitGuess = async () => {
+                    if (!guessAnswer.value || roundEnded.value) return;
+                    
+                    const timeUsed = (currentRoom.value?.time_limit || 60) - timeLeft.value;
+                    const result = await apiRequest('/game/guess', 'POST', {
+                        game_id: currentGame.value.id,
+                        guess_answer: guessAnswer.value,
+                        time_used: timeUsed
+                    });
+                    
+                    if (result.code === 0) {
+                        guessResult.value = result.data.is_correct;
+                        lastScore.value = result.data.score_awarded;
+                        
+                        addChatMessage(result.data.is_correct ? 'correct' : 'wrong', playerName.value, guessAnswer.value);
+                        
+                        if (result.data.is_correct) {
+                            roundEnded.value = true;
+                            clearInterval(timerInterval.value);
+                            
+                            const roomResult = await apiRequest('/room/detail/get?room_id=' + currentRoom.value.id);
+                            if (roomResult.code === 0) {
+                                currentRoom.value = roomResult.data;
+                            }
+                        } else {
+                            guessResult.value = null;
+                        }
+                        
+                        guessAnswer.value = '';
+                        saveState();
+                    }
+                };
+                
+                const aiGuess = async () => {
+                    if (!currentRoom.value || !currentGame.value || roundEnded.value) return;
+                    
+                    const animals = ['猫', '狗', '兔子', '小鸡', '老虎', '狮子', '大象', '熊猫', '海豚', '企鹅'];
+                    const correctAnswer = currentRoom.value.current_animal_name;
+                    const guessTime = Math.floor(Math.random() * 25) + 10;
+                    
+                    setTimeout(async () => {
+                        if (roundEnded.value || !currentGame.value) return;
+                        
+                        const guess = Math.random() > 0.25 ? correctAnswer : animals[Math.floor(Math.random() * animals.length)];
+                        const timeUsed = (currentRoom.value?.time_limit || 60) - timeLeft.value;
+                        
+                        const result = await apiRequest('/game/guess', 'POST', {
+                            game_id: currentGame.value.id,
+                            guess_answer: guess,
+                            time_used: timeUsed
+                        });
+                        
+                        if (result.code === 0) {
+                            addChatMessage(result.data.is_correct ? 'correct' : 'wrong', 'AI玩家', guess);
+                            
+                            if (result.data.is_correct) {
+                                roundEnded.value = true;
+                                clearInterval(timerInterval.value);
+                                
+                                const roomResult = await apiRequest('/room/detail/get?room_id=' + currentRoom.value.id);
+                                if (roomResult.code === 0) currentRoom.value = roomResult.data;
+                                saveState();
+                            } else {
+                                setTimeout(() => aiGuess(), 3000);
+                            }
+                        }
+                    }, guessTime * 1000);
+                };
+                
+                const nextRound = async () => {
+                    guessResult.value = null;
+                    roundEnded.value = false;
+                    savedDrawingData.value = null;
+                    
+                    const result = await apiRequest('/room/next/round', 'POST', { room_id: currentRoom.value.id });
+                    
+                    if (result.code === 0) {
+                        currentRoom.value = result.data;
+                        
+                        if (result.data.status === 2) {
+                            await apiRequest('/score/update', 'POST', { room_id: currentRoom.value.id });
+                            currentPage.value = 'result';
+                            clearState();
+                            return;
+                        }
+                        
+                        isDrawer.value = currentRoom.value.current_drawer === 1;
+                        
+                        const gameResult = await apiRequest('/game/create', 'POST', { room_id: currentRoom.value.id });
+                        if (gameResult.code === 0) currentGame.value = gameResult.data;
+                        
+                        clearCanvas();
+                        
+                        if (!isDrawer.value && gameMode.value === 1) {
+                            drawAnimalOnCanvas(currentRoom.value.current_animal_name, ctx.value, canvas.value);
+                        }
+                        
+                        timeLeft.value = currentRoom.value.time_limit;
+                        startTimer();
+                        addChatMessage('system', '系统', `第 ${currentRoom.value.round} 轮开始！`);
+                        saveState();
+                        
+                        if (!isDrawer.value && gameMode.value === 1) {
+                            setTimeout(() => aiGuess(), 2000);
+                        }
+                    }
+                };
+                
+                const addChatMessage = (type, name, content) => {
+                    chatMessages.value.push({ type, name, content });
+                };
+                
+                const exitGame = () => {
+                    if (confirm('确定要退出游戏吗？')) {
+                        clearInterval(timerInterval.value);
+                        currentPage.value = 'home';
+                        currentRoom.value = null;
+                        currentGame.value = null;
+                        chatMessages.value = [];
+                        roundEnded.value = false;
+                        guessResult.value = null;
+                        savedDrawingData.value = null;
+                        clearState();
+                        loadWaitingRooms();
+                    }
+                };
+                
+                const playAgain = () => {
+                    currentPage.value = 'home';
+                    currentRoom.value = null;
+                    currentGame.value = null;
+                    chatMessages.value = [];
+                    roundEnded.value = false;
+                    guessResult.value = null;
+                    savedDrawingData.value = null;
+                    clearState();
+                    loadWaitingRooms();
+                };
+                
+                const goHome = () => {
+                    currentPage.value = 'home';
+                    currentRoom.value = null;
+                    currentGame.value = null;
+                    chatMessages.value = [];
+                    clearState();
+                    loadWaitingRooms();
+                };
+                
+                onMounted(() => {
+                    const hasState = loadState();
+                    loadWaitingRooms();
+                    
+                    const handleBeforeUnload = (e) => {
+                        if (currentPage.value === 'game' && currentRoom.value) {
+                            saveState();
+                            e.preventDefault();
+                        }
+                    };
+                    
+                    const handleVisibilityChange = () => {
+                        if (document.hidden && currentPage.value === 'game' && currentRoom.value) {
+                            saveState();
+                        }
+                    };
+                    
+                    window.addEventListener('beforeunload', handleBeforeUnload);
+                    document.addEventListener('visibilitychange', handleVisibilityChange);
+                    
+                    window.__caiCleanup = () => {
+                        window.removeEventListener('beforeunload', handleBeforeUnload);
+                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    };
+                    
+                    if (hasState && currentPage.value === 'game' && currentRoom.value) {
+                        console.log('Resuming game from saved state...');
+                        syncRoomFromServer();
+                        
+                        const tryInit = (attempts = 0) => {
+                            if (attempts > 10) {
+                                console.error('Failed to initialize canvas after 10 attempts');
+                                return;
+                            }
+                            
+                            nextTick(() => {
+                                console.log(`Init attempt ${attempts + 1}, canvas exists:`, !!canvas.value);
+                                
+                                if (initCanvas()) {
+                                    bindCanvasEvents();
+                                    if (!roundEnded.value) {
+                                        startTimer();
+                                    }
+                                    console.log('Game resumed successfully!');
+                                } else {
+                                    setTimeout(() => tryInit(attempts + 1), 100);
+                                }
+                            });
+                        };
+                        
+                        tryInit();
+                    }
+                });
+                
+                onUnmounted(() => {
+                    if (timerInterval.value) clearInterval(timerInterval.value);
+                    if (window.__caiCleanup) {
+                        window.__caiCleanup();
+                    }
+                });
+                
+                return {
+                    currentPage, playerName, gameMode, showJoinModal, showLeaderboard,
+                    joinRoomCode, waitingRooms, leaderboard, currentRoom, currentGame,
+                    isDrawer, timeLeft, canvas, colors, currentColor, currentTool, brushSize,
+                    guessAnswer, guessResult, lastScore, roundEnded, chatMessages, playerWon,
+                    loadLeaderboardData, createRoom, quickJoinRoom, joinRoom, startSingleGame,
+                    selectColor, clearCanvas, submitGuess, nextRound, exitGame, playAgain, goHome
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
