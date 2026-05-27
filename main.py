@@ -24,6 +24,13 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.renlei import (
+    UserModel as RenleiUserModel,
+    CharacterModel as RenleiCharacterModel,
+    LevelModel as RenleiLevelModel,
+    UserProgressModel as RenleiUserProgressModel,
+    GameSessionModel as RenleiGameSessionModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +79,12 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    RenleiUserModel.create_table()
+    RenleiCharacterModel.create_table()
+    RenleiLevelModel.create_table()
+    RenleiUserProgressModel.create_table()
+    RenleiGameSessionModel.create_table()
 
     migrate_database()
 
@@ -151,6 +164,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8990,
         reload=True
     )
