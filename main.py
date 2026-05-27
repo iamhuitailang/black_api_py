@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.tousu_model import (
+    UserModel as TousuUserModel,
+    TokenModel as TousuTokenModel,
+    ComplaintModel as TousuComplaintModel,
+    CategoryModel as TousuCategoryModel,
+    DepartmentModel as TousuDepartmentModel,
+    FeedbackModel as TousuFeedbackModel,
+    NotificationModel as TousuNotificationModel,
+    AnnouncementModel as TousuAnnouncementModel,
+    EvaluationModel as TousuEvaluationModel,
+    LogModel as TousuLogModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,21 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    TousuUserModel.create_table()
+    TousuTokenModel.create_table()
+    TousuComplaintModel.create_table()
+    TousuCategoryModel.create_table()
+    TousuDepartmentModel.create_table()
+    TousuFeedbackModel.create_table()
+    TousuNotificationModel.create_table()
+    TousuAnnouncementModel.create_table()
+    TousuEvaluationModel.create_table()
+    TousuLogModel.create_table()
+
+    TousuUserModel.init_default_admin()
+    TousuCategoryModel.init_default_categories()
+    TousuDepartmentModel.init_default_departments()
 
     migrate_database()
 
