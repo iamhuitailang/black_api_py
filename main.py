@@ -25,6 +25,7 @@ from app.model.xq import (
     XqAdminTokenModel
 )
 from app.common.sqlite.db import get_db
+from app.model.dianying import DianyingUserModel, DianyingMovieModel, DianyingRatingModel, DianyingFavoriteModel
 
 
 def migrate_database():
@@ -72,6 +73,22 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DianyingUserModel.create_table()
+    db = get_db()
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS tb_dianying_model_token (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    DianyingMovieModel.create_table()
+    DianyingRatingModel.create_table()
+    DianyingFavoriteModel.create_table()
+    movie_model = DianyingMovieModel()
+    movie_model.init_default_data()
 
     migrate_database()
 
@@ -151,6 +168,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8211,
         reload=True
     )
