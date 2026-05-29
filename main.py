@@ -24,6 +24,20 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.huodong import (
+    HuodongUserModel,
+    HuodongTokenModel,
+    CategoryModel as HuodongCategoryModel,
+    ActivityModel,
+    RegistrationModel,
+    ReviewModel as HuodongReviewModel,
+    CheckinModel,
+    CommentModel,
+    FavoriteModel,
+    PointsModel,
+    MessageModel,
+    PhotoModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +86,20 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    HuodongUserModel.create_table()
+    HuodongTokenModel.create_table()
+    HuodongCategoryModel.create_table()
+    HuodongCategoryModel.init_default_categories()
+    ActivityModel.create_table()
+    RegistrationModel.create_table()
+    HuodongReviewModel.create_table()
+    CheckinModel.create_table()
+    CommentModel.create_table()
+    FavoriteModel.create_table()
+    PointsModel.create_table()
+    MessageModel.create_table()
+    PhotoModel.create_table()
 
     migrate_database()
 
@@ -151,6 +179,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8771,
         reload=True
     )
