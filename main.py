@@ -24,6 +24,26 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.biaoqing_model import (
+    UserModel as BqUserModel,
+    TokenModel as BqTokenModel,
+    CategoryModel as BqCategoryModel,
+    TagModel as BqTagModel,
+    EmojiTagModel as BqEmojiTagModel,
+    EmojiModel as BqEmojiModel,
+    FavoriteModel as BqFavoriteModel,
+    ReviewModel as BqReviewModel,
+    PointLogModel as BqPointLogModel,
+    MessageModel as BqMessageModel,
+    SearchHistoryModel as BqSearchHistoryModel,
+    DownloadLogModel as BqDownloadLogModel,
+    ReportModel as BqReportModel,
+    ActivityModel as BqActivityModel,
+    RegistrationModel as BqRegistrationModel,
+    AdModel as BqAdModel,
+    AdminModel as BqAdminModel,
+    AdminTokenModel as BqAdminTokenModel,
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +92,28 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    BqUserModel.create_table()
+    BqTokenModel.create_table()
+    BqCategoryModel.create_table()
+    BqTagModel.create_table()
+    BqEmojiTagModel.create_table()
+    BqEmojiModel.create_table()
+    BqFavoriteModel.create_table()
+    BqReviewModel.create_table()
+    BqPointLogModel.create_table()
+    BqMessageModel.create_table()
+    BqSearchHistoryModel.create_table()
+    BqDownloadLogModel.create_table()
+    BqReportModel.create_table()
+    BqActivityModel.create_table()
+    BqRegistrationModel.create_table()
+    BqAdModel.create_table()
+    BqAdminModel.create_table()
+    BqAdminTokenModel.create_table()
+
+    BqAdminModel.init_default_admin()
+    BqCategoryModel.init_default_categories()
 
     migrate_database()
 
@@ -151,6 +193,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8981,
         reload=True
     )
