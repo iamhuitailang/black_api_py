@@ -1,0 +1,237 @@
+[data-theme="dark"] {
+    --primary-color: #DC143C;
+    --secondary-color: #4B0082;
+    --accent-color: #8B008B;
+    --background-color: #1A1A2E;
+    --text-color: #E8E8E8;
+    --text-light: #A0A0A0;
+    --border-color: #3D3D5C;
+}
+
+[data-theme="dark"] body {
+    background: linear-gradient(135deg, #0F0F1A 0%, #1A1A2E 50%, #16213E 100%);
+    background-attachment: fixed;
+}
+
+[data-theme="dark"] .header {
+    background: linear-gradient(135deg, #4B0082 0%, #8B008B 100%);
+    box-shadow: 0 4px 20px rgba(139, 0, 139, 0.5);
+    border-bottom: 2px solid #DC143C;
+}
+
+[data-theme="dark"] .btn-primary {
+    background: linear-gradient(135deg, #DC143C 0%, #FF1744 100%);
+    box-shadow: 0 2px 15px rgba(220, 20, 60, 0.4);
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: linear-gradient(135deg, #4B0082 0%, #7B1FA2 100%);
+    box-shadow: 0 2px 15px rgba(75, 0, 130, 0.4);
+}
+
+[data-theme="dark"] .btn-outline {
+    border-color: #DC143C;
+    color: #DC143C;
+}
+
+[data-theme="dark"] .btn-outline:hover {
+    background-color: #DC143C;
+    color: white;
+}
+
+[data-theme="dark"] .game-arena {
+    background: linear-gradient(180deg, rgba(139, 0, 139, 0.2) 0%, rgba(220, 20, 60, 0.2) 100%),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="fog" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="30" fill="%234B0082" opacity="0.1"/><circle cx="75" cy="75" r="40" fill="%23DC143C" opacity="0.08"/></pattern></defs><rect width="100" height="100" fill="url(%23fog)"/></svg>');
+    border: 3px solid #8B008B;
+    box-shadow: 0 0 30px rgba(139, 0, 139, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .auth-container {
+    background: linear-gradient(135deg, #0F0F1A 0%, #4B0082 50%, #1A1A2E 100%);
+}
+
+[data-theme="dark"] .profile-header {
+    background: linear-gradient(135deg, #4B0082 0%, #DC143C 100%);
+    border: 2px solid #8B008B;
+    box-shadow: 0 0 30px rgba(139, 0, 139, 0.5);
+}
+
+[data-theme="dark"] .leaderboard-header {
+    background: linear-gradient(135deg, #4B0082 0%, #8B008B 100%);
+    border-bottom: 2px solid #DC143C;
+}
+
+[data-theme="dark"] .tabs {
+    border-bottom-color: #3D3D5C;
+}
+
+[data-theme="dark"] .tabs .tab-btn {
+    color: #A0A0A0;
+}
+
+[data-theme="dark"] .tabs .tab-btn.active {
+    color: #DC143C;
+    border-bottom-color: #DC143C;
+}
+
+[data-theme="dark"] .tabs .tab-btn:hover {
+    color: #DC143C;
+}
+
+[data-theme="dark"] .game-code {
+    background: linear-gradient(135deg, #4B0082 0%, #8B008B 100%);
+    color: #FF6B6B;
+    border: 2px solid #DC143C;
+    text-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+[data-theme="dark"] .command-area {
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(75, 0, 130, 0.2) 100%);
+    border: 3px solid #4B0082;
+    box-shadow: 0 0 30px rgba(139, 0, 139, 0.4);
+}
+
+[data-theme="dark"] .status-bar {
+    background: linear-gradient(135deg, #16213E 0%, #1A1A2E 100%);
+    border: 2px solid #4B0082;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .winner-banner {
+    background: linear-gradient(135deg, #DC143C 0%, #8B008B 50%, #4B0082 100%);
+    background-size: 200% 200%;
+    animation: darkGlow 3s ease infinite;
+    border: 3px solid #FFD700;
+    box-shadow: 0 0 40px rgba(220, 20, 60, 0.6);
+}
+
+@keyframes darkGlow {
+    0%, 100% { 
+        background-position: 0% 50%;
+        box-shadow: 0 0 40px rgba(220, 20, 60, 0.6);
+    }
+    50% { 
+        background-position: 100% 50%;
+        box-shadow: 0 0 60px rgba(255, 215, 0, 0.8);
+    }
+}
+
+[data-theme="dark"] .card {
+    background: linear-gradient(135deg, #16213E 0%, #1A1A2E 100%);
+    border: 2px solid rgba(139, 0, 139, 0.4);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .form-group input {
+    background-color: #16213E;
+    border-color: #3D3D5C;
+    color: #E8E8E8;
+}
+
+[data-theme="dark"] .form-group input:focus {
+    border-color: #DC143C;
+    box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
+    background-color: #1A1A2E;
+}
+
+[data-theme="dark"] select {
+    background-color: #16213E;
+    border-color: #3D3D5C;
+    color: #E8E8E8;
+}
+
+[data-theme="dark"] select:focus {
+    border-color: #DC143C;
+}
+
+[data-theme="dark"] .switch {
+    background-color: #3D3D5C;
+}
+
+[data-theme="dark"] .switch.active {
+    background-color: #DC143C;
+}
+
+[data-theme="dark"] input[type="range"] {
+    background: #3D3D5C;
+}
+
+[data-theme="dark"] input[type="range"]::-webkit-slider-thumb {
+    background: #DC143C;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+[data-theme="dark"] .player-avatar {
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .player-seat.king .player-avatar {
+    background: linear-gradient(135deg, #FFD700, #FF8C00);
+    border-color: #FFD700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+[data-theme="dark"] .player-seat.civilian .player-avatar {
+    background: linear-gradient(135deg, #4169E1, #1E3A8A);
+    border-color: #4169E1;
+    box-shadow: 0 0 15px rgba(65, 105, 225, 0.5);
+}
+
+[data-theme="dark"] .player-seat.clown .player-avatar {
+    background: linear-gradient(135deg, #FF1493, #8B008B);
+    border-color: #FF1493;
+    box-shadow: 0 0 15px rgba(255, 20, 147, 0.5);
+}
+
+[data-theme="dark"] .player-seat.current-user .player-avatar {
+    box-shadow: 0 0 25px rgba(220, 20, 60, 0.7);
+}
+
+[data-theme="dark"] .timer {
+    color: #DC143C;
+    text-shadow: 0 0 20px rgba(220, 20, 60, 0.8);
+}
+
+[data-theme="dark"] .countdown {
+    color: #DC143C;
+    text-shadow: 0 0 30px rgba(220, 20, 60, 0.8);
+}
+
+[data-theme="dark"] .modal-content {
+    background: linear-gradient(135deg, #16213E 0%, #1A1A2E 100%);
+    border: 2px solid #4B0082;
+    color: #E8E8E8;
+}
+
+[data-theme="dark"] .close-btn {
+    color: #A0A0A0;
+}
+
+[data-theme="dark"] .close-btn:hover {
+    color: #DC143C;
+}
+
+[data-theme="dark"] .auth-card {
+    background: linear-gradient(135deg, #16213E 0%, #1A1A2E 100%);
+    border: 2px solid #4B0082;
+    box-shadow: 0 0 40px rgba(75, 0, 130, 0.5);
+}
+
+[data-theme="dark"] .result-item.success {
+    background-color: rgba(46, 204, 113, 0.15);
+    border-left-color: #2ECC71;
+}
+
+[data-theme="dark"] .result-item.failed {
+    background-color: rgba(231, 76, 60, 0.15);
+    border-left-color: #E74C3C;
+}
+
+[data-theme="dark"] .stat-card {
+    background: linear-gradient(135deg, #16213E 0%, #1A1A2E 100%);
+    border: 1px solid #3D3D5C;
+}
+
+[data-theme="dark"] .leaderboard-row:hover {
+    background-color: rgba(220, 20, 60, 0.1);
+}

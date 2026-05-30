@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.chouchou_model import (
+    UserModel as ChouchouUserModel,
+    TokenModel as ChouchouTokenModel,
+    GameModel as ChouchouGameModel,
+    PlayerModel as ChouchouPlayerModel,
+    CommandModel as ChouchouCommandModel,
+    ActionModel as ChouchouActionModel,
+    ScoreModel as ChouchouScoreModel,
+    ThemeModel as ChouchouThemeModel,
+    SettingModel as ChouchouSettingModel,
+    HighScoreModel as ChouchouHighScoreModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,17 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ChouchouUserModel.create_table()
+    ChouchouTokenModel.create_table()
+    ChouchouGameModel.create_table()
+    ChouchouPlayerModel.create_table()
+    ChouchouCommandModel.create_table()
+    ChouchouActionModel.create_table()
+    ChouchouScoreModel.create_table()
+    ChouchouThemeModel.create_table()
+    ChouchouSettingModel.create_table()
+    ChouchouHighScoreModel.create_table()
 
     migrate_database()
 
@@ -151,6 +174,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8899,
         reload=True
     )

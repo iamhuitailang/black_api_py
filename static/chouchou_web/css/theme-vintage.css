@@ -1,0 +1,160 @@
+[data-theme="vintage"] {
+    --primary-color: #8B4513;
+    --secondary-color: #D2691E;
+    --accent-color: #F4A460;
+    --background-color: #FDF5E6;
+    --text-color: #3E2723;
+    --text-light: #6D4C41;
+    --border-color: #D7CCC8;
+}
+
+[data-theme="vintage"] body {
+    background: linear-gradient(135deg, #F5DEB3 0%, #FDF5E6 50%, #DEB887 100%);
+    background-attachment: fixed;
+    font-family: 'Georgia', serif;
+}
+
+[data-theme="vintage"] .header {
+    background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.4);
+    border-bottom: 4px double #D4A574;
+}
+
+[data-theme="vintage"] .btn-primary {
+    background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+    border: 2px solid #5D3A1A;
+}
+
+[data-theme="vintage"] .btn-secondary {
+    background: linear-gradient(135deg, #D2691E 0%, #E67E22 100%);
+    border: 2px solid #8B4513;
+}
+
+[data-theme="vintage"] .btn-outline {
+    border-color: #8B4513;
+    color: #8B4513;
+}
+
+[data-theme="vintage"] .btn-outline:hover {
+    background-color: #8B4513;
+    color: white;
+}
+
+[data-theme="vintage"] .game-arena {
+    background: linear-gradient(180deg, rgba(244, 164, 96, 0.3) 0%, rgba(222, 184, 135, 0.3) 100%),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="8" fill="%23D4A574" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23stripes)"/></svg>');
+    border: 4px solid #8B4513;
+    box-shadow: inset 0 0 50px rgba(139, 69, 19, 0.2);
+}
+
+[data-theme="vintage"] .auth-container {
+    background: linear-gradient(135deg, #8B4513 0%, #D2691E 50%, #F4A460 100%);
+}
+
+[data-theme="vintage"] .profile-header {
+    background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
+    border: 4px double #F4A460;
+}
+
+[data-theme="vintage"] .leaderboard-header {
+    background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+    border-bottom: 3px solid #F4A460;
+}
+
+[data-theme="vintage"] .tabs {
+    border-bottom-color: #D7CCC8;
+}
+
+[data-theme="vintage"] .tabs .tab-btn.active {
+    color: #8B4513;
+    border-bottom-color: #8B4513;
+}
+
+[data-theme="vintage"] .tabs .tab-btn:hover {
+    color: #8B4513;
+}
+
+[data-theme="vintage"] .game-code {
+    background: linear-gradient(135deg, #F4A460 0%, #DEB887 100%);
+    color: #3E2723;
+    font-family: 'Courier New', monospace;
+    border: 2px dashed #8B4513;
+}
+
+[data-theme="vintage"] .command-area {
+    background: linear-gradient(135deg, rgba(255, 248, 220, 0.95) 0%, rgba(244, 164, 96, 0.1) 100%);
+    border: 3px solid #8B4513;
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.3);
+}
+
+[data-theme="vintage"] .status-bar {
+    background: linear-gradient(135deg, #FDF5E6 0%, #FAEBD7 100%);
+    border: 2px solid #D2691E;
+}
+
+[data-theme="vintage"] .winner-banner {
+    background: linear-gradient(135deg, #B8860B 0%, #DAA520 50%, #B8860B 100%);
+    border: 4px double #8B4513;
+}
+
+[data-theme="vintage"] .card {
+    background: linear-gradient(135deg, #FFFAF0 0%, #FDF5E6 100%);
+    border: 2px solid rgba(139, 69, 19, 0.3);
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.1);
+}
+
+[data-theme="vintage"] .form-group input {
+    background-color: #FFFAF0;
+    border-color: #D7CCC8;
+}
+
+[data-theme="vintage"] .form-group input:focus {
+    border-color: #8B4513;
+    box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+    background-color: white;
+}
+
+[data-theme="vintage"] select {
+    background-color: #FFFAF0;
+    border-color: #D7CCC8;
+}
+
+[data-theme="vintage"] select:focus {
+    border-color: #8B4513;
+}
+
+[data-theme="vintage"] .switch {
+    background-color: #D7CCC8;
+}
+
+[data-theme="vintage"] .switch.active {
+    background-color: #8B4513;
+}
+
+[data-theme="vintage"] input[type="range"] {
+    background: #D7CCC8;
+}
+
+[data-theme="vintage"] input[type="range"]::-webkit-slider-thumb {
+    background: #8B4513;
+}
+
+[data-theme="vintage"] .player-avatar {
+    border-style: double;
+    border-width: 4px;
+}
+
+[data-theme="vintage"] .player-seat.king .player-avatar {
+    background: linear-gradient(135deg, #DAA520, #B8860B);
+    border-color: #FFD700;
+}
+
+[data-theme="vintage"] .player-seat.civilian .player-avatar {
+    background: linear-gradient(135deg, #8B7355, #6B5344);
+    border-color: #A0826D;
+}
+
+[data-theme="vintage"] .player-seat.clown .player-avatar {
+    background: linear-gradient(135deg, #CD853F, #D2691E);
+    border-color: #F4A460;
+}
