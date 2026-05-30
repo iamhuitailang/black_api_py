@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
+    <title>停车场计费系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        body.vue-ready {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+    <script>
+        const __VUE_PROD_DEVTOOLS__ = false;
+        const __VUE_OPTIONS_API__ = true;
+        
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Error:', msg, url, lineNo);
+            document.body.classList.add('vue-ready');
+            return true;
+        };
+        window.onunhandledrejection = function(event) {
+            console.error('Unhandled rejection:', event.reason);
+            document.body.classList.add('vue-ready');
+            if (event && event.preventDefault) {
+                event.preventDefault();
+            }
+            return true;
+        };
+        
+        (function() {
+            window.alert = function() { console.log('alert blocked:', arguments); };
+            window.confirm = function() { console.log('confirm blocked'); return true; };
+            window.prompt = function() { console.log('prompt blocked'); return null; };
+        })();
+    </script>
+</head>
+<body>
+    <div id="app" v-cloak class="loading">
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-content">
+                    <div class="logo">
+                        <span class="logo-icon">🅿️</span>
+                        <h1>停车场计费系统</h1>
+                    </div>
+                    <div class="header-stats" v-if="statistics">
+                        <div class="stat-item">
+                            <span class="stat-value">{{ statistics.current_parking }}</span>
+                            <span class="stat-label">在场车辆</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">¥{{ statistics.today_income }}</span>
+                            <span class="stat-label">今日收入</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">{{ statistics.today_orders }}</span>
+                            <span class="stat-label">今日订单</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <nav class="app-nav">
+                <div class="nav-tabs">
+                    <button 
+                        v-for="tab in tabs" 
+                        :key="tab.key"
+                        class="nav-tab"
+                        :class="{ active: currentTab === tab.key }"
+                        @click="switchTab(tab.key)"
+                    >
+                        <span class="tab-icon">{{ tab.icon }}</span>
+                        <span class="tab-label">{{ tab.label }}</span>
+                    </button>
+                </div>
+            </nav>
+
+            <main class="app-main">
+                <div class="page-content">
+                    <div v-if="currentTab === 'entry'" class="page-entry">
+                        <div class="card">
+                            <h2 class="card-title">🚗 车辆入场</h2>
+                            <div class="form-group">
+                                <label class="form-label">车牌号</label>
+                                <input 
+                                    type="text" 
+                                    v-model="entryForm.plate_number" 
+                                    class="form-input"
+                                    placeholder="请输入车牌号，如：京A12345"
+                                    @keyup.enter="handleEntry"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">车型</label>
+                                <div class="vehicle-grid">
+                                    <button 
+                                        v-for="vt in vehicleTypes" 
+                                        :key="vt.code"
+                                        class="vehicle-type-btn"
+                                        :class="{ active: entryForm.vehicle_type_code === vt.code }"
+                                        @click="entryForm.vehicle_type_code = vt.code"
+                                    >
+                                        <span class="vehicle-icon">{{ vt.icon }}</span>
+                                        <span class="vehicle-name">{{ vt.name }}</span>
+                                        <span class="vehicle-rate">{{ vt.rate_per_hour }}元/小时</span>
+                                        <span class="vehicle-free">免费{{ vt.free_minutes }}分钟</span>
+                                        <span class="vehicle-cap">封顶{{ vt.daily_cap }}元</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary btn-large" @click="handleEntry" :disabled="!canEntry">
+                                📝 确认入场
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="currentTab === 'exit'" class="page-exit">
+                        <div class="card">
+                            <h2 class="card-title">💰 车辆出场</h2>
+                            <div class="search-section">
+                                <div class="form-group">
+                                    <label class="form-label">选择出场车辆</label>
+                                    <div class="search-input-group">
+                                        <input 
+                                            type="text" 
+                                            v-model="exitSearch" 
+                                            class="form-input"
+                                            placeholder="输入车牌号搜索..."
+                                        >
+                                    </div>
+                                </div>
+                                <div class="parking-select-list" v-if="filteredParkingList.length > 0">
+                                    <div 
+                                        v-for="item in filteredParkingList" 
+                                        :key="item.id"
+                                        class="parking-select-item"
+                                        :class="{ selected: selectedParking && selectedParking.id === item.id }"
+                                        @click="selectParkingForExit(item)"
+                                    >
+                                        <div class="parking-info">
+                                            <span class="plate-number">{{ item.plate_number }}</span>
+                                            <span class="vehicle-tag">{{ item.vehicle_type_icon }} {{ item.vehicle_type_name }}</span>
+                                        </div>
+                                        <div class="parking-time">
+                                            <span class="entry-label">入场：{{ formatTime(item.entry_time) }}</span>
+                                            <span class="duration">已停：{{ formatDuration(item.current_duration) }}</span>
+                                        </div>
+                                        <div class="parking-fee">
+                                            <span class="fee-preview">预计 ¥{{ item.current_fee }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="empty-state">
+                                    <span class="empty-icon">🚗</span>
+                                    <p>暂无在场车辆</p>
+                                </div>
+                            </div>
+
+                            <div v-if="selectedParking || feePreview" class="fee-detail-card">
+                                <h3 class="fee-title">费用明细</h3>
+                                <div class="fee-row">
+                                    <span class="fee-label">车牌号</span>
+                                    <span class="fee-value plate-highlight">{{ feePreview.plate_number }}</span>
+                                </div>
+                                <div class="fee-row">
+                                    <span class="fee-label">车型</span>
+                                    <span class="fee-value">{{ feePreview.vehicle_type }}</span>
+                                </div>
+                                <div class="fee-row">
+                                    <span class="fee-label">入场时间</span>
+                                    <span class="fee-value">{{ formatTime(feePreview.entry_time) }}</span>
+                                </div>
+                                <div class="fee-row">
+                                    <span class="fee-label">出场时间</span>
+                                    <span class="fee-value">{{ formatTime(feePreview.exit_time) }}</span>
+                                </div>
+                                <div class="fee-row">
+                                    <span class="fee-label">停车时长</span>
+                                    <span class="fee-value">{{ formatDuration(feePreview.parking_duration) }}</span>
+                                </div>
+                                <div class="fee-row">
+                                    <span class="fee-label">计费时长</span>
+                                    <span class="fee-value">{{ formatDuration(feePreview.billable_minutes) }}</span>
+                                </div>
+                                <div class="fee-total">
+                                    <span class="total-label">应收金额</span>
+                                    <span class="total-value" :class="{ free: feePreview.free }">
+                                        {{ feePreview.free ? '免费' : '¥' + feePreview.total_fee }}
+                                    </span>
+                                </div>
+                                <button 
+                                    class="btn btn-success btn-large" 
+                                    @click="handleExit"
+                                    v-if="selectedParking"
+                                >
+                                    💳 确认收费并出场
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentTab === 'parking'" class="page-parking">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">🚙 在场车辆</h2>
+                                <span class="badge badge-info">共 {{ parkingList.length }} 辆</span>
+                            </div>
+                            <div class="parking-list">
+                                <div v-for="item in parkingList" :key="item.id" class="parking-card">
+                                    <div class="parking-card-header">
+                                        <span class="plate-number-large">{{ item.plate_number }}</span>
+                                        <span class="vehicle-badge">{{ getVehicleIcon(item.vehicle_type_code) }} {{ item.vehicle_type_name }}</span>
+                                    </div>
+                                    <div class="parking-card-body">
+                                        <div class="info-row">
+                                            <span class="info-label">入场时间</span>
+                                            <span class="info-value">{{ formatTime(item.entry_time) }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">已停时长</span>
+                                            <span class="info-value highlight">{{ formatDuration(item.current_duration) }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">当前费用</span>
+                                            <span class="info-value fee-highlight">¥{{ item.current_fee }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="parking-card-footer">
+                                        <button class="btn btn-small btn-warning" @click="quickExit(item)">
+                                            快速出场
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="parkingList.length === 0" class="empty-state">
+                                    <span class="empty-icon">✅</span>
+                                    <p>暂无在场车辆</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentTab === 'history'" class="page-history">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">📋 历史记录</h2>
+                                <div class="filter-bar">
+                                    <input 
+                                        type="text" 
+                                        v-model="historyFilter.plate_number" 
+                                        class="form-input form-input-small"
+                                        placeholder="搜索车牌号..."
+                                    >
+                                    <input 
+                                        type="date" 
+                                        v-model="historyFilter.start_date" 
+                                        class="form-input form-input-small"
+                                    >
+                                    <span class="filter-sep">至</span>
+                                    <input 
+                                        type="date" 
+                                        v-model="historyFilter.end_date" 
+                                        class="form-input form-input-small"
+                                    >
+                                    <button class="btn btn-small btn-primary" @click="loadHistory(1)">
+                                        🔍 查询
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="history-table-container">
+                                <table class="history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>车牌号</th>
+                                            <th>车型</th>
+                                            <th>入场时间</th>
+                                            <th>出场时间</th>
+                                            <th>停车时长</th>
+                                            <th>费用</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="item in historyList.items" :key="item.id">
+                                            <td><span class="plate-cell">{{ item.plate_number }}</span></td>
+                                            <td>{{ getVehicleIcon(item.vehicle_type_code) }} {{ item.vehicle_type_name }}</td>
+                                            <td>{{ formatTime(item.entry_time) }}</td>
+                                            <td>{{ formatTime(item.exit_time) }}</td>
+                                            <td>{{ formatDuration(item.parking_duration) }}</td>
+                                            <td><span class="fee-cell">¥{{ item.total_fee }}</span></td>
+                                            <td><span class="status-badge completed">已完成</span></td>
+                                        </tr>
+                                        <tr v-if="historyList.items && historyList.items.length === 0">
+                                            <td colspan="7">
+                                                <div class="empty-state">
+                                                    <span class="empty-icon">📭</span>
+                                                    <p>暂无记录</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" v-if="historyList.total_pages > 1">
+                                <button 
+                                    class="btn btn-small" 
+                                    :disabled="historyList.page <= 1"
+                                    @click="loadHistory(historyList.page - 1)"
+                                >
+                                    上一页
+                                </button>
+                                <span class="page-info">第 {{ historyList.page }} / {{ historyList.total_pages }} 页，共 {{ historyList.total }} 条</span>
+                                <button 
+                                    class="btn btn-small" 
+                                    :disabled="historyList.page >= historyList.total_pages"
+                                    @click="loadHistory(historyList.page + 1)"
+                                >
+                                    下一页
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div v-if="toast.show" class="toast" :class="toast.type">
+            {{ toast.message }}
+        </div>
+
+        <div v-if="modal.show" class="modal-overlay" @click.self="closeModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>{{ modal.title }}</h3>
+                    <button class="modal-close" @click="closeModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="modal.type === 'exit_confirm'" class="exit-confirm-content">
+                        <div class="confirm-fee">
+                            <span class="confirm-plate">{{ modal.data.plate_number }}</span>
+                            <span class="confirm-amount">¥{{ modal.data.total_fee }}</span>
+                        </div>
+                        <p class="confirm-text">确认收取费用并完成出场？</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default" @click="closeModal">取消</button>
+                    <button class="btn btn-success" @click="confirmModal">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="js/utils/utils.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
