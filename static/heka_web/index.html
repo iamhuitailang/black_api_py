@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节日贺卡在线制作</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <header class="app-header">
+                <h1>🎨 节日贺卡在线制作</h1>
+                <p class="subtitle">选择模板，定制专属祝福</p>
+            </header>
+
+            <main class="app-main">
+                <div class="step-indicator">
+                    <div class="step" :class="{ active: currentStep >= 1, done: currentStep > 1 }">
+                        <span class="step-number">1</span>
+                        <span class="step-text">选择节日</span>
+                    </div>
+                    <div class="step-line" v-if="currentStep > 1"></div>
+                    <div class="step" :class="{ active: currentStep >= 2, done: currentStep > 2 }">
+                        <span class="step-number">2</span>
+                        <span class="step-text">选择模板</span>
+                    </div>
+                    <div class="step-line" v-if="currentStep > 2"></div>
+                    <div class="step" :class="{ active: currentStep >= 3 }">
+                        <span class="step-number">3</span>
+                        <span class="step-text">编辑贺卡</span>
+                    </div>
+                </div>
+
+                <div class="step-content">
+                    <div v-if="currentStep === 1" class="holiday-selector">
+                        <h2>选择节日类型</h2>
+                        
+                        <div v-if="hasDraft" class="draft-notice">
+                            <span class="draft-icon">📝</span>
+                            <span class="draft-text">发现未完成的贺卡草稿，是否继续编辑？</span>
+                            <button class="btn-restore" @click="restoreDraft">恢复编辑</button>
+                            <button class="btn-discard" @click="clearDraft">丢弃</button>
+                        </div>
+                        
+                        <div class="holiday-grid">
+                            <div 
+                                v-for="holiday in holidays" 
+                                :key="holiday.id"
+                                class="holiday-card"
+                                :style="{ '--primary-color': holiday.primary_color, '--secondary-color': holiday.secondary_color }"
+                                @click="selectHoliday(holiday)"
+                            >
+                                <div class="holiday-emoji">{{ holiday.emoji }}</div>
+                                <div class="holiday-name">{{ holiday.name }}</div>
+                                <div class="holiday-elements">{{ holiday.elements }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentStep === 2" class="template-selector">
+                        <div class="selector-header">
+                            <button class="btn-back" @click="goBack">← 返回</button>
+                            <h2>{{ selectedHoliday.emoji }} 选择贺卡模板</h2>
+                        </div>
+                        <div class="template-grid">
+                            <div 
+                                v-for="template in templates" 
+                                :key="template.id"
+                                class="template-card"
+                                :class="{ selected: selectedTemplate?.id === template.id }"
+                                @click="selectTemplate(template)"
+                            >
+                                <div class="template-preview">
+                                    <div class="template-placeholder" :style="getTemplateStyle(template)">
+                                        <span class="template-icon">{{ selectedHoliday.emoji }}</span>
+                                    </div>
+                                </div>
+                                <div class="template-name">{{ template.name }}</div>
+                            </div>
+                        </div>
+                        <div class="template-actions" v-if="selectedTemplate">
+                            <button class="btn-primary" @click="goToEditor">开始编辑 →</button>
+                        </div>
+                    </div>
+
+                    <div v-if="currentStep === 3" class="card-editor">
+                        <div class="editor-header">
+                            <button class="btn-back" @click="goBack">← 返回</button>
+                            <h2>✏️ 编辑贺卡</h2>
+                        </div>
+
+                        <div class="editor-content">
+                            <div class="editor-sidebar">
+                                <div class="auto-save-hint">
+                                    <span class="save-icon">💾</span>
+                                    <span class="save-text">内容已自动保存</span>
+                                </div>
+                                <div class="sidebar-section">
+                                    <h3>📝 文本内容</h3>
+                                    <div class="form-group">
+                                        <label>标题</label>
+                                        <input type="text" v-model="cardConfig.title" placeholder="输入标题" @input="renderCanvas">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>祝福语</label>
+                                        <textarea v-model="cardConfig.message" placeholder="输入祝福语..." rows="4" @input="renderCanvas"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>署名</label>
+                                        <input type="text" v-model="cardConfig.signature" placeholder="您的名字" @input="renderCanvas">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>日期</label>
+                                        <input type="text" v-model="cardConfig.date" :placeholder="currentDate" @input="renderCanvas">
+                                    </div>
+                                </div>
+
+                                <div class="sidebar-section">
+                                    <h3>🎨 字体样式</h3>
+                                    <div class="form-group">
+                                        <label>字体</label>
+                                        <select v-model="cardConfig.fontFamily" @change="renderCanvas">
+                                            <option value="Arial">Arial</option>
+                                            <option value="Times New Roman">Times New Roman</option>
+                                            <option value="Georgia">Georgia</option>
+                                            <option value="Verdana">Verdana</option>
+                                            <option value="Microsoft YaHei">微软雅黑</option>
+                                            <option value="SimSun">宋体</option>
+                                            <option value="KaiTi">楷体</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>字号: {{ cardConfig.fontSize }}px</label>
+                                        <input type="range" v-model.number="cardConfig.fontSize" min="12" max="72" @input="renderCanvas">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>颜色</label>
+                                        <div class="color-picker">
+                                            <div 
+                                                v-for="color in colorOptions" 
+                                                :key="color"
+                                                class="color-option"
+                                                :style="{ backgroundColor: color }"
+                                                :class="{ selected: cardConfig.fontColor === color }"
+                                                @click="selectFontColor(color)"
+                                            ></div>
+                                            <input type="color" v-model="cardConfig.fontColor" @input="renderCanvas" class="color-input">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="sidebar-section">
+                                    <h3>🖼️ 背景颜色</h3>
+                                    <div class="background-grid">
+                                        <div 
+                                            v-for="bg in backgrounds" 
+                                            :key="bg.id"
+                                            class="background-item"
+                                            :class="{ selected: selectedBackground?.id === bg.id }"
+                                            :style="{ backgroundColor: bg.color }"
+                                            @click="selectBackground(bg)"
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div class="sidebar-section">
+                                    <h3>🎀 贴纸装饰</h3>
+                                    <div class="sticker-grid">
+                                        <div 
+                                            v-for="sticker in stickers" 
+                                            :key="sticker.id"
+                                            class="sticker-item"
+                                            @click="addSticker(sticker)"
+                                        >
+                                            <span class="sticker-emoji">{{ getStickerEmoji(sticker) }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="sticker-hint">点击添加，拖拽移动位置</p>
+                                </div>
+                            </div>
+
+                            <div class="editor-canvas">
+                                <div class="canvas-wrapper" ref="canvasWrapper"
+                                    @mousemove="onDrag"
+                                    @mouseup="stopDrag"
+                                    @mouseleave="stopDrag"
+                                    @touchmove.prevent="onDrag"
+                                    @touchend="stopDrag"
+                                >
+                                    <canvas 
+                                        ref="cardCanvas" 
+                                        :width="canvasWidth" 
+                                        :height="canvasHeight"
+                                    ></canvas>
+                                    <div 
+                                        v-for="(sticker, index) in cardStickers" 
+                                        :key="index"
+                                        class="canvas-sticker"
+                                        :style="{ left: sticker.x + 'px', top: sticker.y + 'px' }"
+                                        :data-index="index"
+                                        @mousedown="startStickerDrag($event, index)"
+                                        @touchstart="startStickerDrag($event, index)"
+                                    >
+                                        <span class="sticker-display">{{ getStickerEmoji(sticker) }}</span>
+                                        <button class="sticker-remove" @click.stop="removeSticker(index)">×</button>
+                                    </div>
+                                </div>
+                                <div class="canvas-actions">
+                                    <button class="btn-secondary" @click="resetCard">🔄 重置</button>
+                                    <button class="btn-primary" @click="downloadCard">⬇️ 下载图片</button>
+                                    <button class="btn-success" @click="saveAndShare">📤 保存并分享</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <div v-if="showShareModal" class="modal-overlay" @click="closeShareModal">
+                <div class="modal-content" @click.stop>
+                    <h3>🎉 贺卡已保存！</h3>
+                    <p>分享码：<strong>{{ shareCode }}</strong></p>
+                    <div class="share-link">
+                        <input type="text" :value="shareLink" readonly ref="shareLinkInput">
+                        <button class="btn-copy" @click="copyShareLink">复制链接</button>
+                    </div>
+                    <button class="btn-close" @click="closeShareModal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

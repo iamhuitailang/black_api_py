@@ -24,6 +24,13 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.heka_model import (
+    HolidayModel,
+    TemplateModel,
+    StickerModel,
+    BackgroundModel,
+    CardModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +79,17 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    HolidayModel.create_table()
+    TemplateModel.create_table()
+    StickerModel.create_table()
+    BackgroundModel.create_table()
+    CardModel.create_table()
+
+    HolidayModel.init_default_holidays()
+    TemplateModel.init_default_templates()
+    StickerModel.init_default_stickers()
+    BackgroundModel.init_default_backgrounds()
 
     migrate_database()
 
@@ -151,6 +169,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8671,
         reload=True
     )

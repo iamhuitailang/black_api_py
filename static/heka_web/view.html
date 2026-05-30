@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节日贺卡 - 查看</title>
+    <link rel="stylesheet" href="/static/heka_web/css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .view-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .view-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .view-card h1 {
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 1.8rem;
+        }
+        .card-preview {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+        .card-preview img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .card-placeholder {
+            aspect-ratio: 5/6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1.5rem;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card-message {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .card-message p {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.8;
+            margin: 10px 0;
+        }
+        .card-message .signature {
+            font-weight: bold;
+            color: #667eea;
+            text-align: right;
+            margin-top: 20px;
+        }
+        .card-message .date {
+            font-size: 0.9rem;
+            color: #888;
+            text-align: right;
+            margin-top: 5px;
+        }
+        .view-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-make {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .btn-make:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .loading {
+            font-size: 1.2rem;
+            color: white;
+            text-align: center;
+        }
+        .error {
+            color: #ff4757;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .error h2 {
+            margin-bottom: 20px;
+            color: #ff4757;
+        }
+        .error p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="view-container">
+            <div v-if="loading" class="loading">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🎁</div>
+                <div>正在加载贺卡...</div>
+            </div>
+            
+            <div v-else-if="error" class="error">
+                <h2>😢 {{ error }}</h2>
+                <p>可能链接已过期或贺卡不存在</p>
+                <a href="/static/heka_web/index.html" class="btn-make">🎨 制作自己的贺卡</a>
+            </div>
+            
+            <div v-else class="view-card">
+                <h1>🎉 收到一张贺卡！</h1>
+                
+                <div class="card-preview">
+                    <img v-if="cardData.image_url" :src="cardData.image_url" alt="贺卡">
+                    <div v-else class="card-placeholder">
+                        <span>{{ cardData.title || '节日快乐' }}</span>
+                    </div>
+                </div>
+                
+                <div v-if="cardData.message || cardData.title" class="card-message">
+                    <p v-if="cardData.title" style="font-size: 1.4rem; font-weight: bold; color: #667eea; margin-bottom: 15px;">{{ cardData.title }}</p>
+                    <p v-if="cardData.message">{{ cardData.message }}</p>
+                    <p class="signature" v-if="cardData.signature">—— {{ cardData.signature }}</p>
+                    <p class="date" v-if="cardData.date">{{ cardData.date }}</p>
+                </div>
+                
+                <div class="view-actions">
+                    <a href="/static/heka_web/index.html" class="btn-make">🎨 我也来制作一张</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const loading = ref(true);
+                const error = ref('');
+                const cardData = ref({});
+
+                const getShareCode = () => {
+                    const params = new URLSearchParams(window.location.search);
+                    return params.get('code');
+                };
+
+                const loadCard = async () => {
+                    const code = getShareCode();
+                    if (!code) {
+                        error.value = '无效的分享链接';
+                        loading.value = false;
+                        return;
+                    }
+
+                    try {
+                        const apiBase = '/api';
+                        const response = await fetch(`${apiBase}/heka/card/share/get?share_code=${encodeURIComponent(code)}`);
+                        const data = await response.json();
+                        
+                        if (data.code === 0) {
+                            cardData.value = data.data;
+                        } else {
+                            error.value = '贺卡不存在或已过期';
+                        }
+                    } catch (e) {
+                        console.error('加载贺卡失败:', e);
+                        error.value = '加载贺卡失败，请稍后重试';
+                    }
+                    
+                    loading.value = false;
+                };
+
+                onMounted(() => {
+                    loadCard();
+                });
+
+                return {
+                    loading,
+                    error,
+                    cardData
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
