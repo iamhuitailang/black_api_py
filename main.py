@@ -24,6 +24,13 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.zashua02 import (
+    UserModel as Zashua02UserModel,
+    TokenModel as Zashua02TokenModel,
+    GameStateModel as Zashua02GameStateModel,
+    ThemeModel as Zashua02ThemeModel,
+    RecordModel as Zashua02RecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +79,14 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    Zashua02UserModel.create_table()
+    Zashua02TokenModel.create_table()
+    Zashua02GameStateModel.create_table()
+    Zashua02ThemeModel.create_table()
+    Zashua02RecordModel.create_table()
+
+    Zashua02ThemeModel.init_default_themes()
 
     migrate_database()
 
@@ -151,6 +166,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8878,
         reload=True
     )
