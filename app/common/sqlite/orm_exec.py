@@ -115,14 +115,21 @@ class ORMExec:
 class _TransactionContext:
     def __init__(self, db):
         self.db = db
+        self._conn = None
 
     def __enter__(self):
-        self.db.execute("BEGIN TRANSACTION")
+        conn, _ = self.db._get_connection()
+        self._conn = conn
+        self.db._local.in_transaction = True
+        conn.execute("BEGIN TRANSACTION")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is None:
-            self.db.execute("COMMIT")
-        else:
-            self.db.execute("ROLLBACK")
+        try:
+            if exc_type is None:
+                self._conn.execute("COMMIT")
+            else:
+                self._conn.execute("ROLLBACK")
+        finally:
+            self.db._local.in_transaction = False
         return False

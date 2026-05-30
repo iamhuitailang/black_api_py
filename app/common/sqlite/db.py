@@ -31,6 +31,9 @@ class SQLiteDB:
             self._initialized = True
             self._ensure_data_directory()
 
+    def _in_transaction(self) -> bool:
+        return getattr(self._local, 'in_transaction', False)
+
     def _ensure_data_directory(self):
         data_dir = os.path.dirname(self.db_path)
         if data_dir and not os.path.exists(data_dir):
@@ -65,20 +68,24 @@ class SQLiteDB:
                 cursor.execute(sql, params)
             else:
                 cursor.execute(sql)
-            conn.commit()
+            if not self._in_transaction():
+                conn.commit()
             return cursor
         except Exception as e:
-            conn.rollback()
+            if not self._in_transaction():
+                conn.rollback()
             raise e
 
     def execute_many(self, sql: str, params_list: list):
         conn, cursor = self._get_connection()
         try:
             cursor.executemany(sql, params_list)
-            conn.commit()
+            if not self._in_transaction():
+                conn.commit()
             return cursor
         except Exception as e:
-            conn.rollback()
+            if not self._in_transaction():
+                conn.rollback()
             raise e
 
     def fetch_one(self, sql: str, params: tuple = None):

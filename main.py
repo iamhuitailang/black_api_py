@@ -24,6 +24,14 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jieyong_model import (
+    UserModel as JieyongUserModel,
+    TokenModel as JieyongTokenModel,
+    CategoryModel as JieyongCategoryModel,
+    ItemModel as JieyongItemModel,
+    BorrowModel as JieyongBorrowModel,
+    MessageModel as JieyongMessageModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +80,17 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JieyongUserModel.create_table()
+    JieyongTokenModel.create_table()
+    JieyongCategoryModel.create_table()
+    JieyongItemModel.create_table()
+    JieyongBorrowModel.create_table()
+    JieyongMessageModel.create_table()
+
+    JieyongUserModel.init_default_admin()
+    JieyongCategoryModel.init_default_categories()
+    JieyongItemModel.init_default_items()
 
     migrate_database()
 
