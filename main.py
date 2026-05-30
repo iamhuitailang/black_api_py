@@ -24,6 +24,21 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.shiwu_model import (
+    UserModel as ShiwuUserModel,
+    TokenModel as ShiwuTokenModel,
+    AdminModel as ShiwuAdminModel,
+    AdminTokenModel as ShiwuAdminTokenModel,
+    CategoryModel as ShiwuCategoryModel,
+    PostModel as ShiwuPostModel,
+    ClaimModel as ShiwuClaimModel,
+    ClueModel as ShiwuClueModel,
+    CommentModel as ShiwuCommentModel,
+    LikeModel as ShiwuLikeModel,
+    NotificationModel as ShiwuNotificationModel,
+    OfficeModel as ShiwuOfficeModel,
+    ReviewModel as ShiwuReviewModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +87,23 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ShiwuUserModel.create_table()
+    ShiwuTokenModel.create_table()
+    ShiwuAdminModel.create_table()
+    ShiwuAdminTokenModel.create_table()
+    ShiwuCategoryModel.create_table()
+    ShiwuPostModel.create_table()
+    ShiwuClaimModel.create_table()
+    ShiwuClueModel.create_table()
+    ShiwuCommentModel.create_table()
+    ShiwuLikeModel.create_table()
+    ShiwuNotificationModel.create_table()
+    ShiwuOfficeModel.create_table()
+    ShiwuReviewModel.create_table()
+
+    ShiwuAdminModel.init_default_admin()
+    ShiwuCategoryModel.init_default_categories()
 
     migrate_database()
 
@@ -151,6 +183,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8231,
         reload=True
     )
