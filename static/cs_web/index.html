@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS在线射击游戏</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+        </div>
+        <router-view v-else></router-view>
+    </div>
+
+    <script src="js/services/api.js?v=4"></script>
+    <script src="js/utils/storage.js?v=4"></script>
+    <script src="js/app.js?v=4"></script>
+    <script src="js/pages/login.js?v=4"></script>
+    <script src="js/pages/register.js?v=4"></script>
+    <script src="js/pages/home.js?v=4"></script>
+    <script src="js/pages/game.js?v=4"></script>
+    <script src="js/pages/profile.js?v=4"></script>
+    <script src="js/pages/leaderboard.js?v=4"></script>
+    <script src="js/pages/achievements.js?v=4"></script>
+    <script src="js/pages/admin/dashboard.js?v=4"></script>
+    <script src="js/pages/admin/users.js?v=4"></script>
+    <script src="js/pages/admin/weapons.js?v=4"></script>
+    <script src="js/pages/admin/maps.js?v=4"></script>
+    <script src="js/pages/admin/statistics.js?v=4"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            window.initApp();
+        });
+    </script>
+</body>
+</html>
