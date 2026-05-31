@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.ershoushu_077_model import (
+    ErshoushuUserModel,
+    ErshoushuTokenModel,
+    ErshoushuBookModel,
+    ErshoushuTradeModel,
+    ErshoushuReviewModel,
+    ErshoushuNotificationModel,
+    ErshoushuComplaintModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,16 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ErshoushuUserModel.create_table()
+    ErshoushuTokenModel.create_table()
+    ErshoushuBookModel.create_table()
+    ErshoushuTradeModel.create_table()
+    ErshoushuReviewModel.create_table()
+    ErshoushuNotificationModel.create_table()
+    ErshoushuComplaintModel.create_table()
+
+    ErshoushuUserModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +170,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8654,
         reload=True
     )
