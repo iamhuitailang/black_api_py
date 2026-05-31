@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.siwei_077_model import (
+    SiweiUserModel,
+    SiweiTokenModel,
+    MindMapModel,
+    MindMapNodeModel,
+    MindMapEdgeModel,
+    TemplateModel,
+    CollaborationModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,16 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    SiweiUserModel.create_table()
+    SiweiTokenModel.create_table()
+    MindMapModel.create_table()
+    MindMapNodeModel.create_table()
+    MindMapEdgeModel.create_table()
+    TemplateModel.create_table()
+    CollaborationModel.create_table()
+
+    TemplateModel().init_default_templates()
 
     migrate_database()
 
@@ -151,6 +170,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8768,
         reload=True
     )
