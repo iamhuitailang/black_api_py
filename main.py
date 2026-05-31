@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.chongwu09 import (
+    UserModel as Chongwu09UserModel,
+    AdminModel as Chongwu09AdminModel,
+    TokenModel as Chongwu09TokenModel,
+    AdminTokenModel as Chongwu09AdminTokenModel,
+    ServiceModel as Chongwu09ServiceModel,
+    PetModel as Chongwu09PetModel,
+    BookingModel as Chongwu09BookingModel,
+    OrderModel as Chongwu09OrderModel,
+    ReviewModel as Chongwu09ReviewModel,
+    NotificationModel as Chongwu09NotificationModel,
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,19 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    Chongwu09UserModel.create_table()
+    Chongwu09TokenModel.create_table()
+    Chongwu09AdminModel.create_table()
+    Chongwu09AdminTokenModel.create_table()
+    Chongwu09ServiceModel.create_table()
+    Chongwu09PetModel.create_table()
+    Chongwu09BookingModel.create_table()
+    Chongwu09OrderModel.create_table()
+    Chongwu09ReviewModel.create_table()
+    Chongwu09NotificationModel.create_table()
+
+    Chongwu09AdminModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +176,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8882,
         reload=True
     )
