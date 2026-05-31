@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.doudizhu_model import (
+    UserModel as DoudizhuUserModel,
+    AdminModel as DoudizhuAdminModel,
+    DoudizhuTokenModel,
+    DoudizhuAdminTokenModel,
+    AiConfigModel as DoudizhuAiConfigModel,
+    AchievementModel as DoudizhuAchievementModel,
+    UserAchievementModel as DoudizhuUserAchievementModel,
+    GameRecordModel as DoudizhuGameRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +82,19 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DoudizhuUserModel.create_table()
+    DoudizhuTokenModel.create_table()
+    DoudizhuAdminModel.create_table()
+    DoudizhuAdminTokenModel.create_table()
+    DoudizhuAiConfigModel.create_table()
+    DoudizhuAchievementModel.create_table()
+    DoudizhuUserAchievementModel.create_table()
+    DoudizhuGameRecordModel.create_table()
+
+    DoudizhuAdminModel.init_default_admin()
+    DoudizhuAiConfigModel.init_default_configs()
+    DoudizhuAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +174,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8791,
         reload=True
     )
