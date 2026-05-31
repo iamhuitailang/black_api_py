@@ -1,0 +1,4 @@
+from app.controller.chengyu_077.chengyu_user_controller import ChengyuUserController
+from app.controller.chengyu_077.chengyu_idiom_controller import ChengyuIdiomController
+from app.controller.chengyu_077.chengyu_game_controller import ChengyuGameController
+from app.controller.chengyu_077.chengyu_achievement_controller import ChengyuAchievementController

@@ -24,6 +24,7 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.chengyu_077 import ChengyuUserModel, IdiomModel, GameModel, ScoreModel, AchievementModel, UserAchievementModel
 from app.common.sqlite.db import get_db
 
 
@@ -73,6 +74,15 @@ def init_database():
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
 
+    ChengyuUserModel.create_table()
+    IdiomModel.create_table()
+    GameModel.create_table()
+    ScoreModel.create_table()
+    AchievementModel.create_table()
+    UserAchievementModel.create_table()
+    IdiomModel.init_default_data()
+    AchievementModel.init_default_data()
+
     migrate_database()
 
     print("Database initialized successfully")
@@ -101,7 +111,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
 
 @app.exception_handler(Exception)
@@ -151,6 +161,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8481,
         reload=True
     )
