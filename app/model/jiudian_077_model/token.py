@@ -1,0 +1,81 @@
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
+from app.common.sqlite.db import get_db
+from app.common.sqlite.orm_query import ORMQuery
+from app.common.sqlite.orm_exec import ORMExec
+import secrets
+
+
+class TokenModel:
+    TABLE_NAME = 'tb_jiudian_077_model_token'
+
+    def __init__(self):
+        self.db = get_db()
+        self.query = ORMQuery(self.TABLE_NAME)
+        self.exec = ORMExec(self.TABLE_NAME)
+
+    @classmethod
+    def create_table(cls):
+        db = get_db()
+        sql = f"""
+            CREATE TABLE IF NOT EXISTS {cls.TABLE_NAME} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+        db.execute(sql)
+
+        index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_token ON {cls.TABLE_NAME}(token)"
+        db.execute(index_sql)
+        index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_user_id ON {cls.TABLE_NAME}(user_id)"
+        db.execute(index_sql)
+        index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_expires_at ON {cls.TABLE_NAME}(expires_at)"
+        db.execute(index_sql)
+
+    def create_token(self, user_id: int, hours: int = 24) -> str:
+        token = secrets.token_hex(32)
+        expires_at = (datetime.now() + timedelta(hours=hours)).isoformat()
+        now = datetime.now().isoformat()
+        data = {
+            'user_id': user_id,
+            'token': token,
+            'expires_at': expires_at,
+            'created_at': now
+        }
+        self.exec.insert(data)
+        return token
+
+    def get_token_info(self, token: str) -> Optional[Dict[str, Any]]:
+        return self.query.find_one({'token': token})
+
+    def get_user_by_token(self, token: str) -> Optional[Dict[str, Any]]:
+        token_info = self.get_token_info(token)
+        if not token_info:
+            return None
+
+        expires_at = token_info.get('expires_at')
+        if datetime.fromisoformat(expires_at) < datetime.now():
+            self.delete_token(token)
+            return None
+
+        from app.model.jiudian_077_model import UserModel
+        user_model = UserModel()
+        user = user_model.get_by_id(token_info.get('user_id'))
+        if not user:
+            return None
+
+        return user_model.to_public_dict(user)
+
+    def delete_token(self, token: str) -> int:
+        return self.exec.delete({'token': token})
+
+    def delete_by_user_id(self, user_id: int) -> int:
+        return self.exec.delete({'user_id': user_id})
+
+    def clean_expired_tokens(self) -> int:
+        now = datetime.now().isoformat()
+        sql = f"DELETE FROM {self.TABLE_NAME} WHERE expires_at < ?"
+        return self.exec.execute_raw(sql, (now,))

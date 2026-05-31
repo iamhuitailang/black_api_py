@@ -24,6 +24,13 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jiudian_077_model import (
+    UserModel as JiudianUserModel,
+    TokenModel as JiudianTokenModel,
+    RoomModel as JiudianRoomModel,
+    BookingModel as JiudianBookingModel,
+    MessageModel as JiudianMessageModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +79,14 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JiudianUserModel.create_table()
+    JiudianTokenModel.create_table()
+    JiudianRoomModel.create_table()
+    JiudianBookingModel.create_table()
+    JiudianMessageModel.create_table()
+
+    JiudianUserModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +166,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8766,
         reload=True
     )
