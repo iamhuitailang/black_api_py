@@ -24,6 +24,14 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.kuaidi_077_model import (
+    KuaidiUserModel,
+    KuaidiTokenModel,
+    KuaidiPackageModel,
+    KuaidiPickupCodeModel,
+    KuaidiProxyModel,
+    KuaidiMessageModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +80,15 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    KuaidiUserModel.create_table()
+    KuaidiTokenModel.create_table()
+    KuaidiPackageModel.create_table()
+    KuaidiPickupCodeModel.create_table()
+    KuaidiProxyModel.create_table()
+    KuaidiMessageModel.create_table()
+    
+    KuaidiUserModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +168,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8821,
         reload=True
     )

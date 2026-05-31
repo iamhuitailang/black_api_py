@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快递驿站系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div v-if="isLoggedIn">
+            <header class="header">
+                <div class="header-content">
+                    <h1 class="logo" @click="goHome">快递驿站</h1>
+                    <nav class="nav">
+                        <template v-if="userRole === 1">
+                            <router-link to="/admin/dashboard" class="nav-item">数据统计</router-link>
+                            <router-link to="/admin/packages" class="nav-item">快递管理</router-link>
+                            <router-link to="/admin/pickup" class="nav-item">取件管理</router-link>
+                            <router-link to="/admin/overdue" class="nav-item">超时管理</router-link>
+                            <router-link to="/admin/users" class="nav-item">用户管理</router-link>
+                        </template>
+                        <template v-else>
+                            <router-link to="/user/packages" class="nav-item">我的快递</router-link>
+                            <router-link to="/user/pickup" class="nav-item">取件码</router-link>
+                            <router-link to="/user/proxy" class="nav-item">代取件</router-link>
+                            <router-link to="/user/messages" class="nav-item">消息中心</router-link>
+                        </template>
+                    </nav>
+                    <div class="user-info">
+                        <span class="username">{{ userName }}</span>
+                        <button @click="logout" class="logout-btn">退出</button>
+                    </div>
+                </div>
+            </header>
+            <main class="main">
+                <router-view></router-view>
+            </main>
+        </div>
+        <div v-else>
+            <router-view></router-view>
+        </div>
+    </div>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
