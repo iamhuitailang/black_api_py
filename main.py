@@ -24,6 +24,14 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jianshen_077_model import (
+    JianshenUserModel,
+    JianshenTokenModel,
+    CourseModel,
+    BookingModel,
+    CheckinModel,
+    NotificationModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +80,15 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JianshenUserModel.create_table()
+    JianshenTokenModel.create_table()
+    CourseModel.create_table()
+    BookingModel.create_table()
+    CheckinModel.create_table()
+    NotificationModel.create_table()
+
+    JianshenUserModel.init_default_admin()
 
     migrate_database()
 
@@ -151,6 +168,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8661,
         reload=True
     )
