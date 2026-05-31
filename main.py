@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.zhaobutong_model import (
+    ZbtUserModel,
+    ZbtTokenModel,
+    ZbtLevelModel,
+    ZbtDifferenceModel,
+    ZbtRecordModel,
+    ZbtAchievementModel,
+    ZbtUserAchievementModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,18 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ZbtUserModel.create_table()
+    ZbtTokenModel.create_table()
+    ZbtLevelModel.create_table()
+    ZbtDifferenceModel.create_table()
+    ZbtRecordModel.create_table()
+    ZbtAchievementModel.create_table()
+    ZbtUserAchievementModel.create_table()
+
+    ZbtUserModel.init_default_admin()
+    ZbtLevelModel.init_default_levels()
+    ZbtAchievementModel.init_default_achievements()
 
     migrate_database()
 
