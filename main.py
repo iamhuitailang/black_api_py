@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.lianliankan077 import (
+    LlkUserModel,
+    LlkTokenModel,
+    LlkAdminModel,
+    LlkAdminTokenModel,
+    LlkThemeModel,
+    LlkPropModel,
+    LlkUserPropModel,
+    LlkGameRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +82,19 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    LlkUserModel.create_table()
+    LlkTokenModel.create_table()
+    LlkAdminModel.create_table()
+    LlkAdminTokenModel.create_table()
+    LlkThemeModel.create_table()
+    LlkPropModel.create_table()
+    LlkUserPropModel.create_table()
+    LlkGameRecordModel.create_table()
+
+    LlkAdminModel.init_default_admin()
+    LlkThemeModel.init_default_themes()
+    LlkPropModel.init_default_props()
 
     migrate_database()
 
@@ -151,6 +174,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8781,
         reload=True
     )
