@@ -24,6 +24,17 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jaoyou_077 import (
+    UserModel as JaoyouUserModel,
+    AdminModel as JaoyouAdminModel,
+    UserTokenModel as JaoyouUserTokenModel,
+    AdminTokenModel as JaoyouAdminTokenModel,
+    HeartModel as JaoyouHeartModel,
+    MatchModel as JaoyouMatchModel,
+    DateModel as JaoyouDateModel,
+    MessageModel as JaoyouMessageModel,
+    ComplaintModel as JaoyouComplaintModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +83,16 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JaoyouUserModel.create_table()
+    JaoyouAdminModel.create_table()
+    JaoyouUserTokenModel.create_table()
+    JaoyouAdminTokenModel.create_table()
+    JaoyouHeartModel.create_table()
+    JaoyouMatchModel.create_table()
+    JaoyouDateModel.create_table()
+    JaoyouMessageModel.create_table()
+    JaoyouComplaintModel.create_table()
 
     migrate_database()
 
@@ -151,6 +172,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8778,
         reload=True
     )
