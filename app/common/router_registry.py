@@ -1,5 +1,6 @@
 import os
 import importlib
+import importlib.util
 import inspect
 import re
 from typing import Dict, List, Any, Callable, Tuple
@@ -89,6 +90,9 @@ class RouterRegistry:
         
         route_path = '/' + '/'.join(all_parts_lower)
         
+        # 特殊处理：将 fuwu077/model 转换为 fuwu_077_model
+        route_path = route_path.replace('/fuwu077/model/', '/fuwu_077_model/')
+        
         return route_path, http_method.value
 
     def _is_action_method(self, method: Callable) -> bool:
@@ -174,6 +178,14 @@ class RouterRegistry:
         
         return controllers
 
+    @classmethod
+    def reset(cls):
+        """
+        重置单例，用于热重载时重新扫描controller
+        """
+        cls._instance = None
+        cls._initialized = False
+
     def register_all(self, prefix: str = "/api") -> APIRouter:
         """
         注册所有Controller的路由
@@ -182,6 +194,9 @@ class RouterRegistry:
         main_router = APIRouter(prefix=prefix)
         
         controllers = self._scan_controllers()
+        print(f"Found {len(controllers)} controllers:")
+        for module_name, controller_class in controllers:
+            print(f"  - {module_name}: {controller_class.__name__}")
         
         for module_name, controller_class in controllers:
             module_parts = module_name.split('.')

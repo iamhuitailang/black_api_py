@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.fuwu_077_model import (
+    UserModel as FuwuUserModel,
+    TokenModel as FuwuTokenModel,
+    AdminTokenModel as FuwuAdminTokenModel,
+    ServiceModel as FuwuServiceModel,
+    StaffModel as FuwuStaffModel,
+    OrderModel as FuwuOrderModel,
+    ReviewModel as FuwuReviewModel,
+    NotificationModel as FuwuNotificationModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -73,6 +83,18 @@ def init_database():
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
 
+    FuwuUserModel.create_table()
+    FuwuTokenModel.create_table()
+    FuwuAdminTokenModel.create_table()
+    FuwuServiceModel.create_table()
+    FuwuStaffModel.create_table()
+    FuwuOrderModel.create_table()
+    FuwuReviewModel.create_table()
+    FuwuNotificationModel.create_table()
+
+    FuwuUserModel.init_default_admin()
+    FuwuServiceModel.init_default_services()
+
     migrate_database()
 
     print("Database initialized successfully")
@@ -116,6 +138,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+from app.common.router_registry import RouterRegistry
+RouterRegistry.reset()
 router_registry = get_router_registry()
 api_router = router_registry.register_all(prefix="/api")
 app.include_router(api_router)
