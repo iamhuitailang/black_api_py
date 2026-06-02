@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.poan_model import (
+    UserModel as PoanUserModel,
+    TokenModel as PoanTokenModel,
+    CaseModel as PoanCaseModel,
+    ClueModel as PoanClueModel,
+    CharacterModel as PoanCharacterModel,
+    DialogueModel as PoanDialogueModel,
+    ProgressModel as PoanProgressModel,
+    TimelineEventModel as PoanTimelineEventModel,
+    EvidenceModel as PoanEvidenceModel,
+    QuizModel as PoanQuizModel,
+    EndingModel as PoanEndingModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +85,18 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    PoanUserModel.create_table()
+    PoanTokenModel.create_table()
+    PoanCaseModel.create_table()
+    PoanClueModel.create_table()
+    PoanCharacterModel.create_table()
+    PoanDialogueModel.create_table()
+    PoanProgressModel.create_table()
+    PoanTimelineEventModel.create_table()
+    PoanEvidenceModel.create_table()
+    PoanQuizModel.create_table()
+    PoanEndingModel.create_table()
 
     migrate_database()
 
@@ -151,6 +176,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8391,
         reload=True
     )
