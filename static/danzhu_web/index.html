@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹珠台游戏 - 经典弹珠在线玩</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <header class="app-header" v-if="!isLoginPage && !isRegisterPage">
+                <div class="header-content">
+                    <div class="logo" @click="goHome">
+                        <span class="logo-icon">🎱</span>
+                        <span class="logo-text">弹珠台</span>
+                    </div>
+                    <nav class="nav-menu" v-if="currentUser">
+                        <template v-if="currentUser.role === 'admin'">
+                            <router-link to="/admin/dashboard" :class="{active: currentRoute === '/admin/dashboard'}">
+                                <span>📊</span> 数据统计
+                            </router-link>
+                            <router-link to="/admin/users" :class="{active: currentRoute === '/admin/users'}">
+                                <span>👥</span> 用户管理
+                            </router-link>
+                            <router-link to="/admin/levels" :class="{active: currentRoute === '/admin/levels'}">
+                                <span>🎮</span> 关卡管理
+                            </router-link>
+                            <router-link to="/admin/items" :class="{active: currentRoute === '/admin/items'}">
+                                <span>⚡</span> 道具管理
+                            </router-link>
+                            <router-link to="/admin/achievements" :class="{active: currentRoute === '/admin/achievements'}">
+                                <span>🏆</span> 成就管理
+                            </router-link>
+                        </template>
+                        <template v-else>
+                            <router-link to="/game" :class="{active: currentRoute === '/game'}">
+                                <span>🎮</span> 开始游戏
+                            </router-link>
+                            <router-link to="/leaderboard" :class="{active: currentRoute === '/leaderboard'}">
+                                <span>🏆</span> 排行榜
+                            </router-link>
+                            <router-link to="/achievements" :class="{active: currentRoute === '/achievements'}">
+                                <span>⭐</span> 成就
+                            </router-link>
+                        </template>
+                    </nav>
+                    <div class="header-right" v-if="currentUser">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <span v-if="currentUser.avatar">{{ currentUser.avatar }}</span>
+                                <span v-else class="avatar-placeholder">{{ currentUser.nickname?.charAt(0) || currentUser.username?.charAt(0) }}</span>
+                            </div>
+                            <span class="user-name">{{ currentUser.nickname || currentUser.username }}</span>
+                            <div class="user-dropdown">
+                                <router-link to="/profile">个人中心</router-link>
+                                <router-link to="/settings">账号设置</router-link>
+                                <div class="dropdown-divider"></div>
+                                <a href="javascript:void(0)" @click="logout">退出登录</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right" v-else>
+                        <button class="btn btn-outline" @click="goLogin">登录</button>
+                        <button class="btn btn-primary" @click="goRegister">注册</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <transition name="fade" mode="out-in">
+                    <component :is="currentComponent"></component>
+                </transition>
+            </main>
+
+            <footer class="app-footer" v-if="!isLoginPage && !isRegisterPage">
+                <div class="footer-content">
+                    <p>© 2024 弹珠台游戏 - 经典弹珠在线玩</p>
+                </div>
+            </footer>
+        </div>
+
+        <div class="toast-container">
+            <div v-for="toast in toasts" :key="toast.id" 
+                 :class="['toast', 'toast-' + toast.type]"
+                 @click="removeToast(toast.id)">
+                {{ toast.message }}
+            </div>
+        </div>
+
+        <div v-if="loading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/router.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/services/auth.js"></script>
+    <script src="js/game/physics.js"></script>
+    <script src="js/game/game.js"></script>
+    <script src="js/pages/home.js"></script>
+    <script src="js/pages/login.js"></script>
+    <script src="js/pages/register.js"></script>
+    <script src="js/pages/game.js"></script>
+    <script src="js/pages/leaderboard.js"></script>
+    <script src="js/pages/achievements.js"></script>
+    <script src="js/pages/profile.js"></script>
+    <script src="js/pages/settings.js"></script>
+    <script src="js/pages/admin/dashboard.js"></script>
+    <script src="js/pages/admin/users.js"></script>
+    <script src="js/pages/admin/levels.js"></script>
+    <script src="js/pages/admin/items.js"></script>
+    <script src="js/pages/admin/achievements.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

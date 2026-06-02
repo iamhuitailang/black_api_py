@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.danzhu_model import (
+    UserModel as DanzhuUserModel,
+    AdminModel as DanzhuAdminModel,
+    UserTokenModel as DanzhuUserTokenModel,
+    AdminTokenModel as DanzhuAdminTokenModel,
+    LevelModel as DanzhuLevelModel,
+    ItemModel as DanzhuItemModel,
+    ScoreModel as DanzhuScoreModel,
+    AchievementModel as DanzhuAchievementModel,
+    UserAchievementModel as DanzhuUserAchievementModel,
+    GameRecordModel as DanzhuGameRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -70,8 +82,25 @@ def init_database():
     XqAdminModel.create_table()
     XqAdminTokenModel.create_table()
 
+    DanzhuUserModel.create_table()
+    DanzhuAdminModel.create_table()
+    DanzhuUserTokenModel.create_table()
+    DanzhuAdminTokenModel.create_table()
+    DanzhuLevelModel.create_table()
+    DanzhuItemModel.create_table()
+    DanzhuScoreModel.create_table()
+    DanzhuAchievementModel.create_table()
+    DanzhuUserAchievementModel.create_table()
+    DanzhuGameRecordModel.create_table()
+
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DanzhuUserModel.init_default_users()
+    DanzhuAdminModel.init_default_admin()
+    DanzhuLevelModel.init_default_levels()
+    DanzhuItemModel.init_default_items()
+    DanzhuAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +180,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8341,
         reload=True
     )
