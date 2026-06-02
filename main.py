@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.heping_model import (
+    HepingUserModel,
+    HepingTokenModel,
+    HepingAdminModel,
+    HepingAdminTokenModel,
+    WeaponModel,
+    MapModel,
+    AchievementModel,
+    UserAchievementModel,
+    GameRecordModel,
+    GameStateModel,
+    EquipmentModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +85,24 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    HepingUserModel.create_table()
+    HepingTokenModel.create_table()
+    HepingAdminModel.create_table()
+    HepingAdminTokenModel.create_table()
+    WeaponModel.create_table()
+    MapModel.create_table()
+    AchievementModel.create_table()
+    UserAchievementModel.create_table()
+    GameRecordModel.create_table()
+    GameStateModel.create_table()
+    EquipmentModel.create_table()
+
+    HepingAdminModel.init_default_admin()
+    WeaponModel.init_default_weapons()
+    MapModel.init_default_maps()
+    AchievementModel.init_default_achievements()
+    EquipmentModel.init_default_equipments()
 
     migrate_database()
 
