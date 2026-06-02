@@ -1,0 +1,7 @@
+from app.business.majiang.user_business import MajiangUserBusiness
+from app.business.majiang.admin_business import MajiangAdminBusiness
+from app.business.majiang.ai_business import MajiangAiBusiness
+from app.business.majiang.ranking_business import MajiangRankingBusiness
+from app.business.majiang.achievement_business import MajiangAchievementBusiness
+from app.business.majiang.game_business import MajiangGameBusiness
+from app.business.majiang.statistics_business import MajiangStatisticsBusiness

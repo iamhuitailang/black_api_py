@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线麻将游戏</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <header class="app-header" v-if="isLoggedIn">
+                <div class="header-content">
+                    <div class="logo">
+                        <span class="logo-icon">🀄</span>
+                        <span class="logo-text">在线麻将</span>
+                    </div>
+                    <nav class="nav-menu">
+                        <button @click="navigate('home')" :class="{active: currentPage === 'home'}">首页</button>
+                        <button @click="navigate('game')" :class="{active: currentPage === 'game'}">游戏</button>
+                        <button @click="navigate('ranking')" :class="{active: currentPage === 'ranking'}">排行榜</button>
+                        <button @click="navigate('achievement')" :class="{active: currentPage === 'achievement'}">成就</button>
+                        <button @click="navigate('profile')" :class="{active: currentPage === 'profile'}">我的</button>
+                    </nav>
+                    <div class="user-info">
+                        <span class="coins">💰 {{ userInfo.coins || 0 }}</span>
+                        <button @click="logout" class="logout-btn">退出</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div v-if="!isLoggedIn" class="auth-container">
+                    <div class="auth-tabs">
+                        <button @click="authMode = 'login'" :class="{active: authMode === 'login'}">登录</button>
+                        <button @click="authMode = 'register'" :class="{active: authMode === 'register'}">注册</button>
+                    </div>
+                    
+                    <div v-if="authMode === 'login'" class="auth-form">
+                        <h2>用户登录</h2>
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" v-model="loginForm.username" placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" v-model="loginForm.password" placeholder="请输入密码">
+                        </div>
+                        <button @click="handleLogin" class="btn-primary">登录</button>
+                        <p class="auth-tip">没有账号？<a @click="authMode = 'register'">立即注册</a></p>
+                    </div>
+
+                    <div v-if="authMode === 'register'" class="auth-form">
+                        <h2>用户注册</h2>
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" v-model="registerForm.username" placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label>昵称</label>
+                            <input type="text" v-model="registerForm.nickname" placeholder="请输入昵称">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" v-model="registerForm.password" placeholder="请输入密码">
+                        </div>
+                        <div class="form-group">
+                            <label>确认密码</label>
+                            <input type="password" v-model="registerForm.confirmPassword" placeholder="请确认密码">
+                        </div>
+                        <button @click="handleRegister" class="btn-primary">注册</button>
+                        <p class="auth-tip">已有账号？<a @click="authMode = 'login'">立即登录</a></p>
+                    </div>
+                </div>
+
+                <div v-else class="page-container">
+                    <div v-if="currentPage === 'home'" class="page-home">
+                        <div class="welcome-card">
+                            <h1>欢迎回来，{{ userInfo.nickname }}！</h1>
+                            <p class="subtitle">准备好来一局麻将了吗？</p>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">🎮</div>
+                                <div class="stat-info">
+                                    <div class="stat-value">{{ userStats.total_games || 0 }}</div>
+                                    <div class="stat-label">总场次</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">🏆</div>
+                                <div class="stat-info">
+                                    <div class="stat-value">{{ userStats.wins || 0 }}</div>
+                                    <div class="stat-label">胜利</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">⭐</div>
+                                <div class="stat-info">
+                                    <div class="stat-value">{{ userStats.max_fan || 0 }}</div>
+                                    <div class="stat-label">最高番</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">📊</div>
+                                <div class="stat-info">
+                                    <div class="stat-value">{{ winRate }}%</div>
+                                    <div class="stat-label">胜率</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="quick-actions">
+                            <button @click="navigate('game')" class="btn-action btn-start">
+                                <span class="btn-icon">🎲</span>
+                                <span>开始游戏</span>
+                            </button>
+                            <button @click="loadGameHistory" class="btn-action btn-history">
+                                <span class="btn-icon">📜</span>
+                                <span>历史记录</span>
+                            </button>
+                        </div>
+
+                        <div v-if="gameHistory.length > 0" class="history-section">
+                            <h3>最近游戏</h3>
+                            <div class="history-list">
+                                <div v-for="game in gameHistory.slice(0, 5)" :key="game.id" class="history-item">
+                                    <div class="history-result" :class="{win: game.winner_type === 'user', lose: game.winner_type === 'ai', draw: !game.winner_type}">
+                                        {{ game.winner_type === 'user' ? '胜利' : game.winner_type === 'ai' ? '失败' : '平局' }}
+                                    </div>
+                                    <div class="history-info">
+                                        <div class="history-fan">番数: {{ game.fan || 0 }}</div>
+                                        <div class="history-time">{{ game.created_at }}</div>
+                                    </div>
+                                    <div class="history-coins" :class="{positive: (game.coins_change || 0) >= 0}">
+                                        {{ (game.coins_change || 0) >= 0 ? '+' : '' }}{{ game.coins_change || 0 }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentPage === 'game'" class="page-game">
+                        <div v-if="!gameState.game_over && gameState.game_record_id" class="game-board">
+                            <div class="game-header">
+                                <div class="game-info">
+                                    <span>剩余牌: {{ gameState.tiles_remaining }}</span>
+                                    <span>回合: {{ gameState.turn_count || 0 }}</span>
+                                </div>
+                                <button @click="handleCancelGame" class="btn-small">退出游戏</button>
+                            </div>
+
+                            <div class="ai-opponents">
+                                <div v-for="(ai, index) in gameState.ai_players" :key="index" class="ai-player">
+                                    <div class="ai-avatar">🤖</div>
+                                    <div class="ai-name">{{ ai.name || 'AI对手' }}</div>
+                                    <div class="ai-tiles">🀄 × {{ ai.tile_count || 13 }}</div>
+                                </div>
+                            </div>
+
+                            <div class="discard-area">
+                                <div class="discard-pile">
+                                    <div v-for="(tile, idx) in gameState.discards.slice(-20)" :key="idx" 
+                                         class="discard-tile" :class="tile.type">
+                                        {{ getTileDisplay(tile) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="gameState.last_discard" class="last-discard">
+                                <span>最后打出: </span>
+                                <span class="tile-display" :class="gameState.last_discard.tile.type">
+                                    {{ getTileDisplay(gameState.last_discard.tile) }}
+                                </span>
+                                <span>({{ gameState.last_discard.player === 'player' ? '你' : 'AI' }})</span>
+                            </div>
+
+                            <div class="player-area">
+                                <div class="player-hand">
+                                    <div v-for="(tile, idx) in sortedHand" :key="idx" 
+                                         class="hand-tile" :class="{selected: selectedTile === idx, [tile.type]: true}"
+                                         @click="selectTile(idx)">
+                                        {{ getTileDisplay(tile) }}
+                                    </div>
+                                </div>
+
+                                <div class="game-actions">
+                                    <button v-if="gameState.is_my_turn && !hasDrawn" @click="handleDraw" class="btn-game btn-draw">
+                                        摸牌
+                                    </button>
+                                    <button v-if="gameState.is_my_turn && hasDrawn && selectedTile !== null" 
+                                            @click="handleDiscard" class="btn-game btn-discard">
+                                        出牌
+                                    </button>
+                                    <button v-if="gameState.can_hu" @click="handleHu" class="btn-game btn-hu">
+                                        胡牌！
+                                    </button>
+                                    <button v-if="!gameState.is_my_turn && !gameState.game_over" 
+                                            @click="handleAiPlay" class="btn-game btn-ai">
+                                        AI出牌
+                                    </button>
+                                </div>
+
+                                <div v-if="gameState.is_ready" class="ready-info">
+                                    <span class="ready-label">听牌！</span>
+                                    <span>等待: {{ gameState.waiting_tiles?.length || 0 }} 张</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="gameState.game_over" class="game-result">
+                            <div class="result-card">
+                                <div class="result-icon">
+                                    {{ gameState.winner === 'player' ? '🎉' : gameState.winner ? '😢' : '🤝' }}
+                                </div>
+                                <h2>
+                                    {{ gameState.winner === 'player' ? '恭喜你赢了！' : 
+                                       gameState.winner ? '很遗憾，AI赢了' : '平局' }}
+                                </h2>
+                                <div v-if="gameState.winner === 'player'" class="result-details">
+                                    <div class="result-fan">番数: {{ huResult.fan || 0 }}</div>
+                                    <div class="result-coins">获得金币: +{{ huResult.coins_win || 0 }}</div>
+                                </div>
+                                <button @click="startNewGame" class="btn-primary">再来一局</button>
+                                <button @click="navigate('home')" class="btn-secondary">返回首页</button>
+                            </div>
+                        </div>
+
+                        <div v-if="!gameState.game_record_id" class="game-lobby">
+                            <h2>选择难度开始游戏</h2>
+                            <div class="difficulty-grid">
+                                <div v-for="ai in aiList" :key="ai.id" 
+                                     class="difficulty-card" :class="'diff-' + ai.difficulty"
+                                     @click="startGame(ai.difficulty)">
+                                    <div class="diff-icon">
+                                        {{ ai.difficulty === 1 ? '🌱' : ai.difficulty === 2 ? '🌿' : '🌳' }}
+                                    </div>
+                                    <div class="diff-name">{{ ai.name }}</div>
+                                    <div class="diff-desc">{{ ai.description }}</div>
+                                    <div class="diff-level">难度: {{ '⭐'.repeat(ai.difficulty) }}</div>
+                                </div>
+                            </div>
+                            <div class="test-mode-section">
+                                <h3>🧪 测试模式（验证功能）</h3>
+                                <div class="test-buttons">
+                                    <button @click="startTestGame('ready')" class="btn-test">测试听牌</button>
+                                    <button @click="startTestGame('seven_pairs_ready')" class="btn-test">测试七对听牌</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentPage === 'ranking'" class="page-ranking">
+                        <div class="ranking-tabs">
+                            <button v-for="tab in rankingTabs" :key="tab.type" 
+                                    @click="currentRankingType = tab.type"
+                                    :class="{active: currentRankingType === tab.type}">
+                                {{ tab.name }}
+                            </button>
+                        </div>
+
+                        <div class="ranking-list">
+                            <div v-for="(item, idx) in rankingList" :key="item.user_id" 
+                                 class="ranking-item" :class="'rank-' + (idx + 1)">
+                                <div class="rank-number">{{ idx + 1 }}</div>
+                                <div class="rank-avatar">{{ item.avatar || '👤' }}</div>
+                                <div class="rank-info">
+                                    <div class="rank-name">{{ item.nickname }}</div>
+                                    <div class="rank-stats">
+                                        <span>胜场: {{ item.wins }}</span>
+                                        <span>最高番: {{ item.max_fan }}</span>
+                                    </div>
+                                </div>
+                                <div class="rank-score">{{ item.score }}</div>
+                            </div>
+                        </div>
+
+                        <div v-if="myRanking" class="my-ranking">
+                            <div class="my-rank-label">我的排名</div>
+                            <div class="my-rank-value">
+                                {{ myRanking.rank ? '第' + myRanking.rank + '名' : '未上榜' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentPage === 'achievement'" class="page-achievement">
+                        <div class="achievement-stats">
+                            <div class="achievement-progress">
+                                <span>已解锁: {{ unlockedCount }}/{{ achievements.length }}</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" :style="{width: progressPercent + '%'}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="achievement-grid">
+                            <div v-for="ach in achievements" :key="ach.id" 
+                                 class="achievement-card" :class="{unlocked: ach.unlocked, locked: !ach.unlocked}">
+                                <div class="ach-icon">{{ ach.icon || '🏅' }}</div>
+                                <div class="ach-info">
+                                    <div class="ach-name">{{ ach.name }}</div>
+                                    <div class="ach-desc">{{ ach.description }}</div>
+                                    <div class="ach-reward">
+                                        <span>💰 {{ ach.reward_coins }}</span>
+                                        <span>⭐ {{ ach.reward_exp }}</span>
+                                    </div>
+                                </div>
+                                <div v-if="ach.unlocked && !ach.reward_claimed" class="ach-claim">
+                                    <button @click="claimReward(ach.id)" class="btn-small">领取</button>
+                                </div>
+                                <div v-else-if="ach.unlocked" class="ach-claimed">✓ 已领取</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentPage === 'profile'" class="page-profile">
+                        <div class="profile-card">
+                            <div class="profile-avatar">👤</div>
+                            <div class="profile-info">
+                                <h2>{{ userInfo.nickname }}</h2>
+                                <p class="profile-username">@{{ userInfo.username }}</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <div class="stat-label">等级</div>
+                                <div class="stat-value">Lv.{{ userInfo.level || 1 }}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">金币</div>
+                                <div class="stat-value">💰 {{ userInfo.coins || 0 }}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">经验</div>
+                                <div class="stat-value">⭐ {{ userInfo.experience || 0 }}</div>
+                            </div>
+                        </div>
+
+                        <div class="profile-form">
+                            <h3>修改资料</h3>
+                            <div class="form-group">
+                                <label>昵称</label>
+                                <input type="text" v-model="profileForm.nickname" placeholder="请输入新昵称">
+                            </div>
+                            <div class="form-group">
+                                <label>头像URL</label>
+                                <input type="text" v-model="profileForm.avatar" placeholder="请输入头像链接">
+                            </div>
+                            <button @click="updateProfile" class="btn-primary">保存修改</button>
+                        </div>
+
+                        <div class="password-form">
+                            <h3>修改密码</h3>
+                            <div class="form-group">
+                                <label>原密码</label>
+                                <input type="password" v-model="passwordForm.oldPassword" placeholder="请输入原密码">
+                            </div>
+                            <div class="form-group">
+                                <label>新密码</label>
+                                <input type="password" v-model="passwordForm.newPassword" placeholder="请输入新密码">
+                            </div>
+                            <div class="form-group">
+                                <label>确认新密码</label>
+                                <input type="password" v-model="passwordForm.confirmPassword" placeholder="请确认新密码">
+                            </div>
+                            <button @click="changePassword" class="btn-primary">修改密码</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <div v-if="toast.show" class="toast" :class="toast.type">
+                {{ toast.message }}
+            </div>
+        </div>
+    </div>
+
+    <script src="js/services/api.js"></script>
+    <script src="js/services/auth.js"></script>
+    <script src="js/utils/storage.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

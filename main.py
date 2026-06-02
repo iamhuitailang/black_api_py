@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.majiang_model import (
+    UserModel as MajiangUserModel,
+    MajiangTokenModel,
+    AdminModel as MajiangAdminModel,
+    MajiangAdminTokenModel,
+    AiModel as MajiangAiModel,
+    RankingModel as MajiangRankingModel,
+    AchievementModel as MajiangAchievementModel,
+    UserAchievementModel as MajiangUserAchievementModel,
+    GameRecordModel as MajiangGameRecordModel,
+    GameStateModel as MajiangGameStateModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,21 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    MajiangUserModel.create_table()
+    MajiangTokenModel.create_table()
+    MajiangAdminModel.create_table()
+    MajiangAdminTokenModel.create_table()
+    MajiangAiModel.create_table()
+    MajiangRankingModel.create_table()
+    MajiangAchievementModel.create_table()
+    MajiangUserAchievementModel.create_table()
+    MajiangGameRecordModel.create_table()
+    MajiangGameStateModel.create_table()
+
+    MajiangAdminModel.init_default_admin()
+    MajiangAiModel.init_default_ai()
+    MajiangAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +178,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8451,
         reload=True
     )

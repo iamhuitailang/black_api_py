@@ -1,0 +1,7 @@
+from app.controller.majiang.majiang_user_controller import MajiangUserController
+from app.controller.majiang.majiang_admin_controller import MajiangAdminController
+from app.controller.majiang.majiang_ai_controller import MajiangAiController
+from app.controller.majiang.majiang_ranking_controller import MajiangRankingController
+from app.controller.majiang.majiang_achievement_controller import MajiangAchievementController
+from app.controller.majiang.majiang_game_controller import MajiangGameController
+from app.controller.majiang.majiang_statistics_controller import MajiangStatisticsController
