@@ -24,6 +24,22 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.dafuweng import (
+    UserModel as DafuwengUserModel,
+    AdminModel as DafuwengAdminModel,
+    TokenModel as DafuwengTokenModel,
+    AdminTokenModel as DafuwengAdminTokenModel,
+    MapCellModel,
+    ItemModel,
+    GameModel,
+    GamePlayerModel,
+    PlayerItemModel,
+    PlayerLandModel,
+    RandomEventModel,
+    AchievementModel,
+    PlayerAchievementModel,
+    GameLogModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +88,27 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DafuwengUserModel.create_table()
+    DafuwengAdminModel.create_table()
+    DafuwengTokenModel.create_table()
+    DafuwengAdminTokenModel.create_table()
+    MapCellModel.create_table()
+    ItemModel.create_table()
+    GameModel.create_table()
+    GamePlayerModel.create_table()
+    PlayerItemModel.create_table()
+    PlayerLandModel.create_table()
+    RandomEventModel.create_table()
+    AchievementModel.create_table()
+    PlayerAchievementModel.create_table()
+    GameLogModel.create_table()
+
+    DafuwengAdminModel.init_default_admin()
+    MapCellModel.init_default_map()
+    ItemModel.init_default_items()
+    RandomEventModel.init_default_events()
+    AchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +188,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8098,
         reload=True
     )
