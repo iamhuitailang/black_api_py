@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.meng_model import (
+    UserModel as MengUserModel,
+    MengTokenModel,
+    DreamModel,
+    BlockModel,
+    CreatureModel,
+    LevelModel,
+    InventoryModel,
+    SettingModel,
+    FriendModel,
+    VisitModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -69,6 +81,17 @@ def init_database():
     XqCategoryModel.create_table()
     XqAdminModel.create_table()
     XqAdminTokenModel.create_table()
+
+    MengUserModel.create_table()
+    MengTokenModel.create_table()
+    DreamModel.create_table()
+    BlockModel.create_table()
+    CreatureModel.create_table()
+    LevelModel.create_table()
+    InventoryModel.create_table()
+    SettingModel.create_table()
+    FriendModel.create_table()
+    VisitModel.create_table()
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
@@ -151,6 +174,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8920,
         reload=True
     )
