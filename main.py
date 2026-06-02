@@ -24,6 +24,21 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.wangzhe_model import (
+    UserModel as WangzheUserModel,
+    TokenModel as WangzheTokenModel,
+    AdminModel as WangzheAdminModel,
+    AdminTokenModel as WangzheAdminTokenModel,
+    HeroModel as WangzheHeroModel,
+    SkillModel as WangzheSkillModel,
+    EquipmentModel as WangzheEquipmentModel,
+    AchievementModel as WangzheAchievementModel,
+    UserAchievementModel as WangzheUserAchievementModel,
+    GameModel as WangzheGameModel,
+    GamePlayerModel as WangzheGamePlayerModel,
+    UserHeroModel as WangzheUserHeroModel,
+    RankingModel as WangzheRankingModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +87,25 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    WangzheUserModel.create_table()
+    WangzheTokenModel.create_table()
+    WangzheAdminModel.create_table()
+    WangzheAdminTokenModel.create_table()
+    WangzheHeroModel.create_table()
+    WangzheSkillModel.create_table()
+    WangzheEquipmentModel.create_table()
+    WangzheAchievementModel.create_table()
+    WangzheUserAchievementModel.create_table()
+    WangzheGameModel.create_table()
+    WangzheGamePlayerModel.create_table()
+    WangzheUserHeroModel.create_table()
+    WangzheRankingModel.create_table()
+
+    WangzheAdminModel.init_default_admin()
+    WangzheHeroModel.init_default_heroes()
+    WangzheEquipmentModel.init_default_equipments()
+    WangzheAchievementModel.init_default_achievements()
 
     migrate_database()
 
