@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.jinwutuan import (
+    UserModel as JinwutuanUserModel,
+    TokenModel as JinwutuanTokenModel,
+    SongModel as JinwutuanSongModel,
+    InstrumentModel as JinwutuanInstrumentModel,
+    ScoreModel as JinwutuanScoreModel,
+    AchievementModel as JinwutuanAchievementModel,
+    UserAchievementModel as JinwutuanUserAchievementModel,
+    GameStatsModel as JinwutuanGameStatsModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +82,18 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    JinwutuanUserModel.create_table()
+    JinwutuanTokenModel.create_table()
+    JinwutuanSongModel.create_table()
+    JinwutuanInstrumentModel.create_table()
+    JinwutuanScoreModel.create_table()
+    JinwutuanAchievementModel.create_table()
+    JinwutuanUserAchievementModel.create_table()
+    JinwutuanGameStatsModel.create_table()
+
+    JinwutuanInstrumentModel.init_default_instruments()
+    JinwutuanAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +173,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8566,
         reload=True
     )
