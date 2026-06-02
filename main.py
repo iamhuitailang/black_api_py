@@ -24,6 +24,15 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.zuma_model import (
+    ZumaUserModel,
+    ZumaTokenModel,
+    ZumaGameScoreModel,
+    ZumaAchievementModel,
+    ZumaUserAchievementModel,
+    ZumaUserItemModel,
+    ZumaGameRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +81,16 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ZumaUserModel.create_table()
+    ZumaTokenModel.create_table()
+    ZumaGameScoreModel.create_table()
+    ZumaAchievementModel.create_table()
+    ZumaUserAchievementModel.create_table()
+    ZumaUserItemModel.create_table()
+    ZumaGameRecordModel.create_table()
+    
+    ZumaAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +170,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8461,
         reload=True
     )
