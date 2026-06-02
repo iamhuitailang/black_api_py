@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.saiche_model import (
+    UserModel as SaicheUserModel,
+    TokenModel as SaicheTokenModel,
+    AdminModel as SaicheAdminModel,
+    AdminTokenModel as SaicheAdminTokenModel,
+    CarModel as SaicheCarModel,
+    UserCarModel as SaicheUserCarModel,
+    TrackModel as SaicheTrackModel,
+    ItemModel as SaicheItemModel,
+    AchievementModel as SaicheAchievementModel,
+    UserAchievementModel as SaicheUserAchievementModel,
+    RaceRecordModel as SaicheRaceRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +85,24 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    SaicheUserModel.create_table()
+    SaicheTokenModel.create_table()
+    SaicheAdminModel.create_table()
+    SaicheAdminTokenModel.create_table()
+    SaicheCarModel.create_table()
+    SaicheUserCarModel.create_table()
+    SaicheTrackModel.create_table()
+    SaicheItemModel.create_table()
+    SaicheAchievementModel.create_table()
+    SaicheUserAchievementModel.create_table()
+    SaicheRaceRecordModel.create_table()
+
+    SaicheAdminModel.init_default_admin()
+    SaicheCarModel.init_default_cars()
+    SaicheTrackModel.init_default_tracks()
+    SaicheItemModel.init_default_items()
+    SaicheAchievementModel.init_default_achievements()
 
     migrate_database()
 
@@ -151,6 +182,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8002,
         reload=True
     )
