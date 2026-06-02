@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黄金矿工 - 挖矿寻宝</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div v-if="loading" class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+        </div>
+        <template v-else>
+            <nav class="navbar" v-if="currentRoute !== 'login' && currentRoute !== 'register'">
+                <div class="nav-brand" @click="navigate('home')">
+                    <span class="nav-icon">⛏️</span>
+                    <span class="nav-title">黄金矿工</span>
+                </div>
+                <div class="nav-links">
+                    <a v-if="!isAdmin" :class="{active: currentRoute === 'home'}" @click="navigate('home')">首页</a>
+                    <a v-if="!isAdmin" :class="{active: currentRoute === 'game'}" @click="navigate('game')">挖矿</a>
+                    <a v-if="!isAdmin" :class="{active: currentRoute === 'leaderboard'}" @click="navigate('leaderboard')">排行榜</a>
+                    <a v-if="!isAdmin" :class="{active: currentRoute === 'achievements'}" @click="navigate('achievements')">成就</a>
+                    <a v-if="isAdmin" :class="{active: currentRoute === 'admin-dashboard'}" @click="navigate('admin-dashboard')">仪表盘</a>
+                    <a v-if="isAdmin" :class="{active: currentRoute === 'admin-users'}" @click="navigate('admin-users')">用户管理</a>
+                    <a v-if="isAdmin" :class="{active: currentRoute === 'admin-ores'}" @click="navigate('admin-ores')">矿石管理</a>
+                    <a v-if="isAdmin" :class="{active: currentRoute === 'admin-achievements'}" @click="navigate('admin-achievements')">成就管理</a>
+                    <a v-if="isAdmin" :class="{active: currentRoute === 'admin-stats'}" @click="navigate('admin-stats')">数据统计</a>
+                </div>
+                <div class="nav-user">
+                    <template v-if="isLoggedIn">
+                        <span class="user-info">
+                            <span class="user-role-badge" :class="isAdmin ? 'admin' : 'player'">{{ isAdmin ? '管理员' : '玩家' }}</span>
+                            {{ currentUser?.nickname || currentUser?.username }}
+                        </span>
+                        <span v-if="!isAdmin" class="user-score">💰 {{ currentUser?.total_score || 0 }}</span>
+                        <a @click="navigate('profile')">个人中心</a>
+                        <a @click="handleLogout">退出</a>
+                    </template>
+                    <template v-else>
+                        <a @click="navigate('login')">登录</a>
+                        <a @click="navigate('register')">注册</a>
+                    </template>
+                </div>
+            </nav>
+
+            <main class="main-content">
+                <component :is="currentComponent" :key="currentRoute"
+                    :user="currentUser"
+                    :is-admin="isAdmin"
+                    @navigate="navigate"
+                    @login-success="onLoginSuccess"
+                    @logout="handleLogout"
+                    @score-updated="refreshUser">
+                </component>
+            </main>
+        </template>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/services/auth.js"></script>
+    <script src="js/pages/login.js"></script>
+    <script src="js/pages/register.js"></script>
+    <script src="js/pages/game.js"></script>
+    <script src="js/pages/leaderboard.js"></script>
+    <script src="js/pages/achievements.js"></script>
+    <script src="js/pages/profile.js"></script>
+    <script src="js/pages/home.js"></script>
+    <script src="js/pages/admin-dashboard.js"></script>
+    <script src="js/pages/admin-users.js"></script>
+    <script src="js/pages/admin-ores.js"></script>
+    <script src="js/pages/admin-achievements.js"></script>
+    <script src="js/pages/admin-stats.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
