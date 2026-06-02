@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.xiangqi077_model import (
+    XiangqiUserModel,
+    XiangqiTokenModel,
+    XiangqiAdminModel,
+    XiangqiAdminTokenModel,
+    XiangqiGameModel,
+    XiangqiGameMoveModel,
+    XiangqiChatModel,
+    XiangqiLeaderboardModel,
+    XiangqiAIConfigModel,
+    XiangqiSpectatorModel,
+    XiangqiGameStateModel,
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +85,21 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    XiangqiUserModel.create_table()
+    XiangqiTokenModel.create_table()
+    XiangqiAdminModel.create_table()
+    XiangqiAdminTokenModel.create_table()
+    XiangqiGameModel.create_table()
+    XiangqiGameMoveModel.create_table()
+    XiangqiChatModel.create_table()
+    XiangqiLeaderboardModel.create_table()
+    XiangqiAIConfigModel.create_table()
+    XiangqiSpectatorModel.create_table()
+    XiangqiGameStateModel.create_table()
+
+    XiangqiAdminModel.init_default_admin()
+    XiangqiAIConfigModel.init_default_configs()
 
     migrate_database()
 
@@ -151,6 +179,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8980,
         reload=True
     )
