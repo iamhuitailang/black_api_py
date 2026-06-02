@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>末日机甲 - 打飞机</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background: #0a0a0f;">
+
+<script type="text/x-template" id="page-login-template">
+  <div class="login-page">
+    <div class="login-box">
+      <div class="card scan-line">
+        <div class="logo-text">末日机甲</div>
+        <div class="subtitle">DOOMSDAY MECHA - 登录</div>
+        <form @submit.prevent="submit">
+          <div class="form-group">
+            <label>用户名</label>
+            <input type="text" class="form-input" v-model="form.username" placeholder="输入用户名" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" class="form-input" v-model="form.password" placeholder="输入密码" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary" :disabled="loading">
+            {{ loading ? '登录中...' : '登 录' }}
+          </button>
+        </form>
+        <div class="alt-link">
+          还没有账号？<a @click="goToRegister">立即注册</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-register-template">
+  <div class="register-page">
+    <div class="register-box">
+      <div class="card scan-line">
+        <div class="logo-text">末日机甲</div>
+        <div class="subtitle">DOOMSDAY MECHA - 注册</div>
+        <form @submit.prevent="submit">
+          <div class="form-group">
+            <label>用户名</label>
+            <input type="text" class="form-input" v-model="form.username" placeholder="设置用户名" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label>昵称</label>
+            <input type="text" class="form-input" v-model="form.nickname" placeholder="设置昵称（选填）">
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" class="form-input" v-model="form.password" placeholder="设置密码" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>确认密码</label>
+            <input type="password" class="form-input" v-model="form.confirmPassword" placeholder="再次输入密码" autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn-primary" :disabled="loading">
+            {{ loading ? '注册中...' : '注 册' }}
+          </button>
+        </form>
+        <div class="alt-link">
+          已有账号？<a @click="goToLogin">立即登录</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-game-template">
+  <div class="page-container game-page">
+    <h2 class="mecha-header">战斗控制台</h2>
+
+    <div v-if="uiState === 'select'">
+      <div class="action-bar" style="justify-content: center; margin-bottom: 20px;">
+        <button class="btn btn-primary" v-if="hasSavedState" @click="continueGame">继续游戏</button>
+      </div>
+
+      <h3 class="card-header" style="text-align: center; margin-bottom: 20px;">选择你的战机</h3>
+      <div class="grid-4" v-if="aircraftList.length > 0">
+        <div
+          v-for="craft in aircraftList"
+          :key="craft.id"
+          class="card aircraft-card"
+          :class="{ selected: selectedAircraft && selectedAircraft.id === craft.id }"
+          @click="selectAircraft(craft)"
+        >
+          <div class="aircraft-icon">✈️</div>
+          <div class="aircraft-name">{{ craft.name }}</div>
+          <div class="aircraft-type badge badge-cyan">{{ craft.type }}</div>
+          <div class="aircraft-stats">
+            <div class="stat-row"><span>HP</span><div class="stat-bar"><div class="stat-fill hp" :style="{ width: (craft.hp / 200 * 100) + '%' }"></div></div><span class="stat-val">{{ craft.hp }}</span></div>
+            <div class="stat-row"><span>攻击</span><div class="stat-bar"><div class="stat-fill atk" :style="{ width: (craft.attack / 50 * 100) + '%' }"></div></div><span class="stat-val">{{ craft.attack }}</span></div>
+            <div class="stat-row"><span>速度</span><div class="stat-bar"><div class="stat-fill spd" :style="{ width: (craft.speed / 10 * 100) + '%' }"></div></div><span class="stat-val">{{ craft.speed }}</span></div>
+            <div class="stat-row"><span>防御</span><div class="stat-bar"><div class="stat-fill def" :style="{ width: (craft.defense / 20 * 100) + '%' }"></div></div><span class="stat-val">{{ craft.defense }}</span></div>
+            <div class="stat-row"><span>弹幕</span><div class="stat-bar"><div class="stat-fill blt" :style="{ width: (craft.bullet_count / 5 * 100) + '%' }"></div></div><span class="stat-val">×{{ craft.bullet_count }}</span></div>
+          </div>
+          <div class="aircraft-ability" v-if="craft.description">{{ craft.description }}</div>
+          <div class="default-badge" v-if="craft.is_default === 1">默认</div>
+        </div>
+      </div>
+      <div class="loading-spinner" v-if="loadingAircraft"></div>
+      <div style="margin-top: 30px; text-align: center;">
+        <button class="btn btn-primary btn-lg pulse" :disabled="!selectedAircraft" @click="startGame">开始战斗</button>
+      </div>
+    </div>
+
+    <div v-if="uiState === 'playing' || uiState === 'paused'">
+      <div class="game-canvas-wrapper">
+        <canvas ref="gameCanvas" class="game-canvas" width="480" height="720"></canvas>
+
+        <div class="hud-overlay">
+          <div class="hud-top">
+            <div class="hud-item">
+              <div class="hud-label">得分</div>
+              <div class="hud-value score">{{ Utils.formatScore(score) }}</div>
+            </div>
+            <div class="hud-item">
+              <div class="hud-label">波次</div>
+              <div class="hud-value wave">{{ wave }}</div>
+            </div>
+            <div class="hud-item">
+              <div class="hud-label">武器</div>
+              <div class="hud-value weapon">Lv.{{ weaponLevel }}</div>
+            </div>
+          </div>
+          <div class="hud-bottom">
+            <div class="hud-hp">
+              <div class="hud-label">HP</div>
+              <div class="hp-bar">
+                <div class="hp-fill" :style="{ width: hpPercent + '%' }"></div>
+              </div>
+              <div class="hp-text">{{ hp }}/{{ maxHp }}</div>
+            </div>
+            <div class="hud-lives">
+              <span v-for="i in lives" :key="i" class="life-icon">❤️</span>
+              <span v-for="i in (3 - lives)" :key="'empty-' + i" class="life-icon empty">🖤</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pause-overlay" v-if="uiState === 'paused'">
+          <div class="pause-content card scan-line">
+            <h2 class="mecha-header" style="margin-bottom: 30px; text-align: center;">游戏暂停</h2>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+              <button class="btn btn-primary btn-lg" @click="togglePause">继续游戏</button>
+              <button class="btn" @click="backToMenu">返回菜单</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-controls" style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn" @click="togglePause">{{ uiState === 'paused' ? '继续' : '暂停' }}</button>
+        <button class="btn btn-danger" @click="backToMenu">返回菜单</button>
+      </div>
+
+      <div class="virtual-joystick" ref="joystick" @touchstart.prevent="onJoystickStart" @touchmove.prevent="onJoystickMove" @touchend.prevent="onJoystickEnd">
+        <div class="joystick-base"></div>
+        <div class="joystick-stick" :style="joystickStyle"></div>
+      </div>
+    </div>
+
+    <div v-if="uiState === 'gameOver'">
+      <div class="game-over-screen">
+        <div class="card scan-line game-over-card">
+          <h2 class="mecha-header" style="text-align: center;">战斗结束</h2>
+          <div class="new-record" v-if="isNewRecord">🏆 新纪录!</div>
+          <div class="final-stats">
+            <div class="final-stat-item">
+              <div class="final-stat-label">最终得分</div>
+              <div class="final-stat-value score">{{ Utils.formatScore(gameOverData.score) }}</div>
+            </div>
+            <div class="grid-2" style="margin-top: 20px;">
+              <div class="final-stat-item small">
+                <div class="final-stat-label">到达波次</div>
+                <div class="final-stat-value">{{ gameOverData.wave }}</div>
+              </div>
+              <div class="final-stat-item small">
+                <div class="final-stat-label">消灭敌人</div>
+                <div class="final-stat-value">{{ gameOverData.enemiesKilled }}</div>
+              </div>
+              <div class="final-stat-item small">
+                <div class="final-stat-label">收集道具</div>
+                <div class="final-stat-value">{{ gameOverData.itemsCollected }}</div>
+              </div>
+              <div class="final-stat-item small">
+                <div class="final-stat-label">游戏时间</div>
+                <div class="final-stat-value">{{ Utils.formatTime(Math.floor(gameOverData.playTime)) }}</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 30px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-primary btn-lg" @click="playAgain">再来一局</button>
+            <button class="btn" @click="backToMenu">返回菜单</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-leaderboard-template">
+  <div class="page-container">
+    <h2 class="mecha-header">战斗排行榜</h2>
+    <div class="grid-2" v-if="userRank || userBest" style="margin-bottom: 24px;">
+      <div class="stat-card" v-if="userRank">
+        <div class="stat-value">{{ userRank.rank || '-' }}</div>
+        <div class="stat-label">当前排名</div>
+      </div>
+      <div class="stat-card" v-if="userBest">
+        <div class="stat-value">{{ userBest.score ? userBest.score.toLocaleString() : '-' }}</div>
+        <div class="stat-label">最佳得分</div>
+      </div>
+    </div>
+    <div class="card" v-if="!loading && topPlayers.length > 0">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>玩家</th>
+            <th>得分</th>
+            <th>波次</th>
+            <th>时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(player, index) in topPlayers" :key="index">
+            <td>
+              <span class="rank-badge" :class="getRankClass(index)">{{ index + 1 }}</span>
+            </td>
+            <td>{{ player.nickname || player.username }}</td>
+            <td style="color: var(--accent-orange); font-weight: 700;">{{ player.score ? player.score.toLocaleString() : '0' }}</td>
+            <td>{{ player.wave || '-' }}</td>
+            <td style="color: var(--text-secondary); font-size: 0.8rem;">{{ player.created_at ? new Date(player.created_at).toLocaleDateString() : '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="loading-spinner" v-if="loading"></div>
+    <div class="empty-state" v-if="!loading && topPlayers.length === 0">
+      <div class="empty-icon">🏆</div>
+      <div class="empty-text">暂无排行数据</div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-achievement-template">
+  <div class="page-container">
+    <h2 class="mecha-header">作战成就</h2>
+    <div class="loading-spinner" v-if="loading"></div>
+    <div class="grid-3" v-if="!loading && achievements.length > 0">
+      <div
+        v-for="item in achievements"
+        :key="item.id"
+        class="achievement-card"
+        :class="isUnlocked(item) ? 'unlocked' : 'locked'"
+      >
+        <div class="achievement-icon">{{ item.icon || '🎖️' }}</div>
+        <div class="achievement-name">{{ item.name }}</div>
+        <div class="achievement-desc">{{ item.description }}</div>
+      </div>
+    </div>
+    <div class="empty-state" v-if="!loading && achievements.length === 0">
+      <div class="empty-icon">🎖️</div>
+      <div class="empty-text">暂无成就</div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-profile-template">
+  <div class="page-container">
+    <h2 class="mecha-header">个人中心</h2>
+    <div class="profile-section" v-if="user">
+      <div class="profile-sidebar">
+        <div class="profile-avatar">{{ (user.nickname || user.username || '?')[0] }}</div>
+        <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 4px;">{{ user.nickname || user.username }}</div>
+        <div style="color: var(--text-secondary); font-size: 0.85rem;">{{ user.role === 'admin' ? '管理员' : '飞行员' }}</div>
+        <div style="margin-top: 16px;">
+          <span class="badge" :class="user.role === 'admin' ? 'badge-red' : 'badge-cyan'">{{ user.role === 'admin' ? 'ADMIN' : 'PILOT' }}</span>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">基本信息</div>
+          <form @submit.prevent="editMode ? updateProfile() : (editMode = true)">
+            <div class="grid-2">
+              <div class="form-group">
+                <label>用户名</label>
+                <input type="text" class="form-input" :value="user.username" disabled>
+              </div>
+              <div class="form-group">
+                <label>昵称</label>
+                <input type="text" class="form-input" v-model="form.nickname" :disabled="!editMode" placeholder="设置昵称">
+              </div>
+              <div class="form-group">
+                <label>邮箱</label>
+                <input type="email" class="form-input" v-model="form.email" :disabled="!editMode" placeholder="设置邮箱">
+              </div>
+              <div class="form-group">
+                <label>注册时间</label>
+                <input type="text" class="form-input" :value="user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'" disabled>
+              </div>
+            </div>
+            <div style="margin-top: 16px; display: flex; gap: 10px;">
+              <button type="submit" class="btn btn-primary" v-if="editMode" :disabled="loading">
+                {{ loading ? '保存中...' : '保存' }}
+              </button>
+              <button type="button" class="btn" v-if="editMode" @click="editMode = false">取消</button>
+              <button type="submit" class="btn btn-cyan" v-if="!editMode">编辑资料</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-header">安全设置</div>
+          <div v-if="!showPasswordForm">
+            <button class="btn" @click="showPasswordForm = true">修改密码</button>
+          </div>
+          <form v-if="showPasswordForm" @submit.prevent="changePassword">
+            <div class="form-group">
+              <label>当前密码</label>
+              <input type="password" class="form-input" v-model="passwordForm.oldPassword" placeholder="输入当前密码" autocomplete="current-password">
+            </div>
+            <div class="form-group">
+              <label>新密码</label>
+              <input type="password" class="form-input" v-model="passwordForm.newPassword" placeholder="输入新密码" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label>确认新密码</label>
+              <input type="password" class="form-input" v-model="passwordForm.confirmPassword" placeholder="再次输入新密码" autocomplete="new-password">
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" class="btn btn-primary" :disabled="loading">
+                {{ loading ? '修改中...' : '确认修改' }}
+              </button>
+              <button type="button" class="btn" @click="showPasswordForm = false; passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' }">取消</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-admin-dashboard-template">
+  <div class="page-container">
+    <h2 class="mecha-header">数据面板</h2>
+    <div class="loading-spinner" v-if="loading"></div>
+    <div v-if="!loading">
+      <div class="grid-4" style="margin-bottom: 24px;">
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--accent-cyan);">{{ overview.total_users || 0 }}</div>
+          <div class="stat-label">用户总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--accent-orange);">{{ overview.total_games || 0 }}</div>
+          <div class="stat-label">游戏局数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--accent-green);">{{ formatNumber(overview.total_score) }}</div>
+          <div class="stat-label">总得分</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--accent-red);">{{ overview.max_wave || 0 }}</div>
+          <div class="stat-label">最高波次</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">每日统计</div>
+          <table class="data-table" v-if="dailyStats.length > 0">
+            <thead>
+              <tr><th>日期</th><th>游戏数</th><th>总分</th><th>平均分</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="stat in dailyStats" :key="stat.date">
+                <td>{{ stat.date }}</td>
+                <td>{{ stat.games }}</td>
+                <td>{{ formatNumber(stat.total_score) }}</td>
+                <td>{{ Math.round(stat.avg_score) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" v-else>暂无数据</div>
+        </div>
+        <div class="card">
+          <div class="card-header">热门飞机</div>
+          <table class="data-table" v-if="popularAircraft.length > 0">
+            <thead>
+              <tr><th>飞机ID</th><th>使用次数</th><th>平均分</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="ac in popularAircraft" :key="ac.aircraft_id">
+                <td>{{ ac.aircraft_id }}</td>
+                <td>{{ ac.usage_count }}</td>
+                <td>{{ Math.round(ac.avg_score) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" v-else>暂无数据</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 24px;">
+        <div class="card-header">排行榜</div>
+        <table class="data-table" v-if="topPlayers.length > 0">
+          <thead>
+            <tr><th>排名</th><th>玩家</th><th>得分</th><th>波次</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="(player, index) in topPlayers" :key="player.id">
+              <td><span class="rank-badge" :class="getRankClass(index)">{{ index + 1 }}</span></td>
+              <td>{{ player.nickname || player.username }}</td>
+              <td style="color: var(--accent-orange);">{{ formatNumber(player.score) }}</td>
+              <td>{{ player.wave }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty-state" v-else>暂无数据</div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-admin-users-template">
+  <div class="page-container">
+    <h2 class="mecha-header">用户管理</h2>
+    <div class="card">
+      <div class="table-toolbar">
+        <input type="text" class="form-input search-input" v-model="keyword" placeholder="搜索用户名/昵称" @input.debounce="loadData">
+        <button class="btn btn-primary" @click="loadData">刷新</button>
+      </div>
+      <div class="loading-spinner" v-if="loading"></div>
+      <table class="data-table" v-if="!loading && items.length > 0">
+        <thead>
+          <tr><th>ID</th><th>用户名</th><th>昵称</th><th>角色</th><th>状态</th><th>总得分</th><th>游戏数</th><th>注册时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in items" :key="user.id">
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.nickname }}</td>
+            <td><span class="badge" :class="user.role === 'admin' ? 'badge-red' : 'badge-cyan'">{{ user.role }}</span></td>
+            <td><span class="badge" :class="user.status === 0 ? 'badge-green' : 'badge-red'">{{ user.status_text }}</span></td>
+            <td>{{ formatNumber(user.total_score) }}</td>
+            <td>{{ user.games_played }}</td>
+            <td>{{ user.created_at ? user.created_at.substr(0, 10) : '-' }}</td>
+            <td>
+              <button class="btn btn-sm" @click="toggleBan(user)" v-if="user.role !== 'admin'">
+                {{ user.status === 0 ? '封号' : '解封' }}
+              </button>
+              <button class="btn btn-sm btn-danger" @click="removeUser(user)" v-if="user.role !== 'admin'">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" v-if="!loading && items.length === 0">暂无用户</div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-admin-aircraft-template">
+  <div class="page-container">
+    <h2 class="mecha-header">飞机管理</h2>
+    <div class="card">
+      <div class="table-toolbar">
+        <button class="btn btn-primary" @click="openCreate()">+ 新增飞机</button>
+      </div>
+      <div class="loading-spinner" v-if="loading"></div>
+      <table class="data-table" v-if="!loading && items.length > 0">
+        <thead>
+          <tr><th>ID</th><th>名称</th><th>类型</th><th>HP</th><th>攻击</th><th>速度</th><th>防御</th><th>弹幕</th><th>默认</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.id">
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td><span class="badge badge-cyan">{{ item.type }}</span></td>
+            <td>{{ item.hp }}</td>
+            <td>{{ item.attack }}</td>
+            <td>{{ item.speed }}</td>
+            <td>{{ item.defense }}</td>
+            <td>×{{ item.bullet_count }}</td>
+            <td>{{ item.is_default ? '是' : '否' }}</td>
+            <td>
+              <button class="btn btn-sm" @click="openEdit(item)">编辑</button>
+              <button class="btn btn-sm btn-danger" @click="deleteItem(item.id)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" v-if="!loading && items.length === 0">暂无数据</div>
+    </div>
+    <div class="modal-overlay" v-if="showModal" @click.self="showModal = false">
+      <div class="modal-content scan-line">
+        <div class="modal-header">{{ editItem ? '编辑飞机' : '新增飞机' }}</div>
+        <div class="modal-body">
+          <div class="form-group"><label>名称</label><input type="text" class="form-input" v-model="form.name"></div>
+          <div class="form-group"><label>类型</label>
+            <select class="form-input" v-model="form.type">
+              <option value="fighter">战斗机</option>
+              <option value="bomber">轰炸机</option>
+              <option value="scout">侦察机</option>
+              <option value="heavy">重型机</option>
+            </select>
+          </div>
+          <div class="grid-4">
+            <div class="form-group"><label>HP</label><input type="number" class="form-input" v-model.number="form.hp"></div>
+            <div class="form-group"><label>攻击</label><input type="number" class="form-input" v-model.number="form.attack"></div>
+            <div class="form-group"><label>速度</label><input type="number" class="form-input" v-model.number="form.speed"></div>
+            <div class="form-group"><label>防御</label><input type="number" class="form-input" v-model.number="form.defense"></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label>弹幕数量</label><input type="number" class="form-input" v-model.number="form.bullet_count"></div>
+            <div class="form-group"><label>是否默认</label>
+              <select class="form-input" v-model.number="form.is_default">
+                <option :value="0">否</option>
+                <option :value="1">是</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>描述</label><input type="text" class="form-input" v-model="form.description"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="showModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveItem">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-admin-waves-template">
+  <div class="page-container">
+    <h2 class="mecha-header">关卡管理</h2>
+    <div class="card">
+      <div class="table-toolbar">
+        <button class="btn btn-primary" @click="openCreate()">+ 新增波次</button>
+      </div>
+      <div class="loading-spinner" v-if="loading"></div>
+      <table class="data-table" v-if="!loading && items.length > 0">
+        <thead>
+          <tr><th>波次</th><th>名称</th><th>敌人数量</th><th>生成间隔</th><th>难度系数</th><th>奖励</th><th>BOSS</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.id">
+            <td><span class="badge badge-cyan">{{ item.wave_number }}</span></td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.enemy_count }}</td>
+            <td>{{ item.spawn_interval }}ms</td>
+            <td>×{{ item.difficulty_multiplier }}</td>
+            <td>{{ item.reward_score }}</td>
+            <td>{{ item.boss_id ? '是' : '否' }}</td>
+            <td>
+              <button class="btn btn-sm" @click="openEdit(item)">编辑</button>
+              <button class="btn btn-sm btn-danger" @click="deleteItem(item.id)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" v-if="!loading && items.length === 0">暂无数据</div>
+    </div>
+    <div class="modal-overlay" v-if="showModal" @click.self="showModal = false">
+      <div class="modal-content scan-line">
+        <div class="modal-header">{{ editItem ? '编辑波次' : '新增波次' }}</div>
+        <div class="modal-body">
+          <div class="grid-2">
+            <div class="form-group"><label>波次编号</label><input type="number" class="form-input" v-model.number="form.wave_number"></div>
+            <div class="form-group"><label>名称</label><input type="text" class="form-input" v-model="form.name"></div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group"><label>敌人数量</label><input type="number" class="form-input" v-model.number="form.enemy_count"></div>
+            <div class="form-group"><label>生成间隔(ms)</label><input type="number" class="form-input" v-model.number="form.spawn_interval"></div>
+            <div class="form-group"><label>难度系数</label><input type="number" step="0.1" class="form-input" v-model.number="form.difficulty_multiplier"></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label>奖励分数</label><input type="number" class="form-input" v-model.number="form.reward_score"></div>
+            <div class="form-group"><label>BOSS ID</label><input type="number" class="form-input" v-model.number="form.boss_id"></div>
+          </div>
+          <div class="form-group"><label>描述</label><input type="text" class="form-input" v-model="form.description"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="showModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveItem">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-admin-items-template">
+  <div class="page-container">
+    <h2 class="mecha-header">道具管理</h2>
+    <div class="card">
+      <div class="table-toolbar">
+        <button class="btn btn-primary" @click="openCreate()">+ 新增道具</button>
+      </div>
+      <div class="loading-spinner" v-if="loading"></div>
+      <table class="data-table" v-if="!loading && items.length > 0">
+        <thead>
+          <tr><th>ID</th><th>名称</th><th>类型</th><th>效果值</th><th>持续时间</th><th>掉落率</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.id">
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td><span class="badge" :class="getItemTypeClass(item.type)">{{ item.type }}</span></td>
+            <td>{{ item.effect_value }}</td>
+            <td>{{ item.duration ? item.duration + 'ms' : '瞬时' }}</td>
+            <td>{{ (item.drop_rate * 100).toFixed(1) }}%</td>
+            <td>
+              <button class="btn btn-sm" @click="openEdit(item)">编辑</button>
+              <button class="btn btn-sm btn-danger" @click="deleteItem(item.id)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" v-if="!loading && items.length === 0">暂无数据</div>
+    </div>
+    <div class="modal-overlay" v-if="showModal" @click.self="showModal = false">
+      <div class="modal-content scan-line">
+        <div class="modal-header">{{ editItem ? '编辑道具' : '新增道具' }}</div>
+        <div class="modal-body">
+          <div class="grid-2">
+            <div class="form-group"><label>名称</label><input type="text" class="form-input" v-model="form.name"></div>
+            <div class="form-group"><label>类型</label>
+              <select class="form-input" v-model="form.type">
+                <option value="weapon">武器</option>
+                <option value="defense">防御</option>
+                <option value="speed">速度</option>
+                <option value="health">生命</option>
+                <option value="special">特殊</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group"><label>效果值</label><input type="number" step="0.1" class="form-input" v-model.number="form.effect_value"></div>
+            <div class="form-group"><label>持续时间(ms)</label><input type="number" class="form-input" v-model.number="form.duration"></div>
+            <div class="form-group"><label>掉落率(0-1)</label><input type="number" step="0.01" class="form-input" v-model.number="form.drop_rate"></div>
+          </div>
+          <div class="form-group"><label>描述</label><input type="text" class="form-input" v-model="form.description"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="showModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveItem">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/x-template" id="page-admin-achievements-template">
+  <div class="page-container">
+    <h2 class="mecha-header">成就管理</h2>
+    <div class="card">
+      <div class="table-toolbar">
+        <button class="btn btn-primary" @click="openCreate()">+ 新增成就</button>
+      </div>
+      <div class="loading-spinner" v-if="loading"></div>
+      <table class="data-table" v-if="!loading && items.length > 0">
+        <thead>
+          <tr><th>ID</th><th>名称</th><th>分类</th><th>条件类型</th><th>条件值</th><th>奖励</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.id">
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td><span class="badge badge-cyan">{{ item.category }}</span></td>
+            <td>{{ item.condition_type }}</td>
+            <td>{{ item.condition_value }}</td>
+            <td style="color: var(--accent-orange);">+{{ item.reward_score }}</td>
+            <td>
+              <button class="btn btn-sm" @click="openEdit(item)">编辑</button>
+              <button class="btn btn-sm btn-danger" @click="deleteItem(item.id)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" v-if="!loading && items.length === 0">暂无数据</div>
+    </div>
+    <div class="modal-overlay" v-if="showModal" @click.self="showModal = false">
+      <div class="modal-content scan-line">
+        <div class="modal-header">{{ editItem ? '编辑成就' : '新增成就' }}</div>
+        <div class="modal-body">
+          <div class="form-group"><label>名称</label><input type="text" class="form-input" v-model="form.name"></div>
+          <div class="grid-2">
+            <div class="form-group"><label>分类</label>
+              <select class="form-input" v-model="form.category">
+                <option value="combat">战斗</option>
+                <option value="survival">生存</option>
+                <option value="collection">收集</option>
+                <option value="special">特殊</option>
+              </select>
+            </div>
+            <div class="form-group"><label>奖励分数</label><input type="number" class="form-input" v-model.number="form.reward_score"></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label>条件类型</label>
+              <select class="form-input" v-model="form.condition_type">
+                <option value="games_played">游戏次数</option>
+                <option value="enemies_killed_single">单局消灭</option>
+                <option value="wave_reached">到达波次</option>
+                <option value="score_single">单局得分</option>
+                <option value="items_collected_single">单局收集</option>
+              </select>
+            </div>
+            <div class="form-group"><label>条件值</label><input type="number" class="form-input" v-model.number="form.condition_value"></div>
+          </div>
+          <div class="form-group"><label>描述</label><input type="text" class="form-input" v-model="form.description"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="showModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveItem">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<div id="app">
+  <nav class="main-nav" v-if="isLoggedIn">
+    <div class="logo" @click="navigate('game')">末日机甲</div>
+    <div class="nav-links">
+      <a
+        v-for="link in navLinks"
+        :key="link.page"
+        :class="{ active: isActive(link.page) }"
+        @click="navigate(link.page)"
+      >{{ link.label }}</a>
+    </div>
+    <div class="user-info">
+      <span class="username">{{ currentUser ? (currentUser.nickname || currentUser.username) : '' }}</span>
+      <button class="btn btn-sm btn-danger" @click="logout">退出</button>
+    </div>
+  </nav>
+
+  <div class="admin-sidebar" v-if="isLoggedIn && isAdmin && isAdminPage">
+    <a
+      v-for="link in adminNavLinks"
+      :key="link.page"
+      :class="{ active: isActive(link.page) }"
+      @click="navigate(link.page)"
+    >{{ link.label }}</a>
+  </div>
+
+  <main>
+    <transition name="page" mode="out-in">
+      <page-login v-if="currentPage === 'login'"></page-login>
+      <page-register v-else-if="currentPage === 'register'"></page-register>
+      <page-game v-else-if="currentPage === 'game'"></page-game>
+      <page-leaderboard v-else-if="currentPage === 'leaderboard'"></page-leaderboard>
+      <page-achievement v-else-if="currentPage === 'achievement'"></page-achievement>
+      <page-profile v-else-if="currentPage === 'profile'"></page-profile>
+      <page-admin-dashboard v-else-if="currentPage === 'admin-dashboard'"></page-admin-dashboard>
+      <page-admin-users v-else-if="currentPage === 'admin-users'"></page-admin-users>
+      <page-admin-aircraft v-else-if="currentPage === 'admin-aircraft'"></page-admin-aircraft>
+      <page-admin-waves v-else-if="currentPage === 'admin-waves'"></page-admin-waves>
+      <page-admin-items v-else-if="currentPage === 'admin-items'"></page-admin-items>
+      <page-admin-achievements v-else-if="currentPage === 'admin-achievements'"></page-admin-achievements>
+    </transition>
+  </main>
+
+  <footer class="main-footer" v-if="isLoggedIn">
+    <span>末日机甲</span> &copy; 2026 | DOOMSDAY MECHA COMBAT SYSTEM v1.0
+  </footer>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/router.js"></script>
+<script src="js/api.js"></script>
+<script src="js/game/player.js"></script>
+<script src="js/game/bullets.js"></script>
+<script src="js/game/enemies.js"></script>
+<script src="js/game/items.js"></script>
+<script src="js/game/waves.js"></script>
+<script src="js/game/renderer.js"></script>
+<script src="js/game/engine.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.mount('#app');
+</script>
+</body>
+</html>

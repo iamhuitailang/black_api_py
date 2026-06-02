@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.dafeiji_model import (
+    DafeijiUserModel,
+    DafeijiUserTokenModel,
+    DafeijiAircraftModel,
+    DafeijiGameStateModel,
+    DafeijiAchievementModel,
+    DafeijiUserAchievementModel,
+    DafeijiLeaderboardModel,
+    DafeijiWaveModel,
+    DafeijiItemModel,
+    DafeijiGameRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,23 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    DafeijiUserModel.create_table()
+    DafeijiUserTokenModel.create_table()
+    DafeijiAircraftModel.create_table()
+    DafeijiGameStateModel.create_table()
+    DafeijiAchievementModel.create_table()
+    DafeijiUserAchievementModel.create_table()
+    DafeijiLeaderboardModel.create_table()
+    DafeijiWaveModel.create_table()
+    DafeijiItemModel.create_table()
+    DafeijiGameRecordModel.create_table()
+
+    DafeijiUserModel.init_default_admin()
+    DafeijiAircraftModel.init_default_aircraft()
+    DafeijiAchievementModel.init_default_achievements()
+    DafeijiWaveModel.init_default_waves()
+    DafeijiItemModel.init_default_items()
 
     migrate_database()
 
@@ -151,6 +180,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8991,
         reload=True
     )
