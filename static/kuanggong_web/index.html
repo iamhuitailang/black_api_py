@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>星际矿工 - 太空资源开采模拟</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+
+  <div id="app">
+    <header class="status-bar">
+      <div class="game-title">星际矿工</div>
+      <div class="status-item coins">
+        <span class="label">💰</span>
+        <span class="value" id="status-coins">0</span>
+      </div>
+      <div class="status-item">
+        <span class="label">📍</span>
+        <span class="value" id="status-area">太阳系</span>
+      </div>
+      <div class="status-item hull good">
+        <span class="label">❤️</span>
+        <span class="value" id="status-hull">100/100</span>
+      </div>
+      <div class="status-item shield good">
+        <span class="label">🛡️</span>
+        <span class="value" id="status-shield">50/50</span>
+      </div>
+      <div class="status-item">
+        <span class="label">📦</span>
+        <span class="value" id="status-cargo">0/20</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="game-view active" id="view-dashboard"></div>
+      <div class="game-view" id="view-starmap"></div>
+      <div class="game-view" id="view-mining"></div>
+      <div class="game-view" id="view-station"></div>
+      <div class="game-view" id="view-ship"></div>
+      <div class="game-view" id="view-achievements"></div>
+    </main>
+
+    <nav class="nav-bar">
+      <button class="nav-item active" data-view="dashboard">
+        <span class="nav-icon">🏠</span>
+        <span>主控台</span>
+      </button>
+      <button class="nav-item" data-view="starmap">
+        <span class="nav-icon">🗺️</span>
+        <span>星图</span>
+      </button>
+      <button class="nav-item" data-view="mining">
+        <span class="nav-icon">⛏️</span>
+        <span>采矿</span>
+      </button>
+      <button class="nav-item" data-view="station">
+        <span class="nav-icon">🏪</span>
+        <span>空间站</span>
+      </button>
+      <button class="nav-item" data-view="ship">
+        <span class="nav-icon">🚀</span>
+        <span>飞船</span>
+      </button>
+      <button class="nav-item" data-view="achievements">
+        <span class="nav-icon">🏆</span>
+        <span>成就</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="notification-container"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
