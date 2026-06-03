@@ -24,6 +24,19 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.gq_model import (
+    GqUserModel,
+    GqTokenModel,
+    GqTrackModel,
+    GqMagicModel,
+    GqInstrumentModel,
+    GqScoreModel,
+    GqCompetitionModel,
+    GqCompetitionEntryModel,
+    GqUserMagicModel,
+    GqUserInstrumentModel,
+    GqUserProgressModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +85,24 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    GqUserModel.create_table()
+    GqTokenModel.create_table()
+    GqTrackModel.create_table()
+    GqMagicModel.create_table()
+    GqInstrumentModel.create_table()
+    GqScoreModel.create_table()
+    GqCompetitionModel.create_table()
+    GqCompetitionEntryModel.create_table()
+    GqUserMagicModel.create_table()
+    GqUserInstrumentModel.create_table()
+    GqUserProgressModel.create_table()
+
+    GqUserModel.init_default_user()
+    GqTrackModel.init_default_tracks()
+    GqMagicModel.init_default_magics()
+    GqInstrumentModel.init_default_instruments()
+    GqCompetitionModel.init_default_competitions()
 
     migrate_database()
 
@@ -151,6 +182,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8491,
         reload=True
     )
