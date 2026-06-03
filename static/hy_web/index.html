@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海底探险者 - Ocean Explorer</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div v-if="!isLoggedIn">
+            <router-view></router-view>
+        </div>
+        <div v-else class="game-container">
+            <div class="game-header">
+                <div class="user-info">
+                    <span class="username">{{ user?.nickname }}</span>
+                    <span class="level">Lv.{{ user?.level }}</span>
+                    <span class="coins">💰 {{ user?.coins }}</span>
+                    <span class="gems">💎 {{ user?.gems }}</span>
+                </div>
+                <nav class="game-nav">
+                    <router-link to="/game">游戏</router-link>
+                    <router-link to="/shop">商店</router-link>
+                    <router-link to="/collection">图鉴</router-link>
+                    <router-link to="/ruins">遗迹</router-link>
+                    <router-link to="/profile">我的</router-link>
+                    <button @click="logout" class="logout-btn">退出</button>
+                </nav>
+            </div>
+            <div class="game-content">
+                <router-view></router-view>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/app.js" type="module"></script>
+</body>
+</html>

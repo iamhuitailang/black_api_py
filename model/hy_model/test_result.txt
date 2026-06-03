@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/Users/sunmengmeng/works/solo-coder/github0601/060301/model/hy_model/test_imports.py", line 40, in <module>
+    from controllers import auth_controller
+  File "/Users/sunmengmeng/works/solo-coder/github0601/060301/model/hy_model/controllers/__init__.py", line 1, in <module>
+    from .user_controller import user_controller
+ImportError: cannot import name 'user_controller' from 'controllers.user_controller' (/Users/sunmengmeng/works/solo-coder/github0601/060301/model/hy_model/controllers/user_controller.py)
+Testing imports...
+✓ database import OK
+✓ models import OK
+✓ schemas import OK
+✓ services import OK
+✗ controllers import failed: cannot import name 'user_controller' from 'controllers.user_controller' (/Users/sunmengmeng/works/solo-coder/github0601/060301/model/hy_model/controllers/user_controller.py)
+All imports tested!
