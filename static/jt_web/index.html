@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>城市交通指挥官</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div v-if="!isLoggedIn" class="auth-page">
+            <div class="auth-container">
+                <div class="auth-logo">🚦</div>
+                <h1 class="auth-title">城市交通指挥官</h1>
+                <p class="auth-subtitle">Traffic Commander</p>
+                
+                <div class="auth-form">
+                    <div v-if="authMode === 'login'">
+                        <div class="form-group">
+                            <input type="text" v-model="loginForm.username" class="form-control" placeholder="用户名">
+                        </div>
+                        <div class="form-group">
+                            <input type="password" v-model="loginForm.password" class="form-control" placeholder="密码">
+                        </div>
+                        <button @click="handleLogin" class="btn btn-primary btn-block" :disabled="loading">
+                            {{ loading ? '登录中...' : '登录' }}
+                        </button>
+                        <p class="auth-switch">
+                            还没有账号？<span @click="authMode = 'register'">立即注册</span>
+                        </p>
+                    </div>
+                    
+                    <div v-else>
+                        <div class="form-group">
+                            <input type="text" v-model="registerForm.username" class="form-control" placeholder="用户名">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" v-model="registerForm.nickname" class="form-control" placeholder="昵称">
+                        </div>
+                        <div class="form-group">
+                            <input type="password" v-model="registerForm.password" class="form-control" placeholder="密码">
+                        </div>
+                        <button @click="handleRegister" class="btn btn-primary btn-block" :disabled="loading">
+                            {{ loading ? '注册中...' : '注册' }}
+                        </button>
+                        <p class="auth-switch">
+                            已有账号？<span @click="authMode = 'login'">立即登录</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div v-else class="main-layout">
+            <header class="app-header">
+                <div class="header-left">
+                    <span class="header-logo">🚦</span>
+                    <span class="header-title">{{ pageTitle }}</span>
+                </div>
+                <div class="header-right">
+                    <span class="time-display">{{ gameTime }}</span>
+                    <button @click="navigateTo('settings')" class="header-btn">⚙️</button>
+                </div>
+            </header>
+            
+            <aside class="sidebar">
+                <div class="sidebar-item" :class="{ active: currentRoute === 'dashboard' }" @click="navigateTo('dashboard')">
+                    <span class="sidebar-icon">📊</span>
+                    <span class="sidebar-text">仪表盘</span>
+                </div>
+                <div class="sidebar-item" :class="{ active: currentRoute === 'roads' }" @click="navigateTo('roads')">
+                    <span class="sidebar-icon">🛣️</span>
+                    <span class="sidebar-text">道路管理</span>
+                </div>
+                <div class="sidebar-item" :class="{ active: currentRoute === 'signals' }" @click="navigateTo('signals')">
+                    <span class="sidebar-icon">🚦</span>
+                    <span class="sidebar-text">信号灯</span>
+                </div>
+                <div class="sidebar-item" :class="{ active: currentRoute === 'accidents' }" @click="navigateTo('accidents')">
+                    <span class="sidebar-icon">🚨</span>
+                    <span class="sidebar-text">事故处理</span>
+                </div>
+                <div class="sidebar-item" :class="{ active: currentRoute === 'transit' }" @click="navigateTo('transit')">
+                    <span class="sidebar-icon">🚌</span>
+                    <span class="sidebar-text">公共交通</span>
+                </div>
+                <div class="sidebar-item" :class="{ active: currentRoute === 'settings' }" @click="navigateTo('settings')">
+                    <span class="sidebar-icon">⚙️</span>
+                    <span class="sidebar-text">设置</span>
+                </div>
+                <div class="sidebar-item logout" @click="handleLogout">
+                    <span class="sidebar-icon">🚪</span>
+                    <span class="sidebar-text">退出</span>
+                </div>
+            </aside>
+            
+            <main class="main-content">
+                <div v-if="currentRoute === 'dashboard'" class="page-dashboard">
+                    <div class="city-overview">
+                        <div class="city-map">
+                            <div class="map-grid">
+                                <div v-for="i in 25" :key="i" class="map-cell" :class="getCellClass(i)">
+                                    <span v-if="getCellIcon(i)" class="cell-icon">{{ getCellIcon(i) }}</span>
+                                </div>
+                                <div v-for="v in vehicles" :key="v.id" class="vehicle" :style="{ left: v.x + '%', top: v.y + '%', backgroundColor: v.color }">
+                                    {{ getVehicleEmoji(v.type) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon traffic-flow">🚗</div>
+                            <div class="stat-info">
+                                <div class="stat-value">{{ gameState.trafficFlow || 0 }}</div>
+                                <div class="stat-label">交通流量</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon satisfaction">😊</div>
+                            <div class="stat-info">
+                                <div class="stat-value">{{ gameState.satisfaction || 0 }}%</div>
+                                <div class="stat-label">市民满意度</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon roads">🛣️</div>
+                            <div class="stat-info">
+                                <div class="stat-value">{{ gameState.roadCount || 0 }}</div>
+                                <div class="stat-label">道路数量</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon signals">🚦</div>
+                            <div class="stat-info">
+                                <div class="stat-value">{{ gameState.signalCount || 0 }}</div>
+                                <div class="stat-label">信号灯</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-panel">
+                        <button @click="toggleSimulation" class="btn btn-primary">
+                            {{ isSimulating ? '⏸️ 暂停' : '▶️ 开始模拟' }}
+                        </button>
+                        <button @click="advanceTime" class="btn btn-outline">⏩ 快进时间</button>
+                        <button @click="saveGame" class="btn btn-outline">💾 保存游戏</button>
+                    </div>
+                </div>
+                
+                <div v-else-if="currentRoute === 'roads'" class="page-roads">
+                    <div class="page-header">
+                        <h2>道路管理</h2>
+                        <button @click="showAddRoad = true" class="btn btn-primary">+ 新建道路</button>
+                    </div>
+                    <div class="road-list">
+                        <div v-for="road in roads" :key="road.id" class="road-card">
+                            <div class="road-info">
+                                <h3>{{ road.name }}</h3>
+                                <p>{{ getRoadTypeText(road.road_type) }} · {{ road.lanes }}车道</p>
+                            </div>
+                            <div class="road-status">
+                                <span class="status-badge" :class="road.status === 1 ? 'active' : road.status === 2 ? 'warning' : 'congested'">
+                                    {{ road.status === 1 ? '畅通' : road.status === 2 ? '缓行' : '拥堵' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="showAddRoad" class="modal-overlay" @click.self="showAddRoad = false">
+                        <div class="modal">
+                            <h3>新建道路</h3>
+                            <div class="form-group">
+                                <label>道路名称</label>
+                                <input type="text" v-model="newRoad.name" class="form-control" placeholder="请输入道路名称">
+                            </div>
+                            <div class="form-group">
+                                <label>道路类型</label>
+                                <select v-model="newRoad.road_type" class="form-control">
+                                    <option value="normal">普通道路</option>
+                                    <option value="highway">高速公路</option>
+                                    <option value="express">快速路</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>车道数</label>
+                                <select v-model="newRoad.lanes" class="form-control">
+                                    <option :value="2">2车道</option>
+                                    <option :value="4">4车道</option>
+                                    <option :value="6">6车道</option>
+                                    <option :value="8">8车道</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>限速</label>
+                                <select v-model="newRoad.speed_limit" class="form-control">
+                                    <option :value="40">40 km/h</option>
+                                    <option :value="60">60 km/h</option>
+                                    <option :value="80">80 km/h</option>
+                                    <option :value="120">120 km/h</option>
+                                </select>
+                            </div>
+                            <div class="modal-actions">
+                                <button @click="showAddRoad = false" class="btn btn-outline">取消</button>
+                                <button @click="createRoad" class="btn btn-primary">创建</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-else-if="currentRoute === 'signals'" class="page-signals">
+                    <div class="page-header">
+                        <h2>信号灯控制</h2>
+                        <button @click="showAddSignal = true" class="btn btn-primary">+ 新增信号灯</button>
+                    </div>
+                    <div class="signal-grid">
+                        <div v-for="signal in signals" :key="signal.id" class="signal-card">
+                            <div class="signal-light">
+                                <div class="light red" :class="{ active: signal.current_state === 'red' }"></div>
+                                <div class="light yellow" :class="{ active: signal.current_state === 'yellow' }"></div>
+                                <div class="light green" :class="{ active: signal.current_state === 'green' }"></div>
+                            </div>
+                            <div class="signal-info">
+                                <h3>{{ getSignalTypeText(signal.signal_type) }}</h3>
+                                <p>倒计时: {{ signal.timer || signal.red_duration }}s</p>
+                            </div>
+                            <div class="signal-controls">
+                                <button @click="toggleSignal(signal)" class="btn btn-sm btn-outline">切换</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="showAddSignal" class="modal-overlay" @click.self="showAddSignal = false">
+                        <div class="modal">
+                            <h3>新增信号灯</h3>
+                            <div class="form-group">
+                                <label>信号灯类型</label>
+                                <select v-model="newSignal.signal_type" class="form-control">
+                                    <option value="fixed">固定时序</option>
+                                    <option value="adaptive">自适应</option>
+                                    <option value="pedestrian">行人过街</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>红灯时长(秒)</label>
+                                <input type="number" v-model="newSignal.red_duration" class="form-control" min="5" max="120">
+                            </div>
+                            <div class="form-group">
+                                <label>绿灯时长(秒)</label>
+                                <input type="number" v-model="newSignal.green_duration" class="form-control" min="5" max="120">
+                            </div>
+                            <div class="modal-actions">
+                                <button @click="showAddSignal = false" class="btn btn-outline">取消</button>
+                                <button @click="createSignal" class="btn btn-primary">创建</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-else-if="currentRoute === 'accidents'" class="page-accidents">
+                    <div class="page-header">
+                        <h2>事故处理中心</h2>
+                        <span class="badge badge-danger">{{ activeAccidents.length }} 待处理</span>
+                    </div>
+                    <div class="accident-list">
+                        <div v-for="accident in accidents" :key="accident.id" class="accident-card">
+                            <div class="accident-severity" :class="accident.severity === 3 ? 'critical' : accident.severity === 2 ? 'major' : 'minor'">
+                                {{ accident.severity === 3 ? '🔴' : accident.severity === 2 ? '🟠' : '🟡' }}
+                            </div>
+                            <div class="accident-info">
+                                <h3>{{ getAccidentTypeText(accident.accident_type) }}</h3>
+                                <p>{{ accident.description }}</p>
+                                <p class="text-sm">严重程度: {{ getSeverityText(accident.severity) }}</p>
+                            </div>
+                            <div class="accident-actions">
+                                <span class="status-badge" :class="getStatusBadgeClass(accident.status)">{{ getStatusText(accident.status) }}</span>
+                                <button v-if="accident.status === 'active'" @click="respondAccident(accident)" class="btn btn-sm btn-primary">响应</button>
+                                <button v-else-if="accident.status === 'responding'" @click="resolveAccident(accident)" class="btn btn-sm btn-success">处理完成</button>
+                            </div>
+                        </div>
+                        <div v-if="accidents.length === 0" class="empty-state">
+                            <div class="empty-icon">✅</div>
+                            <p>暂无事故，交通状况良好</p>
+                            <button @click="triggerRandomAccident" class="btn btn-sm btn-outline">模拟事故</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-else-if="currentRoute === 'transit'" class="page-transit">
+                    <div class="page-header">
+                        <h2>公共交通管理</h2>
+                        <button @click="showAddTransit = true" class="btn btn-primary">+ 新增线路</button>
+                    </div>
+                    <div class="transit-list">
+                        <div v-for="line in transits" :key="line.id" class="transit-card">
+                            <div class="transit-icon">{{ getTransitEmoji(line.transit_type) }}</div>
+                            <div class="transit-info">
+                                <h3>{{ line.name }}</h3>
+                                <p>{{ getTransitTypeText(line.transit_type) }} · 容量{{ line.capacity }}人 · 发车间隔{{ line.frequency }}分钟</p>
+                            </div>
+                            <div class="transit-status">
+                                <span class="status-badge active">运行中</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="showAddTransit" class="modal-overlay" @click.self="showAddTransit = false">
+                        <div class="modal">
+                            <h3>新增公共交通线路</h3>
+                            <div class="form-group">
+                                <label>线路名称</label>
+                                <input type="text" v-model="newTransit.name" class="form-control" placeholder="请输入线路名称">
+                            </div>
+                            <div class="form-group">
+                                <label>交通类型</label>
+                                <select v-model="newTransit.transit_type" class="form-control">
+                                    <option value="bus">公交车</option>
+                                    <option value="subway">地铁</option>
+                                    <option value="tram">有轨电车</option>
+                                    <option value="bike">共享单车</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>容量</label>
+                                <input type="number" v-model="newTransit.capacity" class="form-control" min="10" max="500">
+                            </div>
+                            <div class="form-group">
+                                <label>发车间隔(分钟)</label>
+                                <input type="number" v-model="newTransit.frequency" class="form-control" min="1" max="60">
+                            </div>
+                            <div class="form-group">
+                                <label>票价</label>
+                                <input type="number" v-model="newTransit.fare" step="0.5" class="form-control" min="0" max="100">
+                            </div>
+                            <div class="modal-actions">
+                                <button @click="showAddTransit = false" class="btn btn-outline">取消</button>
+                                <button @click="createTransit" class="btn btn-primary">创建</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-else-if="currentRoute === 'settings'" class="page-settings">
+                    <div class="page-header">
+                        <h2>游戏设置</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>音效</h3>
+                                <p>启用游戏音效</p>
+                            </div>
+                            <div class="setting-toggle" :class="{ active: settings.soundEnabled }" @click="settings.soundEnabled = !settings.soundEnabled">
+                                <div class="toggle-dot"></div>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>音乐</h3>
+                                <p>背景音乐</p>
+                            </div>
+                            <div class="setting-toggle" :class="{ active: settings.musicEnabled }" @click="settings.musicEnabled = !settings.musicEnabled">
+                                <div class="toggle-dot"></div>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>音量</h3>
+                                <p>{{ settings.volume }}%</p>
+                            </div>
+                            <input type="range" v-model="settings.volume" min="0" max="100" class="volume-slider">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>模拟速度</h3>
+                                <p>{{ settings.simulationSpeed }}x</p>
+                            </div>
+                            <select v-model="settings.simulationSpeed" class="form-control">
+                                <option :value="0.5">0.5x</option>
+                                <option :value="1">1x</option>
+                                <option :value="2">2x</option>
+                                <option :value="4">4x</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>自动保存</h3>
+                                <p>游戏过程中自动保存状态</p>
+                            </div>
+                            <div class="setting-toggle" :class="{ active: settings.autoSave }" @click="settings.autoSave = !settings.autoSave">
+                                <div class="toggle-dot"></div>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>城市信息</h3>
+                                <p>城市等级: {{ cityInfo.level }} | 资金: {{ cityInfo.funds || 0 }} | 人口: {{ cityInfo.population || 10000 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <div v-if="showToast" class="toast-container">
+            <div class="toast" :class="toastType">
+                {{ toastMessage }}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    
+    <script src="js/utils/storage.js"></script>
+    <script src="js/utils/router.js"></script>
+    <script src="js/utils/toast.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/services/auth.js"></script>
+    <script src="js/services/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
