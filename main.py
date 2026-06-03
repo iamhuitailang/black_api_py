@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -23,6 +23,22 @@ from app.model.xq import (
     AdminModel as XqAdminModel,
     XqTokenModel,
     XqAdminTokenModel
+)
+from app.model.sc import (
+    ScUserModel,
+    ScTokenModel,
+    ScPartModel,
+    ScUserPartModel,
+    ScCarModel,
+    ScCarPartModel,
+    ScPaintModel,
+    ScWindTunnelModel,
+    ScResearchModel,
+    ScTeamModel,
+    ScTeamMemberModel,
+    ScRaceModel,
+    ScRaceEntryModel,
+    ScRaceResultModel,
 )
 from app.common.sqlite.db import get_db
 
@@ -70,8 +86,26 @@ def init_database():
     XqAdminModel.create_table()
     XqAdminTokenModel.create_table()
 
+    ScUserModel.create_table()
+    ScTokenModel.create_table()
+    ScPartModel.create_table()
+    ScUserPartModel.create_table()
+    ScCarModel.create_table()
+    ScCarPartModel.create_table()
+    ScPaintModel.create_table()
+    ScWindTunnelModel.create_table()
+    ScResearchModel.create_table()
+    ScTeamModel.create_table()
+    ScTeamMemberModel.create_table()
+    ScRaceModel.create_table()
+    ScRaceEntryModel.create_table()
+    ScRaceResultModel.create_table()
+
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    ScPartModel.init_default_parts()
+    ScRaceModel.init_default_races()
 
     migrate_database()
 
@@ -101,7 +135,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+class SPAStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        try:
+            response = await super().get_response(path, scope)
+            if response.status_code == 404 and (path.startswith('sc_web/') or path == 'sc_web' or path == ''):
+                full_path = os.path.join(self.directory, 'sc_web', 'index.html')
+                if os.path.exists(full_path):
+                    return FileResponse(full_path)
+            return response
+        except Exception:
+            if path.startswith('sc_web/') or path == 'sc_web' or path == '':
+                full_path = os.path.join(self.directory, 'sc_web', 'index.html')
+                if os.path.exists(full_path):
+                    return FileResponse(full_path)
+            raise
+
+app.mount("/static", SPAStaticFiles(directory="static"), name="static")
 
 
 @app.exception_handler(Exception)
@@ -122,7 +172,10 @@ app.include_router(api_router)
 
 
 @app.get("/")
-async def root():
+async def root(request: Request):
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header:
+        return RedirectResponse(url="/static/sc_web/")
     return {
         "code": 0,
         "message": "success",
@@ -130,7 +183,8 @@ async def root():
             "name": "FastAPI SQLite Backend",
             "version": "1.0.0",
             "docs": "/docs",
-            "redoc": "/redoc"
+            "redoc": "/redoc",
+            "app": "/static/sc_web/"
         }
     }
 
@@ -151,6 +205,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8642,
         reload=True
     )
