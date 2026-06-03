@@ -24,6 +24,18 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.yp_model import (
+    UserModel as YpUserModel,
+    YpTokenModel,
+    CharacterModel,
+    UserCharacterModel,
+    MusicModel,
+    UserMusicModel,
+    ScoreModel,
+    SkillModel,
+    UserSkillModel,
+    GameStateModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +84,21 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    YpUserModel.create_table()
+    YpTokenModel.create_table()
+    CharacterModel.create_table()
+    UserCharacterModel.create_table()
+    MusicModel.create_table()
+    UserMusicModel.create_table()
+    ScoreModel.create_table()
+    SkillModel.create_table()
+    UserSkillModel.create_table()
+    GameStateModel.create_table()
+
+    CharacterModel.init_default_characters()
+    MusicModel.init_default_music()
+    SkillModel.init_default_skills()
 
     migrate_database()
 
@@ -151,6 +178,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8002,
+        port=8211,
         reload=True
     )

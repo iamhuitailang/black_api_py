@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Frontend</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>前端代码测试</h1>
+    <div id="log"></div>
+    <div id="app"></div>
+
+    <script>
+        function log(msg, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = msg;
+            logDiv.appendChild(p);
+            console.log(type + ':', msg);
+        }
+
+        window.addEventListener('error', function(e) {
+            log('ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno, 'error');
+        });
+
+        // 模拟Storage
+        window.Storage = {
+            data: {},
+            get(key) { return this.data[key] || null; },
+            set(key, value) { this.data[key] = value; return true; },
+            remove(key) { delete this.data[key]; return true; }
+        };
+
+        log('Vue version: ' + Vue.version);
+        log('Loading JS files...');
+    </script>
+
+    <script src="/static/yp_web/js/utils/storage.js" onerror="log('Failed to load storage.js', 'error')" onload="log('✓ storage.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/services/api.js" onerror="log('Failed to load api.js', 'error')" onload="log('✓ api.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/services/auth.js" onerror="log('Failed to load auth.js', 'error')" onload="log('✓ auth.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/utils/router.js" onerror="log('Failed to load router.js', 'error')" onload="log('✓ router.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/login.js" onerror="log('Failed to load login.js', 'error')" onload="log('✓ login.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/register.js" onerror="log('Failed to load register.js', 'error')" onload="log('✓ register.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/home.js" onerror="log('Failed to load home.js', 'error')" onload="log('✓ home.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/music.js" onerror="log('Failed to load music.js', 'error')" onload="log('✓ music.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/character.js" onerror="log('Failed to load character.js', 'error')" onload="log('✓ character.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/skill.js" onerror="log('Failed to load skill.js', 'error')" onload="log('✓ skill.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/leaderboard.js" onerror="log('Failed to load leaderboard.js', 'error')" onload="log('✓ leaderboard.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/settings.js" onerror="log('Failed to load settings.js', 'error')" onload="log('✓ settings.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/pages/game.js" onerror="log('Failed to load game.js', 'error')" onload="log('✓ game.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/game/core.js" onerror="log('Failed to load core.js', 'error')" onload="log('✓ core.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/game/player.js" onerror="log('Failed to load player.js', 'error')" onload="log('✓ player.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/game/obstacle.js" onerror="log('Failed to load obstacle.js', 'error')" onload="log('✓ obstacle.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/game/note.js" onerror="log('Failed to load note.js', 'error')" onload="log('✓ note.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/game/beatDetector.js" onerror="log('Failed to load beatDetector.js', 'error')" onload="log('✓ beatDetector.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/game/visualizer.js" onerror="log('Failed to load visualizer.js', 'error')" onload="log('✓ visualizer.js loaded', 'success')"></script>
+    <script src="/static/yp_web/js/app.js" onerror="log('Failed to load app.js', 'error')" onload="log('✓ app.js loaded', 'success')"></script>
+
+    <script>
+        setTimeout(() => {
+            log('Checking global variables...');
+            log('Storage: ' + (typeof Storage !== 'undefined' ? '✓' : '✗'));
+            log('Router: ' + (typeof Router !== 'undefined' ? '✓' : '✗'));
+            log('Auth: ' + (typeof Auth !== 'undefined' ? '✓' : '✗'));
+            log('YpAPI: ' + (typeof YpAPI !== 'undefined' ? '✓' : '✗'));
+            log('Utils: ' + (typeof Utils !== 'undefined' ? '✓' : '✗'));
+            log('LoginPage: ' + (typeof LoginPage !== 'undefined' ? '✓' : '✗'));
+            log('RegisterPage: ' + (typeof RegisterPage !== 'undefined' ? '✓' : '✗'));
+            log('HomePage: ' + (typeof HomePage !== 'undefined' ? '✓' : '✗'));
+            log('GamePage: ' + (typeof GamePage !== 'undefined' ? '✓' : '✗'));
+            
+            if (typeof Router !== 'undefined') {
+                log('Router routes: ' + JSON.stringify(Object.keys(Router.routes)));
+                log('Router currentPage: ' + Router.currentPage);
+            }
+            
+            log('All checks completed!', 'success');
+        }, 1000);
+    </script>
+</body>
+</html>

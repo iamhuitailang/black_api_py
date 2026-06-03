@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐跑酷 - 调试版</title>
+    <link rel="stylesheet" href="/static/yp_web/css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        #debug-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.95);
+            color: #fff;
+            padding: 10px;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 99999;
+            font-family: monospace;
+        }
+        #debug-panel .log-item {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        #debug-panel .log-error { color: #ef4444; }
+        #debug-panel .log-success { color: #10b981; }
+        #debug-panel .log-warn { color: #f59e0b; }
+        #app { margin-top: 200px !important; }
+    </style>
+</head>
+<body>
+    <div id="debug-panel">
+        <div style="font-weight: bold; margin-bottom: 5px;">🔍 调试面板</div>
+    </div>
+
+    <div id="app"></div>
+
+    <script>
+        window.debugLogs = [];
+        
+        function debugLog(msg, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString() + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+            window.debugLogs.push({ msg, type, timestamp });
+            
+            const panel = document.getElementById('debug-panel');
+            if (panel) {
+                const item = document.createElement('div');
+                item.className = 'log-item log-' + type;
+                item.textContent = `[${timestamp}] ${msg}`;
+                panel.appendChild(item);
+                panel.scrollTop = panel.scrollHeight;
+            }
+            
+            console.log(`[${type.toUpperCase()}] ${msg}`);
+        }
+
+        window.addEventListener('error', function(e) {
+            debugLog(`ERROR: ${e.message} (${e.filename}:${e.lineno}:${e.colno})`, 'error');
+            console.error(e.error);
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            debugLog(`UNHANDLED PROMISE: ${e.reason}`, 'error');
+        });
+
+        debugLog('Page loaded, starting initialization...');
+        debugLog('Vue version: ' + (typeof Vue !== 'undefined' ? Vue.version : 'NOT LOADED'), 
+                 typeof Vue !== 'undefined' ? 'success' : 'error');
+    </script>
+
+    <script src="/static/yp_web/js/utils/storage.js" 
+            onerror="debugLog('FAILED to load storage.js', 'error')"
+            onload="debugLog('✓ storage.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/services/api.js" 
+            onerror="debugLog('FAILED to load api.js', 'error')"
+            onload="debugLog('✓ api.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/services/auth.js" 
+            onerror="debugLog('FAILED to load auth.js', 'error')"
+            onload="debugLog('✓ auth.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/utils/router.js" 
+            onerror="debugLog('FAILED to load router.js', 'error')"
+            onload="debugLog('✓ router.js loaded', 'success')"></script>
+
+    <script>
+        debugLog('Checking basic globals...');
+        debugLog('Storage: ' + (typeof Storage !== 'undefined' ? 'defined' : 'NOT defined'), 
+                 typeof Storage !== 'undefined' ? 'success' : 'error');
+        debugLog('YpAPI: ' + (typeof YpAPI !== 'undefined' ? 'defined' : 'NOT defined'), 
+                 typeof YpAPI !== 'undefined' ? 'success' : 'error');
+        debugLog('Auth: ' + (typeof Auth !== 'undefined' ? 'defined' : 'NOT defined'), 
+                 typeof Auth !== 'undefined' ? 'success' : 'error');
+        debugLog('Router: ' + (typeof Router !== 'undefined' ? 'defined' : 'NOT defined'), 
+                 typeof Router !== 'undefined' ? 'success' : 'error');
+        debugLog('Utils: ' + (typeof Utils !== 'undefined' ? 'defined' : 'NOT defined'), 
+                 typeof Utils !== 'undefined' ? 'success' : 'error');
+        
+        if (typeof Auth !== 'undefined') {
+            debugLog('Auth.isAuthenticated(): ' + Auth.isAuthenticated());
+        }
+    </script>
+    
+    <script src="/static/yp_web/js/pages/login.js" 
+            onerror="debugLog('FAILED to load login.js', 'error')"
+            onload="debugLog('✓ login.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/register.js" 
+            onerror="debugLog('FAILED to load register.js', 'error')"
+            onload="debugLog('✓ register.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/home.js" 
+            onerror="debugLog('FAILED to load home.js', 'error')"
+            onload="debugLog('✓ home.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/music.js" 
+            onerror="debugLog('FAILED to load music.js', 'error')"
+            onload="debugLog('✓ music.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/character.js" 
+            onerror="debugLog('FAILED to load character.js', 'error')"
+            onload="debugLog('✓ character.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/skill.js" 
+            onerror="debugLog('FAILED to load skill.js', 'error')"
+            onload="debugLog('✓ skill.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/leaderboard.js" 
+            onerror="debugLog('FAILED to load leaderboard.js', 'error')"
+            onload="debugLog('✓ leaderboard.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/settings.js" 
+            onerror="debugLog('FAILED to load settings.js', 'error')"
+            onload="debugLog('✓ settings.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/pages/game.js" 
+            onerror="debugLog('FAILED to load game.js', 'error')"
+            onload="debugLog('✓ game.js loaded', 'success')"></script>
+
+    <script>
+        debugLog('Checking page components...');
+        const pages = ['LoginPage', 'RegisterPage', 'HomePage', 'MusicPage', 
+                       'CharacterPage', 'SkillPage', 'LeaderboardPage', 
+                       'SettingsPage', 'GamePage'];
+        for (const p of pages) {
+            debugLog(`${p}: ` + (typeof window[p] !== 'undefined' ? 'defined' : 'NOT defined'),
+                     typeof window[p] !== 'undefined' ? 'success' : 'error');
+        }
+    </script>
+    
+    <script src="/static/yp_web/js/game/core.js" 
+            onerror="debugLog('FAILED to load core.js', 'error')"
+            onload="debugLog('✓ core.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/game/player.js" 
+            onerror="debugLog('FAILED to load player.js', 'error')"
+            onload="debugLog('✓ player.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/game/obstacle.js" 
+            onerror="debugLog('FAILED to load obstacle.js', 'error')"
+            onload="debugLog('✓ obstacle.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/game/note.js" 
+            onerror="debugLog('FAILED to load note.js', 'error')"
+            onload="debugLog('✓ note.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/game/beatDetector.js" 
+            onerror="debugLog('FAILED to load beatDetector.js', 'error')"
+            onload="debugLog('✓ beatDetector.js loaded', 'success')"></script>
+    
+    <script src="/static/yp_web/js/game/visualizer.js" 
+            onerror="debugLog('FAILED to load visualizer.js', 'error')"
+            onload="debugLog('✓ visualizer.js loaded', 'success')"></script>
+
+    <script>
+        debugLog('Checking game classes...');
+        const classes = ['YPGame', 'Player', 'Obstacle', 'Note', 'BeatDetector', 'AudioVisualizer', 'Background'];
+        for (const c of classes) {
+            debugLog(`${c}: ` + (typeof window[c] !== 'undefined' ? 'defined' : 'NOT defined'),
+                     typeof window[c] !== 'undefined' ? 'success' : 'error');
+        }
+    </script>
+    
+    <script src="/static/yp_web/js/app.js" 
+            onerror="debugLog('FAILED to load app.js', 'error')"
+            onload="debugLog('✓ app.js loaded', 'success')"></script>
+
+    <script>
+        setTimeout(() => {
+            debugLog('Final check after 2 seconds...');
+            debugLog('Document readyState: ' + document.readyState);
+            
+            const appEl = document.getElementById('app');
+            if (appEl) {
+                debugLog('app element children: ' + appEl.children.length);
+                debugLog('app element innerHTML length: ' + appEl.innerHTML.length);
+                if (appEl.innerHTML.length > 0) {
+                    debugLog('✅ App is rendered!', 'success');
+                } else {
+                    debugLog('⚠️  App element is empty', 'warn');
+                }
+            } else {
+                debugLog('❌ app element not found', 'error');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

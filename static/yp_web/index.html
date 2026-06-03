@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐跑酷 - YP Game</title>
+    <link rel="stylesheet" href="/static/yp_web/css/style.css?v=9">
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('GLOBAL ERROR:', msg, 'at', url + ':' + line);
+            if (error) console.error(error);
+            var app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = '<div style="padding: 40px; color: #ef4444; font-family: Arial; background: #0f0f23; min-height: 100vh;"><h1>错误</h1><p>' + msg + '</p><p>位置: ' + url + ':' + line + '</p><p>请按F12打开控制台查看详细错误</p><p><a href="/static/yp_web/index_simple.html" style="color: #3b82f6;">使用简化版测试</a></p><p><a href="/static/yp_web/index_debug.html" style="color: #3b82f6;">打开调试版</a></p></div>';
+            }
+            return true;
+        };
+    </script>
+
+    <script src="/static/yp_web/js/utils/storage.js?v=9"></script>
+    <script src="/static/yp_web/js/services/api.js?v=9"></script>
+    <script src="/static/yp_web/js/services/auth.js?v=9"></script>
+    <script src="/static/yp_web/js/utils/router.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/login.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/register.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/home.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/music.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/character.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/skill.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/leaderboard.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/settings.js?v=9"></script>
+    <script src="/static/yp_web/js/pages/game.js?v=9"></script>
+    <script src="/static/yp_web/js/game/core.js?v=9"></script>
+    <script src="/static/yp_web/js/game/player.js?v=9"></script>
+    <script src="/static/yp_web/js/game/obstacle.js?v=9"></script>
+    <script src="/static/yp_web/js/game/note.js?v=9"></script>
+    <script src="/static/yp_web/js/game/beatDetector.js?v=9"></script>
+    <script src="/static/yp_web/js/game/visualizer.js?v=9"></script>
+    
+    <script>
+        console.log('All scripts loaded. Initializing Vue app...');
+        console.log('Vue version:', Vue.version);
+        console.log('LoginPage:', typeof LoginPage);
+        console.log('Router:', typeof Router);
+        if (typeof Router !== 'undefined') {
+            console.log('Router.routes before app.js:', Object.keys(Router.routes));
+        }
+    </script>
+
+    <script src="/static/yp_web/js/app.js?v=9"></script>
+
+    <script>
+        console.log('App.js loaded. Checking if app mounted...');
+        setTimeout(function() {
+            var appEl = document.getElementById('app');
+            if (appEl && appEl.innerHTML.length > 0) {
+                console.log('App rendered successfully!');
+                console.log('Content length:', appEl.innerHTML.length);
+            } else {
+                console.log('App element is empty');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
