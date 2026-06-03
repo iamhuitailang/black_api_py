@@ -24,6 +24,21 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.hd_model import (
+    UserModel as HdUserModel,
+    TokenModel as HdTokenModel,
+    SkillModel as HdSkillModel,
+    UserSkillModel as HdUserSkillModel,
+    EquipmentModel as HdEquipmentModel,
+    UserEquipmentModel as HdUserEquipmentModel,
+    ToolModel as HdToolModel,
+    UserToolModel as HdUserToolModel,
+    LevelModel as HdLevelModel,
+    UserLevelModel as HdUserLevelModel,
+    MissionModel as HdMissionModel,
+    UserMissionModel as HdUserMissionModel,
+    BattleModel as HdBattleModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +87,26 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    HdUserModel.create_table()
+    HdTokenModel.create_table()
+    HdSkillModel.create_table()
+    HdUserSkillModel.create_table()
+    HdEquipmentModel.create_table()
+    HdUserEquipmentModel.create_table()
+    HdToolModel.create_table()
+    HdUserToolModel.create_table()
+    HdLevelModel.create_table()
+    HdUserLevelModel.create_table()
+    HdMissionModel.create_table()
+    HdUserMissionModel.create_table()
+    HdBattleModel.create_table()
+
+    HdSkillModel.init_default_skills()
+    HdEquipmentModel.init_default_equipments()
+    HdToolModel.init_default_tools()
+    HdLevelModel.init_default_levels()
+    HdMissionModel.init_default_missions()
 
     migrate_database()
 
@@ -151,6 +186,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8901,
         reload=True
     )
