@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐾 动物园大亨</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar" v-if="isLoggedIn">
+            <div class="navbar-brand" @click="navigate('dashboard')">🐾 动物园大亨</div>
+            <div class="navbar-coins">🪙 {{ formatNumber(zooCoins) }}</div>
+            <div class="navbar-user" @click="showUserMenu = !showUserMenu">
+                {{ userEmoji }}
+                <div class="user-dropdown" v-if="showUserMenu" @click.stop>
+                    <div class="dropdown-item" @click="navigate('dashboard'); showUserMenu = false">🏠 总览</div>
+                    <div class="dropdown-item" @click="logout">🚪 退出登录</div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="tab-bar" v-if="isLoggedIn">
+            <div class="tab-item" :class="{ active: currentTab === 'dashboard' }" @click="navigate('dashboard')">
+                <span class="tab-icon">🏠</span>
+                <span class="tab-text">总览</span>
+            </div>
+            <div class="tab-item" :class="{ active: currentTab === 'animals' }" @click="navigate('animals')">
+                <span class="tab-icon">🦁</span>
+                <span class="tab-text">动物</span>
+            </div>
+            <div class="tab-item" :class="{ active: currentTab === 'habitats' }" @click="navigate('habitats')">
+                <span class="tab-icon">🏡</span>
+                <span class="tab-text">栖息地</span>
+            </div>
+            <div class="tab-item" :class="{ active: currentTab === 'visitors' }" @click="navigate('visitors')">
+                <span class="tab-icon">👥</span>
+                <span class="tab-text">游客</span>
+            </div>
+            <div class="tab-item" :class="{ active: currentTab === 'breeding' }" @click="navigate('breeding')">
+                <span class="tab-icon">🥚</span>
+                <span class="tab-text">繁殖</span>
+            </div>
+            <div class="tab-item" :class="{ active: currentTab === 'disease' }" @click="navigate('disease')">
+                <span class="tab-icon">🏥</span>
+                <span class="tab-text">医疗</span>
+            </div>
+            <div class="tab-item" :class="{ active: currentTab === 'rare' }" @click="navigate('rare')">
+                <span class="tab-icon">💎</span>
+                <span class="tab-text">珍稀</span>
+            </div>
+        </div>
+
+        <main class="main-content" :class="{ 'has-navbar': isLoggedIn, 'has-tabbar': isLoggedIn }">
+            <component :is="currentComponent" v-bind="currentProps"></component>
+        </main>
+
+        <div class="toast-container" v-if="toast.show">
+            <div class="toast" :class="'toast-' + toast.type">{{ toast.message }}</div>
+        </div>
+
+        <div class="modal-overlay" v-if="modal.show" @click="closeModal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h3>{{ modal.title }}</h3>
+                    <button class="modal-close" @click="closeModal">✕</button>
+                </div>
+                <div class="modal-body" v-html="modal.body"></div>
+                <div class="modal-footer" v-if="modal.onConfirm">
+                    <button class="btn btn-outline" @click="closeModal">取消</button>
+                    <button class="btn btn-primary" @click="modal.onConfirm(); closeModal()">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/pages/login.js"></script>
+    <script src="js/pages/register.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+    <script src="js/pages/animal_shop.js"></script>
+    <script src="js/pages/animal_list.js"></script>
+    <script src="js/pages/animal_detail.js"></script>
+    <script src="js/pages/habitat_list.js"></script>
+    <script src="js/pages/habitat_detail.js"></script>
+    <script src="js/pages/visitor.js"></script>
+    <script src="js/pages/breeding.js"></script>
+    <script src="js/pages/disease.js"></script>
+    <script src="js/pages/rare.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
