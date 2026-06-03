@@ -24,6 +24,16 @@ from app.model.xq import (
     XqTokenModel,
     XqAdminTokenModel
 )
+from app.model.sj_model import (
+    SjUserModel,
+    SjTokenModel,
+    SjCharacterModel,
+    SjInventoryModel,
+    SjFloorModel,
+    SjSaveModel,
+    SjEventLogModel,
+    SjTimeAbilityModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -72,6 +82,15 @@ def init_database():
 
     XqAdminModel.init_default_admin()
     XqCategoryModel.init_default_categories()
+
+    SjUserModel.create_table()
+    SjTokenModel.create_table()
+    SjCharacterModel.create_table()
+    SjInventoryModel.create_table()
+    SjFloorModel.create_table()
+    SjSaveModel.create_table()
+    SjEventLogModel.create_table()
+    SjTimeAbilityModel.create_table()
 
     migrate_database()
 
@@ -151,6 +170,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8901,
         reload=True
     )
