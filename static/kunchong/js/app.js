@@ -719,7 +719,7 @@ app.component('BattleScreen', {
                     if (availableSkills.length > 0) {
                         if (opponent.aiPattern === 'aggressive') {
                             const hpRatio = enemyHp.value / enemyMaxHp.value;
-                            if (hpRatio < 0.3) {
+                            if (hpRatio < 0.4) {
                                 const healSkill = availableSkills.find(s => s.type === 'heal');
                                 if (healSkill) return healSkill;
                                 const buffSkill = availableSkills.find(s => s.type === 'buff');
@@ -727,27 +727,29 @@ app.component('BattleScreen', {
                             }
                             const damageSkills = availableSkills.filter(s => s.type === 'damage');
                             if (damageSkills.length > 0) {
-                                return damageSkills[Math.floor(Math.random() * damageSkills.length)];
+                                return damageSkills.reduce((a, b) => a.damage > b.damage ? a : b);
                             }
                         } else if (opponent.aiPattern === 'fast') {
                             const hpRatio = enemyHp.value / enemyMaxHp.value;
-                            if (hpRatio < 0.5) {
+                            if (hpRatio < 0.6) {
                                 const healSkill = availableSkills.find(s => s.type === 'heal');
-                                if (healSkill && Math.random() > 0.4) return healSkill;
+                                if (healSkill) return healSkill;
                             }
-                            if (Math.random() > 0.5) {
-                                const damageSkill = availableSkills.find(s => s.type === 'damage' && s.damage >= 30);
-                                if (damageSkill) return damageSkill;
+                            const cooldownSkills = availableSkills.filter(s => s.cooldown <= 2 && s.type === 'damage');
+                            if (cooldownSkills.length > 0) {
+                                return cooldownSkills[Math.floor(Math.random() * cooldownSkills.length)];
                             }
                             return availableSkills[Math.floor(Math.random() * availableSkills.length)];
                         } else if (opponent.aiPattern === 'defensive') {
                             const hpRatio = enemyHp.value / enemyMaxHp.value;
-                            if (hpRatio < 0.4) {
+                            if (hpRatio < 0.5) {
                                 const healSkill = availableSkills.find(s => s.type === 'heal');
                                 if (healSkill) return healSkill;
                             }
-                            const defSkill = availableSkills.find(s => s.type === 'defense');
-                            if (defSkill && !enemyBuffs.value.defense && Math.random() > 0.4) return defSkill;
+                            if (turnCount.value % 3 === 0) {
+                                const defSkill = availableSkills.find(s => s.type === 'defense');
+                                if (defSkill) return defSkill;
+                            }
                             const damageSkills = availableSkills.filter(s => s.type === 'damage');
                             if (damageSkills.length > 0) {
                                 return damageSkills[Math.floor(Math.random() * damageSkills.length)];
@@ -767,7 +769,7 @@ app.component('BattleScreen', {
             turnCount.value++;
 
             const enemySkill = chooseEnemySkill();
-            const useSkill = enemySkill && Math.random() > 0.3;
+            const useSkill = enemySkill && Math.random() > 0.1;
 
             setTimeout(() => {
                 enemyAttacking.value = false;
@@ -780,19 +782,19 @@ app.component('BattleScreen', {
                     if (s.type === 'damage') {
                         damage = Math.floor((currentEnemy.value.attack + enemyBuffs.value.attack + s.damage) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
                         damage = Math.max(1, damage);
-                        addLog(`${currentEnemy.value.name} 使用 ${s.name}，造成 ${damage} 点伤害！`, 'skill');
+                        addLog(`💥 ${currentEnemy.value.name} 使用【${s.name}】，造成 ${damage} 点伤害！`, 'skill');
                     } else if (s.type === 'heal') {
                         const healAmount = s.heal;
                         enemyHp.value = Math.min(enemyMaxHp.value, enemyHp.value + healAmount);
                         showDamage(healAmount, false, true);
-                        addLog(`${currentEnemy.value.name} 使用 ${s.name}，恢复 ${healAmount} 点生命！`, 'heal');
+                        addLog(`💚 ${currentEnemy.value.name} 使用【${s.name}】，恢复 ${healAmount} 点生命！`, 'heal');
                         audioManager.playHeal();
                     } else if (s.type === 'defense') {
                         enemyBuffs.value.defense += s.defense;
-                        addLog(`${currentEnemy.value.name} 使用 ${s.name}，防御力提升！`, 'skill');
+                        addLog(`🛡️ ${currentEnemy.value.name} 使用【${s.name}】，防御力提升 ${s.defense}！`, 'skill');
                     } else if (s.type === 'buff') {
                         enemyBuffs.value.attack += s.attackBoost;
-                        addLog(`${currentEnemy.value.name} 使用 ${s.name}，攻击力提升！`, 'skill');
+                        addLog(`🔥 ${currentEnemy.value.name} 使用【${s.name}】，攻击力提升 ${s.attackBoost}！`, 'skill');
                     }
                     
                     enemySkillCooldowns.value[s.id] = s.cooldown;
@@ -822,6 +824,8 @@ app.component('BattleScreen', {
                 if (buffs.value.defense > 0) buffs.value.defense = Math.max(0, buffs.value.defense - 5);
                 if (enemyBuffs.value.attack > 0) enemyBuffs.value.attack = Math.max(0, enemyBuffs.value.attack - 5);
                 if (enemyBuffs.value.defense > 0) enemyBuffs.value.defense = Math.max(0, enemyBuffs.value.defense - 5);
+                
+                saveBattleState();
                 
                 if (playerHp.value <= 0) {
                     handleDefeat();
@@ -853,6 +857,7 @@ app.component('BattleScreen', {
             battleResult.value = 'victory';
             showResult.value = true;
             audioManager.playVictory();
+            gameStorage.clearBattleState();
             
             if (props.mode === 'campaign') {
                 gameStorage.saveCompletedLevel(props.level.id);
@@ -866,6 +871,12 @@ app.component('BattleScreen', {
             battleResult.value = 'defeat';
             showResult.value = true;
             audioManager.playDefeat();
+            gameStorage.clearBattleState();
+        };
+
+        const exitBattle = () => {
+            gameStorage.clearBattleState();
+            emit('goToScreen', props.mode === 'campaign' ? 'levelSelect' : 'opponentSelect');
         };
 
         const collectPowerup = (powerup, index) => {
@@ -919,12 +930,13 @@ app.component('BattleScreen', {
             playerAttack,
             collectPowerup,
             canUseSkill,
+            exitBattle,
             audioManager
         };
     },
     template: `
         <div class="battle-screen">
-            <button class="back-btn" @click="$emit('goToScreen', mode === 'campaign' ? 'levelSelect' : 'opponentSelect')">← 退出战斗</button>
+            <button class="back-btn" @click="exitBattle">← 退出战斗</button>
             
             <div class="battle-arena" :class="'arena-' + (level?.theme || 'versus')">
                 <div v-if="mode === 'campaign'" class="wave-indicator">
@@ -1043,7 +1055,7 @@ app.component('BattleScreen', {
                         {{ battleResult === 'victory' ? '恭喜你击败了所有敌人！' : '你的机械昆虫被击败了...' }}
                     </p>
                     <div class="modal-buttons">
-                        <button class="modal-btn primary" @click="$emit('goToScreen', mode === 'campaign' ? 'levelSelect' : 'opponentSelect')">
+                        <button class="modal-btn primary" @click="exitBattle">
                             返回选择
                         </button>
                         <button class="modal-btn secondary" @click="initBattle">
