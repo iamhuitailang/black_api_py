@@ -13,6 +13,17 @@ window.GameRouter = {
   _callbacks: [],
 
   init: function () {
+    try {
+      var savedSession = sessionStorage.getItem('hamster_game_session');
+      if (savedSession) {
+        var session = JSON.parse(savedSession);
+        var currentHash = window.location.hash.slice(1) || 'lobby';
+        var currentRoute = currentHash.split('?')[0];
+        if (currentRoute !== 'game') {
+          window.location.hash = '#game?map=' + session.mapId + '&difficulty=' + session.difficulty;
+        }
+      }
+    } catch (e) {}
     window.addEventListener('hashchange', this._onHashChange.bind(this));
     this._onHashChange();
   },
@@ -40,17 +51,6 @@ window.GameRouter = {
           params[kv[0]] = kv[1];
         }
       });
-    }
-    if (route !== 'game') {
-      try {
-        var savedSession = sessionStorage.getItem('hamster_game_session');
-        if (savedSession) {
-          var session = JSON.parse(savedSession);
-          route = 'game';
-          params = { map: session.mapId, difficulty: session.difficulty };
-          window.location.hash = '#game?map=' + session.mapId + '&difficulty=' + session.difficulty;
-        }
-      } catch (e) {}
     }
     return { route: route, params: params };
   },

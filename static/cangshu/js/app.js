@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (savedSession && current.route !== 'game') {
         try {
           var session = JSON.parse(savedSession);
+          this.currentRoute = 'game';
+          this.routeParams = { map: session.mapId, difficulty: session.difficulty };
           GameRouter.navigate('game', { map: session.mapId, difficulty: session.difficulty });
           return;
         } catch (e) {}

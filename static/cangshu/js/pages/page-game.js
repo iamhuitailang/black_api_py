@@ -250,6 +250,10 @@ window.GamePage = {
   methods: {
     startGame: function () {
       var self = this;
+      sessionStorage.setItem('hamster_game_session', JSON.stringify({
+        mapId: this.mapId,
+        difficulty: this.difficulty
+      }));
       this.gameState = 'playing';
       this.$nextTick(function () {
         self.canvas = self.$refs.gameCanvas;
