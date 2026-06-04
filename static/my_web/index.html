@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星际贸易商 - Galaxy Trader</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Bebas+Neue&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/themes/sci-fi.css">
+  <link rel="stylesheet" href="css/themes/wasteland.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="theme-sci-fi">
+  <div id="app">
+    <div class="theme-decoration theme-decoration-sci-fi" id="themeDecoration">
+      <div class="deco-corner deco-tl"></div>
+      <div class="deco-corner deco-tr"></div>
+      <div class="deco-corner deco-bl"></div>
+      <div class="deco-corner deco-br"></div>
+      <div class="deco-border"></div>
+      <div class="deco-particles"></div>
+    </div>
+    <header class="status-bar">
+      <div class="status-left">
+        <div class="stat-group">
+          <span class="stat-label">信用点</span>
+          <span class="stat-value" id="credits">₵ 0</span>
+        </div>
+        <div class="stat-group">
+          <span class="stat-label">总资产</span>
+          <span class="stat-value" id="totalAssets">₵ 0</span>
+        </div>
+        <div class="stat-group">
+          <span class="stat-label">市场份额</span>
+          <span class="stat-value" id="marketShare">0%</span>
+        </div>
+        <div class="stat-group">
+          <span class="stat-label">当前位置</span>
+          <span class="stat-value" id="currentSystem">-</span>
+        </div>
+        <div class="stat-group">
+          <span class="stat-label">游戏时间</span>
+          <span class="stat-value" id="gameTime">-</span>
+        </div>
+      </div>
+      
+      <div class="status-bars">
+        <div class="bar-container">
+          <div class="bar-label">
+            <span>船体</span>
+            <span id="hullText">100/100</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="hullBar" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="bar-container">
+          <div class="bar-label">
+            <span>护盾</span>
+            <span id="shieldText">100/100</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="shieldBar" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="bar-container">
+          <div class="bar-label">
+            <span>燃料</span>
+            <span id="fuelText">100/200</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="fuelBar" style="width: 50%"></div>
+          </div>
+        </div>
+        <div class="bar-container">
+          <div class="bar-label">
+            <span>货舱</span>
+            <span id="cargoText">0/100</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="cargoBar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="status-right">
+        <div class="stat-group">
+          <span class="stat-label">主题</span>
+          <span class="stat-value" id="currentTheme">深空科幻</span>
+        </div>
+        <button class="btn btn-small" id="themeToggle">🎨</button>
+        <button class="btn btn-small" id="saveBtn">💾</button>
+        <button class="btn btn-small" id="pauseBtn">⏸️ 暂停</button>
+        <button class="btn btn-small" id="resetBtn">🔄</button>
+      </div>
+    </header>
+    
+    <div class="main-container">
+      <nav class="sidebar">
+        <button class="nav-btn active" data-view="map" data-icon-sci-fi="🗺️" data-icon-wasteland="🗺️">
+          <span class="icon">🗺️</span>
+          <span>星图</span>
+        </button>
+        <button class="nav-btn" data-view="trade" data-icon-sci-fi="💰" data-icon-wasteland="💵">
+          <span class="icon">💰</span>
+          <span>交易</span>
+        </button>
+        <button class="nav-btn" data-view="upgrade" data-icon-sci-fi="⚙️" data-icon-wasteland="🔧">
+          <span class="icon">⚙️</span>
+          <span>升级</span>
+        </button>
+        <button class="nav-btn" data-view="investment" data-icon-sci-fi="📈" data-icon-wasteland="📊">
+          <span class="icon">📈</span>
+          <span>投资</span>
+        </button>
+        <button class="nav-btn" data-view="leaderboard" data-icon-sci-fi="🏆" data-icon-wasteland="👑">
+          <span class="icon">🏆</span>
+          <span>排行</span>
+        </button>
+        <button class="nav-btn" data-view="settings" data-icon-sci-fi="⚙️" data-icon-wasteland="⚙️">
+          <span class="icon">⚙️</span>
+          <span>设置</span>
+        </button>
+      </nav>
+      
+      <main class="content-area">
+        <section id="map-view" class="view-container">
+          <div class="map-container">
+            <canvas id="starMap"></canvas>
+            <div class="map-overlay">
+              <div class="map-info">
+                <h1 class="map-title" id="mapTitle">🌌 银河贸易网</h1>
+                <p class="map-subtitle" id="mapSubtitle">点击星系前往航行，点击当前星系进入交易</p>
+              </div>
+              <div class="map-info">
+                <p class="map-subtitle" id="mapStatus">等待指令...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <section id="trade-view" class="view-container hidden">
+          <div class="trade-header">
+            <div class="system-info">
+              <h2 id="tradeSystemName">星系名称</h2>
+              <p id="tradeSystemDesc">星系描述</p>
+            </div>
+            <div class="trade-ban-warning hidden" id="tradeBanWarning">
+              ⚠️ 贸易禁令生效中，无法进行交易！
+            </div>
+          </div>
+          
+          <div class="trade-content">
+            <div class="goods-table-container card">
+              <table class="goods-table">
+                <thead>
+                  <tr>
+                    <th>商品</th>
+                    <th>价格</th>
+                    <th>库存</th>
+                    <th>持有</th>
+                    <th>利润</th>
+                    <th>走势</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="goodsTableBody"></tbody>
+              </table>
+            </div>
+            
+            <div class="cargo-panel card" id="cargoList">
+              <h4>📦 货舱</h4>
+              <p class="empty-cargo">货舱空空如也</p>
+            </div>
+          </div>
+        </section>
+        
+        <section id="upgrade-view" class="view-container hidden">
+          <div class="view-header">
+            <h2 id="upgradeTitle">🚀 飞船升级</h2>
+            <p id="upgradeSubtitle">提升你的飞船性能，在银河贸易中占据优势</p>
+          </div>
+          
+          <div class="upgrade-grid" id="upgradeList"></div>
+          
+          <div class="ship-stats card" id="shipStats"></div>
+        </section>
+        
+        <section id="investment-view" class="view-container hidden">
+          <div class="view-header">
+            <h2 id="investmentTitle">💼 星球投资</h2>
+            <p id="investmentSubtitle">投资星球开发项目，获取长期稳定收益</p>
+          </div>
+          
+          <div class="investment-container">
+            <div id="availableInvestments" class="investment-section">
+              <h3>💼 可投资项目</h3>
+            </div>
+            <div id="activeInvestments" class="investment-section">
+              <h3>📈 进行中的投资</h3>
+            </div>
+          </div>
+        </section>
+        
+        <section id="leaderboard-view" class="view-container hidden">
+          <div class="view-header">
+            <h2 id="leaderboardTitle">🏆 银河富豪榜</h2>
+            <p id="leaderboardSubtitle">与其他星际贸易商竞争，争夺市场份额</p>
+          </div>
+          
+          <div class="leaderboard-container card">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>排名</th>
+                  <th>贸易商</th>
+                  <th>总资产</th>
+                  <th>市场份额</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody"></tbody>
+            </table>
+          </div>
+        </section>
+        
+        <section id="settings-view" class="view-container hidden">
+          <div class="view-header">
+            <h2 id="settingsTitle">⚙️ 游戏设置</h2>
+            <p id="settingsSubtitle">自定义你的游戏体验</p>
+          </div>
+          
+          <div id="settingsContainer"></div>
+        </section>
+      </main>
+    </div>
+    
+    <div class="modal-overlay hidden" id="modalOverlay"></div>
+    
+    <div class="modal hidden" id="eventModal">
+      <h2 id="eventTitle">随机事件</h2>
+      <p id="eventDescription">事件描述</p>
+      <div id="eventResult"></div>
+      <div class="event-choices" id="eventChoices"></div>
+    </div>
+    
+    <div class="notification-container" id="notificationContainer"></div>
+  </div>
+  
+  <script src="js/config/constants.js"></script>
+  <script src="js/config/goods.js"></script>
+  <script src="js/config/systems.js"></script>
+  <script src="js/config/events.js"></script>
+  <script src="js/utils/helpers.js"></script>
+  <script src="js/utils/eventBus.js"></script>
+  <script src="js/models/Player.js"></script>
+  <script src="js/models/Ship.js"></script>
+  <script src="js/models/StarSystem.js"></script>
+  <script src="js/models/AITrader.js"></script>
+  <script src="js/models/GameState.js"></script>
+  <script src="js/services/StorageService.js"></script>
+  <script src="js/services/TradeService.js"></script>
+  <script src="js/services/NavigationService.js"></script>
+  <script src="js/services/UpgradeService.js"></script>
+  <script src="js/services/InvestmentService.js"></script>
+  <script src="js/services/EventService.js"></script>
+  <script src="js/controllers/ThemeController.js"></script>
+  <script src="js/controllers/GameController.js"></script>
+  <script src="js/controllers/UIController.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

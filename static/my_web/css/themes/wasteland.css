@@ -1,0 +1,905 @@
+body.theme-wasteland {
+  --bg-primary: #2d1f14;
+  --bg-secondary: #1a1410;
+  --bg-tertiary: #4a3525;
+  --bg-card: rgba(45, 31, 20, 0.95);
+  --bg-glass: rgba(26, 20, 16, 0.95);
+  
+  --text-primary: #e5d4c3;
+  --text-secondary: #a89880;
+  --text-muted: #6b5a45;
+  --text-glow: rgba(217, 119, 6, 0.3);
+  
+  --accent-primary: #b45309;
+  --accent-secondary: #d97706;
+  --accent-tertiary: #ea580c;
+  --accent-gradient: linear-gradient(135deg, #92400e 0%, #b45309 50%, #d97706 100%);
+  --accent-gradient-animated: linear-gradient(90deg, #78350f, #b45309, #f59e0b, #78350f);
+  
+  --success: #65a30d;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #0891b2;
+  
+  --border-color: rgba(180, 83, 9, 0.5);
+  --border-glow: rgba(217, 119, 6, 0.8);
+  --border-thickness: 2px;
+  
+  --shadow-glow: 0 0 15px rgba(217, 119, 6, 0.3), 4px 4px 0 rgba(0, 0, 0, 0.5);
+  --shadow-card: 4px 4px 0 rgba(0, 0, 0, 0.6), 
+                 8px 8px 20px rgba(0, 0, 0, 0.4),
+                 inset 0 0 30px rgba(0, 0, 0, 0.3);
+  --shadow-text: 2px 2px 0 rgba(0, 0, 0, 0.8);
+  
+  --font-display: 'Bebas Neue', 'Impact', Haettenschweiler, sans-serif;
+  --font-body: 'Courier Prime', 'Courier New', monospace;
+  --font-mono: 'Courier Prime', monospace;
+  
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+  --radius-pill: 2px;
+  
+  --noise-bg: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  --scratch-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cdefs%3E%3Cpattern id='scratch' patternUnits='userSpaceOnUse' width='150' height='150'%3E%3Cpath d='M0 50 L150 55' stroke='%23000' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M20 0 L25 150' stroke='%23000' stroke-width='0.3' opacity='0.2'/%3E%3Cpath d='M100 0 L95 150' stroke='%23000' stroke-width='0.4' opacity='0.25'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23scratch)'/%3E%3C/svg%3E");
+  
+  --transition-fast: 0.1s steps(3);
+  --transition-normal: 0.2s steps(5);
+  --transition-slow: 0.4s steps(8);
+}
+
+body.theme-wasteland {
+  background-color: var(--bg-primary);
+  background-image: 
+    linear-gradient(180deg, #1a1410 0%, #2d1f14 25%, #3d2817 50%, #4a3525 75%, #2d1f14 100%),
+    radial-gradient(ellipse at 20% 20%, rgba(220, 38, 38, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(180, 83, 9, 0.2) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 0%, rgba(251, 191, 36, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse at 0% 50%, rgba(120, 53, 15, 0.25) 0%, transparent 40%),
+    var(--noise-bg),
+    var(--scratch-bg);
+  background-size: 
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    256px 256px,
+    300px 300px;
+  background-blend-mode: normal, normal, normal, normal, normal, soft-light, soft-light;
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+  image-rendering: pixelated;
+  transition: background 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+body.theme-wasteland::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(1px 1px at 15% 25%, rgba(251, 191, 36, 0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 35% 60%, rgba(251, 191, 36, 0.3) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 55% 15%, rgba(220, 38, 38, 0.3) 50%, transparent 51%),
+    radial-gradient(1px 1px at 75% 45%, rgba(251, 191, 36, 0.35) 50%, transparent 51%),
+    radial-gradient(1px 1px at 95% 75%, rgba(180, 83, 9, 0.4) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 25% 85%, rgba(220, 38, 38, 0.25) 50%, transparent 51%),
+    radial-gradient(1px 1px at 45% 35%, rgba(251, 191, 36, 0.3) 50%, transparent 51%),
+    radial-gradient(1px 1px at 65% 70%, rgba(251, 191, 36, 0.25) 50%, transparent 51%),
+    radial-gradient(1px 1px at 85% 10%, rgba(180, 83, 9, 0.35) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 5% 55%, rgba(220, 38, 38, 0.3) 50%, transparent 51%);
+  background-size: 400px 400px;
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: -1;
+  animation: 
+    dustFlicker 2s ease-in-out infinite,
+    dustDrift 60s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes dustFlicker {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes dustDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 400px -100px; }
+}
+
+body.theme-wasteland::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.06) 3px,
+      rgba(0, 0, 0, 0.06) 6px
+    );
+  pointer-events: none;
+  z-index: 0;
+  animation: crtFlicker 0.15s infinite;
+}
+
+@keyframes crtFlicker {
+  0% { opacity: 1; }
+  50% { opacity: 0.99; }
+  100% { opacity: 1; }
+}
+
+body.theme-wasteland .view-container::before {
+  display: none;
+}
+
+body.theme-wasteland .card {
+  background: var(--bg-glass);
+  border: var(--border-thickness) solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 12px) 0, 
+    100% 12px, 
+    100% 100%, 
+    12px 100%, 
+    0 calc(100% - 12px)
+  );
+}
+
+body.theme-wasteland .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--noise-bg);
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+body.theme-wasteland .card::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-primary),
+    var(--accent-primary) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  opacity: 0.6;
+}
+
+body.theme-wasteland .btn {
+  background: linear-gradient(180deg, 
+    rgba(180, 83, 9, 0.4) 0%, 
+    rgba(120, 53, 15, 0.6) 100%);
+  border: var(--border-thickness) solid var(--border-color);
+  color: var(--text-primary);
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: visible;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 14px;
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 8px) 0, 
+    100% 8px, 
+    100% 100%, 
+    8px 100%, 
+    0 calc(100% - 8px)
+  );
+  text-shadow: var(--shadow-text);
+}
+
+body.theme-wasteland .btn::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.15) 3px,
+    rgba(0, 0, 0, 0.15) 6px
+  );
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+body.theme-wasteland .btn:hover::before {
+  opacity: 1;
+}
+
+body.theme-wasteland .btn:hover {
+  background: linear-gradient(180deg, 
+    rgba(217, 119, 6, 0.5) 0%, 
+    rgba(180, 83, 9, 0.7) 100%);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6),
+              inset 0 0 20px rgba(217, 119, 6, 0.2);
+  transform: translate(-2px, -2px);
+  border-color: var(--border-glow);
+}
+
+body.theme-wasteland .btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+body.theme-wasteland .btn-buy {
+  background: linear-gradient(180deg, 
+    rgba(101, 163, 13, 0.4) 0%, 
+    rgba(77, 124, 15, 0.6) 100%);
+  border-color: rgba(101, 163, 13, 0.6);
+}
+
+body.theme-wasteland .btn-buy:hover {
+  background: linear-gradient(180deg, 
+    rgba(132, 204, 22, 0.5) 0%, 
+    rgba(101, 163, 13, 0.7) 100%);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6),
+              inset 0 0 20px rgba(132, 204, 22, 0.2);
+}
+
+body.theme-wasteland .btn-sell {
+  background: linear-gradient(180deg, 
+    rgba(217, 119, 6, 0.4) 0%, 
+    rgba(146, 64, 14, 0.6) 100%);
+  border-color: rgba(217, 119, 6, 0.6);
+}
+
+body.theme-wasteland .btn-sell:hover {
+  background: linear-gradient(180deg, 
+    rgba(234, 88, 12, 0.5) 0%, 
+    rgba(180, 83, 9, 0.7) 100%);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6),
+              inset 0 0 20px rgba(234, 88, 12, 0.2);
+}
+
+body.theme-wasteland .btn-upgrade {
+  background: var(--accent-gradient-animated);
+  background-size: 200% 100%;
+  animation: wastelandGradient 2s steps(4) infinite;
+  border: none;
+  color: #fef3c7;
+  font-weight: 900;
+  text-shadow: 2px 2px 0 #78350f;
+}
+
+@keyframes wastelandGradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+body.theme-wasteland .btn-upgrade:hover {
+  animation: wastelandGradient 0.5s steps(2) infinite;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.7),
+              0 0 30px rgba(217, 119, 6, 0.5);
+  transform: translate(-3px, -3px);
+}
+
+body.theme-wasteland .progress-bar {
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--border-color);
+  overflow: hidden;
+  position: relative;
+}
+
+body.theme-wasteland .progress-fill {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-primary) 0px,
+    var(--accent-secondary) 6px,
+    var(--accent-primary) 12px
+  );
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+              inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  transition: width var(--transition-normal);
+  position: relative;
+}
+
+body.theme-wasteland .progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(0, 0, 0, 0.2) 4px,
+    rgba(0, 0, 0, 0.2) 8px
+  );
+}
+
+body.theme-wasteland input[type="number"],
+body.theme-wasteland input[type="text"] {
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+body.theme-wasteland input[type="number"]:focus,
+body.theme-wasteland input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent-secondary);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3),
+              3px 3px 0 rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+body.theme-wasteland .status-bar {
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+  border-bottom: 4px solid var(--accent-primary);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.5),
+              0 10px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+body.theme-wasteland .status-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    #dc2626,
+    #dc2626 20px,
+    #fbbf24 20px,
+    #fbbf24 40px
+  );
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 10px 100%);
+}
+
+body.theme-wasteland .status-bar::after {
+  content: '███████ WARBOY SYSTEMS ███████';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--accent-primary);
+  opacity: 0.4;
+  letter-spacing: 4px;
+}
+
+body.theme-wasteland .nav-btn {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition-normal);
+  position: relative;
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+  clip-path: polygon(
+    4px 0, 
+    100% 0, 
+    100% calc(100% - 4px), 
+    calc(100% - 4px) 100%, 
+    0 100%, 
+    0 4px
+  );
+}
+
+body.theme-wasteland .nav-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: var(--accent-primary);
+  transition: height var(--transition-normal);
+}
+
+body.theme-wasteland .nav-btn:hover {
+  color: var(--accent-secondary);
+  background: rgba(180, 83, 9, 0.15);
+  border-color: var(--border-color);
+}
+
+body.theme-wasteland .nav-btn:hover::after {
+  height: 4px;
+}
+
+body.theme-wasteland .nav-btn.active {
+  color: var(--text-primary);
+  background: var(--accent-gradient);
+  border-color: var(--accent-primary);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5),
+              inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-wasteland .nav-btn.active::after {
+  height: 100%;
+  opacity: 0.3;
+}
+
+body.theme-wasteland .modal-overlay {
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(2px);
+}
+
+body.theme-wasteland .modal {
+  background: var(--bg-card);
+  border: 3px solid var(--accent-primary);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7),
+              0 0 40px rgba(220, 38, 38, 0.2);
+  animation: wastelandModal 0.3s steps(6);
+  position: relative;
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 20px) 0, 
+    100% 20px, 
+    100% 100%, 
+    20px 100%, 
+    0 calc(100% - 20px)
+  );
+}
+
+body.theme-wasteland .modal::before {
+  content: '⚠ WARNING ⚠';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(
+    90deg,
+    #000,
+    #000 10px,
+    #fbbf24 10px,
+    #fbbf24 20px
+  );
+  padding: 4px 24px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: #000;
+  font-weight: 900;
+  letter-spacing: 4px;
+}
+
+body.theme-wasteland .modal::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--noise-bg);
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+@keyframes wastelandModal {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.9) rotate(-1deg);
+    filter: blur(2px);
+  }
+  50% {
+    filter: blur(1px);
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1) rotate(0deg);
+    filter: blur(0);
+  }
+}
+
+body.theme-wasteland .notification {
+  background: var(--bg-glass);
+  border: 2px solid var(--border-color);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 10px) 0, 
+    100% 10px, 
+    100% 100%, 
+    0 100%
+  );
+}
+
+body.theme-wasteland .notification::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6px;
+}
+
+body.theme-wasteland .notification-success::before { 
+  background: var(--success); 
+}
+body.theme-wasteland .notification-error::before { 
+  background: var(--danger); 
+}
+body.theme-wasteland .notification-warning::before { 
+  background: var(--warning); 
+}
+body.theme-wasteland .notification-info::before { 
+  background: var(--info); 
+}
+
+body.theme-wasteland .notification::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--noise-bg);
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+body.theme-wasteland .goods-row:hover {
+  background: rgba(180, 83, 9, 0.25) !important;
+}
+
+body.theme-wasteland .goods-row:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+body.theme-wasteland .upgrade-card {
+  background: var(--bg-glass);
+  border: 2px solid var(--border-color);
+  transition: all var(--transition-normal);
+  position: relative;
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 15px) 0, 
+    100% 15px, 
+    100% 100%, 
+    15px 100%, 
+    0 calc(100% - 15px)
+  );
+}
+
+body.theme-wasteland .upgrade-card::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, transparent 50%, var(--accent-primary) 50%);
+  opacity: 0.4;
+  transition: opacity var(--transition-normal);
+}
+
+body.theme-wasteland .upgrade-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--scratch-bg);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+body.theme-wasteland .upgrade-card:hover {
+  border-color: var(--accent-secondary);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.6),
+              0 0 30px rgba(217, 119, 6, 0.3);
+  transform: translate(-3px, -3px);
+}
+
+body.theme-wasteland .upgrade-card:hover::before {
+  opacity: 1;
+}
+
+body.theme-wasteland .level-segment.filled {
+  background: var(--accent-gradient);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+body.theme-wasteland .level-segment.filled::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.1) 2px,
+    rgba(255, 255, 255, 0.1) 4px
+  );
+}
+
+body.theme-wasteland .investment-card {
+  background: var(--bg-glass);
+  border: 2px solid var(--border-color);
+  transition: all var(--transition-normal);
+  position: relative;
+  clip-path: polygon(
+    8px 0, 
+    100% 0, 
+    100% calc(100% - 8px), 
+    calc(100% - 8px) 100%, 
+    0 100%, 
+    0 8px
+  );
+}
+
+body.theme-wasteland .investment-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--noise-bg);
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+body.theme-wasteland .investment-card:hover {
+  border-color: var(--accent-secondary);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5),
+              0 0 25px rgba(217, 119, 6, 0.2);
+  transform: scale(1.02);
+}
+
+body.theme-wasteland .theme-option.selected .theme-preview {
+  box-shadow: 0 0 0 4px var(--accent-primary), 
+              4px 4px 0 rgba(0, 0, 0, 0.6),
+              0 0 30px rgba(217, 119, 6, 0.4);
+  animation: wastelandSelected 1s steps(4) infinite;
+}
+
+@keyframes wastelandSelected {
+  0%, 100% { 
+    box-shadow: 0 0 0 4px var(--accent-primary), 4px 4px 0 rgba(0, 0, 0, 0.6); 
+  }
+  50% { 
+    box-shadow: 0 0 0 4px var(--accent-secondary), 4px 4px 0 rgba(0, 0, 0, 0.6), 0 0 20px rgba(217, 119, 6, 0.5); 
+  }
+}
+
+body.theme-wasteland .player-row {
+  background: linear-gradient(90deg, 
+    rgba(180, 83, 9, 0.3) 0%, 
+    rgba(146, 64, 14, 0.15) 50%,
+    transparent 100%) !important;
+}
+
+body.theme-wasteland .rank-gold { 
+  background: linear-gradient(90deg, 
+    rgba(217, 119, 6, 0.4) 0%, 
+    rgba(180, 83, 9, 0.1) 50%,
+    transparent 100%) !important; 
+}
+body.theme-wasteland .rank-silver { 
+  background: linear-gradient(90deg, 
+    rgba(156, 163, 175, 0.3) 0%, 
+    rgba(156, 163, 175, 0.05) 50%,
+    transparent 100%) !important; 
+}
+body.theme-wasteland .rank-bronze { 
+  background: linear-gradient(90deg, 
+    rgba(146, 64, 14, 0.35) 0%, 
+    rgba(146, 64, 14, 0.08) 50%,
+    transparent 100%) !important; 
+}
+
+body.theme-wasteland h1,
+body.theme-wasteland h2,
+body.theme-wasteland h3 {
+  color: var(--accent-secondary);
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.8);
+  letter-spacing: 4px;
+  font-weight: 900;
+  position: relative;
+}
+
+body.theme-wasteland h1::after,
+body.theme-wasteland h2::after,
+body.theme-wasteland h3::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary), transparent);
+}
+
+body.theme-wasteland .bar-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+body.theme-wasteland .bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.2) 3px,
+    rgba(0, 0, 0, 0.2) 6px
+  );
+}
+
+body.theme-wasteland .share-bar-container {
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--border-color);
+}
+
+body.theme-wasteland .share-bar {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-primary),
+    var(--accent-secondary) 5px,
+    var(--accent-primary) 10px
+  );
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.theme-decoration {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.theme-wasteland .theme-decoration-sci-fi {
+  display: none;
+}
+
+body.theme-wasteland .theme-decoration-wasteland {
+  display: block;
+}
+
+body.theme-wasteland .deco-corner {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 3px solid var(--accent-primary);
+  opacity: 0.35;
+  clip-path: polygon(0 0, 100% 0, 100% 15px, 15px 15px, 15px 100%, 0 100%);
+}
+
+body.theme-wasteland .deco-corner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(0, 0, 0, 0.2) 4px,
+    rgba(0, 0, 0, 0.2) 8px
+  );
+}
+
+body.theme-wasteland .deco-tl {
+  top: 8px;
+  left: 8px;
+}
+
+body.theme-wasteland .deco-tr {
+  top: 8px;
+  right: 8px;
+  transform: scaleX(-1);
+}
+
+body.theme-wasteland .deco-bl {
+  bottom: 8px;
+  left: 8px;
+  transform: scaleY(-1);
+}
+
+body.theme-wasteland .deco-br {
+  bottom: 8px;
+  right: 8px;
+  transform: scale(-1, -1);
+}
+
+body.theme-wasteland .deco-border {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border: 2px dashed rgba(180, 83, 9, 0.3);
+  clip-path: polygon(
+    0 20px, 20px 20px, 20px 0,
+    calc(100% - 20px) 0, calc(100% - 20px) 20px, 100% 20px,
+    100% calc(100% - 20px), calc(100% - 20px) calc(100% - 20px), calc(100% - 20px) 100%,
+    20px 100%, 20px calc(100% - 20px), 0 calc(100% - 20px)
+  );
+}
+
+body.theme-wasteland .deco-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(220, 38, 38, 0.02) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(180, 83, 9, 0.02) 0%, transparent 40%),
+    radial-gradient(circle at 50% 20%, rgba(120, 53, 15, 0.03) 0%, transparent 50%);
+  animation: dustFloat 15s ease-in-out infinite;
+}
+
+@keyframes dustFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-10px, 10px) scale(1.02); }
+  66% { transform: translate(10px, -5px) scale(0.98); }
+}
+
+body.theme-wasteland .deco-particles::before,
+body.theme-wasteland .deco-particles::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #dc2626 0px,
+    #dc2626 20px,
+    #fbbf24 20px,
+    #fbbf24 40px
+  );
+  opacity: 0.08;
+}
+
+body.theme-wasteland .deco-particles::before {
+  top: 40px;
+}
+
+body.theme-wasteland .deco-particles::after {
+  bottom: 40px;
+}
