@@ -39,6 +39,14 @@ document.addEventListener('DOMContentLoaded', function () {
         self.handleRouteChange(route, params);
       });
       var current = GameRouter.getCurrentRoute();
+      var savedSession = sessionStorage.getItem('hamster_game_session');
+      if (savedSession && current.route !== 'game') {
+        try {
+          var session = JSON.parse(savedSession);
+          GameRouter.navigate('game', { map: session.mapId, difficulty: session.difficulty });
+          return;
+        } catch (e) {}
+      }
       this.currentRoute = current.route;
       this.routeParams = current.params;
     },

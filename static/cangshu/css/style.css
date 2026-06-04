@@ -913,13 +913,37 @@ body {
 }
 
 .game-page {
-  padding-bottom: 0;
+  padding-bottom: 0 !important;
+  min-height: 100vh;
+  background: #f0f6ff;
+}
+
+.game-playing {
+  background: #000;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-playing .canvas-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #000;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .canvas-wrapper {
   position: relative;
   width: 100%;
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   background: #000;
 }
@@ -928,6 +952,12 @@ body {
   display: block;
   width: 100%;
   height: auto;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+.game-setup, .game-result {
+  padding-bottom: 20px;
 }
 
 .game-hud {

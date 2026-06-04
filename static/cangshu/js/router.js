@@ -41,6 +41,17 @@ window.GameRouter = {
         }
       });
     }
+    if (route !== 'game') {
+      try {
+        var savedSession = sessionStorage.getItem('hamster_game_session');
+        if (savedSession) {
+          var session = JSON.parse(savedSession);
+          route = 'game';
+          params = { map: session.mapId, difficulty: session.difficulty };
+          window.location.hash = '#game?map=' + session.mapId + '&difficulty=' + session.difficulty;
+        }
+      } catch (e) {}
+    }
     return { route: route, params: params };
   },
 
