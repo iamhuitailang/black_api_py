@@ -12,6 +12,10 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.huoche import (
+    TrainTypeModel, TrainModel, RouteModel, StationModel,
+    PassengerModel, CargoModel, UserGameModel, GameRecordModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +38,15 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    
+    TrainTypeModel.create_table()
+    RouteModel.create_table()
+    StationModel.create_table()
+    TrainModel.create_table()
+    UserGameModel.create_table()
+    GameRecordModel.create_table()
+    PassengerModel.create_table()
+    CargoModel.create_table()
     
     migrate_database()
     
@@ -113,6 +126,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8900,
         reload=True
     )
