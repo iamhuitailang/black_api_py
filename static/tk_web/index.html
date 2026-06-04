@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太空跑酷 - Space Runner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <div class="stars"></div>
+            <h1 class="game-title">🚀 太空跑酷 🌟</h1>
+            <p class="subtitle">控制宇航员穿越星球，收集能量晶体！</p>
+            <div class="menu-buttons">
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="level-select-btn" class="btn btn-secondary">选择关卡</button>
+            </div>
+            <div class="controls-info">
+                <p>⬆️ / 空格 / 点击 - 跳跃</p>
+                <p>⬇️ - 滑行</p>
+            </div>
+        </div>
+
+        <div id="level-select" class="screen">
+            <div class="stars"></div>
+            <h2>选择星球</h2>
+            <div class="level-grid">
+                <div class="level-card" data-level="0">
+                    <div class="level-icon">🏜️</div>
+                    <h3>沙漠星球</h3>
+                    <p>沙尘暴 · 流沙陷阱</p>
+                    <div class="level-status" id="level-0-status">🔒 未解锁</div>
+                </div>
+                <div class="level-card" data-level="1">
+                    <div class="level-icon">🌴</div>
+                    <h3>丛林星球</h3>
+                    <p>藤蔓 · 肉食植物</p>
+                    <div class="level-status" id="level-1-status">🔒 未解锁</div>
+                </div>
+                <div class="level-card" data-level="2">
+                    <div class="level-icon">❄️</div>
+                    <h3>冰雪星球</h3>
+                    <p>冰面 · 雪崩</p>
+                    <div class="level-status" id="level-2-status">🔒 未解锁</div>
+                </div>
+                <div class="level-card" data-level="3">
+                    <div class="level-icon">🤖</div>
+                    <h3>机械星球</h3>
+                    <p>激光 · 机器人</p>
+                    <div class="level-status" id="level-3-status">🔒 未解锁</div>
+                </div>
+            </div>
+            <button id="back-to-menu" class="btn btn-secondary">返回菜单</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="hud">
+                <div class="hud-item">
+                    <span>距离:</span>
+                    <span id="distance">0</span>m / <span id="target-distance">500</span>m
+                </div>
+                <div class="hud-item">
+                    <span>💎</span>
+                    <span id="crystals">0</span> / <span id="target-crystals">10</span>
+                </div>
+                <div class="hud-item">
+                    <span>❤️</span>
+                    <span id="lives">3</span>
+                </div>
+                <button id="pause-btn" class="btn btn-small">暂停</button>
+            </div>
+            <canvas id="game-canvas"></canvas>
+            <div id="boost-bar">
+                <div id="boost-fill"></div>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="modal">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn btn-danger">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="game-over" class="screen overlay">
+            <div class="modal">
+                <h2 id="game-over-title">任务失败</h2>
+                <p id="game-over-message">宇航员遭遇了意外...</p>
+                <div class="stats">
+                    <p>距离: <span id="final-distance">0</span>m</p>
+                    <p>晶体: <span id="final-crystals">0</span></p>
+                </div>
+                <button id="retry-btn" class="btn btn-primary">再试一次</button>
+                <button id="menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+
+        <div id="level-complete" class="screen overlay">
+            <div class="modal">
+                <h2>🎉 关卡完成！</h2>
+                <p id="complete-message">恭喜你成功穿越星球！</p>
+                <div class="stats">
+                    <p>距离: <span id="complete-distance">0</span>m</p>
+                    <p>晶体: <span id="complete-crystals">0</span></p>
+                </div>
+                <button id="next-level-btn" class="btn btn-primary">下一关</button>
+                <button id="complete-menu-btn" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
