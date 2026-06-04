@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>小仓鼠推雪球</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="snow-bg" id="snowBg"></div>
+  <div id="app"></div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+  <script src="./js/store.js"></script>
+  <script src="./js/router.js"></script>
+  <script src="./js/game-maps.js"></script>
+  <script src="./js/game-entities.js"></script>
+  <script src="./js/game-ai.js"></script>
+  <script src="./js/game-engine.js"></script>
+
+  <script src="./js/pages/page-lobby.js"></script>
+  <script src="./js/pages/page-shop.js"></script>
+  <script src="./js/pages/page-dress.js"></script>
+  <script src="./js/pages/page-maps.js"></script>
+  <script src="./js/pages/page-profile.js"></script>
+  <script src="./js/pages/page-activity.js"></script>
+  <script src="./js/pages/page-props.js"></script>
+  <script src="./js/pages/page-game.js"></script>
+
+  <script src="./js/app.js"></script>
+
+  <script>
+    (function() {
+      var bg = document.getElementById('snowBg');
+      if (!bg) return;
+      var snowflakeChars = ['❄', '❅', '❆', '✻', '✼'];
+      for (var i = 0; i < 30; i++) {
+        var s = document.createElement('div');
+        s.className = 'snowflake-bg';
+        s.textContent = snowflakeChars[Math.floor(Math.random() * snowflakeChars.length)];
+        s.style.left = Math.random() * 100 + '%';
+        s.style.top = -10 + 'px';
+        s.style.animationDuration = (8 + Math.random() * 8) + 's';
+        s.style.animationDelay = (Math.random() * 10) + 's';
+        s.style.fontSize = (8 + Math.random() * 8) + 'px';
+        bg.appendChild(s);
+      }
+    })();
+  </script>
+</body>
+</html>
