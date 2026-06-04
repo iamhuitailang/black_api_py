@@ -216,9 +216,11 @@ window.GamePage = {
   },
 
   mounted: function () {
+    var self = this;
     var route = GameRouter.getCurrentRoute();
     var params = route.params || {};
     var savedSession = sessionStorage.getItem('hamster_game_session');
+    var hasFullState = false;
     if (savedSession) {
       try {
         var session = JSON.parse(savedSession);
@@ -237,6 +239,19 @@ window.GamePage = {
         mapId: this.mapId,
         difficulty: this.difficulty
       }));
+      try {
+        var rawFullState = sessionStorage.getItem('hamster_game_full_state');
+        if (rawFullState) {
+          var fullState = JSON.parse(rawFullState);
+          if (fullState.mapId === this.mapId && fullState.difficulty === this.difficulty &&
+              (fullState.gameState === 'playing' || fullState.gameState === 'countdown' || fullState.gameState === 'paused')) {
+            hasFullState = true;
+            this.$nextTick(function () {
+              self.startGame();
+            });
+          }
+        }
+      } catch (e) {}
     }
   },
 
@@ -261,7 +276,21 @@ window.GamePage = {
 
         var currentSkin = GameStore.get('currentSkin') || 'default';
         var currentEffect = GameStore.get('currentSnowballEffect') || 'default';
-        self.engine = new GameEngine.GameEngine(self.canvas, self.mapId, self.difficulty, currentSkin, currentEffect);
+        var savedFullState = null;
+        try {
+          var rawState = sessionStorage.getItem('hamster_game_full_state');
+          if (rawState) {
+            var parsed = JSON.parse(rawState);
+            if (parsed.mapId === self.mapId && parsed.difficulty === self.difficulty) {
+              savedFullState = parsed;
+            } else {
+              sessionStorage.removeItem('hamster_game_full_state');
+            }
+          }
+        } catch (e) {
+          sessionStorage.removeItem('hamster_game_full_state');
+        }
+        self.engine = new GameEngine.GameEngine(self.canvas, self.mapId, self.difficulty, currentSkin, currentEffect, savedFullState);
         self.engine.onGameEnd = self.onGameEnd;
         self.engine.onGameUpdate = self.onGameUpdate;
         self.engine.init();
@@ -324,6 +353,7 @@ window.GamePage = {
         this.engine.stop();
         this.engine = null;
       }
+      sessionStorage.removeItem('hamster_game_full_state');
       this.gameState = 'setup';
       this.gameResults = null;
       this.showPause = false;
@@ -347,6 +377,7 @@ window.GamePage = {
         this.engine = null;
       }
       sessionStorage.removeItem('hamster_game_session');
+      sessionStorage.removeItem('hamster_game_full_state');
       GameRouter.navigate('lobby');
     },
 

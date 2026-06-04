@@ -31,13 +31,14 @@ window.GameEngine = (function () {
   }
 
   class GameEngine {
-    constructor(canvas, mapId, difficulty, playerSkin, playerSnowballEffect) {
+    constructor(canvas, mapId, difficulty, playerSkin, playerSnowballEffect, savedState) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.mapId = mapId;
       this.difficulty = difficulty;
       this.playerSkin = playerSkin;
       this.playerSnowballEffect = playerSnowballEffect;
+      this.savedState = savedState || null;
       this.map = null;
       this.width = 800;
       this.height = 600;
@@ -67,6 +68,7 @@ window.GameEngine = (function () {
       this._cachedResults = null;
       this._keyDownHandler = null;
       this._keyUpHandler = null;
+      this._saveTimer = 0;
     }
 
     init() {
@@ -78,38 +80,42 @@ window.GameEngine = (function () {
       this.canvas.width = this.width;
       this.canvas.height = this.height;
 
-      var skinColor = GameStore.SKINS[this.playerSkin] ? GameStore.SKINS[this.playerSkin].color : '#F4A460';
-      if (skinColor === 'rainbow') skinColor = '#F4A460';
-      var p = new Hamster('player', map.spawnPoints[0].x, map.spawnPoints[0].y, skinColor, true, GameStore.get('playerName'), this.playerSkin);
-      p.snowball.effect = GameStore.SNOWBALL_EFFECTS[this.playerSnowballEffect] ? GameStore.SNOWBALL_EFFECTS[this.playerSnowballEffect].effect : 'none';
-      this.player = p;
-      this.hamsters.push(p);
+      if (this.savedState) {
+        this._restoreState(this.savedState);
+      } else {
+        var skinColor = GameStore.SKINS[this.playerSkin] ? GameStore.SKINS[this.playerSkin].color : '#F4A460';
+        if (skinColor === 'rainbow') skinColor = '#F4A460';
+        var p = new Hamster('player', map.spawnPoints[0].x, map.spawnPoints[0].y, skinColor, true, GameStore.get('playerName'), this.playerSkin);
+        p.snowball.effect = GameStore.SNOWBALL_EFFECTS[this.playerSnowballEffect] ? GameStore.SNOWBALL_EFFECTS[this.playerSnowballEffect].effect : 'none';
+        this.player = p;
+        this.hamsters.push(p);
 
-      var names = shuffle(AI_NAMES[this.difficulty] || AI_NAMES.normal);
-      var colors = shuffle(AI_COLORS);
-      var skins = shuffle(AI_SKINS);
-      for (var i = 0; i < 3; i++) {
-        var sp = map.spawnPoints[i + 1];
-        var ai = new Hamster('ai_' + i, sp.x, sp.y, colors[i], false, names[i], skins[i]);
-        this.hamsters.push(ai);
-        this.aiControllers.push(new AIController(ai, this.difficulty));
-      }
-
-      if (map.hazards) {
-        for (var i = 0; i < map.hazards.length; i++) {
-          this.hazards.push(new HazardEntity(map.hazards[i]));
+        var names = shuffle(AI_NAMES[this.difficulty] || AI_NAMES.normal);
+        var colors = shuffle(AI_COLORS);
+        var skins = shuffle(AI_SKINS);
+        for (var i = 0; i < 3; i++) {
+          var sp = map.spawnPoints[i + 1];
+          var ai = new Hamster('ai_' + i, sp.x, sp.y, colors[i], false, names[i], skins[i]);
+          this.hamsters.push(ai);
+          this.aiControllers.push(new AIController(ai, this.difficulty));
         }
-      }
 
-      this.gameObjects = [];
-      if (map.obstacles) {
-        for (var i = 0; i < map.obstacles.length; i++) {
-          var o = map.obstacles[i];
-          this.gameObjects.push({ x: o.x, y: o.y, w: o.width, h: o.height, type: o.type });
+        if (map.hazards) {
+          for (var i = 0; i < map.hazards.length; i++) {
+            this.hazards.push(new HazardEntity(map.hazards[i]));
+          }
         }
-      }
 
-      this._spawnInitialPickups();
+        this.gameObjects = [];
+        if (map.obstacles) {
+          for (var i = 0; i < map.obstacles.length; i++) {
+            var o = map.obstacles[i];
+            this.gameObjects.push({ x: o.x, y: o.y, w: o.width, h: o.height, type: o.type });
+          }
+        }
+
+        this._spawnInitialPickups();
+      }
 
       var self = this;
       this._keyDownHandler = function (e) {
@@ -163,6 +169,7 @@ window.GameEngine = (function () {
       if (this.animationId) { cancelAnimationFrame(this.animationId); this.animationId = null; }
       if (this._keyDownHandler) document.removeEventListener('keydown', this._keyDownHandler);
       if (this._keyUpHandler) document.removeEventListener('keyup', this._keyUpHandler);
+      if (this.gameState !== 'gameover') this._saveState();
     }
 
     gameLoop(timestamp) {
@@ -174,6 +181,11 @@ window.GameEngine = (function () {
         case 'playing': this.updatePlaying(dt); break;
         case 'gameover': this.updateGameOver(dt); break;
         case 'paused': break;
+      }
+      this._saveTimer += dt;
+      if (this._saveTimer >= 1) {
+        this._saveTimer = 0;
+        this._saveState();
       }
       this.render();
     }
@@ -375,6 +387,113 @@ window.GameEngine = (function () {
         GameStore.updateStats({ won: this._cachedResults.playerRank === 1, snowballSize: this._cachedResults.playerSnowballSize, coinsEarned: this._cachedResults.coinsEarned });
         if (this._metGuestId) { GameStore.metSpecialGuest(this._metGuestId); GameStore.unlockSkin('special_' + this._metGuestId); }
         if (this.onGameEnd) this.onGameEnd(this._cachedResults);
+      }
+      sessionStorage.removeItem('hamster_game_full_state');
+    }
+
+    _saveState() {
+      if (this.gameState === 'gameover') return;
+      var state = {
+        mapId: this.mapId,
+        difficulty: this.difficulty,
+        playerSkin: this.playerSkin,
+        playerSnowballEffect: this.playerSnowballEffect,
+        gameState: this.gameState,
+        timeRemaining: this.timeRemaining,
+        countdownTimer: this.countdownTimer,
+        pickupSpawnTimer: this.pickupSpawnTimer,
+        _nextPickupSpawn: this._nextPickupSpawn,
+        specialGuestTimer: this.specialGuestTimer,
+        specialGuestActive: this.specialGuestActive,
+        gameTime: this.gameTime,
+        _metGuestId: this._metGuestId,
+        hamsters: this.hamsters.map(function (h) {
+          return {
+            id: h.id, x: h.x, y: h.y, color: h.color, isPlayer: h.isPlayer,
+            name: h.name, skinId: h.skinId, vx: h.vx, vy: h.vy, speed: h.speed,
+            radius: h.radius, direction: h.direction, isFrozen: h.isFrozen,
+            frozenTimer: h.frozenTimer, isInvisible: h.isInvisible,
+            invisibleTimer: h.invisibleTimer, speedBoost: h.speedBoost,
+            speedBoostTimer: h.speedBoostTimer, alive: h.alive, score: h.score,
+            snowball: { size: h.snowball.size, effect: h.snowball.effect, id: h.snowball.id },
+            propCooldowns: h.propCooldowns
+          };
+        }),
+        hazards: this.hazards.map(function (hz) {
+          return { x: hz.x, y: hz.y, type: hz.type, radius: hz.radius, speed: hz.speed, vx: hz.vx, vy: hz.vy };
+        }),
+        pickups: this.pickups.map(function (p) {
+          return { x: p.x, y: p.y, type: p.type, value: p.value, active: p.active };
+        }),
+        propEntities: this.propEntities.map(function (pe) {
+          return { type: pe.type, x: pe.x, y: pe.y, vx: pe.vx, vy: pe.vy, ownerId: pe.ownerId, active: pe.active, radius: pe.radius };
+        }),
+        gameObjects: this.gameObjects.map(function (go) {
+          return { x: go.x, y: go.y, w: go.w, h: go.h, type: go.type };
+        })
+      };
+      try {
+        sessionStorage.setItem('hamster_game_full_state', JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    _restoreState(state) {
+      this.gameState = state.gameState;
+      this.timeRemaining = state.timeRemaining;
+      this.countdownTimer = state.countdownTimer;
+      this.pickupSpawnTimer = state.pickupSpawnTimer;
+      this._nextPickupSpawn = state._nextPickupSpawn;
+      this.specialGuestTimer = state.specialGuestTimer;
+      this.specialGuestActive = state.specialGuestActive;
+      this.gameTime = state.gameTime;
+      this._metGuestId = state._metGuestId;
+
+      var effectName = GameStore.SNOWBALL_EFFECTS[state.playerSnowballEffect] ? GameStore.SNOWBALL_EFFECTS[state.playerSnowballEffect].effect : 'none';
+      this.hamsters = [];
+      this.aiControllers = [];
+      for (var i = 0; i < state.hamsters.length; i++) {
+        var hd = state.hamsters[i];
+        var h = new Hamster(hd.id, hd.x, hd.y, hd.color, hd.isPlayer, hd.name, hd.skinId);
+        h.vx = hd.vx; h.vy = hd.vy; h.speed = hd.speed; h.radius = hd.radius;
+        h.direction = hd.direction; h.isFrozen = hd.isFrozen; h.frozenTimer = hd.frozenTimer;
+        h.isInvisible = hd.isInvisible; h.invisibleTimer = hd.invisibleTimer;
+        h.speedBoost = hd.speedBoost; h.speedBoostTimer = hd.speedBoostTimer;
+        h.alive = hd.alive; h.score = hd.score; h.propCooldowns = hd.propCooldowns;
+        h.snowball.size = hd.snowball.size; h.snowball.effect = hd.isPlayer ? effectName : 'none';
+        h.snowball.x = hd.x; h.snowball.y = hd.y;
+        this.hamsters.push(h);
+        if (hd.isPlayer) {
+          this.player = h;
+        } else {
+          this.aiControllers.push(new AIController(h, this.difficulty));
+        }
+      }
+
+      this.hazards = [];
+      for (var j = 0; j < state.hazards.length; j++) {
+        var hzd = state.hazards[j];
+        this.hazards.push(new HazardEntity({ x: hzd.x, y: hzd.y, type: hzd.type, radius: hzd.radius, speed: hzd.speed, vx: hzd.vx, vy: hzd.vy }));
+      }
+
+      this.pickups = [];
+      for (var k = 0; k < state.pickups.length; k++) {
+        var pd = state.pickups[k];
+        var pickup = new MapPickup(pd.x, pd.y, pd.type);
+        pickup.value = pd.value; pickup.active = pd.active;
+        this.pickups.push(pickup);
+      }
+
+      this.propEntities = [];
+      for (var m = 0; m < state.propEntities.length; m++) {
+        var ped = state.propEntities[m];
+        var pe = new PropEntity(ped.type, ped.x, ped.y, ped.ownerId);
+        pe.vx = ped.vx; pe.vy = ped.vy; pe.active = ped.active; pe.radius = ped.radius;
+        this.propEntities.push(pe);
+      }
+
+      this.gameObjects = [];
+      for (var n = 0; n < state.gameObjects.length; n++) {
+        this.gameObjects.push(state.gameObjects[n]);
       }
     }
 
