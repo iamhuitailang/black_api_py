@@ -11,13 +11,13 @@ window.ShopPage = {
       </div>
 
       <div class="tab-bar">
-        <button
+        <div
           v-for="tab in tabs"
           :key="tab.key"
-          class="tab-btn"
+          class="tab-item"
           :class="{ active: activeTab === tab.key }"
           @click="activeTab = tab.key"
-        >{{ tab.name }}</button>
+        >{{ tab.name }}</div>
       </div>
 
       <div class="shop-content">
@@ -28,7 +28,7 @@ window.ShopPage = {
             class="item-card"
           >
             <div
-              class="skin-preview"
+              class="item-preview"
               :style="{ backgroundColor: skin.color === 'rainbow' ? '' : skin.color, background: skin.color === 'rainbow' ? 'linear-gradient(135deg, red, orange, yellow, green, blue, purple)' : undefined }"
             ></div>
             <div class="item-name">{{ skin.name }}</div>
@@ -55,7 +55,7 @@ window.ShopPage = {
             :key="effectId"
             class="item-card"
           >
-            <div class="effect-icon">❄️</div>
+            <div class="item-preview" style="display:flex;align-items:center;justify-content:center;font-size:24px;">❄️</div>
             <div class="item-name">{{ effect.name }}</div>
             <div class="item-price">
               <span v-if="effect.price > 0">
@@ -73,13 +73,13 @@ window.ShopPage = {
           </div>
         </div>
 
-        <div v-if="activeTab === 'props'" class="item-list">
+        <div v-if="activeTab === 'props'" class="prop-list">
           <div
             v-for="(prop, propId) in GameStore.PROP_DEFS"
             :key="propId"
             class="prop-item"
           >
-            <div class="prop-icon">{{ prop.icon }}</div>
+            <span class="prop-icon">{{ prop.icon }}</span>
             <div class="prop-info">
               <div class="prop-name">{{ prop.name }}</div>
               <div class="prop-desc">{{ prop.desc }}</div>
@@ -104,7 +104,7 @@ window.ShopPage = {
             :key="decorId"
             class="item-card"
           >
-            <div class="decor-icon">🎨</div>
+            <div class="item-preview" style="display:flex;align-items:center;justify-content:center;font-size:24px;">🎨</div>
             <div class="item-name">{{ decor.name }}</div>
             <div class="item-price">
               <span v-if="decor.price > 0">
@@ -191,7 +191,7 @@ window.ShopPage = {
       return false;
     },
 
-    buyItem: function (item, type) {
+    buyItem: function (itemId, type, item) {
       var success = false;
       if (item.type === 'coin') {
         success = GameStore.spendCoins(item.price);
@@ -200,9 +200,9 @@ window.ShopPage = {
       }
       if (!success) return false;
 
-      if (type === 'skin') GameStore.unlockSkin(item);
-      if (type === 'effect') GameStore.unlockSnowballEffect(item);
-      if (type === 'decor') GameStore.unlockMapDecor(item);
+      if (type === 'skin') GameStore.unlockSkin(itemId);
+      if (type === 'effect') GameStore.unlockSnowballEffect(itemId);
+      if (type === 'decor') GameStore.unlockMapDecor(itemId);
       return true;
     },
 
@@ -231,11 +231,12 @@ window.ShopPage = {
     },
 
     handleItemAction: function (itemId, type, item) {
+      if (item.type === 'special') return;
       if (this.isEquipped(itemId, type)) return;
       if (this.isOwned(itemId, type)) {
         this.equipItem(itemId, type);
       } else if (this.canAfford(item)) {
-        this.buyItem(itemId, type);
+        this.buyItem(itemId, type, item);
         this.equipItem(itemId, type);
       }
     },

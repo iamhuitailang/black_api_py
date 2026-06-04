@@ -91,7 +91,6 @@ window.GameEngine = (function () {
       for (var i = 0; i < 3; i++) {
         var sp = map.spawnPoints[i + 1];
         var ai = new Hamster('ai_' + i, sp.x, sp.y, colors[i], false, names[i], skins[i]);
-        ai.props = Object.keys(PROP_ENTITY_TYPE).map(function (t) { return { type: t }; });
         this.hamsters.push(ai);
         this.aiControllers.push(new AIController(ai, this.difficulty));
       }
@@ -272,7 +271,7 @@ window.GameEngine = (function () {
         for (var j = 0; j < this.hamsters.length; j++) {
           var h = this.hamsters[j];
           if (dist(h.x, h.y, this.hazards[i].x, this.hazards[i].y) < h.radius + this.hazards[i].radius) {
-            h.freeze(3000);
+            h.freeze(3);
             h.snowball.shrink(h.snowball.size * 0.1);
           }
         }
@@ -294,7 +293,7 @@ window.GameEngine = (function () {
           var h = this.hamsters[j];
           if (h.id === pe.ownerId) continue;
           if (dist(h.x, h.y, pe.x, pe.y) < h.radius + pe.radius) {
-            if (pe.type === 'freeze_ray') { h.freeze(3000); pe.active = false; }
+            if (pe.type === 'freeze_ray') { h.freeze(3); pe.active = false; }
             else if (pe.type === 'split_bomb') { h.snowball.shrink(h.snowball.size * 0.5); pe.active = false; }
           }
         }

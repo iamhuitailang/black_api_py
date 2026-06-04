@@ -218,8 +218,26 @@ window.GamePage = {
   mounted: function () {
     var route = GameRouter.getCurrentRoute();
     var params = route.params || {};
-    this.mapId = params.map || 'ice_world';
-    this.difficulty = params.difficulty || 'normal';
+    var savedSession = sessionStorage.getItem('hamster_game_session');
+    if (savedSession) {
+      try {
+        var session = JSON.parse(savedSession);
+        this.mapId = params.map || session.mapId || 'ice_world';
+        this.difficulty = params.difficulty || session.difficulty || 'normal';
+      } catch (e) {
+        this.mapId = params.map || 'ice_world';
+        this.difficulty = params.difficulty || 'normal';
+      }
+    } else {
+      this.mapId = params.map || 'ice_world';
+      this.difficulty = params.difficulty || 'normal';
+    }
+    if (route.route === 'game') {
+      sessionStorage.setItem('hamster_game_session', JSON.stringify({
+        mapId: this.mapId,
+        difficulty: this.difficulty
+      }));
+    }
   },
 
   beforeUnmount: function () {
@@ -232,6 +250,7 @@ window.GamePage = {
   methods: {
     startGame: function () {
       var self = this;
+      this.gameState = 'playing';
       this.$nextTick(function () {
         self.canvas = self.$refs.gameCanvas;
         if (!self.canvas) return;
@@ -242,7 +261,6 @@ window.GamePage = {
         self.engine.onGameEnd = self.onGameEnd;
         self.engine.onGameUpdate = self.onGameUpdate;
         self.engine.init();
-        self.gameState = 'playing';
       });
     },
 
@@ -324,6 +342,7 @@ window.GamePage = {
         this.engine.stop();
         this.engine = null;
       }
+      sessionStorage.removeItem('hamster_game_session');
       GameRouter.navigate('lobby');
     },
 
