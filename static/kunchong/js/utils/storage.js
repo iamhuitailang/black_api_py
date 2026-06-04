@@ -37,8 +37,23 @@ export const gameStorage = {
                 mode: null,
                 levelId: null,
                 opponentId: null
-            }
+            },
+            battleState: null
         };
+    },
+
+    saveBattleState(state) {
+        return this.save({ battleState: state });
+    },
+
+    loadBattleState() {
+        return this.load().battleState;
+    },
+
+    clearBattleState() {
+        const data = this.load();
+        data.battleState = null;
+        return this.save(data);
     },
 
     savePlayerBug(bug) {
