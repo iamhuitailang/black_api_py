@@ -34,6 +34,15 @@ function getRandomWeather(): Weather {
 export const useGameStore = defineStore('game', () => {
   const savedData = loadFromStorage();
 
+  if (savedData?.animals) {
+    savedData.animals = savedData.animals.map((a: any) => ({
+      ...a,
+      sleepStartTime: a.sleepStartTime ?? undefined,
+      actions: a.actions ?? ['跳跃'],
+      skills: a.skills ?? [],
+    }));
+  }
+
   const coins = ref(savedData?.coins ?? 500);
   const day = ref(savedData?.day ?? 1);
   const timeOfDay = ref<TimeOfDay>(savedData?.timeOfDay ?? 'morning');
@@ -60,6 +69,27 @@ export const useGameStore = defineStore('game', () => {
       inv[f.id] = 5;
     });
     return inv;
+  }
+
+  function getSnapshot(): Record<string, any> {
+    return {
+      coins: coins.value,
+      day: day.value,
+      timeOfDay: timeOfDay.value,
+      weather: weather.value,
+      animals: JSON.parse(JSON.stringify(animals.value)),
+      inventory: { ...inventory.value },
+      decorations: [...decorations.value],
+      toys: [...toys.value],
+      totalGraduated: totalGraduated.value,
+      gameStartTime: gameStartTime.value,
+      pendingActivity: pendingActivity.value ? { ...pendingActivity.value } : null,
+      lastSave: Date.now(),
+    };
+  }
+
+  function persist() {
+    saveToStorage(getSnapshot());
   }
 
   const selectedAnimal = computed(() => {
@@ -129,6 +159,7 @@ export const useGameStore = defineStore('game', () => {
 
     addNotification(`${animal.name}完成了${course.name}！经验+${expGain}`, 'success');
     checkGraduation(animal);
+    persist();
   }
 
   function completeActivity(activity: PendingActivity) {
@@ -140,6 +171,7 @@ export const useGameStore = defineStore('game', () => {
       animal.happiness = Math.min(100, animal.happiness + act.happinessBonus);
     });
     addNotification(`🎉 ${act.name}圆满结束！获得 ${act.coinReward} 金币！`, 'success');
+    persist();
   }
 
   function completeSleep(animalId: string) {
@@ -152,6 +184,7 @@ export const useGameStore = defineStore('game', () => {
     animal.happiness = Math.min(100, animal.happiness + 10);
     sleepTimers.delete(animalId);
     addNotification(`${animal.name}睡醒了！精力恢复~ ☀️`, 'success');
+    persist();
   }
 
   function finishPendingActivity() {
@@ -167,6 +200,7 @@ export const useGameStore = defineStore('game', () => {
 
     pendingActivity.value = null;
     clearActivityTimer();
+    persist();
   }
 
   function scheduleActivityCompletion(activity: PendingActivity) {
@@ -186,22 +220,35 @@ export const useGameStore = defineStore('game', () => {
 
   function restorePendingActivities() {
     animals.value.forEach(animal => {
-      if (animal.isSleeping && animal.sleepStartTime) {
-        const elapsed = Date.now() - animal.sleepStartTime;
-        const remaining = Math.max(0, SLEEP_DURATION - elapsed);
+      if (animal.isSleeping) {
+        if (animal.sleepStartTime) {
+          const elapsed = Date.now() - animal.sleepStartTime;
+          const remaining = Math.max(0, SLEEP_DURATION - elapsed);
 
-        if (remaining <= 0) {
-          completeSleep(animal.id);
-        } else {
-          const timer = setTimeout(() => {
+          if (remaining <= 0) {
             completeSleep(animal.id);
-          }, remaining);
-          sleepTimers.set(animal.id, timer);
+          } else {
+            const timer = setTimeout(() => {
+              completeSleep(animal.id);
+            }, remaining);
+            sleepTimers.set(animal.id, timer);
+          }
+        } else {
+          animal.isSleeping = false;
+          animal.energy = Math.min(100, animal.energy + 40);
+          animal.happiness = Math.min(100, animal.happiness + 10);
+          persist();
         }
       }
     });
 
     if (pendingActivity.value) {
+      if (!pendingActivity.value.startTime || !pendingActivity.value.duration) {
+        pendingActivity.value = null;
+        persist();
+        return;
+      }
+
       const elapsed = Date.now() - pendingActivity.value.startTime;
       
       if (elapsed >= pendingActivity.value.duration) {
@@ -228,6 +275,7 @@ export const useGameStore = defineStore('game', () => {
       duration,
       snapshot: snapshot || {},
     };
+    persist();
     scheduleActivityCompletion(pendingActivity.value);
   }
 
@@ -261,6 +309,7 @@ export const useGameStore = defineStore('game', () => {
     const tip = Math.floor(Math.random() * 10) + 5;
     coins.value += tip;
     addNotification(`喂食成功！家长给了 ${tip} 金币小费~`, 'success');
+    persist();
 
     return true;
   }
@@ -360,6 +409,7 @@ export const useGameStore = defineStore('game', () => {
     animal.hunger = Math.max(0, animal.hunger - 5);
 
     addNotification(`和${animal.name}玩耍了一会儿~`, 'success');
+    persist();
     return true;
   }
 
@@ -371,6 +421,7 @@ export const useGameStore = defineStore('game', () => {
     animal.isSleeping = true;
     animal.sleepStartTime = Date.now();
     addNotification(`${animal.name}睡着了... 💤`, 'info');
+    persist();
     
     const timer = setTimeout(() => {
       completeSleep(animalId);
@@ -402,6 +453,7 @@ export const useGameStore = defineStore('game', () => {
       addNotification('购买了新玩具！', 'success');
     }
 
+    persist();
     return true;
   }
 
@@ -459,6 +511,7 @@ export const useGameStore = defineStore('game', () => {
 
       addNotification(`第 ${day.value} 天开始了！`, 'info');
     }
+    persist();
   }
 
   function resetGame() {
@@ -480,30 +533,20 @@ export const useGameStore = defineStore('game', () => {
     selectedAnimalId.value = null;
     localStorage.removeItem(STORAGE_KEY);
     addNotification('游戏已重置！', 'info');
+    persist();
   }
 
-  const stateToSave = computed(() => ({
-    coins: coins.value,
-    day: day.value,
-    timeOfDay: timeOfDay.value,
-    weather: weather.value,
-    animals: animals.value,
-    inventory: inventory.value,
-    decorations: decorations.value,
-    toys: toys.value,
-    totalGraduated: totalGraduated.value,
-    gameStartTime: gameStartTime.value,
-    pendingActivity: pendingActivity.value,
-    lastSave: Date.now(),
-  }));
+  watch(
+    [coins, day, timeOfDay, weather, animals, inventory, decorations, toys, totalGraduated, pendingActivity],
+    () => { persist(); },
+    { deep: true }
+  );
 
-  watch(stateToSave, (newState) => {
-    saveToStorage(newState);
-  }, { deep: true });
-
-  setInterval(() => {
-    saveToStorage(stateToSave.value);
-  }, 30000);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+      persist();
+    });
+  }
 
   return {
     coins,
@@ -535,5 +578,6 @@ export const useGameStore = defineStore('game', () => {
     resetGame,
     addNotification,
     restorePendingActivities,
+    persist,
   };
 });
