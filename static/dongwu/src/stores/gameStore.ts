@@ -1,29 +1,55 @@
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import type { Animal, Course, Food, Weather, TimeOfDay, PendingActivity, PendingActivityType } from '../types';
 import { initialAnimals, createAnimal, animalTemplates } from '../data/animals';
 import { foods, getFoodById } from '../data/foods';
 import { courses, talentBonus } from '../data/courses';
 import { activities } from '../data/decorations';
 
-const STORAGE_KEY = 'animal-kindergarten-game';
+const STORAGE_KEY = 'animal-kindergarten-game-v2';
 const SLEEP_DURATION = 5000;
+const STORAGE_VERSION = 2;
+
+function deepClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
 
 function loadFromStorage(): any {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.version !== STORAGE_VERSION) {
+      console.log('Storage version mismatch, resetting...');
+      return null;
+    }
+    return data;
+  } catch (e) {
+    console.error('Failed to load from storage:', e);
     return null;
   }
 }
 
 function saveToStorage(state: any): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const toSave = {
+      ...state,
+      version: STORAGE_VERSION,
+      lastSave: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
     console.error('Failed to save game state:', e);
   }
+}
+
+function migrateAnimal(animal: any): Animal {
+  return {
+    ...animal,
+    sleepStartTime: animal.sleepStartTime ?? undefined,
+    actions: animal.actions ?? ['跳跃'],
+    skills: animal.skills ?? [],
+  };
 }
 
 function getRandomWeather(): Weather {
@@ -31,29 +57,35 @@ function getRandomWeather(): Weather {
   return weathers[Math.floor(Math.random() * weathers.length)];
 }
 
+function getInitialInventory(): Record<string, number> {
+  const inv: Record<string, number> = {};
+  foods.slice(0, 6).forEach(f => {
+    inv[f.id] = 5;
+  });
+  return inv;
+}
+
 export const useGameStore = defineStore('game', () => {
   const savedData = loadFromStorage();
 
+  let animalsData: Animal[];
   if (savedData?.animals) {
-    savedData.animals = savedData.animals.map((a: any) => ({
-      ...a,
-      sleepStartTime: a.sleepStartTime ?? undefined,
-      actions: a.actions ?? ['跳跃'],
-      skills: a.skills ?? [],
-    }));
+    animalsData = savedData.animals.map(migrateAnimal);
+  } else {
+    animalsData = deepClone(initialAnimals);
   }
 
-  const coins = ref(savedData?.coins ?? 500);
-  const day = ref(savedData?.day ?? 1);
+  const coins = ref<number>(savedData?.coins ?? 500);
+  const day = ref<number>(savedData?.day ?? 1);
   const timeOfDay = ref<TimeOfDay>(savedData?.timeOfDay ?? 'morning');
   const weather = ref<Weather>(savedData?.weather ?? getRandomWeather());
-  const animals = ref<Animal[]>(savedData?.animals ?? initialAnimals);
+  const animals = ref<Animal[]>(animalsData);
   const inventory = ref<Record<string, number>>(savedData?.inventory ?? getInitialInventory());
   const decorations = ref<string[]>(savedData?.decorations ?? []);
   const toys = ref<string[]>(savedData?.toys ?? []);
-  const totalGraduated = ref(savedData?.totalGraduated ?? 0);
-  const gameStartTime = ref(savedData?.gameStartTime ?? Date.now());
-  const selectedAnimalId = ref<string | null>(null);
+  const totalGraduated = ref<number>(savedData?.totalGraduated ?? 0);
+  const gameStartTime = ref<number>(savedData?.gameStartTime ?? Date.now());
+  const selectedAnimalId = ref<string | null>(savedData?.selectedAnimalId ?? null);
   const pendingActivity = ref<PendingActivity | null>(savedData?.pendingActivity ?? null);
   const notifications = ref<Array<{ id: number; message: string; type: string }>>([]);
 
@@ -63,33 +95,22 @@ export const useGameStore = defineStore('game', () => {
   let activityTimer: ReturnType<typeof setTimeout> | null = null;
   const sleepTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  function getInitialInventory(): Record<string, number> {
-    const inv: Record<string, number> = {};
-    foods.slice(0, 6).forEach(f => {
-      inv[f.id] = 5;
-    });
-    return inv;
-  }
-
-  function getSnapshot(): Record<string, any> {
-    return {
+  function persist() {
+    const state = {
       coins: coins.value,
       day: day.value,
       timeOfDay: timeOfDay.value,
       weather: weather.value,
-      animals: JSON.parse(JSON.stringify(animals.value)),
+      animals: deepClone(animals.value),
       inventory: { ...inventory.value },
       decorations: [...decorations.value],
       toys: [...toys.value],
       totalGraduated: totalGraduated.value,
       gameStartTime: gameStartTime.value,
-      pendingActivity: pendingActivity.value ? { ...pendingActivity.value } : null,
-      lastSave: Date.now(),
+      selectedAnimalId: selectedAnimalId.value,
+      pendingActivity: pendingActivity.value ? deepClone(pendingActivity.value) : null,
     };
-  }
-
-  function persist() {
-    saveToStorage(getSnapshot());
+    saveToStorage(state);
   }
 
   const selectedAnimal = computed(() => {
@@ -114,6 +135,7 @@ export const useGameStore = defineStore('game', () => {
 
   function selectAnimal(id: string | null) {
     selectedAnimalId.value = id;
+    persist();
   }
 
   function clearActivityTimer() {
@@ -157,7 +179,7 @@ export const useGameStore = defineStore('game', () => {
       levelUpAnimal(animal);
     }
 
-    addNotification(`${animal.name}完成了${course.name}！经验+${expGain}`, 'success');
+ addNotification(`${animal.name}完成了${course.name}！经验+${expGain}`, 'success');
     checkGraduation(animal);
     persist();
   }
@@ -279,7 +301,7 @@ export const useGameStore = defineStore('game', () => {
     scheduleActivityCompletion(pendingActivity.value);
   }
 
-  function feedAnimal(animalId: string, foodId: string) {
+  function feedAnimal(animalId: string, foodId: string): boolean {
     const animal = animals.value.find(a => a.id === animalId);
     const food = getFoodById(foodId);
     
@@ -309,8 +331,8 @@ export const useGameStore = defineStore('game', () => {
     const tip = Math.floor(Math.random() * 10) + 5;
     coins.value += tip;
     addNotification(`喂食成功！家长给了 ${tip} 金币小费~`, 'success');
+    
     persist();
-
     return true;
   }
 
@@ -390,7 +412,7 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
-  function playWithAnimal(animalId: string) {
+  function playWithAnimal(animalId: string): boolean {
     const animal = animals.value.find(a => a.id === animalId);
     if (!animal) return false;
     if (animal.energy < 10) {
@@ -413,7 +435,7 @@ export const useGameStore = defineStore('game', () => {
     return true;
   }
 
-  function putAnimalToSleep(animalId: string) {
+  function putAnimalToSleep(animalId: string): void {
     const animal = animals.value.find(a => a.id === animalId);
     if (!animal) return;
     if (animal.isSleeping) return;
@@ -482,7 +504,7 @@ export const useGameStore = defineStore('game', () => {
     });
   }
 
-  function advanceTime() {
+  function advanceTime(): void {
     if (pendingActivity.value) {
       addNotification('请等待当前活动结束后再推进时间~', 'warning');
       return;
@@ -514,7 +536,7 @@ export const useGameStore = defineStore('game', () => {
     persist();
   }
 
-  function resetGame() {
+  function resetGame(): void {
     clearActivityTimer();
     sleepTimers.forEach(timer => clearTimeout(timer));
     sleepTimers.clear();
@@ -532,20 +554,43 @@ export const useGameStore = defineStore('game', () => {
     pendingActivity.value = null;
     selectedAnimalId.value = null;
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('animal-kindergarten-game');
     addNotification('游戏已重置！', 'info');
     persist();
   }
 
-  watch(
-    [coins, day, timeOfDay, weather, animals, inventory, decorations, toys, totalGraduated, pendingActivity],
-    () => { persist(); },
-    { deep: true }
-  );
+  function debugGetStorage(): any {
+    return loadFromStorage();
+  }
+
+  function debugLogState(): void {
+    console.log('=== 当前内存状态 ===');
+    console.log('coins:', coins.value);
+    console.log('animals:', animals.value.map(a => ({
+      id: a.id,
+      name: a.name,
+      hunger: a.hunger,
+      happiness: a.happiness,
+      energy: a.energy,
+      isSleeping: a.isSleeping,
+    })));
+    console.log('pendingActivity:', pendingActivity.value);
+    console.log('selectedAnimalId:', selectedAnimalId.value);
+    console.log('\n=== localStorage 保存状态 ===');
+    console.log(loadFromStorage());
+    console.log('======================');
+  }
 
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
       persist();
     });
+    
+    (window as any).animalGameDebug = {
+      getStorage: debugGetStorage,
+      save: persist,
+      logState: debugLogState,
+    };
   }
 
   return {

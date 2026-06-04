@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { GraduationCap, Clock, Zap, Star, Brain } from 'lucide-vue-next';
 import { useGameStore } from '../stores/gameStore';
 import { courses } from '../data/courses';
@@ -8,7 +8,13 @@ import type { Animal } from '../types';
 
 const store = useGameStore();
 const selectedCourse = ref<string | null>(null);
-const learningAnimal = ref<string | null>(null);
+
+const learningAnimal = computed(() => {
+  if (store.pendingActivity?.type === 'class' && store.pendingActivity.animalId) {
+    return store.pendingActivity.animalId;
+  }
+  return null;
+});
 
 function selectCourse(courseId: string) {
   selectedCourse.value = selectedCourse.value === courseId ? null : courseId;
@@ -17,9 +23,7 @@ function selectCourse(courseId: string) {
 async function startClass(animal: Animal) {
   if (!selectedCourse.value || store.isDoingActivity) return;
   
-  learningAnimal.value = animal.id;
   await store.attendClass(animal.id, selectedCourse.value);
-  learningAnimal.value = null;
 }
 
 function getCourseTypeColor(type: string) {
