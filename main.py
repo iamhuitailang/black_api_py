@@ -12,6 +12,10 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.yeshi import (
+    GameUserModel, FoodModel, OrderModel, UpgradeModel, UserUpgradeModel,
+    UserFoodModel, WeatherModel, GameConfigModel, GuestModel, GameSessionModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +38,17 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    
+    GameUserModel.create_table()
+    FoodModel.create_table()
+    OrderModel.create_table()
+    UpgradeModel.create_table()
+    UserUpgradeModel.create_table()
+    UserFoodModel.create_table()
+    WeatherModel.create_table()
+    GameConfigModel.create_table()
+    GuestModel.create_table()
+    GameSessionModel.create_table()
     
     migrate_database()
     
