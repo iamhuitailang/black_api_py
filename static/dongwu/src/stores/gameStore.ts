@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
-import type { Animal, Course, Food, Weather, TimeOfDay } from '../types';
+import type { Animal, Course, Food, Weather, TimeOfDay, PendingActivity, PendingActivityType } from '../types';
 import { initialAnimals, createAnimal, animalTemplates } from '../data/animals';
 import { foods, getFoodById } from '../data/foods';
 import { courses, talentBonus } from '../data/courses';
 import { activities } from '../data/decorations';
 
 const STORAGE_KEY = 'animal-kindergarten-game';
+const SLEEP_DURATION = 5000;
 
 function loadFromStorage(): any {
   try {
@@ -44,9 +45,14 @@ export const useGameStore = defineStore('game', () => {
   const totalGraduated = ref(savedData?.totalGraduated ?? 0);
   const gameStartTime = ref(savedData?.gameStartTime ?? Date.now());
   const selectedAnimalId = ref<string | null>(null);
-  const isDoingActivity = ref(false);
-  const currentActivity = ref<string | null>(null);
+  const pendingActivity = ref<PendingActivity | null>(savedData?.pendingActivity ?? null);
   const notifications = ref<Array<{ id: number; message: string; type: string }>>([]);
+
+  const isDoingActivity = computed(() => pendingActivity.value !== null);
+  const currentActivity = computed(() => pendingActivity.value?.activityId ?? null);
+
+  let activityTimer: ReturnType<typeof setTimeout> | null = null;
+  const sleepTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   function getInitialInventory(): Record<string, number> {
     const inv: Record<string, number> = {};
@@ -78,6 +84,151 @@ export const useGameStore = defineStore('game', () => {
 
   function selectAnimal(id: string | null) {
     selectedAnimalId.value = id;
+  }
+
+  function clearActivityTimer() {
+    if (activityTimer) {
+      clearTimeout(activityTimer);
+      activityTimer = null;
+    }
+  }
+
+  function completeClassActivity(activity: PendingActivity, applyBonus: boolean = true) {
+    if (!activity.animalId || !activity.snapshot.courseId) return;
+
+    const animal = animals.value.find(a => a.id === activity.animalId);
+    const course = courses.find(c => c.id === activity.snapshot.courseId);
+    
+    if (!animal || !course) return;
+
+    let expGain = course.expGain;
+    let intGain = course.intelligenceGain;
+    let happyChange = course.happinessChange;
+
+    if (applyBonus) {
+      const talentType = talentBonus[animal.talent];
+      if (talentType === 'all' || talentType === course.type) {
+        expGain = Math.floor(expGain * 1.5);
+        intGain = Math.floor(intGain * 1.5);
+        addNotification(`${animal.talent}天赋发挥作用！学习效果提升50%！`, 'success');
+      }
+
+      if (weather.value === 'sunny') {
+        expGain = Math.floor(expGain * 1.2);
+      }
+    }
+
+    animal.energy = Math.max(0, animal.energy - (activity.snapshot.energyCost ?? course.energyCost));
+    animal.exp += expGain;
+    animal.intelligence = Math.min(100, animal.intelligence + intGain);
+    animal.happiness = Math.max(0, Math.min(100, animal.happiness + happyChange));
+
+    if (animal.exp >= animal.maxExp) {
+      levelUpAnimal(animal);
+    }
+
+    addNotification(`${animal.name}完成了${course.name}！经验+${expGain}`, 'success');
+    checkGraduation(animal);
+  }
+
+  function completeActivity(activity: PendingActivity) {
+    const act = activities.find(a => a.id === activity.activityId);
+    if (!act) return;
+
+    coins.value += act.coinReward;
+    activeAnimals.value.forEach(animal => {
+      animal.happiness = Math.min(100, animal.happiness + act.happinessBonus);
+    });
+    addNotification(`🎉 ${act.name}圆满结束！获得 ${act.coinReward} 金币！`, 'success');
+  }
+
+  function completeSleep(animalId: string) {
+    const animal = animals.value.find(a => a.id === animalId);
+    if (!animal) return;
+
+    animal.isSleeping = false;
+    animal.sleepStartTime = undefined;
+    animal.energy = Math.min(100, animal.energy + 40);
+    animal.happiness = Math.min(100, animal.happiness + 10);
+    sleepTimers.delete(animalId);
+    addNotification(`${animal.name}睡醒了！精力恢复~ ☀️`, 'success');
+  }
+
+  function finishPendingActivity() {
+    if (!pendingActivity.value) return;
+
+    const activity = pendingActivity.value;
+    
+    if (activity.type === 'class') {
+      completeClassActivity(activity);
+    } else if (activity.type === 'activity') {
+      completeActivity(activity);
+    }
+
+    pendingActivity.value = null;
+    clearActivityTimer();
+  }
+
+  function scheduleActivityCompletion(activity: PendingActivity) {
+    const elapsed = Date.now() - activity.startTime;
+    const remaining = Math.max(0, activity.duration - elapsed);
+
+    clearActivityTimer();
+    
+    if (remaining <= 0) {
+      finishPendingActivity();
+    } else {
+      activityTimer = setTimeout(() => {
+        finishPendingActivity();
+      }, remaining);
+    }
+  }
+
+  function restorePendingActivities() {
+    animals.value.forEach(animal => {
+      if (animal.isSleeping && animal.sleepStartTime) {
+        const elapsed = Date.now() - animal.sleepStartTime;
+        const remaining = Math.max(0, SLEEP_DURATION - elapsed);
+
+        if (remaining <= 0) {
+          completeSleep(animal.id);
+        } else {
+          const timer = setTimeout(() => {
+            completeSleep(animal.id);
+          }, remaining);
+          sleepTimers.set(animal.id, timer);
+        }
+      }
+    });
+
+    if (pendingActivity.value) {
+      const elapsed = Date.now() - pendingActivity.value.startTime;
+      
+      if (elapsed >= pendingActivity.value.duration) {
+        finishPendingActivity();
+      } else {
+        scheduleActivityCompletion(pendingActivity.value);
+        addNotification('⏰ 恢复了之前未完成的活动~', 'info');
+      }
+    }
+  }
+
+  function startPendingActivity(
+    type: PendingActivityType,
+    activityId: string,
+    duration: number,
+    animalId?: string,
+    snapshot?: PendingActivity['snapshot']
+  ) {
+    pendingActivity.value = {
+      type,
+      activityId,
+      animalId,
+      startTime: Date.now(),
+      duration,
+      snapshot: snapshot || {},
+    };
+    scheduleActivityCompletion(pendingActivity.value);
   }
 
   function feedAnimal(animalId: string, foodId: string) {
@@ -116,6 +267,12 @@ export const useGameStore = defineStore('game', () => {
 
   function attendClass(animalId: string, courseId: string): Promise<boolean> {
     return new Promise((resolve) => {
+      if (pendingActivity.value) {
+        addNotification('有活动正在进行中，请稍候~', 'warning');
+        resolve(false);
+        return;
+      }
+
       const animal = animals.value.find(a => a.id === animalId);
       const course = courses.find(c => c.id === courseId);
       
@@ -139,41 +296,17 @@ export const useGameStore = defineStore('game', () => {
         return;
       }
 
-      isDoingActivity.value = true;
-      currentActivity.value = courseId;
+      startPendingActivity('class', courseId, course.duration, animalId, {
+        energyCost: course.energyCost,
+        courseId: courseId,
+      });
 
-      setTimeout(() => {
-        let expGain = course.expGain;
-        let intGain = course.intelligenceGain;
-        let happyChange = course.happinessChange;
-
-        const talentType = talentBonus[animal.talent];
-        if (talentType === 'all' || talentType === course.type) {
-          expGain = Math.floor(expGain * 1.5);
-          intGain = Math.floor(intGain * 1.5);
-          addNotification(`${animal.talent}天赋发挥作用！学习效果提升50%！`, 'success');
+      const checkTimer = setInterval(() => {
+        if (!pendingActivity.value || pendingActivity.value.activityId !== courseId) {
+          clearInterval(checkTimer);
+          resolve(true);
         }
-
-        if (weather.value === 'sunny') {
-          expGain = Math.floor(expGain * 1.2);
-        }
-
-        animal.energy -= course.energyCost;
-        animal.exp += expGain;
-        animal.intelligence = Math.min(100, animal.intelligence + intGain);
-        animal.happiness = Math.max(0, Math.min(100, animal.happiness + happyChange));
-
-        if (animal.exp >= animal.maxExp) {
-          levelUpAnimal(animal);
-        }
-
-        isDoingActivity.value = false;
-        currentActivity.value = null;
-        addNotification(`${animal.name}完成了${course.name}！经验+${expGain}`, 'success');
-
-        checkGraduation(animal);
-        resolve(true);
-      }, course.duration);
+      }, 100);
     });
   }
 
@@ -233,15 +366,16 @@ export const useGameStore = defineStore('game', () => {
   function putAnimalToSleep(animalId: string) {
     const animal = animals.value.find(a => a.id === animalId);
     if (!animal) return;
+    if (animal.isSleeping) return;
+
     animal.isSleeping = true;
+    animal.sleepStartTime = Date.now();
     addNotification(`${animal.name}睡着了... 💤`, 'info');
     
-    setTimeout(() => {
-      animal.isSleeping = false;
-      animal.energy = Math.min(100, animal.energy + 40);
-      animal.happiness = Math.min(100, animal.happiness + 10);
-      addNotification(`${animal.name}睡醒了！精力恢复~ ☀️`, 'success');
-    }, 5000);
+    const timer = setTimeout(() => {
+      completeSleep(animalId);
+    }, SLEEP_DURATION);
+    sleepTimers.set(animalId, timer);
   }
 
   function buyItem(itemType: 'food' | 'decoration' | 'toy', itemId: string, price: number): boolean {
@@ -273,29 +407,35 @@ export const useGameStore = defineStore('game', () => {
 
   function holdActivity(activityId: string): Promise<boolean> {
     return new Promise((resolve) => {
+      if (pendingActivity.value) {
+        addNotification('有活动正在进行中，请稍候~', 'warning');
+        resolve(false);
+        return;
+      }
+
       const activity = activities.find(a => a.id === activityId);
       if (!activity) {
         resolve(false);
         return;
       }
 
-      isDoingActivity.value = true;
-      currentActivity.value = activityId;
+      startPendingActivity('activity', activityId, activity.duration);
 
-      setTimeout(() => {
-        coins.value += activity.coinReward;
-        activeAnimals.value.forEach(animal => {
-          animal.happiness = Math.min(100, animal.happiness + activity.happinessBonus);
-        });
-        isDoingActivity.value = false;
-        currentActivity.value = null;
-        addNotification(`🎉 ${activity.name}圆满结束！获得 ${activity.coinReward} 金币！`, 'success');
-        resolve(true);
-      }, activity.duration);
+      const checkTimer = setInterval(() => {
+        if (!pendingActivity.value || pendingActivity.value.activityId !== activityId) {
+          clearInterval(checkTimer);
+          resolve(true);
+        }
+      }, 100);
     });
   }
 
   function advanceTime() {
+    if (pendingActivity.value) {
+      addNotification('请等待当前活动结束后再推进时间~', 'warning');
+      return;
+    }
+
     if (timeOfDay.value === 'morning') {
       timeOfDay.value = 'afternoon';
     } else if (timeOfDay.value === 'afternoon') {
@@ -322,6 +462,10 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function resetGame() {
+    clearActivityTimer();
+    sleepTimers.forEach(timer => clearTimeout(timer));
+    sleepTimers.clear();
+
     coins.value = 500;
     day.value = 1;
     timeOfDay.value = 'morning';
@@ -332,6 +476,8 @@ export const useGameStore = defineStore('game', () => {
     toys.value = [];
     totalGraduated.value = 0;
     gameStartTime.value = Date.now();
+    pendingActivity.value = null;
+    selectedAnimalId.value = null;
     localStorage.removeItem(STORAGE_KEY);
     addNotification('游戏已重置！', 'info');
   }
@@ -347,6 +493,7 @@ export const useGameStore = defineStore('game', () => {
     toys: toys.value,
     totalGraduated: totalGraduated.value,
     gameStartTime: gameStartTime.value,
+    pendingActivity: pendingActivity.value,
     lastSave: Date.now(),
   }));
 
@@ -375,6 +522,7 @@ export const useGameStore = defineStore('game', () => {
     graduatedAnimals,
     isDoingActivity,
     currentActivity,
+    pendingActivity,
     notifications,
     selectAnimal,
     feedAnimal,
@@ -386,5 +534,6 @@ export const useGameStore = defineStore('game', () => {
     advanceTime,
     resetGame,
     addNotification,
+    restorePendingActivities,
   };
 });

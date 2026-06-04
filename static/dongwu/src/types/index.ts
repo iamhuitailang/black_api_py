@@ -33,6 +33,7 @@ export interface Animal {
   isGraduated: boolean;
   lastFed: number;
   lastPlayed: number;
+  sleepStartTime?: number;
   actions: string[];
   skills: string[];
 }
@@ -90,6 +91,7 @@ export interface GameState {
   totalGraduated: number;
   lastSave: number;
   gameStartTime: number;
+  pendingActivity: PendingActivity | null;
 }
 
 export interface Activity {
@@ -100,4 +102,18 @@ export interface Activity {
   coinReward: number;
   happinessBonus: number;
   duration: number;
+}
+
+export type PendingActivityType = 'class' | 'activity' | 'sleep';
+
+export interface PendingActivity {
+  type: PendingActivityType;
+  activityId: string;
+  animalId?: string;
+  startTime: number;
+  duration: number;
+  snapshot: {
+    energyCost?: number;
+    courseId?: string;
+  };
 }

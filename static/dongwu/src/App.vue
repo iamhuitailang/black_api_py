@@ -1,9 +1,17 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { RouterView } from 'vue-router';
+import { useGameStore } from './stores/gameStore';
 import NavBar from './components/NavBar.vue';
 import StatusBar from './components/StatusBar.vue';
 import AnimalDetail from './components/AnimalDetail.vue';
 import Notification from './components/Notification.vue';
+
+const gameStore = useGameStore();
+
+onMounted(() => {
+  gameStore.restorePendingActivities();
+});
 </script>
 
 <template>
