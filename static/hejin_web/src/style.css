@@ -1,0 +1,60 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Microsoft YaHei', sans-serif;
+  background: #000;
+  color: #fff;
+}
+
+.game-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+}
+
+.btn {
+  padding: 12px 32px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #ff6b35 0%, #d63031 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(214, 48, 49, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(214, 48, 49, 0.6);
+}
+
+.btn-secondary {
+  background: linear-gradient(180deg, #0984e3 0%, #0652DD 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(9, 132, 227, 0.4);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(9, 132, 227, 0.6);
+}
+
+.btn-success {
+  background: linear-gradient(180deg, #00b894 0%, #00a085 100%);
+  color: white;
+}
