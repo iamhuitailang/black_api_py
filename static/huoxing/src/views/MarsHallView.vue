@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-space relative overflow-hidden">
-    <div class="absolute inset-0">
+  <div class="w-screen h-screen bg-space relative overflow-hidden">
+    <div class="absolute inset-0 z-0">
       <StarField :star-count="8000" />
     </div>
 
-    <div class="absolute inset-0">
+    <div class="absolute inset-0 z-0">
       <DustParticles :wind-speed="0.5" :density="0.6" />
     </div>
 
-    <div class="relative z-10 h-screen flex flex-col">
+    <div class="relative z-10 h-full flex flex-col">
       <GameHeader
         :game-state="gameStore.gameState"
         :resources="gameStore.resources"
@@ -19,7 +19,7 @@
         @open-events="showEventLog = true"
       />
 
-      <div class="flex-1 flex relative">
+      <div class="flex-1 flex relative overflow-hidden">
         <GameSidebar
           :current-page="currentPage"
           :current-region="gameStore.gameState.currentRegion"
@@ -28,14 +28,16 @@
           @navigate="handleNavigate"
         />
 
-        <div class="flex-1 relative">
-          <MarsGlobe
-            ref="marsGlobeRef"
-            @region-click="handleRegionClick"
-            @region-hover="handleRegionHover"
-          />
+        <div class="flex-1 relative overflow-hidden">
+          <div class="absolute inset-0">
+            <MarsGlobe
+              ref="marsGlobeRef"
+              @region-click="handleRegionClick"
+              @region-hover="handleRegionHover"
+            />
+          </div>
 
-          <div v-if="hoveredRegion" class="absolute top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div v-if="hoveredRegion" class="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
             <SciFiPanel :title="hoveredRegion.name" class="text-center min-w-64" glowing>
               <p class="text-gray-400 text-sm">{{ hoveredRegion.description }}</p>
               <div class="mt-2 flex justify-center gap-4 text-xs">
@@ -49,22 +51,22 @@
             </SciFiPanel>
           </div>
 
-          <div class="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-80 space-y-4">
+          <div class="absolute right-4 top-4 z-30 w-72 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
             <EnvironmentStatus />
 
             <SciFiPanel title="区域概览" border-color="orange">
-              <div class="p-4 space-y-3">
-                <div v-for="region in regionList" :key="region.id" class="flex items-center gap-3">
+              <div class="p-4 space-y-2">
+                <div v-for="region in regionList" :key="region.id" class="flex items-center gap-2">
                   <div
                     :class="[
-                      'w-3 h-3 rounded-full',
+                      'w-2.5 h-2.5 rounded-full flex-shrink-0',
                       region.unlocked ? 'bg-green-500' : 'bg-gray-600'
                     ]"
                   />
-                  <span :class="['flex-1', region.unlocked ? 'text-white' : 'text-gray-600']">
+                  <span :class="['flex-1 text-sm', region.unlocked ? 'text-white' : 'text-gray-600']">
                     {{ REGIONS[region.id].name }}
                   </span>
-                  <span class="text-xs text-gray-500">
+                  <span class="text-xs text-gray-500 flex-shrink-0">
                     {{ region.unlocked ? `${region.explored.toFixed(0)}%` : '锁定' }}
                   </span>
                 </div>
@@ -72,9 +74,9 @@
             </SciFiPanel>
           </div>
 
-          <div class="absolute left-6 bottom-6 z-20">
-            <SciFiPanel title="操作提示" class="w-64">
-              <div class="p-3 text-xs text-gray-400 space-y-2">
+          <div class="absolute left-4 bottom-4 z-30">
+            <SciFiPanel title="操作提示" class="w-56">
+              <div class="p-3 text-xs text-gray-400 space-y-1">
                 <p>🖱️ 左键拖动 - 旋转视角</p>
                 <p>🔍 滚轮 - 缩放</p>
                 <p>👆 点击标记 - 进入区域</p>

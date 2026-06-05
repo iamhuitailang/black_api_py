@@ -1,31 +1,31 @@
 <template>
-  <div class="tech-tree bg-slate-900/90 rounded-xl p-4 border border-slate-700">
-    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+  <div class="tech-tree bg-slate-900/90 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
+    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 flex-shrink-0">
       <span>🔬</span> 科技树
     </h3>
 
-    <div class="flex flex-wrap gap-3 mb-6">
+    <div class="flex flex-wrap gap-2 mb-4 flex-shrink-0">
       <div
         v-for="tier in 5"
         :key="tier"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
         :style="{ backgroundColor: TECH_TIER_COLORS[tier] + '20', borderColor: TECH_TIER_COLORS[tier] + '40' }"
         style="border-width: 1px;"
       >
         <div
-          class="w-3 h-3 rounded-full"
+          class="w-2.5 h-2.5 rounded-full"
           :style="{ backgroundColor: TECH_TIER_COLORS[tier] }"
         />
-        <span class="text-sm font-medium" :style="{ color: TECH_TIER_COLORS[tier] }">
-          Tier {{ tier }}
+        <span class="text-xs font-medium" :style="{ color: TECH_TIER_COLORS[tier] }">
+          T{{ tier }}
         </span>
-        <span class="text-xs text-slate-500">
+        <span class="text-[10px] text-slate-500">
           {{ getTierProgress(tier) }}/{{ getTierTotal(tier) }}
         </span>
       </div>
     </div>
 
-    <div class="relative bg-slate-800/40 rounded-xl p-6 border border-slate-700 overflow-x-auto">
+    <div class="relative bg-slate-800/40 rounded-xl p-4 border border-slate-700 overflow-x-auto flex-shrink-0">
       <svg
         :width="svgWidth"
         :height="svgHeight"
@@ -133,96 +133,94 @@
 
     <div
       v-if="selectedTech"
-      class="mt-6 bg-slate-800/60 rounded-xl p-5 border border-slate-700"
+      class="mt-4 bg-slate-800/95 rounded-xl p-4 border border-slate-700 relative"
     >
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex items-start gap-4">
-          <div
-            class="w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
-            :style="{ backgroundColor: TECH_TIER_COLORS[selectedTech.tier] + '30' }"
-          >
-            {{ selectedTech.icon }}
-          </div>
-          <div>
-            <div class="flex items-center gap-3">
-              <h4 class="text-xl font-bold text-white">{{ selectedTech.name }}</h4>
-              <span
-                class="text-xs px-3 py-1 rounded-full"
-                :style="{
-                  backgroundColor: TECH_TIER_COLORS[selectedTech.tier] + '20',
-                  color: TECH_TIER_COLORS[selectedTech.tier],
-                  borderColor: TECH_TIER_COLORS[selectedTech.tier] + '40'
-                }"
-                style="border-width: 1px;"
-              >
-                Tier {{ selectedTech.tier }}
-              </span>
-              <span
-                v-if="technologies[selectedTech.id]?.researched"
-                class="text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full"
-              >
-                已研究
-              </span>
-              <span
-                v-else-if="technologies[selectedTech.id]?.researching"
-                class="text-xs bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full animate-pulse"
-              >
-                研究中
-              </span>
-              <span
-                v-else-if="!isTechAvailable(selectedTech)"
-                class="text-xs bg-slate-700 text-slate-400 px-3 py-1 rounded-full"
-              >
-                🔒 未解锁
-              </span>
-            </div>
-            <p class="text-sm text-slate-400 mt-2">{{ selectedTech.description }}</p>
-          </div>
-        </div>
-        <button
-          @click="selectedTech = null"
-          class="text-slate-400 hover:text-white transition-colors text-xl"
+      <button
+        @click="selectedTech = null"
+        class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 z-10"
+      >
+        ✕
+      </button>
+      <div class="flex flex-col md:flex-row md:items-start gap-4 mb-4 pr-10">
+        <div
+          class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+          :style="{ backgroundColor: TECH_TIER_COLORS[selectedTech.tier] + '30' }"
         >
-          ✕
-        </button>
+          {{ selectedTech.icon }}
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h4 class="text-lg font-bold text-white">{{ selectedTech.name }}</h4>
+            <span
+              class="text-xs px-2 py-0.5 rounded-full"
+              :style="{
+                backgroundColor: TECH_TIER_COLORS[selectedTech.tier] + '20',
+                color: TECH_TIER_COLORS[selectedTech.tier],
+                borderColor: TECH_TIER_COLORS[selectedTech.tier] + '40'
+              }"
+              style="border-width: 1px;"
+            >
+              T{{ selectedTech.tier }}
+            </span>
+            <span
+              v-if="technologies[selectedTech.id]?.researched"
+              class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex-shrink-0"
+            >
+              已研究
+            </span>
+            <span
+              v-else-if="technologies[selectedTech.id]?.researching"
+              class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full animate-pulse flex-shrink-0"
+            >
+              研究中
+            </span>
+            <span
+              v-else-if="!isTechAvailable(selectedTech)"
+              class="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full flex-shrink-0"
+            >
+              🔒 未解锁
+            </span>
+          </div>
+          <p class="text-sm text-slate-400 mt-1">{{ selectedTech.description }}</p>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <h5 class="text-sm font-medium text-slate-300 mb-3">研究消耗</h5>
-          <div class="bg-slate-800/80 rounded-lg p-4 border border-slate-700 space-y-3">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="min-w-0">
+          <h5 class="text-sm font-medium text-slate-300 mb-2">研究消耗</h5>
+          <div class="bg-slate-800/80 rounded-lg p-3 border border-slate-700 space-y-2">
             <div
               v-for="(amount, type) in selectedTech.cost"
               :key="type"
               class="flex items-center justify-between"
             >
               <div class="flex items-center gap-2">
-                <span class="text-xl">{{ RESOURCES[type as ResourceType]?.icon }}</span>
-                <span class="text-slate-300">{{ RESOURCES[type as ResourceType]?.name }}</span>
+                <span class="text-base">{{ RESOURCES[type as ResourceType]?.icon }}</span>
+                <span class="text-slate-300 text-sm">{{ RESOURCES[type as ResourceType]?.name }}</span>
               </div>
               <span
-                class="font-medium"
+                class="font-medium text-sm"
                 :class="canAffordResource(type as ResourceType, amount!) ? 'text-green-400' : 'text-red-400'"
               >
                 {{ amount }}
-                <span class="text-slate-500 font-normal">
+                <span class="text-slate-500 font-normal text-xs">
                   ({{ Math.floor(resources[type as ResourceType]?.current || 0) }})
                 </span>
               </span>
             </div>
-            <div class="flex items-center justify-between pt-3 border-t border-slate-700">
-              <span class="text-slate-400">研究时间</span>
-              <span class="text-white font-medium">{{ selectedTech.researchTime }} 秒</span>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-700">
+              <span class="text-slate-500 text-xs">研究时间</span>
+              <span class="text-white font-medium text-sm">{{ selectedTech.researchTime }}s</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <h5 class="text-sm font-medium text-slate-300 mb-3">前置科技</h5>
-          <div class="bg-slate-800/80 rounded-lg p-4 border border-slate-700">
+        <div class="min-w-0">
+          <h5 class="text-sm font-medium text-slate-300 mb-2">前置科技</h5>
+          <div class="bg-slate-800/80 rounded-lg p-3 border border-slate-700">
             <div
               v-if="selectedTech.prerequisites.length === 0"
-              class="text-center text-slate-500 py-4"
+              class="text-center text-slate-500 py-3 text-sm"
             >
               无前置需求
             </div>
@@ -232,33 +230,33 @@
                 :key="prereqId"
                 class="flex items-center justify-between"
               >
-                <div class="flex items-center gap-2">
-                  <span class="text-lg">{{ getTechConfig(prereqId)?.icon }}</span>
-                  <span class="text-slate-300">{{ getTechConfig(prereqId)?.name }}</span>
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="text-base flex-shrink-0">{{ getTechConfig(prereqId)?.icon }}</span>
+                  <span class="text-slate-300 text-sm truncate">{{ getTechConfig(prereqId)?.name }}</span>
                 </div>
                 <span
-                  class="text-xs px-2 py-1 rounded"
+                  class="text-xs px-2 py-0.5 rounded flex-shrink-0"
                   :class="technologies[prereqId]?.researched
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-red-500/20 text-red-400'"
                 >
-                  {{ technologies[prereqId]?.researched ? '✓ 已完成' : '✗ 未完成' }}
+                  {{ technologies[prereqId]?.researched ? '✓' : '✗' }}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <div>
-          <h5 class="text-sm font-medium text-slate-300 mb-3">科技效果</h5>
-          <div class="bg-slate-800/80 rounded-lg p-4 border border-slate-700 space-y-2">
+        <div class="min-w-0">
+          <h5 class="text-sm font-medium text-slate-300 mb-2">科技效果</h5>
+          <div class="bg-slate-800/80 rounded-lg p-3 border border-slate-700 space-y-2">
             <div
               v-for="(effect, index) in selectedTech.effects"
               :key="index"
               class="flex items-start gap-2 p-2 rounded-lg bg-slate-900/50"
             >
-              <span class="text-lg">{{ getEffectIcon(effect.type) }}</span>
-              <div>
+              <span class="text-base flex-shrink-0">{{ getEffectIcon(effect.type) }}</span>
+              <div class="min-w-0">
                 <div class="text-sm text-white">{{ getEffectDescription(effect) }}</div>
                 <div class="text-xs text-green-400">
                   +{{ Math.floor(effect.value * 100) }}% 提升
@@ -269,16 +267,16 @@
         </div>
       </div>
 
-      <div v-if="technologies[selectedTech.id]?.researching" class="mt-6">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-sm text-slate-300">研究进度</span>
-          <span class="text-sm text-blue-400">
+      <div v-if="technologies[selectedTech.id]?.researching" class="mt-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs text-slate-400">研究进度</span>
+          <span class="text-xs text-blue-400">
             {{ Math.floor(technologies[selectedTech.id]?.progress || 0) }}%
           </span>
         </div>
-        <div class="w-full bg-slate-700 rounded-full h-3">
+        <div class="w-full bg-slate-700 rounded-full h-2">
           <div
-            class="h-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all"
+            class="h-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all"
             :style="{ width: `${technologies[selectedTech.id]?.progress || 0}%` }"
           />
         </div>
@@ -286,12 +284,12 @@
 
       <div
         v-if="!technologies[selectedTech.id]?.researched && !technologies[selectedTech.id]?.researching"
-        class="mt-6 flex justify-end"
+        class="mt-4 flex justify-end"
       >
         <button
           @click="startResearchSelected"
           :disabled="!canStartResearch(selectedTech)"
-          class="px-8 py-3 rounded-lg font-medium transition-all flex items-center gap-2"
+          class="px-6 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2"
           :class="canStartResearch(selectedTech)
             ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg shadow-blue-600/30'
             : 'bg-slate-700 text-slate-500 cursor-not-allowed'"

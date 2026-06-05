@@ -1,10 +1,10 @@
 <template>
-  <div class="explore-map bg-slate-900/90 rounded-xl p-4 border border-slate-700">
-    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+  <div class="explore-map bg-slate-900/90 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
+    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 flex-shrink-0">
       <span>🗺️</span> 区域探索
     </h3>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 flex-shrink-0">
       <div
         v-for="regionId in REGION_ORDER"
         :key="regionId"
@@ -18,69 +18,71 @@
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+              class="w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
               :class="getRegionBgClass(regionId)"
             >
               {{ getRegionIcon(regionId) }}
             </div>
-            <div>
-              <h4 class="font-bold text-white">{{ REGIONS[regionId].name }}</h4>
-              <p class="text-xs text-slate-400">
+            <div class="min-w-0">
+              <h4 class="font-bold text-white text-sm">{{ REGIONS[regionId].name }}</h4>
+              <p class="text-xs text-slate-500 truncate">
                 {{ REGIONS[regionId].position.lat }}, {{ REGIONS[regionId].position.lng }}
               </p>
             </div>
           </div>
-          <span
-            v-if="!regions[regionId]?.unlocked"
-            class="text-xs bg-slate-700 text-slate-400 px-2 py-1 rounded flex items-center gap-1"
-          >
-            🔒 未解锁
-          </span>
-          <span
-            v-else-if="currentRegion === regionId"
-            class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded flex items-center gap-1"
-          >
-            📍 当前
-          </span>
+          <div class="flex-shrink-0">
+            <span
+              v-if="!regions[regionId]?.unlocked"
+              class="text-xs bg-slate-700 text-slate-400 px-2 py-1 rounded flex items-center gap-1"
+            >
+              🔒
+            </span>
+            <span
+              v-else-if="currentRegion === regionId"
+              class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded flex items-center gap-1"
+            >
+              📍
+            </span>
+          </div>
         </div>
 
-        <p class="text-sm text-slate-400 mb-3 line-clamp-2">
+        <p class="text-xs text-slate-400 mb-2 line-clamp-2">
           {{ REGIONS[regionId].description }}
         </p>
 
-        <div class="mb-3">
+        <div class="mb-2">
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-slate-400">探索进度</span>
-            <span class="text-slate-300">{{ Math.floor(regions[regionId]?.explored || 0) }}%</span>
+            <span class="text-slate-500">探索</span>
+            <span class="text-slate-400">{{ Math.floor(regions[regionId]?.explored || 0) }}%</span>
           </div>
-          <div class="w-full bg-slate-700 rounded-full h-2">
+          <div class="w-full bg-slate-700 rounded-full h-1.5">
             <div
-              class="h-2 rounded-full transition-all duration-500"
+              class="h-1.5 rounded-full transition-all duration-500"
               :class="getRegionProgressClass(regionId)"
               :style="{ width: `${regions[regionId]?.explored || 0}%` }"
             />
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 text-center">
-          <div class="bg-slate-800/60 rounded-lg p-2">
-            <div class="text-lg">🌡️</div>
-            <div class="text-xs text-slate-400">温度</div>
-            <div class="text-sm font-medium" :class="getTempColor(REGIONS[regionId].environment.temperature.current)">
-              {{ REGIONS[regionId].environment.temperature.current }}°C
+        <div class="grid grid-cols-3 gap-1.5 text-center">
+          <div class="bg-slate-800/60 rounded-md p-1.5">
+            <div class="text-base">🌡️</div>
+            <div class="text-[10px] text-slate-500">温度</div>
+            <div class="text-xs font-medium" :class="getTempColor(REGIONS[regionId].environment.temperature.current)">
+              {{ REGIONS[regionId].environment.temperature.current }}°
             </div>
           </div>
-          <div class="bg-slate-800/60 rounded-lg p-2">
-            <div class="text-lg">☢️</div>
-            <div class="text-xs text-slate-400">辐射</div>
-            <div class="text-sm font-medium" :class="getRadiationColor(REGIONS[regionId].environment.radiation)">
+          <div class="bg-slate-800/60 rounded-md p-1.5">
+            <div class="text-base">☢️</div>
+            <div class="text-[10px] text-slate-500">辐射</div>
+            <div class="text-xs font-medium" :class="getRadiationColor(REGIONS[regionId].environment.radiation)">
               {{ getRadiationLevel(REGIONS[regionId].environment.radiation) }}
             </div>
           </div>
-          <div class="bg-slate-800/60 rounded-lg p-2">
-            <div class="text-lg">🌪️</div>
-            <div class="text-xs text-slate-400">沙尘</div>
-            <div class="text-sm font-medium" :class="getDustColor(REGIONS[regionId].environment.dustLevel)">
+          <div class="bg-slate-800/60 rounded-md p-1.5">
+            <div class="text-base">🌪️</div>
+            <div class="text-[10px] text-slate-500">沙尘</div>
+            <div class="text-xs font-medium" :class="getDustColor(REGIONS[regionId].environment.dustLevel)">
               {{ getDustLevel(REGIONS[regionId].environment.dustLevel) }}
             </div>
           </div>
@@ -88,65 +90,65 @@
 
         <div
           v-if="regions[regionId]?.roverPresent"
-          class="mt-3 text-xs text-blue-400 flex items-center gap-1"
+          class="mt-2 text-xs text-blue-400 flex items-center gap-1"
         >
-          🚗 火星车正在此区域
+          🚗 火星车在此
         </div>
       </div>
     </div>
 
     <div
       v-if="selectedRegion && regions[selectedRegion]?.unlocked"
-      class="bg-slate-800/60 rounded-xl p-5 border border-slate-700"
+      class="bg-slate-800/60 rounded-xl p-4 border border-slate-700 flex-1 overflow-y-auto"
     >
-      <div class="flex items-start justify-between mb-4">
-        <div>
-          <h4 class="text-xl font-bold text-white flex items-center gap-2">
-            <span class="text-3xl">{{ getRegionIcon(selectedRegion) }}</span>
-            {{ REGIONS[selectedRegion].name }}
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between mb-4 gap-3">
+        <div class="min-w-0">
+          <h4 class="text-lg font-bold text-white flex items-center gap-2">
+            <span class="text-2xl">{{ getRegionIcon(selectedRegion) }}</span>
+            <span class="truncate">{{ REGIONS[selectedRegion].name }}</span>
           </h4>
           <p class="text-sm text-slate-400 mt-1">{{ REGIONS[selectedRegion].description }}</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-shrink-0">
           <button
             v-if="selectedRegion !== currentRegion"
             @click="travelToRegion"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors flex items-center gap-2"
+            class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors flex items-center gap-1.5"
           >
-            🚀 前往此区域
+            🚀 前往
           </button>
           <button
             @click="toggleRover"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
             :class="regions[selectedRegion]?.roverPresent
               ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
               : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'"
           >
-            🚗 {{ regions[selectedRegion]?.roverPresent ? '召回火星车' : '派遣火星车' }}
+            🚗 {{ regions[selectedRegion]?.roverPresent ? '召回' : '派遣' }}
           </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="min-w-0">
           <h5 class="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
             <span>📋</span> 区域任务
           </h5>
-          <div class="space-y-3">
+          <div class="space-y-2">
             <div
               v-for="task in regions[selectedRegion]?.tasks"
               :key="task.id"
-              class="bg-slate-800/80 rounded-lg p-4 border transition-all"
+              class="bg-slate-800/80 rounded-lg p-3 border transition-all"
               :class="task.completed ? 'border-green-500/30 bg-green-900/10' : 'border-slate-700'"
             >
               <div class="flex items-start justify-between mb-2">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="text-lg">{{ getTaskIcon(task.type) }}</span>
-                    <h6 class="font-medium text-white">{{ task.name }}</h6>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-base">{{ getTaskIcon(task.type) }}</span>
+                    <h6 class="font-medium text-white text-sm">{{ task.name }}</h6>
                     <span
                       v-if="task.completed"
-                      class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded"
+                      class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded flex-shrink-0"
                     >
                       已完成
                     </span>
@@ -157,12 +159,12 @@
 
               <div class="mb-2">
                 <div class="flex justify-between text-xs mb-1">
-                  <span class="text-slate-400">任务进度</span>
-                  <span class="text-slate-300">{{ Math.floor(task.progress) }} / {{ task.target }}</span>
+                  <span class="text-slate-500">进度</span>
+                  <span class="text-slate-400">{{ Math.floor(task.progress) }} / {{ task.target }}</span>
                 </div>
-                <div class="w-full bg-slate-700 rounded-full h-2">
+                <div class="w-full bg-slate-700 rounded-full h-1.5">
                   <div
-                    class="h-2 rounded-full transition-all duration-500"
+                    class="h-1.5 rounded-full transition-all duration-500"
                     :class="task.completed ? 'bg-green-500' : 'bg-blue-500'"
                     :style="{ width: `${(task.progress / task.target) * 100}%` }"
                   />
@@ -170,18 +172,18 @@
               </div>
 
               <div class="flex items-center justify-between">
-                <div class="flex flex-wrap gap-1">
+                <div class="flex flex-wrap gap-1 items-center">
                   <span class="text-xs text-slate-500">奖励:</span>
                   <span
                     v-for="(amount, type) in task.reward"
                     :key="type"
-                    class="text-xs text-yellow-400 flex items-center gap-1"
+                    class="text-xs text-yellow-400 flex items-center gap-0.5"
                   >
                     {{ RESOURCES[type as ResourceType].icon }} +{{ amount }}
                   </span>
                 </div>
                 <span
-                  class="text-xs px-2 py-0.5 rounded"
+                  class="text-xs px-2 py-0.5 rounded flex-shrink-0"
                   :class="getTaskTypeClass(task.type)"
                 >
                   {{ getTaskTypeName(task.type) }}
@@ -191,26 +193,26 @@
           </div>
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-4 min-w-0">
           <div>
             <h5 class="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
               <span>🌍</span> 环境信息
             </h5>
-            <div class="bg-slate-800/80 rounded-lg p-4 border border-slate-700 space-y-4">
+            <div class="bg-slate-800/80 rounded-lg p-3 border border-slate-700 space-y-3">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span class="text-2xl">🌡️</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🌡️</span>
                   <div>
-                    <div class="text-sm text-slate-400">温度范围</div>
-                    <div class="font-medium text-white">
-                      {{ REGIONS[selectedRegion].environment.temperature.min }}°C ~ {{ REGIONS[selectedRegion].environment.temperature.max }}°C
+                    <div class="text-xs text-slate-500">温度范围</div>
+                    <div class="font-medium text-white text-sm">
+                      {{ REGIONS[selectedRegion].environment.temperature.min }}° ~ {{ REGIONS[selectedRegion].environment.temperature.max }}°
                     </div>
                   </div>
                 </div>
                 <div class="text-right">
-                  <div class="text-sm text-slate-400">当前</div>
+                  <div class="text-xs text-slate-500">当前</div>
                   <div
-                    class="font-bold text-xl"
+                    class="font-bold text-lg"
                     :class="getTempColor(REGIONS[selectedRegion].environment.temperature.current)"
                   >
                     {{ REGIONS[selectedRegion].environment.temperature.current }}°C
@@ -218,54 +220,54 @@
                 </div>
               </div>
 
-              <div class="h-2 bg-slate-700 rounded-full relative">
+              <div class="h-2 bg-slate-700 rounded-full relative overflow-hidden">
                 <div
                   class="absolute h-2 rounded-full bg-gradient-to-r from-blue-500 via-green-500 to-red-500"
-                  :style="{ left: '0%', width: '100%' }"
+                  style="left: 0; width: 100%;"
                 />
                 <div
-                  class="absolute w-3 h-3 bg-white rounded-full -top-0.5 shadow-lg transform -translate-x-1/2 transition-all"
+                  class="absolute w-2.5 h-2.5 bg-white rounded-full -top-0.5 shadow-lg transform -translate-x-1/2 transition-all"
                   :style="{ left: `${getTempPosition(REGIONS[selectedRegion].environment.temperature.current)}%` }"
                 />
               </div>
 
-              <div class="grid grid-cols-2 gap-4 pt-2">
-                <div class="bg-slate-900/50 rounded-lg p-3">
-                  <div class="flex items-center gap-2 mb-1">
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <div class="bg-slate-900/50 rounded-lg p-2">
+                  <div class="flex items-center gap-1.5 mb-1">
                     <span>☢️</span>
-                    <span class="text-xs text-slate-400">辐射等级</span>
+                    <span class="text-[10px] text-slate-500">辐射</span>
                   </div>
-                  <div class="flex gap-1">
+                  <div class="flex gap-0.5">
                     <div
                       v-for="i in 5"
                       :key="i"
-                      class="flex-1 h-2 rounded-full transition-all"
+                      class="flex-1 h-1.5 rounded-full transition-all"
                       :class="i <= REGIONS[selectedRegion].environment.radiation ? 'bg-yellow-500' : 'bg-slate-700'"
                     />
                   </div>
                   <div
-                    class="text-sm font-medium mt-1"
+                    class="text-xs font-medium mt-1"
                     :class="getRadiationColor(REGIONS[selectedRegion].environment.radiation)"
                   >
                     {{ getRadiationLevel(REGIONS[selectedRegion].environment.radiation) }}
                   </div>
                 </div>
 
-                <div class="bg-slate-900/50 rounded-lg p-3">
-                  <div class="flex items-center gap-2 mb-1">
+                <div class="bg-slate-900/50 rounded-lg p-2">
+                  <div class="flex items-center gap-1.5 mb-1">
                     <span>🌪️</span>
-                    <span class="text-xs text-slate-400">沙尘等级</span>
+                    <span class="text-[10px] text-slate-500">沙尘</span>
                   </div>
-                  <div class="flex gap-1">
+                  <div class="flex gap-0.5">
                     <div
                       v-for="i in 5"
                       :key="i"
-                      class="flex-1 h-2 rounded-full transition-all"
+                      class="flex-1 h-1.5 rounded-full transition-all"
                       :class="i <= REGIONS[selectedRegion].environment.dustLevel ? 'bg-orange-500' : 'bg-slate-700'"
                     />
                   </div>
                   <div
-                    class="text-sm font-medium mt-1"
+                    class="text-xs font-medium mt-1"
                     :class="getDustColor(REGIONS[selectedRegion].environment.dustLevel)"
                   >
                     {{ getDustLevel(REGIONS[selectedRegion].environment.dustLevel) }}
@@ -279,22 +281,22 @@
             <h5 class="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
               <span>💎</span> 资源分布
             </h5>
-            <div class="bg-slate-800/80 rounded-lg p-4 border border-slate-700">
-              <div class="space-y-3">
+            <div class="bg-slate-800/80 rounded-lg p-3 border border-slate-700">
+              <div class="space-y-2">
                 <div
                   v-for="(res, type) in REGIONS[selectedRegion].resources"
                   :key="type"
-                  class="flex items-center gap-3"
+                  class="flex items-center gap-2"
                 >
-                  <span class="text-xl">{{ RESOURCES[type as ResourceType].icon }}</span>
-                  <div class="flex-1">
-                    <div class="flex justify-between text-sm mb-1">
+                  <span class="text-lg flex-shrink-0">{{ RESOURCES[type as ResourceType].icon }}</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-between text-xs mb-0.5">
                       <span class="text-slate-300">{{ RESOURCES[type as ResourceType].name }}</span>
-                      <span class="text-slate-400">丰度 {{ Math.floor(res.abundance * 100) }}%</span>
+                      <span class="text-slate-500">{{ Math.floor(res.abundance * 100) }}%</span>
                     </div>
-                    <div class="w-full bg-slate-700 rounded-full h-2">
+                    <div class="w-full bg-slate-700 rounded-full h-1.5">
                       <div
-                        class="h-2 rounded-full transition-all"
+                        class="h-1.5 rounded-full transition-all"
                         :style="{
                           width: `${res.abundance * 100}%`,
                           backgroundColor: RESOURCES[type as ResourceType].color
@@ -302,9 +304,6 @@
                       />
                     </div>
                   </div>
-                  <span class="text-xs text-slate-500">
-                    最大开采: {{ res.maxExtract }}
-                  </span>
                 </div>
               </div>
             </div>
@@ -315,20 +314,20 @@
 
     <div
       v-else-if="selectedRegion && !regions[selectedRegion]?.unlocked"
-      class="bg-slate-800/60 rounded-xl p-8 border border-slate-700 text-center"
+      class="bg-slate-800/60 rounded-xl p-6 border border-slate-700 text-center flex-1 flex flex-col items-center justify-center"
     >
-      <div class="text-5xl mb-4">🔒</div>
-      <h4 class="text-xl font-bold text-white mb-2">区域未解锁</h4>
-      <p class="text-slate-400 mb-4">{{ REGIONS[selectedRegion].description }}</p>
+      <div class="text-4xl mb-3">🔒</div>
+      <h4 class="text-lg font-bold text-white mb-2">区域未解锁</h4>
+      <p class="text-slate-400 mb-4 text-sm">{{ REGIONS[selectedRegion].description }}</p>
       <div
         v-if="REGIONS[selectedRegion].unlockCondition"
-        class="inline-block text-left bg-slate-900/50 rounded-lg p-4 text-sm"
+        class="inline-block text-left bg-slate-900/50 rounded-lg p-3 text-xs"
       >
         <div class="text-slate-300 font-medium mb-2">解锁条件:</div>
-        <div v-if="REGIONS[selectedRegion].unlockCondition?.tech" class="text-yellow-400">
+        <div v-if="REGIONS[selectedRegion].unlockCondition?.tech" class="text-yellow-400 mb-1">
           🧪 需要科技: {{ getTechName(REGIONS[selectedRegion].unlockCondition!.tech!) }}
         </div>
-        <div v-if="REGIONS[selectedRegion].unlockCondition?.baseLevel" class="text-blue-400">
+        <div v-if="REGIONS[selectedRegion].unlockCondition?.baseLevel" class="text-blue-400 mb-1">
           🏠 需要基地等级: {{ REGIONS[selectedRegion].unlockCondition!.baseLevel }}
         </div>
         <div v-if="REGIONS[selectedRegion].unlockCondition?.completedRegion" class="text-green-400">
