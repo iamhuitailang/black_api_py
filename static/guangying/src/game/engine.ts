@@ -527,6 +527,8 @@ export class GameEngine {
     this.currentLevel = level
     this.currentLevelId = level.id
 
+    this.renderer.setLevel(level)
+    this.renderer.setCameraBounds(0, 0, level.width, level.height)
     this.physicsSystem.setLevelSize(level.width, level.height)
 
     this.clearEntities()
@@ -1205,6 +1207,61 @@ export class GameEngine {
       }
       this.savePersistentData()
     }
+  }
+
+  /**
+   * 获取游戏会话状态（用于刷新页面恢复）
+   */
+  public getGameSession(): any {
+    if (!this.currentLevel || !this.player) return null
+
+    return {
+      levelId: this.currentLevel.id.toString(),
+      playerPosition: {
+        x: this.player.position.x,
+        y: this.player.position.y
+      },
+      playerVelocity: {
+        x: this.player.velocity.x,
+        y: this.player.velocity.y
+      },
+      health: this.player.health,
+      maxHealth: this.player.maxHealth,
+      collectedItems: this.collectibles.collectibles
+        .filter(c => c.state === 'collected')
+        .map(c => this.collectibles.collectibles.indexOf(c)),
+      collectibles: this.collectibles.collectedCount,
+      gameTime: this.getCurrentGameTime(),
+      score: this.gameState.score,
+      shadowState: this.gameState.shadowState,
+      timestamp: Date.now()
+    }
+  }
+
+  /**
+   * 恢复游戏会话状态
+   */
+  public restoreGameSession(session: any): void {
+    if (!this.currentLevel || !this.player) return
+
+    this.player.position.x = session.playerPosition.x
+    this.player.position.y = session.playerPosition.y
+    this.player.velocity.x = session.playerVelocity.x
+    this.player.velocity.y = session.playerVelocity.y
+    this.player.health = session.health
+    this.player.maxHealth = session.maxHealth
+
+    this.collectibles.collectibles.forEach((c, i) => {
+      if (session.collectedItems.includes(i)) {
+        c.state = 'collected'
+      }
+    })
+
+    this.gameState.collectibles = session.collectibles
+    this.gameState.score = session.score
+    this.gameState.shadowState = session.shadowState
+
+    this.gameStartTime = performance.now() - session.gameTime * 1000
   }
 
   /**

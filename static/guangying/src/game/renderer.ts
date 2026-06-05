@@ -406,12 +406,26 @@ export class Renderer {
    * 设置关卡配置
    * @param level 关卡数据
    */
-  public setLevel(level: Level): void {
+  public setLevel(level: any): void {
     this.cameraConfig.bounds.minX = 0
     this.cameraConfig.bounds.maxX = level.width
     this.cameraConfig.bounds.minY = -level.height
     this.cameraConfig.bounds.maxY = 0
     this.backgroundPrerendered = false
+  }
+
+  /**
+   * 设置相机边界
+   * @param minX 最小X
+   * @param minY 最小Y
+   * @param maxX 最大X
+   * @param maxY 最大Y
+   */
+  public setCameraBounds(minX: number, minY: number, maxX: number, maxY: number): void {
+    this.cameraConfig.bounds.minX = minX
+    this.cameraConfig.bounds.minY = minY
+    this.cameraConfig.bounds.maxX = maxX
+    this.cameraConfig.bounds.maxY = maxY
   }
 
   /**

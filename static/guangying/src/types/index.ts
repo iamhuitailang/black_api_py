@@ -30,6 +30,11 @@ export type GraphicsQuality = 'low' | 'medium' | 'high'
 export const STORAGE_KEY = 'guangying_game_data'
 
 /**
+ * 游戏中状态存储键名（用于保存当前游戏进度，刷新页面后恢复）
+ */
+export const GAME_SESSION_KEY = 'guangying_game_session'
+
+/**
  * 关卡星级记录
  * key: 关卡ID，value: 星级 0-3
  */
@@ -71,6 +76,34 @@ export interface GameRuntimeState {
 /**
  * 游戏持久化数据（存储到localStorage）
  */
+/**
+ * 游戏会话状态（游戏进行中的实时状态，用于刷新页面恢复）
+ */
+export interface GameSessionState {
+  /** 关卡ID */
+  levelId: string
+  /** 玩家位置 */
+  playerPosition: { x: number; y: number }
+  /** 玩家速度 */
+  playerVelocity: { x: number; y: number }
+  /** 生命值 */
+  health: number
+  /** 最大生命值 */
+  maxHealth: number
+  /** 已收集的收集物索引列表 */
+  collectedItems: number[]
+  /** 已收集物数量 */
+  collectibles: number
+  /** 游戏时间（秒） */
+  gameTime: number
+  /** 当前分数 */
+  score: number
+  /** 当前光影状态 */
+  shadowState: 'light' | 'shadow'
+  /** 时间戳（用于判断是否过期） */
+  timestamp: number
+}
+
 export interface GamePersistentData {
   currentLevel: string
   unlockedLevels: UnlockedLevels

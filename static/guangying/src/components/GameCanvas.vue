@@ -26,6 +26,7 @@ const isEngineReady = ref(false)
 
 const currentShadowState = ref<PlayerShadowState>('light')
 let stateUpdateInterval: number | null = null
+let sessionSaveInterval: number | null = null
 
 const canvasSize = computed(() => ({
   width: containerRef.value?.clientWidth ?? 1200,
@@ -60,16 +61,26 @@ const syncGameState = () => {
   }
 }
 
+const saveGameSession = () => {
+  if (!engine.value) return
+  const session = engine.value.getGameSession()
+  if (session) {
+    gameStore.saveGameSession(session)
+  }
+}
+
 const handleLevelComplete = (event: GameEvent) => {
   const result = event.data as LevelResult
   gameStore.completeLevel(result.stars)
   gameStore.recordHighScore(props.levelId.toString())
+  gameStore.clearGameSession()
   emit('levelComplete', result)
 }
 
 const handleGameOver = (event: GameEvent) => {
   const result = event.data as LevelResult
   gameStore.gameOver()
+  gameStore.clearGameSession()
   emit('gameOver', result)
 }
 
@@ -105,6 +116,7 @@ const initEngine = () => {
   isEngineReady.value = true
 
   stateUpdateInterval = window.setInterval(syncGameState, 100)
+  sessionSaveInterval = window.setInterval(saveGameSession, 5000)
 
   loadLevel(props.levelId)
 }
@@ -118,6 +130,13 @@ const loadLevel = (levelId: number) => {
     return
   }
 
+  const savedSession = gameStore.loadGameSession()
+  const shouldRestoreSession = savedSession && savedSession.levelId === levelId.toString()
+
+  if (!shouldRestoreSession) {
+    gameStore.clearGameSession()
+  }
+
   gameStore.resetLevelState()
   gameStore.selectLevel(levelId.toString())
   gameStore.changeScene('playing')
@@ -125,6 +144,11 @@ const loadLevel = (levelId: number) => {
   gameStore.gameState.shadowState = 'light'
 
   engine.value.loadLevel(levelData as any)
+  
+  if (shouldRestoreSession) {
+    engine.value.restoreGameSession(savedSession)
+  }
+
   engine.value.startGame()
 
   currentShadowState.value = engine.value.getPlayer()?.shadowState ?? 'light'
@@ -187,7 +211,13 @@ onUnmounted(() => {
     stateUpdateInterval = null
   }
 
+  if (sessionSaveInterval !== null) {
+    clearInterval(sessionSaveInterval)
+    sessionSaveInterval = null
+  }
+
   if (engine.value) {
+    saveGameSession()
     engine.value.off('levelComplete', handleLevelComplete)
     engine.value.off('gameOver', handleGameOver)
     engine.value.off('pause', handlePause)

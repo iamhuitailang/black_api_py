@@ -8,9 +8,10 @@ import type {
   HighScores,
   UnlockedLevels,
   GamePersistentData,
+  GameSessionState,
   GraphicsQuality
 } from '@/types'
-import { STORAGE_KEY } from '@/types'
+import { STORAGE_KEY, GAME_SESSION_KEY } from '@/types'
 
 /**
  * 默认游戏设置
@@ -349,6 +350,51 @@ export const useGameStore = defineStore('game', () => {
   }
 
   /**
+   * 保存游戏会话状态（用于刷新页面恢复）
+   * @param sessionState 游戏会话状态
+   */
+  const saveGameSession = (sessionState: GameSessionState): void => {
+    try {
+      localStorage.setItem(GAME_SESSION_KEY, JSON.stringify(sessionState))
+    } catch (error) {
+      console.error('保存游戏会话失败:', error)
+    }
+  }
+
+  /**
+   * 加载游戏会话状态
+   * @returns 游戏会话状态，如果没有则返回null
+   */
+  const loadGameSession = (): GameSessionState | null => {
+    try {
+      const saved = localStorage.getItem(GAME_SESSION_KEY)
+      if (saved) {
+        const sessionState: GameSessionState = JSON.parse(saved)
+        const now = Date.now()
+        if (now - sessionState.timestamp < 3600000) {
+          return sessionState
+        }
+        localStorage.removeItem(GAME_SESSION_KEY)
+      }
+    } catch (error) {
+      console.error('加载游戏会话失败:', error)
+      localStorage.removeItem(GAME_SESSION_KEY)
+    }
+    return null
+  }
+
+  /**
+   * 清除游戏会话状态
+   */
+  const clearGameSession = (): void => {
+    try {
+      localStorage.removeItem(GAME_SESSION_KEY)
+    } catch (error) {
+      console.error('清除游戏会话失败:', error)
+    }
+  }
+
+  /**
    * 完成关卡
    * 记录分数和星级，解锁下一关
    * @param stars 获得的星级
@@ -439,6 +485,9 @@ export const useGameStore = defineStore('game', () => {
     resetLevelState,
     completeLevel,
     gameOver,
-    resetPersistentData
+    resetPersistentData,
+    saveGameSession,
+    loadGameSession,
+    clearGameSession
   }
 })
