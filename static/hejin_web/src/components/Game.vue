@@ -67,7 +67,6 @@ const bossActive = ref(false)
 const bossName = ref('')
 const bossHealth = ref(0)
 const bossMaxHealth = ref(0)
-const bossDefeated = ref(false)
 
 const levelConfigs = {
   1: {
@@ -207,7 +206,6 @@ function resetLevel() {
   explosions = []
   boss = null
   bossActive.value = false
-  bossDefeated.value = false
   cameraX = 0
   enemiesSpawned = 0
   levelProgress.value = 0
@@ -684,7 +682,6 @@ function checkCollisions() {
     createExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, 0)
     boss = null
     bossActive.value = false
-    bossDefeated.value = true
   }
 
   if (!player.invincible) {
@@ -720,15 +717,11 @@ function updateCamera() {
   if (cameraX < 0) cameraX = 0
   if (cameraX > levelLength - 1200) cameraX = levelLength - 1200
 
-  const progress = Math.min(100, Math.floor((player.x / (levelLength - 100)) * 100))
-  levelProgress.value = progress
+  levelProgress.value = Math.floor((player.x / levelLength) * 100)
 }
 
 function checkLevelComplete() {
-  const allEnemiesDefeated = enemies.length === 0 && enemiesSpawned >= levelConfig.value.enemyCount
-  const bossCondition = bossDefeated.value || (!boss && !bossActive.value)
-  
-  if (player.x > levelLength - 300 && allEnemiesDefeated && bossCondition) {
+  if (player.x > levelLength - 200 && !boss && enemiesSpawned >= levelConfig.value.enemyCount) {
     emit('levelComplete', score.value)
   }
 }

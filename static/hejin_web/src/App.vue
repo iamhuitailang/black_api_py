@@ -9,20 +9,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import MainMenu from './components/MainMenu.vue'
 import Shop from './components/Shop.vue'
 import Game from './components/Game.vue'
 import GameOver from './components/GameOver.vue'
 import Victory from './components/Victory.vue'
 
-const SAVE_KEY = 'hejin_game_save'
-
 const gameState = ref('menu')
 const currentLevel = ref(1)
 const finalScore = ref(0)
 
-const defaultPlayerData = {
+const playerData = reactive({
   coins: 500,
   maxHealth: 100,
   health: 100,
@@ -31,62 +29,17 @@ const defaultPlayerData = {
     ak47: true,
     shotgun: false,
     grenades: 3
+  },
+  weapons: {
+    ak47: { name: 'AK47', damage: 25, fireRate: 150, ammo: 999 },
+    shotgun: { name: '散弹枪', damage: 60, fireRate: 500, ammo: 30 }
   }
-}
-
-const playerData = reactive({ ...defaultPlayerData })
-
-function loadGame() {
-  try {
-    const saved = localStorage.getItem(SAVE_KEY)
-    if (saved) {
-      const data = JSON.parse(saved)
-      Object.assign(playerData, data.playerData)
-      currentLevel.value = data.currentLevel || 1
-      return true
-    }
-  } catch (e) {
-    console.log('No save data found')
-  }
-  return false
-}
-
-function saveGame() {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      playerData: {
-        coins: playerData.coins,
-        maxHealth: playerData.maxHealth,
-        health: playerData.health,
-        currentWeapon: playerData.currentWeapon,
-        inventory: playerData.inventory
-      },
-      currentLevel: currentLevel.value
-    }))
-  } catch (e) {
-    console.log('Save failed:', e)
-  }
-}
-
-function clearSave() {
-  localStorage.removeItem(SAVE_KEY)
-}
-
-onMounted(() => {
-  loadGame()
 })
-
-watch([playerData, currentLevel], () => {
-  if (gameState.value !== 'menu') {
-    saveGame()
-  }
-}, { deep: true })
 
 function startGame() {
   currentLevel.value = 1
   playerData.health = playerData.maxHealth
   gameState.value = 'game'
-  saveGame()
 }
 
 function openShop() {
