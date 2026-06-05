@@ -167,7 +167,7 @@ const closeModal = () => {
         
         <div 
           :class="cn(
-            'relative w-full max-w-lg rounded-2xl border bg-space-800/95 backdrop-blur-xl',
+            'relative w-full max-w-lg rounded-2xl border bg-gray-900/95 backdrop-blur-xl',
             'transition-all duration-300 transform',
             typeBorderColor,
             typeGlow,
@@ -179,8 +179,8 @@ const closeModal = () => {
           <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-tech/20 to-transparent" />
 
           <button 
-            class="absolute top-4 right-4 z-10 p-1.5 rounded-lg bg-space-700/50 text-space-400 hover:text-space-100 hover:bg-space-600/50 transition-all duration-200"
-            @click="closeModal"
+            class="absolute top-4 right-4 z-50 p-2 rounded-lg bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-600 transition-all duration-200 border border-gray-600"
+            @click.stop="closeModal"
           >
             <X class="w-5 h-5" />
           </button>
@@ -219,21 +219,21 @@ const closeModal = () => {
                       :key="i"
                       :class="cn(
                         'w-1.5 h-1.5 rounded-full transition-all duration-300',
-                        i <= severityDots ? severityColor : 'bg-space-600'
+                        i <= severityDots ? severityColor : 'bg-gray-600'
                       )"
                     />
                   </div>
-                  <span class="text-[10px] text-space-400">{{ severityLabel }}</span>
+                  <span class="text-[10px] text-gray-400">{{ severityLabel }}</span>
                 </div>
-                <h3 class="text-xl font-bold text-space-100 mb-1">{{ config.name }}</h3>
-                <div v-if="activeEvent" class="flex items-center gap-2 text-xs text-space-400">
+                <h3 class="text-xl font-bold text-white mb-1">{{ config.name }}</h3>
+                <div v-if="activeEvent" class="flex items-center gap-2 text-xs text-gray-400">
                   <Clock class="w-3 h-3" />
                   <span>剩余时间: {{ Math.ceil(activeEvent.timeRemaining) }}s</span>
                 </div>
               </div>
             </div>
 
-            <p class="text-sm text-space-300 leading-relaxed mb-6">{{ config.description }}</p>
+            <p class="text-sm text-gray-300 leading-relaxed mb-6">{{ config.description }}</p>
 
             <div v-if="selectedResult" class="mb-6">
               <div 
@@ -256,12 +256,12 @@ const closeModal = () => {
                     {{ selectedResult === 'success' ? '成功！' : '失败...' }}
                   </span>
                 </div>
-                <p class="text-sm text-space-300">{{ resultDescription }}</p>
+                <p class="text-sm text-gray-300">{{ resultDescription }}</p>
               </div>
             </div>
 
             <div v-if="!selectedResult && !activeEvent?.choiceMade" class="space-y-3">
-              <h4 class="text-sm font-semibold text-space-200 mb-3">选择应对方案：</h4>
+              <h4 class="text-sm font-semibold text-gray-200 mb-3">选择应对方案：</h4>
               
               <button
                 v-for="choice in config.choices"
@@ -269,16 +269,16 @@ const closeModal = () => {
                 :disabled="!canAffordChoice(choice.cost)"
                 :class="cn(
                   'relative w-full p-4 rounded-xl border text-left transition-all duration-300',
-                  'hover:border-tech/50 hover:bg-space-700/50',
+                  'hover:border-tech/50 hover:bg-gray-700/50',
                   canAffordChoice(choice.cost) 
-                    ? 'bg-space-700/30 border-space-600/50 cursor-pointer' 
-                    : 'bg-space-800/30 border-space-700/30 opacity-50 cursor-not-allowed'
+                    ? 'bg-gray-700/30 border-gray-600/50 cursor-pointer' 
+                    : 'bg-gray-800/30 border-gray-700/30 opacity-50 cursor-not-allowed'
                 )"
                 @click="handleChoice(choice)"
               >
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex-1">
-                    <p class="font-semibold text-space-100 mb-2">{{ choice.text }}</p>
+                    <p class="font-semibold text-white mb-2">{{ choice.text }}</p>
                     
                     <div v-if="choice.cost && Object.keys(choice.cost).length > 0" class="flex flex-wrap gap-2 mb-2">
                       <div 
@@ -287,7 +287,7 @@ const closeModal = () => {
                         :class="cn(
                           'flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono',
                           resources[type as ResourceType]?.current >= amount!
-                            ? 'bg-space-600/50 text-space-200'
+                            ? 'bg-gray-600/50 text-gray-200'
                             : 'bg-mars/20 text-mars'
                         )"
                       >
@@ -313,7 +313,7 @@ const closeModal = () => {
             </div>
 
             <div v-if="activeEvent?.choiceMade" class="text-center py-4">
-              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-space-700/50 text-space-300 text-sm">
+              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-700/50 text-gray-300 text-sm">
                 <Clock class="w-4 h-4 animate-spin" />
                 <span>等待事件结果...</span>
               </div>

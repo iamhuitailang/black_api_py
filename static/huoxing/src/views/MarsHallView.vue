@@ -37,7 +37,7 @@
             />
           </div>
 
-          <div v-if="hoveredRegion" class="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div v-if="hoveredRegion" class="absolute top-16 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
             <SciFiPanel :title="hoveredRegion.name" class="text-center min-w-64" glowing>
               <p class="text-gray-400 text-sm">{{ hoveredRegion.description }}</p>
               <div class="mt-2 flex justify-center gap-4 text-xs">
@@ -51,22 +51,22 @@
             </SciFiPanel>
           </div>
 
-          <div class="absolute right-4 top-4 z-30 w-72 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+          <div class="absolute right-2 top-16 z-40 w-64 space-y-2 max-h-[calc(100vh-140px)] overflow-y-auto pr-1">
             <EnvironmentStatus />
 
             <SciFiPanel title="区域概览" border-color="orange">
-              <div class="p-4 space-y-2">
+              <div class="p-3 space-y-2">
                 <div v-for="region in regionList" :key="region.id" class="flex items-center gap-2">
                   <div
                     :class="[
-                      'w-2.5 h-2.5 rounded-full flex-shrink-0',
+                      'w-2 h-2 rounded-full flex-shrink-0',
                       region.unlocked ? 'bg-green-500' : 'bg-gray-600'
                     ]"
                   />
-                  <span :class="['flex-1 text-sm', region.unlocked ? 'text-white' : 'text-gray-600']">
+                  <span :class="['flex-1 text-xs truncate', region.unlocked ? 'text-white' : 'text-gray-600']">
                     {{ REGIONS[region.id].name }}
                   </span>
-                  <span class="text-xs text-gray-500 flex-shrink-0">
+                  <span class="text-[10px] text-gray-500 flex-shrink-0">
                     {{ region.unlocked ? `${region.explored.toFixed(0)}%` : '锁定' }}
                   </span>
                 </div>
@@ -74,9 +74,9 @@
             </SciFiPanel>
           </div>
 
-          <div class="absolute left-4 bottom-4 z-30">
-            <SciFiPanel title="操作提示" class="w-56">
-              <div class="p-3 text-xs text-gray-400 space-y-1">
+          <div class="absolute left-2 bottom-4 z-40">
+            <SciFiPanel title="操作提示" class="w-52">
+              <div class="p-2 text-[10px] text-gray-400 space-y-1">
                 <p>🖱️ 左键拖动 - 旋转视角</p>
                 <p>🔍 滚轮 - 缩放</p>
                 <p>👆 点击标记 - 进入区域</p>
@@ -193,20 +193,40 @@ const currentEventConfig = computed(() => {
 })
 
 let timeUpdateInterval: number | null = null
+let initCheckInterval: number | null = null
 
 onMounted(() => {
-  if (!gameStore.initialized) {
-    router.push('/')
-    return
+  const checkInit = () => {
+    if (gameStore.initialized) {
+      if (initCheckInterval) {
+        clearInterval(initCheckInterval)
+        initCheckInterval = null
+      }
+      updateMarsTime()
+      timeUpdateInterval = window.setInterval(updateMarsTime, 1000)
+    }
   }
-
-  updateMarsTime()
-  timeUpdateInterval = window.setInterval(updateMarsTime, 1000)
+  
+  if (gameStore.initialized) {
+    checkInit()
+  } else {
+    initCheckInterval = window.setInterval(checkInit, 100)
+    
+    setTimeout(() => {
+      if (!gameStore.initialized && initCheckInterval) {
+        clearInterval(initCheckInterval)
+        router.push('/')
+      }
+    }, 3000)
+  }
 })
 
 onUnmounted(() => {
   if (timeUpdateInterval) {
     clearInterval(timeUpdateInterval)
+  }
+  if (initCheckInterval) {
+    clearInterval(initCheckInterval)
   }
 })
 

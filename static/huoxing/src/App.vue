@@ -1,5 +1,7 @@
 <template>
-  <router-view />
+  <div class="w-screen h-screen bg-space overflow-hidden">
+    <router-view />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -16,8 +18,8 @@ const gameStore = useGameStore()
 onMounted(() => {
   const publicRoutes = ['/']
   
-  if (!publicRoutes.includes(route.path) && hasSavedGame()) {
-    if (gameStore.loadSavedGame()) {
+  if (!publicRoutes.includes(route.path) && !gameStore.initialized) {
+    if (hasSavedGame() && gameStore.loadSavedGame()) {
       gameEngine.init(gameStore)
       gameEngine.start()
     } else {

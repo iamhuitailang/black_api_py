@@ -196,19 +196,40 @@ const currentEventConfig = computed(() => {
 })
 
 let timeUpdateInterval: number | null = null
+let initCheckInterval: number | null = null
 
 onMounted(() => {
-  if (!gameStore.initialized) {
-    router.push('/')
-    return
+  const checkInit = () => {
+    if (gameStore.initialized) {
+      if (initCheckInterval) {
+        clearInterval(initCheckInterval)
+        initCheckInterval = null
+      }
+      updateMarsTime()
+      timeUpdateInterval = window.setInterval(updateMarsTime, 1000)
+    }
   }
-  updateMarsTime()
-  timeUpdateInterval = window.setInterval(updateMarsTime, 1000)
+  
+  if (gameStore.initialized) {
+    checkInit()
+  } else {
+    initCheckInterval = window.setInterval(checkInit, 100)
+    
+    setTimeout(() => {
+      if (!gameStore.initialized && initCheckInterval) {
+        clearInterval(initCheckInterval)
+        router.push('/')
+      }
+    }, 3000)
+  }
 })
 
 onUnmounted(() => {
   if (timeUpdateInterval) {
     clearInterval(timeUpdateInterval)
+  }
+  if (initCheckInterval) {
+    clearInterval(initCheckInterval)
   }
 })
 

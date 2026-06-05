@@ -133,13 +133,14 @@
 
     <div
       v-if="selectedTech"
-      class="mt-4 bg-slate-800/95 rounded-xl p-4 border border-slate-700 relative"
+      class="mt-4 bg-gray-900 rounded-xl p-4 border-2 border-blue-500 relative shadow-2xl z-50"
     >
       <button
-        @click="selectedTech = null"
-        class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 z-10"
+        @click="closeTechDetail"
+        class="absolute top-3 right-3 text-white bg-red-600 hover:bg-red-500 transition-all px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 z-[100]"
       >
-        ✕
+        <span>✕</span>
+        <span>关闭</span>
       </button>
       <div class="flex flex-col md:flex-row md:items-start gap-4 mb-4 pr-10">
         <div
@@ -437,6 +438,10 @@ const getEffectDescription = (effect: TechEffect): string => {
 
 const selectTech = (tech: TechConfig): void => {
   selectedTech.value = tech
+}
+
+const closeTechDetail = (): void => {
+  selectedTech.value = null
 }
 
 const startResearchSelected = (): void => {
