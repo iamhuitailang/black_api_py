@@ -379,6 +379,8 @@ export class GameEngine {
   private checkCollisions(): void {
     if (!this.player) return
 
+    this.handlePlatformCollisions()
+
     for (const trap of this.traps) {
       if (trap.checkCollision(this.player)) {
         if (trap.dealDamage(this.player)) {
@@ -392,6 +394,72 @@ export class GameEngine {
           }
         }
       }
+    }
+  }
+
+  /**
+   * 处理平台碰撞
+   */
+  private handlePlatformCollisions(): void {
+    if (!this.player) return
+
+    const playerBounds = this.player.getBounds()
+    let isGrounded = false
+
+    for (const platform of this.platforms) {
+      if (!platform.active || !platform.collidable) continue
+
+      const platformRect = platform.getBounds()
+      const collision = this.checkAABBCollision(playerBounds, platformRect)
+
+      if (collision.collided) {
+        const overlapX = Math.min(
+          playerBounds.x + playerBounds.width - platformRect.x,
+          platformRect.x + platformRect.width - playerBounds.x
+        )
+        const overlapY = Math.min(
+          playerBounds.y + playerBounds.height - platformRect.y,
+          platformRect.y + platformRect.height - playerBounds.y
+        )
+
+        if (overlapY < overlapX) {
+          if (this.player.velocity.y > 0 && playerBounds.y + playerBounds.height - platformRect.y < overlapY + 1) {
+            this.player.position.y = platformRect.y - this.player.size.height / 2
+            this.player.velocity.y = 0
+            isGrounded = true
+          } else if (this.player.velocity.y < 0) {
+            this.player.position.y = platformRect.y + platformRect.height + this.player.size.height / 2
+            this.player.velocity.y = 0
+          }
+        } else {
+          if (this.player.velocity.x > 0) {
+            this.player.position.x = platformRect.x - this.player.size.width / 2
+          } else {
+            this.player.position.x = platformRect.x + platformRect.width + this.player.size.width / 2
+          }
+          this.player.velocity.x = 0
+        }
+      }
+    }
+
+    if (isGrounded && !this.player.isGrounded) {
+      this.player.onLand()
+    } else if (!isGrounded && this.player.isGrounded) {
+      this.player.onLeaveGround()
+    }
+  }
+
+  /**
+   * AABB碰撞检测
+   */
+  private checkAABBCollision(rect1: any, rect2: any): { collided: boolean } {
+    return {
+      collided: (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+      )
     }
   }
 
@@ -1251,11 +1319,14 @@ export class GameEngine {
     this.player.health = session.health
     this.player.maxHealth = session.maxHealth
 
+    let count = 0
     this.collectibles.collectibles.forEach((c, i) => {
       if (session.collectedItems.includes(i)) {
         c.state = 'collected'
+        count++
       }
     })
+    this.collectibles.collectedCount = count
 
     this.gameState.collectibles = session.collectibles
     this.gameState.score = session.score

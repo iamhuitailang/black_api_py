@@ -181,10 +181,20 @@ export class Player {
     this.updateMovement(deltaTime)
     this.updateJump(deltaTime)
     this.updateGravity(deltaTime)
+    this.updatePosition(deltaTime)
     this.updateAnimationState(deltaTime)
     this.updateShadowAbility()
 
     this.wasGrounded = this.isGrounded
+  }
+
+  /**
+   * 根据速度更新位置
+   * @param deltaTime 时间增量（秒）
+   */
+  private updatePosition(deltaTime: number): void {
+    this.position.x += this.velocity.x * deltaTime
+    this.position.y += this.velocity.y * deltaTime
   }
 
   /**
