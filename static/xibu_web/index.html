@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>荒野警长 - Wild West Sheriff</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 开始菜单 -->
+        <div v-if="gameState === 'menu'" class="menu-screen">
+            <div class="menu-content">
+                <h1 class="game-title">🤠 荒野警长 🔫</h1>
+                <p class="game-subtitle">WILD WEST SHERIFF</p>
+                <div class="menu-buttons">
+                    <button @click="startGame" class="btn btn-primary">开始游戏</button>
+                    <button @click="showHelp = true" class="btn btn-secondary">游戏说明</button>
+                </div>
+                <div class="wanted-posters" v-if="showWanted">
+                    <h3>📜 通缉令</h3>
+                    <div class="posters-grid">
+                        <div v-for="bandit in bandits" :key="bandit.id" class="wanted-poster">
+                            <div class="poster-face">{{ bandit.face }}</div>
+                            <div class="poster-name">{{ bandit.name }}</div>
+                            <div class="poster-reward">💰 ${{ bandit.reward.toLocaleString() }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 帮助弹窗 -->
+        <div v-if="showHelp" class="modal-overlay" @click="showHelp = false">
+            <div class="modal-content" @click.stop>
+                <h2>🎮 游戏说明</h2>
+                <ul class="help-list">
+                    <li>⌨️ <strong>A/D 或 ←/→</strong> - 左右移动</li>
+                    <li>⌨️ <strong>W 或 ↑</strong> - 站起射击</li>
+                    <li>⌨️ <strong>S 或 ↓</strong> - 蹲下躲避</li>
+                    <li>🖱️ <strong>鼠标点击</strong> - 射击</li>
+                    <li>⌨️ <strong>R</strong> - 换弹夹</li>
+                    <li>⌨️ <strong>1/2</strong> - 切换武器</li>
+                    <li>🛡️ 利用掩体躲避敌人子弹</li>
+                    <li>🎯 击毙所有匪徒通关</li>
+                </ul>
+                <button @click="showHelp = false" class="btn btn-primary">知道了</button>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div v-if="gameState === 'playing'" class="game-screen">
+            <!-- HUD -->
+            <div class="hud">
+                <div class="hud-left">
+                    <div class="health-bar">
+                        <span class="hud-label">❤️ 生命</span>
+                        <div class="bar-container">
+                            <div class="bar-fill" :style="{width: playerHealth + '%'}"></div>
+                        </div>
+                        <span class="bar-text">{{ playerHealth }}/100</span>
+                    </div>
+                    <div class="weapon-info">
+                        <span class="hud-label">🔫 武器</span>
+                        <span class="weapon-name">{{ currentWeapon.name }}</span>
+                    </div>
+                    <div class="ammo-info">
+                        <span class="hud-label">💥 弹药</span>
+                        <span class="ammo-count">{{ currentAmmo }}/{{ currentWeapon.maxAmmo }}</span>
+                        <button v-if="currentAmmo < currentWeapon.maxAmmo && !isReloading" @click="reload" class="btn-reload">R换弹</button>
+                        <span v-if="isReloading" class="reloading-text">换弹中...</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="level-info">
+                        <span class="level-text">第 {{ currentLevel }} 关</span>
+                    </div>
+                    <div class="enemies-left">
+                        剩余匪徒: {{ enemies.length }}
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="score-info">
+                        <span class="hud-label">💰 赏金</span>
+                        <span class="score-value">${{ totalScore.toLocaleString() }}</span>
+                    </div>
+                    <button @click="togglePause" class="btn-pause">⏸️</button>
+                </div>
+            </div>
+
+            <!-- 游戏画布 -->
+            <div ref="gameCanvas" class="game-canvas" @click="handleShoot" @mousemove="handleMouseMove">
+                <!-- 背景 -->
+                <div class="background">
+                    <div class="sky"></div>
+                    <div class="mountains"></div>
+                    <div class="ground"></div>
+                </div>
+
+                <!-- 掩体 -->
+                <div v-for="cover in covers" :key="cover.id" 
+                     class="cover" 
+                     :class="cover.type"
+                     :style="{left: cover.x + 'px', bottom: cover.y + 'px', width: cover.width + 'px', height: cover.height + 'px'}">
+                    <div class="cover-sprite">{{ cover.sprite }}</div>
+                </div>
+
+                <!-- 玩家 -->
+                <div class="player" 
+                     :class="{crouching: playerCrouching, standing: !playerCrouching}"
+                     :style="{left: playerX + 'px', bottom: playerY + 'px'}">
+                    <div class="player-body">
+                        <div class="player-head">🤠</div>
+                        <div v-if="!playerCrouching" class="player-torso">👔</div>
+                        <div class="player-gun" :style="{transform: 'rotate(' + gunAngle + 'deg)'}">
+                            {{ currentWeapon.sprite }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 敌人 -->
+                <div v-for="enemy in enemies" :key="enemy.id" 
+                     class="enemy"
+                     :class="{hit: enemy.hit, dead: enemy.health <= 0}"
+                     :style="{left: enemy.x + 'px', bottom: enemy.y + 'px'}">
+                    <div class="enemy-body">
+                        <div class="enemy-face">{{ enemy.face }}</div>
+                        <div class="enemy-gun">🔫</div>
+                    </div>
+                    <div v-if="enemy.health > 0" class="enemy-health-bar">
+                        <div class="enemy-health-fill" :style="{width: (enemy.health / enemy.maxHealth * 100) + '%'}"></div>
+                    </div>
+                    <div v-if="enemy.isBoss" class="boss-indicator">👑 BOSS</div>
+                </div>
+
+                <!-- 子弹 -->
+                <div v-for="bullet in bullets" :key="bullet.id" 
+                     class="bullet"
+                     :class="bullet.owner"
+                     :style="{left: bullet.x + 'px', bottom: bullet.y + 'px'}">
+                    💨
+                </div>
+
+                <!-- 射击效果 -->
+                <div v-for="effect in shootEffects" :key="effect.id" 
+                     class="shoot-effect"
+                     :style="{left: effect.x + 'px', bottom: effect.y + 'px'}">
+                    💥
+                </div>
+
+                <!-- 准星 -->
+                <div class="crosshair" :style="{left: mouseX + 'px', top: mouseY + 'px'}">
+                    🎯
+                </div>
+            </div>
+
+            <!-- 底部武器切换 -->
+            <div class="weapon-bar">
+                <div v-for="(weapon, index) in weapons" :key="weapon.id"
+                     class="weapon-slot"
+                     :class="{active: currentWeapon.id === weapon.id}"
+                     @click="switchWeapon(index)">
+                    <div class="weapon-icon">{{ weapon.sprite }}</div>
+                    <div class="weapon-hotkey">{{ index + 1 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 暂停菜单 -->
+        <div v-if="gameState === 'paused'" class="pause-overlay">
+            <div class="pause-menu">
+                <h2>⏸️ 游戏暂停</h2>
+                <button @click="togglePause" class="btn btn-primary">继续游戏</button>
+                <button @click="restartGame" class="btn btn-secondary">重新开始</button>
+                <button @click="backToMenu" class="btn btn-danger">返回菜单</button>
+            </div>
+        </div>
+
+        <!-- 关卡完成 -->
+        <div v-if="gameState === 'levelComplete'" class="modal-overlay">
+            <div class="modal-content level-complete">
+                <h2>🎉 第 {{ currentLevel }} 关完成！</h2>
+                <div class="reward-info">
+                    <p>本关获得赏金: 💰 ${{ levelScore.toLocaleString() }}</p>
+                    <p>总赏金: 💰 ${{ totalScore.toLocaleString() }}</p>
+                </div>
+                <button @click="nextLevel" class="btn btn-primary">下一关</button>
+            </div>
+        </div>
+
+        <!-- 游戏结束 -->
+        <div v-if="gameState === 'gameOver'" class="modal-overlay">
+            <div class="modal-content game-over">
+                <h2>💀 任务失败</h2>
+                <p>警长倒下了...</p>
+                <p>获得赏金: 💰 ${{ totalScore.toLocaleString() }}</p>
+                <p>到达关卡: 第 {{ currentLevel }} 关</p>
+                <button @click="restartGame" class="btn btn-primary">再来一次</button>
+                <button @click="backToMenu" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+
+        <!-- 游戏胜利 -->
+        <div v-if="gameState === 'victory'" class="modal-overlay">
+            <div class="modal-content victory">
+                <h2>🏆 恭喜通关！</h2>
+                <p>你成功抓捕了所有通缉犯！</p>
+                <p>总赏金: 💰 ${{ totalScore.toLocaleString() }}</p>
+                <button @click="restartGame" class="btn btn-primary">再玩一次</button>
+                <button @click="backToMenu" class="btn btn-secondary">返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            const script = document.createElement('script');
+            script.src = 'game.js';
+            document.body.appendChild(script);
+        });
+    </script>
+</body>
+</html>
