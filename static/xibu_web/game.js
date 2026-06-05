@@ -53,36 +53,19 @@ createApp({
         let effectId = 0;
 
         const STORAGE_KEY = 'wild_west_sheriff_save';
+        let savedGameData = null;
 
         function saveGame() {
+            if (gameState.value !== 'playing') return;
+            
             const saveData = {
-                gameState: gameState.value,
                 currentLevel: currentLevel.value,
                 totalScore: totalScore.value,
-                levelScore: levelScore.value,
                 playerHealth: playerHealth.value,
-                playerX: playerX.value,
-                playerY: playerY.value,
-                playerCrouching: playerCrouching.value,
-                currentWeaponIndex: currentWeaponIndex.value,
-                currentAmmo: currentAmmo.value,
-                enemies: enemies.value.map(e => ({
-                    id: e.id,
-                    face: e.face,
-                    x: e.x,
-                    y: e.y,
-                    health: e.health,
-                    maxHealth: e.maxHealth,
-                    damage: e.damage,
-                    fireRate: e.fireRate,
-                    lastFire: e.lastFire,
-                    reward: e.reward,
-                    isBoss: e.isBoss,
-                    name: e.name
-                })),
-                covers: covers.value
+                savedAt: Date.now()
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+            savedGameData = saveData;
         }
 
         function loadGame() {
@@ -90,8 +73,8 @@ createApp({
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
-                    if (data.gameState === 'playing' || data.gameState === 'paused') {
-                        gameState.value = 'menu';
+                    if (data.currentLevel > 1) {
+                        savedGameData = data;
                         currentLevel.value = data.currentLevel;
                         totalScore.value = data.totalScore;
                         return true;
@@ -100,11 +83,21 @@ createApp({
                     console.error('加载存档失败', e);
                 }
             }
+            savedGameData = null;
             return false;
+        }
+
+        function hasSave() {
+            return savedGameData && savedGameData.currentLevel > 1;
+        }
+
+        function getSavedHealth() {
+            return savedGameData ? savedGameData.playerHealth : 100;
         }
 
         function clearSave() {
             localStorage.removeItem(STORAGE_KEY);
+            savedGameData = null;
         }
 
         function initLevel(keepHealth = false) {
@@ -200,7 +193,8 @@ createApp({
 
         function continueGame() {
             gameState.value = 'playing';
-            initLevel();
+            initLevel(true);
+            playerHealth.value = getSavedHealth();
             startGameLoop();
         }
 
@@ -594,7 +588,7 @@ createApp({
             nextLevel,
             restartGame,
             backToMenu,
-            loadGame: () => loadGame()
+            hasSave
         };
     }
 }).mount('#app');

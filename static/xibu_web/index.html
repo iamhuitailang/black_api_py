@@ -16,7 +16,7 @@
                 <p class="game-subtitle">WILD WEST SHERIFF</p>
                 <div class="menu-buttons">
                     <button @click="startGame" class="btn btn-primary">开始游戏</button>
-                    <button v-if="currentLevel > 1" @click="continueGame" class="btn btn-success">继续游戏 (第{{ currentLevel }}关)</button>
+                    <button v-if="hasSave()" @click="continueGame" class="btn btn-success">继续游戏 (第{{ currentLevel }}关)</button>
                     <button @click="showHelp = true" class="btn btn-secondary">游戏说明</button>
                 </div>
                 <div class="wanted-posters" v-if="showWanted">
