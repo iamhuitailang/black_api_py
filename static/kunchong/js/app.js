@@ -1,4 +1,4 @@
-import { bugParts, playerSkills, skills, enemies, versusOpponents, levels, powerupEffects } from './data/gameData.js';
+import { bugParts, playerSkills, skills, enemies as enemiesData, versusOpponents, levels, powerupEffects } from './data/gameData.js';
 import { gameStorage } from './utils/storage.js';
 import { audioManager } from './utils/audio.js';
 
@@ -501,25 +501,22 @@ app.component('BattleScreen', {
         const battleLog = ref([]);
         const playerHp = ref(0);
         const playerMaxHp = ref(0);
-        const enemyHp = ref(0);
-        const enemyMaxHp = ref(0);
-        const currentEnemy = ref(null);
         const currentWave = ref(1);
         const showResult = ref(false);
         const battleResult = ref('');
         const isPlayerTurn = ref(true);
         const playerAttacking = ref(false);
-        const enemyAttacking = ref(false);
         const playerHit = ref(false);
-        const enemyHit = ref(false);
         const damageNumbers = ref([]);
         const skillCooldowns = ref({});
-        const enemySkillCooldowns = ref({});
         const powerupsOnField = ref([]);
         const buffs = ref({ attack: 0, defense: 0 });
-        const enemyBuffs = ref({ attack: 0, defense: 0 });
-        const enemySkillIndex = ref(0);
         const turnCount = ref(0);
+        const enemies = ref([]);
+        const selectedEnemyIndex = ref(0);
+        const specialEffect = ref(null);
+        const waveTransition = ref(false);
+        const summonedBees = ref([]);
 
         const calculateStats = () => {
             const parts = [props.playerBug.body, props.playerBug.head, props.playerBug.legs, props.playerBug.weapon];
@@ -536,94 +533,32 @@ app.component('BattleScreen', {
 
         const playerStats = computed(calculateStats);
 
-        const saveBattleState = () => {
-            if (props.mode === 'campaign' && props.level && !showResult.value) {
-                gameStorage.saveBattleState({
-                    levelId: props.level.id,
-                    currentWave: currentWave.value,
-                    currentEnemyId: currentEnemy.value?.id,
-                    playerHp: playerHp.value,
-                    enemyHp: enemyHp.value,
-                    enemyMaxHp: enemyMaxHp.value,
-                    battleLog: battleLog.value.slice(0, 10)
-                });
-            }
-        };
-
-        const initBattle = () => {
-            const stats = calculateStats();
-            playerMaxHp.value = stats.hp;
-            enemySkillCooldowns.value = {};
-            enemySkillIndex.value = 0;
-            turnCount.value = 0;
-            
-            const savedState = gameStorage.loadBattleState();
-            
-            if (props.mode === 'campaign' && props.level && savedState && savedState.levelId === props.level.id) {
-                currentWave.value = savedState.currentWave || 1;
-                playerHp.value = savedState.playerHp || stats.hp;
-                enemyMaxHp.value = savedState.enemyMaxHp || 0;
-                enemyHp.value = savedState.enemyHp || 0;
-                battleLog.value = savedState.battleLog || [];
-                
-                if (savedState.currentEnemyId) {
-                    const enemyTemplate = enemies.find(e => e.id === savedState.currentEnemyId);
-                    if (enemyTemplate) {
-                        const waveMultiplier = 1 + (currentWave.value - 1) * 0.2;
-                        currentEnemy.value = {
-                            ...enemyTemplate,
-                            hp: enemyHp.value,
-                            maxHp: enemyMaxHp.value,
-                            attack: Math.floor(enemyTemplate.attack * waveMultiplier)
-                        };
-                    }
-                } else {
-                    spawnEnemy();
-                }
-                powerupsOnField.value = [...props.level.powerups];
+        const getPlayerSkills = computed(() => {
+            if (!props.playerBug.weapon) return playerSkills;
+            const weapon = props.playerBug.weapon;
+            if (weapon.id === 'weapon1') {
+                return [
+                    { id: 'sickle_slash', name: '镰刀横扫', damage: 35, cooldown: 1, type: 'damage', icon: '⚔️', description: '激光镰刀横扫' },
+                    { id: 'sickle_spin', name: '旋风斩', damage: 50, cooldown: 3, type: 'aoe', icon: '🌀', description: '旋转镰刀攻击所有敌人' },
+                    { id: 'energy_barrier', name: '能量护盾', defense: 30, cooldown: 3, type: 'defense', icon: '🛡️', description: '激活护盾' },
+                    { id: 'nano_repair', name: '纳米修复', heal: 40, cooldown: 4, type: 'heal', icon: '💚', description: '修复生命' }
+                ];
+            } else if (weapon.id === 'weapon2') {
+                return [
+                    { id: 'plasma_shot', name: '等离子弹', damage: 45, cooldown: 2, type: 'damage', icon: '🔫', description: '发射等离子弹' },
+                    { id: 'plasma_blast', name: '离子爆发', damage: 80, cooldown: 4, type: 'damage', icon: '💥', description: '蓄力高伤害攻击' },
+                    { id: 'overcharge', name: '超载模式', attackBoost: 40, cooldown: 5, type: 'buff', icon: '⚡', description: '大幅提升攻击' },
+                    { id: 'shield', name: '能量护盾', defense: 25, cooldown: 3, type: 'defense', icon: '🛡️', description: '激活护盾' }
+                ];
             } else {
-                playerHp.value = stats.hp;
-                gameStorage.clearBattleState();
-                
-                if (props.mode === 'campaign' && props.level) {
-                    spawnEnemy();
-                    powerupsOnField.value = [...props.level.powerups];
-                } else if (props.mode === 'versus' && props.opponent) {
-                    currentEnemy.value = { ...props.opponent };
-                    enemyMaxHp.value = props.opponent.maxHp;
-                    enemyHp.value = props.opponent.hp;
-                }
-                battleLog.value = [];
+                return [
+                    { id: 'poison_sting', name: '毒刺攻击', damage: 25, cooldown: 1, type: 'poison', icon: '💉', description: '注入毒素造成持续伤害' },
+                    { id: 'toxic_cloud', name: '毒雾喷射', damage: 30, cooldown: 3, type: 'aoe', icon: '☠️', description: '释放毒雾攻击所有敌人' },
+                    { id: 'heal', name: '纳米修复', heal: 45, cooldown: 3, type: 'heal', icon: '💚', description: '修复生命' },
+                    { id: 'speed_up', name: '加速', attackBoost: 25, cooldown: 4, type: 'buff', icon: '💨', description: '提升攻击速度' }
+                ];
             }
-            
-            showResult.value = false;
-            isPlayerTurn.value = true;
-            skillCooldowns.value = {};
-            buffs.value = { attack: 0, defense: 0 };
-            enemyBuffs.value = { attack: 0, defense: 0 };
-            if (battleLog.value.length === 0) {
-                addLog('战斗开始！', 'skill');
-            }
-        };
-
-        const spawnEnemy = () => {
-            const enemyIds = props.level.enemies;
-            const randomEnemyId = enemyIds[Math.floor(Math.random() * enemyIds.length)];
-            const enemyTemplate = enemies.find(e => e.id === randomEnemyId);
-            
-            const waveMultiplier = 1 + (currentWave.value - 1) * 0.2;
-            currentEnemy.value = {
-                ...enemyTemplate,
-                hp: Math.floor(enemyTemplate.hp * waveMultiplier),
-                maxHp: Math.floor(enemyTemplate.hp * waveMultiplier),
-                attack: Math.floor(enemyTemplate.attack * waveMultiplier)
-            };
-            enemyMaxHp.value = currentEnemy.value.maxHp;
-            enemyHp.value = currentEnemy.value.hp;
-            enemySkillCooldowns.value = {};
-            addLog(`第 ${currentWave.value} 波: ${currentEnemy.value.name} 出现了！`, 'skill');
-            saveBattleState();
-        };
+        });
 
         const addLog = (message, type = 'damage') => {
             battleLog.value.unshift({ message, type, id: Date.now() + Math.random() });
@@ -632,21 +567,102 @@ app.component('BattleScreen', {
             }
         };
 
-        const showDamage = (amount, isPlayer, isHeal = false) => {
+        const showDamage = (amount, x, y, isHeal = false, targetIndex = null) => {
             const id = Date.now() + Math.random();
-            damageNumbers.value.push({
-                id,
-                amount,
-                isPlayer,
-                isHeal
-            });
+            damageNumbers.value.push({ id, amount, x, y, isHeal, targetIndex });
             setTimeout(() => {
                 damageNumbers.value = damageNumbers.value.filter(d => d.id !== id);
             }, 1000);
         };
 
+        const showSpecialEffect = (effectType, duration = 1000) => {
+            specialEffect.value = effectType;
+            setTimeout(() => { specialEffect.value = null; }, duration);
+        };
+
+        const spawnWaveEnemies = () => {
+            if (props.mode === 'campaign' && props.level) {
+                const enemyCount = Math.min(2 + Math.floor(currentWave.value / 2), 3);
+                const newEnemies = [];
+                const waveMultiplier = 1 + (currentWave.value - 1) * 0.15;
+                
+                for (let i = 0; i < enemyCount; i++) {
+                    const enemyId = props.level.enemies[Math.floor(Math.random() * props.level.enemies.length)];
+                    const template = enemiesData.find(e => e.id === enemyId);
+                    if (template) {
+                        newEnemies.push({
+                            ...template,
+                            uid: Date.now() + i,
+                            hp: Math.floor(template.hp * waveMultiplier),
+                            maxHp: Math.floor(template.hp * waveMultiplier),
+                            attack: Math.floor(template.attack * waveMultiplier),
+                            attacking: false,
+                            hit: false,
+                            poisoned: false,
+                            poisonDamage: 0,
+                            x: 700 - i * 150,
+                            y: 350 + (i % 2) * 60
+                        });
+                    }
+                }
+                enemies.value = newEnemies;
+                selectedEnemyIndex.value = 0;
+                waveTransition.value = true;
+                setTimeout(() => { waveTransition.value = false; }, 1000);
+                addLog(`⚠️ 第 ${currentWave.value} 波敌人来袭！共 ${enemyCount} 个敌人！`, 'skill');
+            }
+        };
+
+        const spawnVersusEnemy = () => {
+            const opp = props.opponent;
+            enemies.value = [{
+                ...opp,
+                uid: Date.now(),
+                hp: opp.hp,
+                maxHp: opp.maxHp,
+                attacking: false,
+                hit: false,
+                poisoned: false,
+                poisonDamage: 0,
+                x: 700,
+                y: 380,
+                comboCount: 0,
+                shieldActive: false,
+                beesSummoned: 0
+            }];
+            summonedBees.value = [];
+            selectedEnemyIndex.value = 0;
+        };
+
+        const initBattle = () => {
+            const stats = calculateStats();
+            playerMaxHp.value = stats.hp;
+            playerHp.value = stats.hp;
+            
+            if (props.mode === 'campaign' && props.level) {
+                currentWave.value = 1;
+                spawnWaveEnemies();
+                powerupsOnField.value = [...props.level.powerups];
+                addLog(`🎯 ${props.level.name} - 开始战斗！`, 'skill');
+            } else {
+                spawnVersusEnemy();
+                addLog(`⚔️ 对战 ${props.opponent.name}！`, 'skill');
+            }
+            
+            showResult.value = false;
+            isPlayerTurn.value = true;
+            skillCooldowns.value = {};
+            buffs.value = { attack: 0, defense: 0 };
+            battleLog.value = [];
+            turnCount.value = 0;
+            summonedBees.value = [];
+        };
+
         const playerAttack = (skillIndex = null) => {
-            if (!isPlayerTurn.value || !currentEnemy.value) return;
+            if (!isPlayerTurn.value || enemies.value.length === 0) return;
+            
+            const target = enemies.value[selectedEnemyIndex.value];
+            if (!target || target.hp <= 0) return;
             
             isPlayerTurn.value = false;
             playerAttacking.value = true;
@@ -654,10 +670,10 @@ app.component('BattleScreen', {
 
             setTimeout(() => {
                 playerAttacking.value = false;
-                let damage = 0;
+                const skills = getPlayerSkills.value;
                 
-                if (skillIndex !== null && playerSkills[skillIndex]) {
-                    const skill = playerSkills[skillIndex];
+                if (skillIndex !== null && skills[skillIndex]) {
+                    const skill = skills[skillIndex];
                     if (skillCooldowns.value[skill.id] > 0) {
                         isPlayerTurn.value = true;
                         return;
@@ -665,186 +681,243 @@ app.component('BattleScreen', {
                     
                     audioManager.playSkill();
                     
-                    if (skill.type === 'damage') {
-                        damage = Math.floor((playerStats.value.attack + buffs.value.attack + skill.damage) * (1 - currentEnemy.value.defense / 100));
-                        damage = Math.max(1, damage);
-                        addLog(`使用 ${skill.name}，造成 ${damage} 点伤害！`, 'skill');
+                    if (skill.type === 'damage' || skill.type === 'poison') {
+                        const damage = Math.floor((playerStats.value.attack + buffs.value.attack + skill.damage) * (1 - target.defense / 100));
+                        target.hp = Math.max(0, target.hp - damage);
+                        target.hit = true;
+                        showDamage(damage, target.x - 50, target.y - 50);
+                        showSpecialEffect('slash');
+                        addLog(`使用【${skill.name}】对 ${target.name} 造成 ${damage} 点伤害！`, 'skill');
+                        
+                        if (skill.type === 'poison') {
+                            target.poisoned = true;
+                            target.poisonDamage = Math.floor(damage * 0.2);
+                            addLog(`${target.name} 中毒了！每回合受到 ${target.poisonDamage} 点伤害`, 'skill');
+                        }
+                        
+                        setTimeout(() => { target.hit = false; }, 300);
+                    } else if (skill.type === 'aoe') {
+                        showSpecialEffect('explosion');
+                        enemies.value.forEach((enemy, idx) => {
+                            if (enemy.hp > 0) {
+                                const dmg = Math.floor((playerStats.value.attack + buffs.value.attack + skill.damage) * 0.7 * (1 - enemy.defense / 100));
+                                enemy.hp = Math.max(0, enemy.hp - dmg);
+                                enemy.hit = true;
+                                showDamage(dmg, enemy.x - 50, enemy.y - 50, false, idx);
+                                setTimeout(() => { enemy.hit = false; }, 300);
+                            }
+                        });
+                        addLog(`使用【${skill.name}】对所有敌人造成范围伤害！`, 'skill');
                     } else if (skill.type === 'heal') {
-                        const healAmount = skill.heal;
-                        playerHp.value = Math.min(playerMaxHp.value, playerHp.value + healAmount);
-                        showDamage(healAmount, true, true);
-                        addLog(`使用 ${skill.name}，恢复 ${healAmount} 点生命！`, 'heal');
+                        playerHp.value = Math.min(playerMaxHp.value, playerHp.value + skill.heal);
+                        showDamage(skill.heal, 150, 300, true);
+                        addLog(`使用【${skill.name}】恢复 ${skill.heal} 点生命！`, 'heal');
                         audioManager.playHeal();
                     } else if (skill.type === 'defense') {
                         buffs.value.defense += skill.defense;
-                        addLog(`使用 ${skill.name}，防御力提升 ${skill.defense}！`, 'skill');
+                        addLog(`使用【${skill.name}】防御力提升 ${skill.defense}！`, 'skill');
                     } else if (skill.type === 'buff') {
                         buffs.value.attack += skill.attackBoost;
-                        addLog(`使用 ${skill.name}，攻击力提升 ${skill.attackBoost}！`, 'skill');
+                        addLog(`使用【${skill.name}】攻击力提升 ${skill.attackBoost}！`, 'skill');
                     }
                     
                     skillCooldowns.value[skill.id] = skill.cooldown;
                 } else {
-                    damage = Math.floor((playerStats.value.attack + buffs.value.attack) * (1 - currentEnemy.value.defense / 100));
-                    damage = Math.max(1, damage);
-                    addLog(`普通攻击，造成 ${damage} 点伤害！`, 'damage');
-                }
-                
-                if (damage > 0) {
-                    enemyHit.value = true;
-                    enemyHp.value = Math.max(0, enemyHp.value - damage);
-                    showDamage(damage, false);
+                    const damage = Math.floor((playerStats.value.attack + buffs.value.attack) * (1 - target.defense / 100));
+                    target.hp = Math.max(0, target.hp - damage);
+                    target.hit = true;
+                    showDamage(damage, target.x - 50, target.y - 50);
                     audioManager.playHit();
-                    setTimeout(() => { enemyHit.value = false; }, 300);
+                    addLog(`普通攻击对 ${target.name} 造成 ${damage} 点伤害！`, 'damage');
+                    setTimeout(() => { target.hit = false; }, 300);
                 }
                 
-                saveBattleState();
-                
-                if (enemyHp.value <= 0) {
-                    handleEnemyDefeated();
+                const allDead = enemies.value.every(e => e.hp <= 0);
+                if (allDead) {
+                    handleEnemiesDefeated();
                 } else {
-                    setTimeout(() => enemyTurn(), 1000);
+                    if (target.hp <= 0 && selectedEnemyIndex.value < enemies.value.length - 1) {
+                        selectedEnemyIndex.value++;
+                    }
+                    setTimeout(() => enemiesTurn(), 800);
                 }
             }, 500);
         };
 
-        const chooseEnemySkill = () => {
-            if (props.mode === 'versus' && currentEnemy.value.skills) {
-                const opponent = versusOpponents.find(o => o.id === currentEnemy.value.id);
-                if (opponent && opponent.skills) {
-                    const availableSkills = opponent.skills.filter(s => 
-                        !enemySkillCooldowns.value[s.id] || enemySkillCooldowns.value[s.id] <= 0
-                    );
-                    
-                    if (availableSkills.length > 0) {
-                        if (opponent.aiPattern === 'aggressive') {
-                            const hpRatio = enemyHp.value / enemyMaxHp.value;
-                            if (hpRatio < 0.4) {
-                                const healSkill = availableSkills.find(s => s.type === 'heal');
-                                if (healSkill) return healSkill;
-                                const buffSkill = availableSkills.find(s => s.type === 'buff');
-                                if (buffSkill) return buffSkill;
-                            }
-                            const damageSkills = availableSkills.filter(s => s.type === 'damage');
-                            if (damageSkills.length > 0) {
-                                return damageSkills.reduce((a, b) => a.damage > b.damage ? a : b);
-                            }
-                        } else if (opponent.aiPattern === 'fast') {
-                            const hpRatio = enemyHp.value / enemyMaxHp.value;
-                            if (hpRatio < 0.6) {
-                                const healSkill = availableSkills.find(s => s.type === 'heal');
-                                if (healSkill) return healSkill;
-                            }
-                            const cooldownSkills = availableSkills.filter(s => s.cooldown <= 2 && s.type === 'damage');
-                            if (cooldownSkills.length > 0) {
-                                return cooldownSkills[Math.floor(Math.random() * cooldownSkills.length)];
-                            }
-                            return availableSkills[Math.floor(Math.random() * availableSkills.length)];
-                        } else if (opponent.aiPattern === 'defensive') {
-                            const hpRatio = enemyHp.value / enemyMaxHp.value;
-                            if (hpRatio < 0.5) {
-                                const healSkill = availableSkills.find(s => s.type === 'heal');
-                                if (healSkill) return healSkill;
-                            }
-                            if (turnCount.value % 3 === 0) {
-                                const defSkill = availableSkills.find(s => s.type === 'defense');
-                                if (defSkill) return defSkill;
-                            }
-                            const damageSkills = availableSkills.filter(s => s.type === 'damage');
-                            if (damageSkills.length > 0) {
-                                return damageSkills[Math.floor(Math.random() * damageSkills.length)];
-                            }
-                        }
-                        return availableSkills[Math.floor(Math.random() * availableSkills.length)];
-                    }
-                }
-            }
-            return null;
-        };
-
-        const enemyTurn = () => {
-            if (!currentEnemy.value || playerHp.value <= 0) return;
-            
-            enemyAttacking.value = true;
+        const enemiesTurn = () => {
             turnCount.value++;
-
-            const enemySkill = chooseEnemySkill();
-            const useSkill = enemySkill && Math.random() > 0.1;
-
+            
+            enemies.value.forEach(enemy => {
+                if (enemy.poisoned && enemy.hp > 0) {
+                    enemy.hp = Math.max(0, enemy.hp - enemy.poisonDamage);
+                    showDamage(enemy.poisonDamage, enemy.x - 50, enemy.y - 30);
+                    addLog(`☠️ ${enemy.name} 受到 ${enemy.poisonDamage} 点毒素伤害！`, 'damage');
+                }
+            });
+            
+            let delay = 0;
+            const aliveEnemies = enemies.value.filter(e => e.hp > 0);
+            
+            if (props.mode === 'versus' && aliveEnemies.length > 0) {
+                const enemy = aliveEnemies[0];
+                setTimeout(() => {
+                    executeVersusEnemyTurn(enemy);
+                }, delay);
+            } else {
+                aliveEnemies.forEach((enemy, idx) => {
+                    setTimeout(() => {
+                        executeCampaignEnemyTurn(enemy);
+                    }, delay);
+                    delay += 600;
+                });
+            }
+            
             setTimeout(() => {
-                enemyAttacking.value = false;
-                let damage = 0;
-                
-                if (useSkill) {
-                    audioManager.playSkill();
-                    const s = enemySkill;
-                    
-                    if (s.type === 'damage') {
-                        damage = Math.floor((currentEnemy.value.attack + enemyBuffs.value.attack + s.damage) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
-                        damage = Math.max(1, damage);
-                        addLog(`💥 ${currentEnemy.value.name} 使用【${s.name}】，造成 ${damage} 点伤害！`, 'skill');
-                    } else if (s.type === 'heal') {
-                        const healAmount = s.heal;
-                        enemyHp.value = Math.min(enemyMaxHp.value, enemyHp.value + healAmount);
-                        showDamage(healAmount, false, true);
-                        addLog(`💚 ${currentEnemy.value.name} 使用【${s.name}】，恢复 ${healAmount} 点生命！`, 'heal');
-                        audioManager.playHeal();
-                    } else if (s.type === 'defense') {
-                        enemyBuffs.value.defense += s.defense;
-                        addLog(`🛡️ ${currentEnemy.value.name} 使用【${s.name}】，防御力提升 ${s.defense}！`, 'skill');
-                    } else if (s.type === 'buff') {
-                        enemyBuffs.value.attack += s.attackBoost;
-                        addLog(`🔥 ${currentEnemy.value.name} 使用【${s.name}】，攻击力提升 ${s.attackBoost}！`, 'skill');
-                    }
-                    
-                    enemySkillCooldowns.value[s.id] = s.cooldown;
-                } else {
-                    damage = Math.floor(currentEnemy.value.attack * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
-                    damage = Math.max(1, damage);
-                    addLog(`${currentEnemy.value.name} 攻击，造成 ${damage} 点伤害！`, 'damage');
-                    audioManager.playAttack();
-                }
-                
-                if (damage > 0) {
-                    playerHit.value = true;
-                    playerHp.value = Math.max(0, playerHp.value - damage);
-                    showDamage(damage, true);
-                    audioManager.playHit();
-                    setTimeout(() => { playerHit.value = false; }, 300);
-                }
-                
                 Object.keys(skillCooldowns.value).forEach(key => {
                     if (skillCooldowns.value[key] > 0) skillCooldowns.value[key]--;
                 });
-                Object.keys(enemySkillCooldowns.value).forEach(key => {
-                    if (enemySkillCooldowns.value[key] > 0) enemySkillCooldowns.value[key]--;
-                });
-                
                 if (buffs.value.attack > 0) buffs.value.attack = Math.max(0, buffs.value.attack - 5);
                 if (buffs.value.defense > 0) buffs.value.defense = Math.max(0, buffs.value.defense - 5);
-                if (enemyBuffs.value.attack > 0) enemyBuffs.value.attack = Math.max(0, enemyBuffs.value.attack - 5);
-                if (enemyBuffs.value.defense > 0) enemyBuffs.value.defense = Math.max(0, enemyBuffs.value.defense - 5);
-                
-                saveBattleState();
                 
                 if (playerHp.value <= 0) {
                     handleDefeat();
+                } else if (enemies.value.every(e => e.hp <= 0)) {
+                    handleEnemiesDefeated();
                 } else {
                     isPlayerTurn.value = true;
                 }
-            }, 500);
+            }, delay + 500);
         };
 
-        const handleEnemyDefeated = () => {
-            addLog(`${currentEnemy.value.name} 被击败了！`, 'victory');
+        const executeCampaignEnemyTurn = (enemy) => {
+            if (enemy.hp <= 0 || playerHp.value <= 0) return;
+            
+            enemy.attacking = true;
+            audioManager.playAttack();
+            
+            setTimeout(() => {
+                enemy.attacking = false;
+                const damage = Math.max(1, Math.floor(enemy.attack * (1 - (playerStats.value.defense + buffs.value.defense) / 100)));
+                playerHp.value = Math.max(0, playerHp.value - damage);
+                playerHit.value = true;
+                showDamage(damage, 150, 300);
+                audioManager.playHit();
+                addLog(`${enemy.name} 攻击，造成 ${damage} 点伤害！`, 'damage');
+                setTimeout(() => { playerHit.value = false; }, 300);
+            }, 300);
+        };
+
+        const executeVersusEnemyTurn = (enemy) => {
+            if (enemy.hp <= 0 || playerHp.value <= 0) return;
+            
+            enemy.attacking = true;
+            
+            const opponent = versusOpponents.find(o => o.id === enemy.id);
+            const action = Math.random();
+            
+            setTimeout(() => {
+                enemy.attacking = false;
+                
+                if (enemy.id === 'mantis') {
+                    if (action < 0.4) {
+                        const damage = Math.floor((enemy.attack + 25) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        showSpecialEffect('slash');
+                        playerHp.value = Math.max(0, playerHp.value - damage);
+                        playerHit.value = true;
+                        showDamage(damage, 150, 300);
+                        addLog(`🦗 ${enemy.name} 使用【刀刃斩击】造成 ${damage} 点伤害！`, 'skill');
+                        audioManager.playSkill();
+                    } else if (action < 0.7 && enemy.comboCount < 2) {
+                        enemy.comboCount++;
+                        const damage1 = Math.floor((enemy.attack + 15) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        const damage2 = Math.floor((enemy.attack + 15) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        playerHp.value = Math.max(0, playerHp.value - damage1 - damage2);
+                        playerHit.value = true;
+                        showDamage(damage1, 150, 290);
+                        setTimeout(() => showDamage(damage2, 160, 310), 200);
+                        addLog(`🌪️ ${enemy.name} 使用【双刃旋风斩】造成 ${damage1 + damage2} 点连击伤害！`, 'skill');
+                        audioManager.playSkill();
+                    } else if (action < 0.85) {
+                        enemy.shieldActive = true;
+                        addLog(`🛡️ ${enemy.name} 使用【螳螂反击】进入防御状态！`, 'skill');
+                        audioManager.playSkill();
+                    } else {
+                        enemy.attack += 20;
+                        addLog(`🔥 ${enemy.name} 激活【猎手本能】攻击力大幅提升！`, 'skill');
+                        audioManager.playSkill();
+                    }
+                } else if (enemy.id === 'bee') {
+                    if (action < 0.35) {
+                        const damage = Math.floor((enemy.attack + 20) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        playerHp.value = Math.max(0, playerHp.value - damage);
+                        playerHit.value = true;
+                        showDamage(damage, 150, 300);
+                        addLog(`💉 ${enemy.name} 使用【毒刺突袭】造成 ${damage} 点伤害！`, 'skill');
+                        audioManager.playSkill();
+                    } else if (action < 0.6 && summonedBees.value.length < 2) {
+                        summonedBees.value.push({ id: Date.now(), x: 600 + summonedBees.value.length * 50, y: 300 });
+                        const damage = Math.floor((enemy.attack + 35) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        playerHp.value = Math.max(0, playerHp.value - damage);
+                        playerHit.value = true;
+                        showDamage(damage, 150, 300);
+                        showSpecialEffect('swarm');
+                        addLog(`🐝 ${enemy.name} 使用【蜂群轰炸】召唤小蜜蜂造成 ${damage} 点伤害！`, 'skill');
+                        audioManager.playSkill();
+                    } else if (action < 0.8) {
+                        const heal = 30;
+                        enemy.hp = Math.min(enemy.maxHp, enemy.hp + heal);
+                        showDamage(heal, 700, 300, true);
+                        addLog(`🍯 ${enemy.name} 使用【蜂蜜修复】恢复 ${heal} 点生命！`, 'heal');
+                        audioManager.playHeal();
+                    } else {
+                        enemy.attack += 15;
+                        addLog(`💃 ${enemy.name} 跳【摇摆舞】，攻击力提升！`, 'skill');
+                        audioManager.playSkill();
+                    }
+                } else if (enemy.id === 'beetle') {
+                    if (action < 0.3) {
+                        const damage = Math.floor((enemy.attack + 25) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        playerHp.value = Math.max(0, playerHp.value - damage);
+                        playerHit.value = true;
+                        showDamage(damage, 150, 300);
+                        addLog(`💥 ${enemy.name} 使用【重型撞击】造成 ${damage} 点伤害！`, 'skill');
+                        audioManager.playSkill();
+                    } else if (action < 0.55) {
+                        const damage = Math.floor((enemy.attack + 50) * (1 - (playerStats.value.defense + buffs.value.defense) / 100));
+                        showSpecialEffect('quake');
+                        playerHp.value = Math.max(0, playerHp.value - damage);
+                        playerHit.value = true;
+                        showDamage(damage, 150, 300);
+                        addLog(`🌋 ${enemy.name} 使用【地震冲撞】造成 ${damage} 点毁灭性伤害！`, 'skill');
+                        audioManager.playSkill();
+                    } else if (action < 0.8) {
+                        enemy.shieldActive = true;
+                        enemy.defense += 30;
+                        addLog(`🛡️ ${enemy.name} 缩进【铁壁甲壳】，防御力大幅提升！`, 'skill');
+                        audioManager.playSkill();
+                    } else {
+                        const heal = 50;
+                        enemy.hp = Math.min(enemy.maxHp, enemy.hp + heal);
+                        showDamage(heal, 700, 300, true);
+                        addLog(`♻️ ${enemy.name} 使用【甲壳再生】恢复 ${heal} 点生命！`, 'heal');
+                        audioManager.playHeal();
+                    }
+                }
+                
+                setTimeout(() => { playerHit.value = false; }, 300);
+            }, 400);
+        };
+
+        const handleEnemiesDefeated = () => {
+            addLog('🎉 所有敌人被击败！', 'victory');
             
             if (props.mode === 'campaign') {
                 if (currentWave.value < props.level.waves) {
                     currentWave.value++;
                     setTimeout(() => {
-                        spawnEnemy();
+                        spawnWaveEnemies();
                         isPlayerTurn.value = true;
-                    }, 1500);
+                    }, 2000);
                 } else {
                     handleVictory();
                 }
@@ -857,7 +930,6 @@ app.component('BattleScreen', {
             battleResult.value = 'victory';
             showResult.value = true;
             audioManager.playVictory();
-            gameStorage.clearBattleState();
             
             if (props.mode === 'campaign') {
                 gameStorage.saveCompletedLevel(props.level.id);
@@ -871,11 +943,9 @@ app.component('BattleScreen', {
             battleResult.value = 'defeat';
             showResult.value = true;
             audioManager.playDefeat();
-            gameStorage.clearBattleState();
         };
 
         const exitBattle = () => {
-            gameStorage.clearBattleState();
             emit('goToScreen', props.mode === 'campaign' ? 'levelSelect' : 'opponentSelect');
         };
 
@@ -885,7 +955,7 @@ app.component('BattleScreen', {
             
             if (effect.type === 'heal') {
                 playerHp.value = Math.min(playerMaxHp.value, playerHp.value + effect.value);
-                showDamage(effect.value, true, true);
+                showDamage(effect.value, 150, 300, true);
                 addLog(`拾取 ${effect.name}，恢复 ${effect.value} 生命！`, 'heal');
             } else if (effect.type === 'attack') {
                 buffs.value.attack += effect.value;
@@ -896,6 +966,12 @@ app.component('BattleScreen', {
             }
             
             powerupsOnField.value.splice(index, 1);
+        };
+
+        const selectEnemy = (index) => {
+            if (enemies.value[index] && enemies.value[index].hp > 0) {
+                selectedEnemyIndex.value = index;
+            }
         };
 
         onMounted(() => {
@@ -910,27 +986,29 @@ app.component('BattleScreen', {
             battleLog,
             playerHp,
             playerMaxHp,
-            enemyHp,
-            enemyMaxHp,
-            currentEnemy,
+            enemies,
+            summonedBees,
             currentWave,
             showResult,
             battleResult,
             isPlayerTurn,
             playerAttacking,
-            enemyAttacking,
             playerHit,
-            enemyHit,
             damageNumbers,
             skillCooldowns,
             powerupsOnField,
             buffs,
             playerStats,
-            playerSkills,
+            getPlayerSkills,
+            selectedEnemyIndex,
+            specialEffect,
+            waveTransition,
             playerAttack,
             collectPowerup,
             canUseSkill,
+            selectEnemy,
             exitBattle,
+            initBattle,
             audioManager
         };
     },
@@ -938,9 +1016,15 @@ app.component('BattleScreen', {
         <div class="battle-screen">
             <button class="back-btn" @click="exitBattle">← 退出战斗</button>
             
-            <div class="battle-arena" :class="'arena-' + (level?.theme || 'versus')">
+            <div class="battle-arena" :class="[
+                'arena-' + (level?.theme || 'versus'),
+                { 'wave-transition': waveTransition }
+            ]">
                 <div v-if="mode === 'campaign'" class="wave-indicator">
                     第 {{ currentWave }} / {{ level.waves }} 波
+                </div>
+                <div v-else class="mode-indicator">
+                    ⚔️ BOSS战
                 </div>
                 
                 <div v-for="(obs, idx) in level?.obstacles || []" :key="idx"
@@ -956,9 +1040,22 @@ app.component('BattleScreen', {
                     {{ pu.icon }}
                 </div>
                 
-                <div class="bug-character player">
+                <div v-for="bee in summonedBees" :key="bee.id"
+                     class="summoned-bee"
+                     :style="{ left: bee.x + 'px', top: bee.y + 'px' }">
+                    🐝
+                </div>
+                
+                <div v-if="specialEffect" class="special-effect" :class="specialEffect">
+                    <span v-if="specialEffect === 'slash'">🗡️</span>
+                    <span v-if="specialEffect === 'explosion'">💥</span>
+                    <span v-if="specialEffect === 'quake'">🌋</span>
+                    <span v-if="specialEffect === 'swarm'">🐝🐝🐝</span>
+                </div>
+                
+                <div class="bug-character player" :class="{ hit: playerHit }">
                     <div class="bug-sprite bug-sprite-player"
-                         :class="{ attacking: playerAttacking, hit: playerHit }">
+                         :class="{ attacking: playerAttacking }">
                         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="100" height="100">
                             <g class="mech-legs" :style="{ stroke: playerBug.legs?.color || '#666' }">
                                 <line x1="25" y1="60" x2="10" y2="85" stroke-width="4" stroke-linecap="round"/>
@@ -1003,22 +1100,47 @@ app.component('BattleScreen', {
                     <div class="bug-name">我的昆虫 ({{ playerHp }}/{{ playerMaxHp }})</div>
                 </div>
                 
-                <div v-if="currentEnemy" class="bug-character enemy">
-                    <div class="bug-sprite"
-                         :class="{ attacking: enemyAttacking, hit: enemyHit }">
-                        {{ currentEnemy.icon }}
+                <div v-for="(enemy, idx) in enemies" :key="enemy.uid"
+                     v-show="enemy.hp > 0"
+                     class="bug-character enemy-card"
+                     :class="{ 
+                         selected: selectedEnemyIndex === idx, 
+                         attacking: enemy.attacking, 
+                         hit: enemy.hit,
+                         poisoned: enemy.poisoned
+                     }"
+                     :style="{ right: (100 + idx * 120) + 'px' }"
+                     @click="selectEnemy(idx)">
+                    <div class="enemy-target-marker" v-if="selectedEnemyIndex === idx">🎯</div>
+                    <div class="bug-sprite enemy-sprite">
+                        {{ enemy.icon }}
                     </div>
                     <div class="bug-health-bar">
-                        <div class="bug-health-fill" :style="{ width: (enemyHp / enemyMaxHp * 100) + '%' }"></div>
+                        <div class="bug-health-fill enemy-health" 
+                             :style="{ width: (enemy.hp / enemy.maxHp * 100) + '%' }"></div>
                     </div>
-                    <div class="bug-name">{{ currentEnemy.name }} ({{ enemyHp }}/{{ enemyMaxHp }})</div>
+                    <div class="bug-name">{{ enemy.name }} ({{ enemy.hp }}/{{ enemy.maxHp }})</div>
+                    <div v-if="enemy.poisoned" class="status-icon poison">☠️</div>
                 </div>
                 
                 <div v-for="dmg in damageNumbers" :key="dmg.id"
                      class="damage-number"
                      :class="{ heal: dmg.isHeal }"
-                     :style="{ left: dmg.isPlayer ? '150px' : 'calc(100% - 200px)', bottom: '200px' }">
+                     :style="{ left: dmg.x + 'px', top: dmg.y + 'px' }">
                     {{ dmg.isHeal ? '+' : '-' }}{{ dmg.amount }}
+                </div>
+            </div>
+            
+            <div class="battle-info-bar">
+                <div class="enemy-selector">
+                    <span style="margin-right: 10px;">选择目标:</span>
+                    <button v-for="(enemy, idx) in enemies" :key="enemy.uid"
+                            v-show="enemy.hp > 0"
+                            class="target-btn"
+                            :class="{ active: selectedEnemyIndex === idx }"
+                            @click="selectEnemy(idx)">
+                        {{ enemy.icon }} {{ enemy.name }}
+                    </button>
                 </div>
             </div>
             
@@ -1026,11 +1148,18 @@ app.component('BattleScreen', {
                 <button class="skill-btn" @click="playerAttack(null)" :disabled="!isPlayerTurn">
                     ⚔️ 普通攻击
                 </button>
-                <button v-for="(skill, idx) in playerSkills" :key="skill.id"
+                <button v-for="(skill, idx) in getPlayerSkills" :key="skill.id"
                         class="skill-btn"
-                        :class="{ heal: skill.type === 'heal', defense: skill.type === 'defense', buff: skill.type === 'buff' }"
+                        :class="{ 
+                            heal: skill.type === 'heal', 
+                            defense: skill.type === 'defense', 
+                            buff: skill.type === 'buff',
+                            aoe: skill.type === 'aoe',
+                            poison: skill.type === 'poison'
+                        }"
                         @click="playerAttack(idx)"
-                        :disabled="!isPlayerTurn || !canUseSkill(skill)">
+                        :disabled="!isPlayerTurn || !canUseSkill(skill)"
+                        :title="skill.description">
                     {{ skill.icon }} {{ skill.name }}
                     <div v-if="skillCooldowns[skill.id] > 0" class="skill-cooldown">
                         冷却: {{ skillCooldowns[skill.id] }}
