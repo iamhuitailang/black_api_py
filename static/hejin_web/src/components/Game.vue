@@ -163,11 +163,12 @@ let items = []
 let grenades = []
 let explosions = []
 let cameraX = 0
-let levelLength = 3000
+let levelLength = 2500
 let groundY = 500
 let enemiesSpawned = 0
 let boss = null
 let gameTime = 0
+let gameStateKey = 'hejin_game_state'
 
 function initGame() {
   const canvas = gameCanvas.value
@@ -185,11 +186,126 @@ function initGame() {
     player.weapons.shotgun.ammo = 30
   }
 
-  resetLevel()
+  const savedState = loadGameState()
+  if (savedState && savedState.level === props.level) {
+    restoreGameState(savedState)
+  } else {
+    resetLevel()
+  }
   gameLoop()
 }
 
+function saveGameState() {
+  const enemiesData = enemies.map(e => ({
+    x: e.x,
+    type: e.type,
+    health: e.health
+  }))
+  
+  const state = {
+    level: props.level,
+    playerX: player.x,
+    playerHealth: player.health,
+    score: score.value,
+    coins: coins.value,
+    enemiesSpawned,
+    enemies: enemiesData,
+    bossDefeated: !boss && enemiesSpawned >= levelConfig.value.enemyCount,
+    currentWeapon: player.currentWeapon,
+    grenades: player.grenades,
+    shotgunAmmo: player.weapons.shotgun.ammo,
+    timestamp: Date.now()
+  }
+  localStorage.setItem(gameStateKey, JSON.stringify(state))
+}
+
+function loadGameState() {
+  try {
+    const saved = localStorage.getItem(gameStateKey)
+    if (saved) {
+      const state = JSON.parse(saved)
+      if (Date.now() - state.timestamp < 3600000) {
+        return state
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load game state:', e)
+  }
+  return null
+}
+
+function restoreGameState(state) {
+  console.log('Restoring game state:', state)
+  
+  player.x = state.playerX
+  player.health = state.playerHealth
+  player.maxHealth = props.playerData.maxHealth
+  score.value = state.score
+  coins.value = state.coins
+  enemiesSpawned = state.enemiesSpawned
+  player.currentWeapon = state.currentWeapon || 'ak47'
+  player.grenades = state.grenades || 3
+  player.weapons.shotgun.ammo = state.shotgunAmmo || 30
+  
+  player.y = groundY - player.height
+  player.vx = 0
+  player.vy = 0
+  player.onGround = true
+  player.inVehicle = false
+  
+  bullets = []
+  enemyBullets = []
+  enemies = []
+  vehicles = []
+  items = []
+  grenades = []
+  explosions = []
+  boss = null
+  bossActive.value = false
+  cameraX = Math.max(0, player.x - 300)
+  levelProgress.value = Math.floor((player.x / levelLength) * 100)
+  gameTime = 0
+
+  if (state.enemies && state.enemies.length > 0) {
+    for (const e of state.enemies) {
+      const enemy = createEnemy(e.type, e.x)
+      enemy.health = e.health
+      enemies.push(enemy)
+    }
+  }
+
+  if (props.level === 1 && player.x < 600) {
+    vehicles.push({
+      x: 500,
+      y: groundY - 60,
+      width: 100,
+      height: 60,
+      type: 'tank',
+      health: 200,
+      maxHealth: 200
+    })
+  } else if (props.level === 2 && player.x < 500) {
+    vehicles.push({
+      x: 400,
+      y: groundY - 40,
+      width: 80,
+      height: 40,
+      type: 'motorcycle',
+      health: 100,
+      maxHealth: 100
+    })
+  }
+
+  if (state.bossDefeated) {
+    enemiesSpawned = levelConfig.value.enemyCount
+  }
+  
+  console.log('Restore complete - health:', player.health, 'position:', player.x, 'enemies:', enemies.length)
+}
+
 function resetLevel() {
+  localStorage.removeItem(gameStateKey)
+  
   player.x = 100
   player.y = groundY - player.height
   player.vx = 0
@@ -244,7 +360,12 @@ function gameLoop() {
   update()
   render()
 
+  if (gameTime % 60 === 0) {
+    saveGameState()
+  }
+
   if (player.health <= 0) {
+    localStorage.removeItem(gameStateKey)
     emit('gameOver', score.value)
     return
   }
@@ -424,7 +545,7 @@ function updatePlayer() {
   }
 
   if (player.x < cameraX + 50) player.x = cameraX + 50
-  if (player.x > levelLength - 100) player.x = levelLength - 100
+  if (player.x > levelLength - 50) player.x = levelLength - 50
 
   if (player.invincible) {
     player.invincibleTimer--
@@ -575,18 +696,20 @@ function updateExplosions() {
 }
 
 function spawnEnemies() {
-  const spawnX = cameraX + 1000
+  const spawnX = cameraX + 800
   const config = levelConfig.value
 
-  if (enemiesSpawned < config.enemyCount && spawnX < levelLength - 500) {
-    if (gameTime % 100 === 0 && Math.random() < 0.7) {
+  if (enemiesSpawned < config.enemyCount && spawnX < levelLength - 200) {
+    if (gameTime % 60 === 0) {
       const type = config.enemyTypes[Math.floor(Math.random() * config.enemyTypes.length)]
       enemies.push(createEnemy(type, spawnX))
       enemiesSpawned++
+      console.log('Enemy spawned:', enemiesSpawned, '/', config.enemyCount)
     }
   }
 
-  if (player.x > levelLength - 800 && !boss && enemiesSpawned >= config.enemyCount) {
+  if (player.x > levelLength - 500 && !boss && enemiesSpawned >= config.enemyCount && enemies.length === 0) {
+    console.log('Spawning boss!')
     spawnBoss()
   }
 }
@@ -721,7 +844,24 @@ function updateCamera() {
 }
 
 function checkLevelComplete() {
-  if (player.x > levelLength - 200 && !boss && enemiesSpawned >= levelConfig.value.enemyCount) {
+  const config = levelConfig.value
+  const canComplete = player.x > levelLength - 150 && !boss && enemiesSpawned >= config.enemyCount && enemies.length === 0
+  
+  if (gameTime % 60 === 0) {
+    console.log('Level complete check:', {
+      playerX: player.x,
+      needX: levelLength - 150,
+      hasBoss: !!boss,
+      enemiesSpawned,
+      enemyCount: config.enemyCount,
+      enemiesAlive: enemies.length,
+      canComplete
+    })
+  }
+  
+  if (canComplete) {
+    console.log('LEVEL COMPLETE!')
+    localStorage.removeItem(gameStateKey)
     emit('levelComplete', score.value)
   }
 }
