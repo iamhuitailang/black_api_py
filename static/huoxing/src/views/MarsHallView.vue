@@ -29,7 +29,7 @@
         />
 
         <div class="flex-1 relative overflow-hidden">
-          <div class="absolute inset-0">
+          <div class="absolute inset-0 z-0">
             <MarsGlobe
               ref="marsGlobeRef"
               @region-click="handleRegionClick"
@@ -37,7 +37,7 @@
             />
           </div>
 
-          <div v-if="hoveredRegion" class="absolute top-16 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+          <div v-if="hoveredRegion" class="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <SciFiPanel :title="hoveredRegion.name" class="text-center min-w-64" glowing>
               <p class="text-gray-400 text-sm">{{ hoveredRegion.description }}</p>
               <div class="mt-2 flex justify-center gap-4 text-xs">
@@ -51,30 +51,32 @@
             </SciFiPanel>
           </div>
 
-          <div class="absolute right-2 top-16 z-40 w-64 space-y-2 max-h-[calc(100vh-140px)] overflow-y-auto pr-1">
-            <EnvironmentStatus />
+          <div class="absolute right-0 top-0 bottom-0 w-64 z-10 bg-gradient-to-l from-gray-900/80 to-transparent pointer-events-none">
+            <div class="h-full pt-4 pb-4 pr-2 pl-8 pointer-events-auto overflow-y-auto space-y-3">
+              <EnvironmentStatus />
 
-            <SciFiPanel title="区域概览" border-color="orange">
-              <div class="p-3 space-y-2">
-                <div v-for="region in regionList" :key="region.id" class="flex items-center gap-2">
-                  <div
-                    :class="[
-                      'w-2 h-2 rounded-full flex-shrink-0',
-                      region.unlocked ? 'bg-green-500' : 'bg-gray-600'
-                    ]"
-                  />
-                  <span :class="['flex-1 text-xs truncate', region.unlocked ? 'text-white' : 'text-gray-600']">
-                    {{ REGIONS[region.id].name }}
-                  </span>
-                  <span class="text-[10px] text-gray-500 flex-shrink-0">
-                    {{ region.unlocked ? `${region.explored.toFixed(0)}%` : '锁定' }}
-                  </span>
+              <SciFiPanel title="区域概览" border-color="orange">
+                <div class="p-3 space-y-2">
+                  <div v-for="region in regionList" :key="region.id" class="flex items-center gap-2">
+                    <div
+                      :class="[
+                        'w-2 h-2 rounded-full flex-shrink-0',
+                        region.unlocked ? 'bg-green-500' : 'bg-gray-600'
+                      ]"
+                    />
+                    <span :class="['flex-1 text-xs truncate', region.unlocked ? 'text-white' : 'text-gray-600']">
+                      {{ REGIONS[region.id].name }}
+                    </span>
+                    <span class="text-[10px] text-gray-500 flex-shrink-0">
+                      {{ region.unlocked ? `${region.explored.toFixed(0)}%` : '锁定' }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </SciFiPanel>
+              </SciFiPanel>
+            </div>
           </div>
 
-          <div class="absolute left-2 bottom-4 z-40">
+          <div class="absolute left-4 bottom-4 z-10">
             <SciFiPanel title="操作提示" class="w-52">
               <div class="p-2 text-[10px] text-gray-400 space-y-1">
                 <p>🖱️ 左键拖动 - 旋转视角</p>
