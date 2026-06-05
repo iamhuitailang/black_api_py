@@ -3,7 +3,8 @@
  * 负责游戏循环、状态管理、系统集成、实体管理和游戏逻辑调度
  */
 
-import type { GameScene, Level, Vector2, Rect, Platform as PlatformData, GamePersistentData, GameRuntimeState, LevelStars, HighScores, UnlockedLevels, STORAGE_KEY, GameSettings } from '../types/index'
+import type { GameScene, Vector2, Rect, GamePersistentData, GameRuntimeState, LevelStars, HighScores, UnlockedLevels, STORAGE_KEY, GameSettings } from '../types/index'
+import type { LevelData } from '../levels/forest'
 import { Player } from '../entities/player'
 import { Platform, NormalPlatform, MovingPlatform, OneWayPlatform } from '../entities/platform'
 import { Collectible, CollectibleGroup } from '../entities/collectible'
@@ -128,8 +129,6 @@ export class GameEngine {
 
   /** 游戏内实时状态 */
   private gameState: GameRuntimeState
-  /** 当前关卡 */
-  private currentLevel: Level | null = null
   /** 当前关卡ID */
   private currentLevelId: number = 0
 
@@ -517,15 +516,17 @@ export class GameEngine {
     }
   }
 
+  /** 当前关卡数据 */
+  private currentLevel: LevelData | null = null
+
   /**
    * 加载关卡
-   * @param levelId 关卡ID
+   * @param level 关卡数据
    */
-  public loadLevel(level: Level): void {
+  public loadLevel(level: LevelData): void {
     this.currentLevel = level
     this.currentLevelId = level.id
 
-    this.renderer.setLevel(level)
     this.physicsSystem.setLevelSize(level.width, level.height)
 
     this.clearEntities()
@@ -539,19 +540,19 @@ export class GameEngine {
     this.platforms = []
     
     for (const platformData of level.platforms) {
-      if (platformData.isOneWay) {
+      if (platformData.type === 'oneWay') {
         this.platforms.push(new OneWayPlatform({
           type: 'oneWay',
-          position: { x: platformData.rect.x, y: platformData.rect.y },
-          size: { width: platformData.rect.width, height: platformData.rect.height },
+          position: platformData.position,
+          size: platformData.size,
           collidable: true,
-          passThroughThreshold: 0,
+          passThroughThreshold: (platformData as any).passThroughThreshold || 10,
         }))
       } else {
         this.platforms.push(new NormalPlatform({
           type: 'normal',
-          position: { x: platformData.rect.x, y: platformData.rect.y },
-          size: { width: platformData.rect.width, height: platformData.rect.height },
+          position: platformData.position,
+          size: platformData.size,
           collidable: true,
         }))
       }
@@ -560,22 +561,22 @@ export class GameEngine {
     for (const platformData of level.movingPlatforms) {
       this.platforms.push(new MovingPlatform({
         type: 'moving',
-        position: { x: platformData.rect.x, y: platformData.rect.y },
-        size: { width: platformData.rect.width, height: platformData.rect.height },
+        position: platformData.position,
+        size: platformData.size,
         collidable: true,
-        mode: platformData.loop ? 'loop' : platformData.pingPong ? 'pingPong' : 'path',
-        path: platformData.pathPoints.map(p => ({ x: p.x, y: p.y })),
-        speed: platformData.moveSpeed,
+        mode: (platformData as any).loop ? 'loop' : (platformData as any).pingPong ? 'pingPong' : 'path',
+        path: (platformData as any).pathPoints?.map((p: any) => ({ x: p.x, y: p.y })) || [],
+        speed: (platformData as any).moveSpeed || 50,
         autoStart: true,
       }))
     }
 
     for (const collectibleData of level.collectibles) {
       const collectible = new Collectible({
-        type: 'lightParticle',
+        type: collectibleData.type as any || 'lightParticle',
         position: collectibleData.position,
         size: 12,
-        score: collectibleData.value,
+        score: (collectibleData as any).value || 100,
         attractRadius: 80,
         attractSpeed: 300,
         collectRadius: 25,
@@ -584,32 +585,38 @@ export class GameEngine {
     }
 
     for (const zoneData of level.lightZones) {
+      const zoneSize = typeof zoneData.size === 'number' 
+        ? { width: zoneData.size, height: zoneData.size }
+        : zoneData.size
       const zone = new LightZone({
         position: {
-          x: zoneData.rect.x + zoneData.rect.width / 2,
-          y: zoneData.rect.y + zoneData.rect.height / 2,
+          x: zoneData.position.x + zoneSize.width / 2,
+          y: zoneData.position.y + zoneSize.height / 2,
         },
-        size: { width: zoneData.rect.width, height: zoneData.rect.height },
+        size: zoneSize,
         shape: 'rectangle',
         speedMultiplier: 1.3,
         jumpMultiplier: 1.2,
         glowColor: '#FFD700',
-        glowIntensity: zoneData.intensity,
+        glowIntensity: (zoneData as any).intensity || 0.5,
       })
       this.lightZones.push(zone)
     }
 
     for (const zoneData of level.shadowZones) {
+      const zoneSize = typeof zoneData.size === 'number' 
+        ? { width: zoneData.size, height: zoneData.size }
+        : zoneData.size
       const zone = new ShadowZone({
         position: {
-          x: zoneData.rect.x + zoneData.rect.width / 2,
-          y: zoneData.rect.y + zoneData.rect.height / 2,
+          x: zoneData.position.x + zoneSize.width / 2,
+          y: zoneData.position.y + zoneSize.height / 2,
         },
-        size: { width: zoneData.rect.width, height: zoneData.rect.height },
+        size: zoneSize,
         shape: 'rectangle',
         allowPhasing: true,
         glowColor: '#8A2BE2',
-        glowIntensity: zoneData.density,
+        glowIntensity: (zoneData as any).density || 0.5,
       })
       this.shadowZones.push(zone)
     }
@@ -618,15 +625,15 @@ export class GameEngine {
       const torch = new Torch({
         position: torchData.position,
         size: { width: 20, height: 40 },
-        baseLightRadius: torchData.lightRadius,
-        maxLightRadius: torchData.lightRadius * 1.5,
-        flameIntensity: torchData.lightIntensity,
+        baseLightRadius: (torchData as any).lightRadius || 150,
+        maxLightRadius: (torchData as any).lightRadius ? (torchData as any).lightRadius * 1.5 : 225,
+        flameIntensity: (torchData as any).lightIntensity || 0.8,
         movable: false,
         rotatable: false,
         moveSpeed: 0,
         rotationSpeed: 0,
         initialRotation: 0,
-        initiallyLit: torchData.isLit,
+        initiallyLit: (torchData as any).isLit !== false,
       })
       this.torches.add(torch)
     }
@@ -636,33 +643,33 @@ export class GameEngine {
       if (trapData.type === 'spike') {
         trap = new SpikeTrap({
           type: 'spike',
-          position: { x: trapData.rect.x, y: trapData.rect.y },
-          size: { width: trapData.rect.width, height: trapData.rect.height },
-          damage: trapData.damage,
-          active: trapData.isActive,
-          spikeCount: Math.max(3, Math.floor(trapData.rect.width / 20)),
-          spikeHeight: Math.min(trapData.rect.height, 20),
+          position: trapData.position,
+          size: trapData.size,
+          damage: (trapData as any).damage || 1,
+          active: (trapData as any).isActive !== false,
+          spikeCount: Math.max(3, Math.floor(trapData.size.width / 20)),
+          spikeHeight: Math.min(trapData.size.height, 20),
         })
       } else if (trapData.type === 'saw') {
         trap = new SawTrap({
           type: 'saw',
-          position: { x: trapData.rect.x, y: trapData.rect.y },
-          size: { width: trapData.rect.width, height: trapData.rect.height },
-          damage: trapData.damage,
-          active: trapData.isActive,
-          startPoint: { x: trapData.rect.x, y: trapData.rect.y },
-          endPoint: { x: trapData.rect.x + 100, y: trapData.rect.y },
+          position: trapData.position,
+          size: trapData.size,
+          damage: (trapData as any).damage || 1,
+          active: (trapData as any).isActive !== false,
+          startPoint: { x: trapData.position.x, y: trapData.position.y },
+          endPoint: { x: trapData.position.x + 100, y: trapData.position.y },
           speed: 100,
-          radius: Math.min(trapData.rect.width, trapData.rect.height) / 2,
+          radius: Math.min(trapData.size.width, trapData.size.height) / 2,
           rotationSpeed: 10,
         })
       } else if (trapData.type === 'fire') {
         trap = new FireTrap({
           type: 'fire',
-          position: { x: trapData.rect.x, y: trapData.rect.y },
-          size: { width: trapData.rect.width, height: trapData.rect.height },
-          damage: trapData.damage,
-          active: trapData.isActive,
+          position: trapData.position,
+          size: trapData.size,
+          damage: (trapData as any).damage || 1,
+          active: (trapData as any).isActive !== false,
           cycleTime: 3,
           activeDuration: 1.5,
           startDelay: 0,
@@ -671,19 +678,19 @@ export class GameEngine {
       } else {
         trap = new SpikeTrap({
           type: 'spike',
-          position: { x: trapData.rect.x, y: trapData.rect.y },
-          size: { width: trapData.rect.width, height: trapData.rect.height },
-          damage: trapData.damage,
-          active: trapData.isActive,
-          spikeCount: Math.max(3, Math.floor(trapData.rect.width / 20)),
-          spikeHeight: Math.min(trapData.rect.height, 20),
+          position: trapData.position,
+          size: trapData.size,
+          damage: (trapData as any).damage || 1,
+          active: (trapData as any).isActive !== false,
+          spikeCount: Math.max(3, Math.floor(trapData.size.width / 20)),
+          spikeHeight: Math.min(trapData.size.height, 20),
         })
       }
       this.traps.push(trap)
     }
 
     this.renderer.resetCamera(level.spawnPoint)
-    this.renderer.prerenderBackground(this.platforms.filter(p => p.type === 'normal'))
+    this.renderer.prerenderBackground(this.platforms.filter(p => p.type === 'normal'), level.background.backgroundColor)
 
     this.gameState = {
       health: this.player.health,
@@ -1170,7 +1177,7 @@ export class GameEngine {
   /**
    * 获取当前关卡
    */
-  public getCurrentLevel(): Level | null {
+  public getCurrentLevel(): LevelData | null {
     return this.currentLevel
   }
 

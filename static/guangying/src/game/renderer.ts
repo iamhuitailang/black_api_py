@@ -417,8 +417,9 @@ export class Renderer {
   /**
    * 预渲染静态背景
    * @param platforms 平台列表
+   * @param backgroundColor 背景颜色
    */
-  public prerenderBackground(platforms: Platform[]): void {
+  public prerenderBackground(platforms: Platform[], backgroundColor: string = '#150a28'): void {
     if (!this.offscreenCtx || !this.offscreenCanvas) return
 
     const levelWidth = this.cameraConfig.bounds.maxX
@@ -429,7 +430,7 @@ export class Renderer {
 
     this.offscreenCtx.clearRect(0, 0, levelWidth, levelHeight)
 
-    this.offscreenCtx.fillStyle = '#150a28'
+    this.offscreenCtx.fillStyle = backgroundColor
     this.offscreenCtx.fillRect(0, 0, levelWidth, levelHeight)
 
     for (const platform of platforms) {
