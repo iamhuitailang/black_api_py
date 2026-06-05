@@ -122,6 +122,7 @@ import SciFiPanel from '@/components/ui/SciFiPanel.vue'
 import { useGameStore } from '@/stores/gameStore'
 import { hasSavedGame, deleteSave } from '@/utils/storage'
 import { gameEngine } from '@/engine/GameEngine'
+import { setGameInitialized } from '@/router'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -140,6 +141,7 @@ function startNewGame() {
   gameStore.initNewGame()
   gameEngine.init(gameStore)
   gameEngine.start()
+  setGameInitialized(true)
   router.push('/hall')
 }
 
@@ -147,6 +149,7 @@ function continueGame() {
   if (gameStore.loadSavedGame()) {
     gameEngine.init(gameStore)
     gameEngine.start()
+    setGameInitialized(true)
     router.push('/hall')
   }
 }

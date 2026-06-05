@@ -131,18 +131,10 @@
       </div>
     </div>
 
-    <div
-      v-if="selectedTech"
-      class="mt-4 bg-gray-900 rounded-xl p-4 border-2 border-blue-500 relative shadow-2xl z-50"
-    >
-      <button
-        @click="closeTechDetail"
-        class="absolute top-3 right-3 text-white bg-red-600 hover:bg-red-500 transition-all px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 z-[100]"
-      >
-        <span>✕</span>
-        <span>关闭</span>
-      </button>
-      <div class="flex flex-col md:flex-row md:items-start gap-4 mb-4 pr-10">
+    <div v-if="selectedTech" class="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4" @click.self="closeTechDetail">
+      <div class="bg-gray-900 rounded-xl p-6 border-2 border-blue-500 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex items-start gap-4 flex-1">
         <div
           class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
           :style="{ backgroundColor: TECH_TIER_COLORS[selectedTech.tier] + '30' }"
@@ -185,6 +177,13 @@
           <p class="text-sm text-slate-400 mt-1">{{ selectedTech.description }}</p>
         </div>
       </div>
+          <button
+            @click="closeTechDetail"
+            class="text-white bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium flex-shrink-0"
+          >
+            关闭
+          </button>
+        </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="min-w-0">
@@ -298,6 +297,7 @@
           <span>🔬</span>
           开始研究
         </button>
+      </div>
       </div>
     </div>
   </div>

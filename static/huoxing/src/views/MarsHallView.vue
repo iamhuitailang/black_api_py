@@ -1,14 +1,14 @@
 <template>
-  <div class="w-screen h-screen bg-space relative overflow-hidden">
-    <div class="absolute inset-0 z-0">
+  <div class="w-screen h-screen bg-space flex flex-col overflow-hidden">
+    <div class="fixed inset-0 z-0">
       <StarField :star-count="8000" />
     </div>
 
-    <div class="absolute inset-0 z-0">
+    <div class="fixed inset-0 z-0">
       <DustParticles :wind-speed="0.5" :density="0.6" />
     </div>
 
-    <div class="relative z-10 h-full flex flex-col">
+    <div class="relative z-10 flex-shrink-0">
       <GameHeader
         :game-state="gameStore.gameState"
         :resources="gameStore.resources"
@@ -18,8 +18,10 @@
         @set-speed="setSpeed"
         @open-events="showEventLog = true"
       />
+    </div>
 
-      <div class="flex-1 flex relative overflow-hidden">
+    <div class="relative z-10 flex-1 flex overflow-hidden min-h-0">
+      <div class="flex-shrink-0">
         <GameSidebar
           :current-page="currentPage"
           :current-region="gameStore.gameState.currentRegion"
@@ -27,15 +29,15 @@
           :event-count="gameStore.activeEvents.length"
           @navigate="handleNavigate"
         />
+      </div>
 
-        <div class="flex-1 relative overflow-hidden">
-          <div class="absolute inset-0 z-0">
-            <MarsGlobe
-              ref="marsGlobeRef"
-              @region-click="handleRegionClick"
-              @region-hover="handleRegionHover"
-            />
-          </div>
+      <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex-1 relative min-h-0">
+          <MarsGlobe
+            ref="marsGlobeRef"
+            @region-click="handleRegionClick"
+            @region-hover="handleRegionHover"
+          />
 
           <div v-if="hoveredRegion" class="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <SciFiPanel :title="hoveredRegion.name" class="text-center min-w-64" glowing>
@@ -51,32 +53,7 @@
             </SciFiPanel>
           </div>
 
-          <div class="absolute right-0 top-0 bottom-0 w-64 z-10 bg-gradient-to-l from-gray-900/80 to-transparent pointer-events-none">
-            <div class="h-full pt-4 pb-4 pr-2 pl-8 pointer-events-auto overflow-y-auto space-y-3">
-              <EnvironmentStatus />
-
-              <SciFiPanel title="区域概览" border-color="orange">
-                <div class="p-3 space-y-2">
-                  <div v-for="region in regionList" :key="region.id" class="flex items-center gap-2">
-                    <div
-                      :class="[
-                        'w-2 h-2 rounded-full flex-shrink-0',
-                        region.unlocked ? 'bg-green-500' : 'bg-gray-600'
-                      ]"
-                    />
-                    <span :class="['flex-1 text-xs truncate', region.unlocked ? 'text-white' : 'text-gray-600']">
-                      {{ REGIONS[region.id].name }}
-                    </span>
-                    <span class="text-[10px] text-gray-500 flex-shrink-0">
-                      {{ region.unlocked ? `${region.explored.toFixed(0)}%` : '锁定' }}
-                    </span>
-                  </div>
-                </div>
-              </SciFiPanel>
-            </div>
-          </div>
-
-          <div class="absolute left-4 bottom-4 z-10">
+          <div class="absolute left-4 bottom-4 z-20">
             <SciFiPanel title="操作提示" class="w-52">
               <div class="p-2 text-[10px] text-gray-400 space-y-1">
                 <p>🖱️ 左键拖动 - 旋转视角</p>
@@ -87,6 +64,29 @@
             </SciFiPanel>
           </div>
         </div>
+      </div>
+
+      <div class="w-64 flex-shrink-0 bg-gray-900/90 border-l border-gray-800 overflow-y-auto flex flex-col gap-3 p-3">
+        <EnvironmentStatus />
+
+        <SciFiPanel title="区域概览" border-color="orange" class="flex-shrink-0">
+          <div class="p-3 space-y-2">
+            <div v-for="region in regionList" :key="region.id" class="flex items-center gap-2">
+              <div
+                :class="[
+                  'w-2 h-2 rounded-full flex-shrink-0',
+                  region.unlocked ? 'bg-green-500' : 'bg-gray-600'
+                ]"
+              />
+              <span :class="['flex-1 text-xs truncate', region.unlocked ? 'text-white' : 'text-gray-600']">
+                {{ REGIONS[region.id].name }}
+              </span>
+              <span class="text-[10px] text-gray-500 flex-shrink-0">
+                {{ region.unlocked ? `${region.explored.toFixed(0)}%` : '锁定' }}
+              </span>
+            </div>
+          </div>
+        </SciFiPanel>
       </div>
     </div>
 
@@ -195,40 +195,15 @@ const currentEventConfig = computed(() => {
 })
 
 let timeUpdateInterval: number | null = null
-let initCheckInterval: number | null = null
 
 onMounted(() => {
-  const checkInit = () => {
-    if (gameStore.initialized) {
-      if (initCheckInterval) {
-        clearInterval(initCheckInterval)
-        initCheckInterval = null
-      }
-      updateMarsTime()
-      timeUpdateInterval = window.setInterval(updateMarsTime, 1000)
-    }
-  }
-  
-  if (gameStore.initialized) {
-    checkInit()
-  } else {
-    initCheckInterval = window.setInterval(checkInit, 100)
-    
-    setTimeout(() => {
-      if (!gameStore.initialized && initCheckInterval) {
-        clearInterval(initCheckInterval)
-        router.push('/')
-      }
-    }, 3000)
-  }
+  updateMarsTime()
+  timeUpdateInterval = window.setInterval(updateMarsTime, 1000)
 })
 
 onUnmounted(() => {
   if (timeUpdateInterval) {
     clearInterval(timeUpdateInterval)
-  }
-  if (initCheckInterval) {
-    clearInterval(initCheckInterval)
   }
 })
 
