@@ -109,6 +109,17 @@ body {
     color: #fff;
 }
 
+.btn-success {
+    background: linear-gradient(180deg, #228B22 0%, #006400 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(34, 139, 34, 0.4);
+}
+
+.btn-success:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(34, 139, 34, 0.6);
+}
+
 /* 弹窗 */
 .modal-overlay {
     position: fixed;
@@ -377,7 +388,7 @@ body {
     right: -35px;
     top: 15px;
     font-size: 30px;
-    transform-origin: left center;
+    transform-origin: center center;
     display: inline-block;
     filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
 }
