@@ -212,9 +212,10 @@ const drawHeart = (
 
 const handleLevelClick = (level: LevelData) => {
   if (isLevelUnlocked(level)) {
-    gameStore.selectLevel(getLevelKey(level.id))
+    const levelKey = getLevelKey(level.id)
+    gameStore.selectLevel(levelKey)
     gameStore.changeScene('playing')
-    router.push(`/game/${level.id}`)
+    router.push(`/game/${levelKey}`)
   }
 }
 

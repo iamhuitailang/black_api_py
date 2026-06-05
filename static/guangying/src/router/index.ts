@@ -4,28 +4,16 @@ import HomePage from '@/pages/HomePage.vue'
 import LevelsPage from '@/pages/LevelsPage.vue'
 import GamePage from '@/pages/GamePage.vue'
 import ResultScreen from '@/components/ResultScreen.vue'
-import MainMenu from '@/components/MainMenu.vue'
-import LevelSelect from '@/components/LevelSelect.vue'
-import { useGameStore } from '@/store/gameStore'
 
 /** 路由配置 */
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'home',
-    component: MainMenu,
+    component: HomePage,
     meta: {
       title: '主菜单',
       transition: 'fade'
-    }
-  },
-  {
-    path: '/level-select',
-    name: 'levelSelect',
-    component: LevelSelect,
-    meta: {
-      title: '关卡选择',
-      transition: 'slide-left'
     }
   },
   {
@@ -43,7 +31,6 @@ const routes: RouteRecordRaw[] = [
     component: GamePage,
     meta: {
       title: '游戏',
-      requiresUnlock: true,
       transition: 'slide-left'
     }
   },
@@ -53,7 +40,6 @@ const routes: RouteRecordRaw[] = [
     component: ResultScreen,
     meta: {
       title: '结算',
-      requiresUnlock: true,
       transition: 'fade'
     }
   }
@@ -68,22 +54,11 @@ const router = createRouter({
   }
 })
 
-/** 路由守卫：检查关卡是否解锁 */
+/** 路由守卫：设置页面标题 */
 router.beforeEach((to, _from, next) => {
-  const gameStore = useGameStore()
-
   if (to.meta.title) {
     document.title = `光与影 - ${to.meta.title}`
   }
-
-  if (to.meta.requiresUnlock && to.params.levelId) {
-    const levelId = to.params.levelId as string
-    if (!gameStore.isLevelUnlocked(levelId)) {
-      next({ name: 'levels' })
-      return
-    }
-  }
-
   next()
 })
 
