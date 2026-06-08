@@ -9,6 +9,11 @@ class LoginRequest(BaseModel):
     password: str = Field(..., description="密码")
 
 
+class RegisterRequest(BaseModel):
+    username: str = Field(..., description="用户名，3-20字符")
+    password: str = Field(..., description="密码，6-32字符")
+
+
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., description="原密码")
     new_password: str = Field(..., description="新密码")
@@ -27,6 +32,18 @@ class AuthController:
             return token
         
         return ''
+
+    def ActionAuthRegisterPost(self, request: Request, body: RegisterRequest):
+        """
+        注册接口
+        POST /api/auth/register
+        用户注册，默认角色为user
+        """
+        return self.auth_business.register(
+            username=body.username,
+            password=body.password,
+            role='user'
+        )
 
     def ActionAuthLoginPost(self, request: Request, body: LoginRequest):
         """

@@ -7,6 +7,63 @@ class AuthBusiness:
         self.user_model = UserModel()
         self.token_model = TokenModel()
 
+    def register(self, username: str, password: str, role: str = 'user') -> Dict[str, Any]:
+        if not username or not username.strip():
+            return {
+                'code': 1,
+                'message': '用户名不能为空',
+                'data': None
+            }
+
+        username = username.strip()
+        if len(username) < 3 or len(username) > 20:
+            return {
+                'code': 1,
+                'message': '用户名长度需在3-20字符之间',
+                'data': None
+            }
+
+        if not password or not password.strip():
+            return {
+                'code': 1,
+                'message': '密码不能为空',
+                'data': None
+            }
+
+        if len(password) < 6 or len(password) > 32:
+            return {
+                'code': 1,
+                'message': '密码长度需在6-32字符之间',
+                'data': None
+            }
+
+        existing = self.user_model.get_by_username(username)
+        if existing:
+            return {
+                'code': 1,
+                'message': '用户名已存在',
+                'data': None
+            }
+
+        user_id = self.user_model.create(username, password, role)
+        if user_id > 0:
+            user = self.user_model.get_by_id(user_id)
+            return {
+                'code': 0,
+                'message': '注册成功',
+                'data': {
+                    'id': user.get('id'),
+                    'username': user.get('username'),
+                    'role': user.get('role', 'user')
+                }
+            }
+
+        return {
+            'code': 1,
+            'message': '注册失败',
+            'data': None
+        }
+
     def login(self, username: str, password: str) -> Dict[str, Any]:
         if not username or not username.strip():
             return {
@@ -48,7 +105,8 @@ class AuthBusiness:
             'data': {
                 'user': {
                     'id': user.get('id'),
-                    'username': user.get('username')
+                    'username': user.get('username'),
+                    'role': user.get('role', 'user')
                 },
                 'token': token
             }
