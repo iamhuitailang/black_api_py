@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -12,6 +12,10 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.dafeiji import (
+    DafeijiUserModel, PlaneModel, WaveModel, GameStateModel,
+    ScoreModel, AchievementModel, UserAchievementModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +38,13 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    DafeijiUserModel.create_table()
+    PlaneModel.create_table()
+    WaveModel.create_table()
+    GameStateModel.create_table()
+    ScoreModel.create_table()
+    AchievementModel.create_table()
+    UserAchievementModel.create_table()
     
     migrate_database()
     
@@ -106,6 +117,16 @@ async def health_check():
             "status": "healthy"
         }
     }
+
+
+@app.get("/dafeiji")
+async def dafeiji_app():
+    return FileResponse("static/dafeiji/dist/index.html")
+
+
+@app.get("/dafeiji/{full_path:path}")
+async def dafeiji_spa_fallback(full_path: str):
+    return FileResponse("static/dafeiji/dist/index.html")
 
 
 if __name__ == "__main__":
