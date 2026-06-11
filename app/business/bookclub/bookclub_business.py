@@ -18,18 +18,6 @@ class BookClubBusiness:
             }
 
         nickname = nickname.strip()
-        user = self.user_model.get_by_nickname(nickname)
-
-        if user:
-            if avatar_url and avatar_url.strip():
-                self.user_model.update(user['id'], avatar_url=avatar_url.strip())
-                user = self.user_model.get_by_id(user['id'])
-            return {
-                'code': 0,
-                'message': 'success',
-                'data': self._build_user_info(user)
-            }
-
         avatar = avatar_url.strip() if avatar_url else self._generate_avatar(nickname)
         user_id = self.user_model.create(nickname, avatar)
         user = self.user_model.get_by_id(user_id)

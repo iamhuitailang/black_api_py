@@ -1,4 +1,4 @@
-const { createApp, ref, computed, reactive, onMounted, watch } = Vue;
+const { createApp, ref, computed, reactive, onMounted } = Vue;
 const API = '/api';
 
 function pad(n) { return n < 10 ? '0' + n : '' + n; }

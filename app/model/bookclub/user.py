@@ -19,13 +19,33 @@ class UserModel:
         sql = f"""
             CREATE TABLE IF NOT EXISTS {cls.TABLE_NAME} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nickname TEXT NOT NULL UNIQUE,
+                nickname TEXT NOT NULL,
                 avatar_url TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
         db.execute(sql)
+
+        old_cols = db.fetch_one(f"PRAGMA table_info({cls.TABLE_NAME})")
+        has_unique = False
+        rows = db.fetch_all(f"PRAGMA index_list({cls.TABLE_NAME})")
+        for r in rows or []:
+            if 'unique' in r and r['unique'] == 1:
+                idx_name = r.get('name', '')
+                if 'nickname' in idx_name.lower():
+                    has_unique = True
+                    break
+        if has_unique:
+            try:
+                db.execute(f"DROP TABLE IF EXISTS {cls.TABLE_NAME}_backup")
+                db.execute(f"CREATE TABLE {cls.TABLE_NAME}_backup AS SELECT * FROM {cls.TABLE_NAME}")
+                db.execute(f"DROP TABLE {cls.TABLE_NAME}")
+                db.execute(sql)
+                db.execute(f"INSERT INTO {cls.TABLE_NAME} (id, nickname, avatar_url, created_at, updated_at) SELECT id, nickname, COALESCE(avatar_url, ''), created_at, updated_at FROM {cls.TABLE_NAME}_backup")
+                db.execute(f"DROP TABLE {cls.TABLE_NAME}_backup")
+            except Exception:
+                pass
 
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_nickname ON {cls.TABLE_NAME}(nickname)"
         db.execute(index_sql)
