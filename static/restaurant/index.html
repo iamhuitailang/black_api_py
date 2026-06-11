@@ -918,6 +918,35 @@
             margin-top: 20px;
         }
 
+        .draft-hint {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #e65100;
+        }
+
+        .draft-clear-btn {
+            background: transparent;
+            border: 1px solid #ff8a65;
+            color: #e64a19;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .draft-clear-btn:hover {
+            background: #ff8a65;
+            color: white;
+        }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -1701,6 +1730,13 @@
             <div class="modal-content">
                 <h3 class="modal-title">{{ editingDish ? '编辑菜品' : '新增菜品' }}</h3>
                 
+                <div v-if="!editingDish && hasDishDraft" class="draft-hint">
+                    <span>✏️ 检测到未保存的草稿，已自动恢复</span>
+                    <button class="draft-clear-btn" @click="() => { clearDishDraft(); dishForm.name = ''; dishForm.category = 'hot'; dishForm.price = 0; dishForm.description = ''; dishForm.spicy_level = 0; dishForm.image_url = ''; dishForm.is_active = 1; }">
+                        清除草稿
+                    </button>
+                </div>
+                
                 <div class="form-group">
                     <label class="form-label">菜品名称 *</label>
                     <input 
@@ -1837,6 +1873,7 @@
                 const dishModalOpen = ref(false);
                 const editingDish = ref(null);
                 const savingDish = ref(false);
+                const hasDishDraft = ref(!!localStorage.getItem('restaurant_dishDraft'));
                 const dishForm = ref({
                     name: '',
                     category: 'hot',
@@ -2264,23 +2301,55 @@
                             image_url: dish.image_url || '',
                             is_active: dish.is_active
                         };
+                        hasDishDraft.value = false;
                     } else {
-                        dishForm.value = {
-                            name: '',
-                            category: 'hot',
-                            price: 0,
-                            description: '',
-                            spicy_level: 0,
-                            image_url: '',
-                            is_active: 1
-                        };
+                        hasDishDraft.value = !!localStorage.getItem('restaurant_dishDraft');
+                        if (hasDishDraft.value) {
+                            try {
+                                dishForm.value = JSON.parse(localStorage.getItem('restaurant_dishDraft'));
+                            } catch (e) {
+                                dishForm.value = {
+                                    name: '',
+                                    category: 'hot',
+                                    price: 0,
+                                    description: '',
+                                    spicy_level: 0,
+                                    image_url: '',
+                                    is_active: 1
+                                };
+                                hasDishDraft.value = false;
+                            }
+                        } else {
+                            dishForm.value = {
+                                name: '',
+                                category: 'hot',
+                                price: 0,
+                                description: '',
+                                spicy_level: 0,
+                                image_url: '',
+                                is_active: 1
+                            };
+                        }
                     }
                     dishModalOpen.value = true;
                 };
 
                 const closeDishModal = () => {
+                    const wasEditing = !!editingDish.value;
                     dishModalOpen.value = false;
                     editingDish.value = null;
+                    if (!wasEditing) {
+                        const hasDraft = dishForm.value.name || dishForm.value.description || 
+                                        dishForm.value.price > 0 || dishForm.value.image_url;
+                        if (!hasDraft) {
+                            localStorage.removeItem('restaurant_dishDraft');
+                        }
+                    }
+                };
+
+                const clearDishDraft = () => {
+                    localStorage.removeItem('restaurant_dishDraft');
+                    hasDishDraft.value = false;
                 };
 
                 const saveDish = async () => {
@@ -2324,6 +2393,7 @@
                         const data = await res.json();
                         if (data.code === 0) {
                             showToast(editingDish.value ? '修改成功' : '添加成功');
+                            clearDishDraft();
                             closeDishModal();
                             loadDishes();
                         } else if (data.code === 401) {
@@ -2458,6 +2528,20 @@
                     localStorage.setItem('restaurant_kitchenView', newView);
                 });
 
+                watch(dishForm, (newVal) => {
+                    if (!editingDish.value && dishModalOpen.value) {
+                        const hasContent = newVal.name || newVal.description || 
+                                          newVal.price > 0 || newVal.image_url;
+                        if (hasContent) {
+                            localStorage.setItem('restaurant_dishDraft', JSON.stringify(newVal));
+                            hasDishDraft.value = true;
+                        } else {
+                            localStorage.removeItem('restaurant_dishDraft');
+                            hasDishDraft.value = false;
+                        }
+                    }
+                }, { deep: true });
+
                 return {
                     role,
                     restaurantName,
@@ -2516,7 +2600,9 @@
                     deleteDish,
                     hasNewOrder,
                     staffLogin,
-                    staffLogout
+                    staffLogout,
+                    hasDishDraft,
+                    clearDishDraft
                 };
             }
         });
