@@ -112,7 +112,9 @@ class MeetingBusiness:
                     content=item.get('content', ''),
                     assignee=item.get('assignee', ''),
                     due_date=item.get('due_date', ''),
-                    completed=item.get('completed', False)
+                    completed=item.get('completed', False),
+                    reminder_time=item.get('reminder_time', ''),
+                    reminder_email=item.get('reminder_email', '')
                 )
 
         return self.get_by_id(new_id)
@@ -150,14 +152,24 @@ class MeetingBusiness:
             self.model.update(meeting_id, **update_data)
 
         if action_items is not None:
+            old_items = {a['id']: a for a in self.action_item_model.get_by_meeting(meeting_id)}
             self.action_item_model.delete_by_meeting(meeting_id)
             for item in action_items:
+                old_id = item.get('id')
+                old_item = old_items.get(old_id) if old_id else None
+                reminder_time = item.get('reminder_time', '')
+                reminder_email = item.get('reminder_email', '')
+                if old_item and not reminder_time and not reminder_email:
+                    reminder_time = old_item.get('reminder_time', '')
+                    reminder_email = old_item.get('reminder_email', '')
                 self.action_item_model.create(
                     meeting_id=meeting_id,
                     content=item.get('content', ''),
                     assignee=item.get('assignee', ''),
                     due_date=item.get('due_date', ''),
-                    completed=item.get('completed', False)
+                    completed=item.get('completed', False),
+                    reminder_time=reminder_time,
+                    reminder_email=reminder_email
                 )
 
         return self.get_by_id(meeting_id)
@@ -187,12 +199,7 @@ class MeetingBusiness:
         }
 
     def search(self, keyword: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
-        result = self.model.search(keyword=keyword, page=page, page_size=page_size)
-        return {
-            'code': 0,
-            'message': 'success',
-            'data': result
-        }
+        return self.get_list(keyword=keyword, page=page, page_size=page_size)
 
     def get_attendees(self) -> Dict[str, Any]:
         attendees = self.model.get_distinct_attendees()

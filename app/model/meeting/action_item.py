@@ -183,7 +183,7 @@ class ActionItemModel:
         """
         result = self.db.fetch_one(sql, (project_id,))
         total = result['total'] if result else 0
-        completed = result['completed_count'] if result else 0
+        completed = result['completed_count'] if result and result['completed_count'] is not None else 0
         completion_rate = (completed / total * 100) if total > 0 else 0
         return {
             'total': total,

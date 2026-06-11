@@ -251,10 +251,13 @@ async function loadMeeting() {
         form.date = data.date
         form.content = data.content || ''
         form.action_items = (data.action_items || []).map(item => ({
+          id: item.id,
           content: item.content,
           assignee: item.assignee || '',
           due_date: item.due_date || '',
-          completed: item.completed || false
+          completed: item.completed || false,
+          reminder_time: item.reminder_time || '',
+          reminder_email: item.reminder_email || ''
         }))
         attendeesText.value = (data.attendees || []).join(', ')
       }
