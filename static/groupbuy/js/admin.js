@@ -1,4 +1,48 @@
 let groupBuys = [];
+const DRAFT_KEY = 'groupbuy_draft';
+
+function saveDraft() {
+    const draft = {
+        id: document.getElementById('editId').value,
+        title: document.getElementById('title').value,
+        spec: document.getElementById('spec').value,
+        price: document.getElementById('price').value,
+        description: document.getElementById('description').value,
+        image_url: document.getElementById('image_url').value,
+        deadline: document.getElementById('deadline').value,
+        savedAt: Date.now()
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function restoreDraft() {
+    const draftStr = localStorage.getItem(DRAFT_KEY);
+    if (!draftStr) return null;
+    try {
+        return JSON.parse(draftStr);
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+}
+
+function hasDraft() {
+    return !!localStorage.getItem(DRAFT_KEY);
+}
+
+function setupDraftAutoSave() {
+    const fields = ['title', 'spec', 'price', 'description', 'image_url', 'deadline'];
+    fields.forEach(field => {
+        const el = document.getElementById(field);
+        if (el) {
+            el.addEventListener('input', saveDraft);
+            el.addEventListener('change', saveDraft);
+        }
+    });
+}
 
 function showLogin() {
     document.getElementById('loginView').style.display = 'flex';
@@ -124,6 +168,33 @@ function viewDetail(id) {
 
 function openCreateModal() {
     document.getElementById('modalTitle').textContent = '发布新团购';
+
+    const draft = restoreDraft();
+    const pad = (n) => String(n).padStart(2, '0');
+
+    if (draft && !draft.id && draft.savedAt) {
+        const savedTime = new Date(draft.savedAt);
+        const timeStr = `${savedTime.getMonth() + 1}月${savedTime.getDate()}日 ${pad(savedTime.getHours())}:${pad(savedTime.getMinutes())}`;
+        if (confirm(`发现未保存的草稿（${timeStr}），是否恢复？`)) {
+            document.getElementById('editId').value = draft.id || '';
+            document.getElementById('title').value = draft.title || '';
+            document.getElementById('spec').value = draft.spec || '';
+            document.getElementById('price').value = draft.price || '';
+            document.getElementById('description').value = draft.description || '';
+            document.getElementById('image_url').value = draft.image_url || '';
+            document.getElementById('deadline').value = draft.deadline || '';
+        } else {
+            clearDraft();
+            fillDefaultCreateForm();
+        }
+    } else {
+        fillDefaultCreateForm();
+    }
+
+    document.getElementById('editModal').classList.add('active');
+}
+
+function fillDefaultCreateForm() {
     document.getElementById('editId').value = '';
     document.getElementById('title').value = '';
     document.getElementById('spec').value = '';
@@ -137,8 +208,6 @@ function openCreateModal() {
     const pad = (n) => String(n).padStart(2, '0');
     const defaultDeadline = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
     document.getElementById('deadline').value = defaultDeadline;
-
-    document.getElementById('editModal').classList.add('active');
 }
 
 function openEditModal(id) {
@@ -159,10 +228,23 @@ function openEditModal(id) {
         document.getElementById('deadline').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    clearDraft();
     document.getElementById('editModal').classList.add('active');
 }
 
 function closeEditModal() {
+    const hasContent = document.getElementById('title').value.trim() ||
+                       document.getElementById('price').value;
+    if (hasContent && hasDraft()) {
+        if (!confirm('关闭后已填写的内容会自动保存为草稿，确定关闭吗？')) {
+            return;
+        }
+    } else if (hasContent) {
+        saveDraft();
+        if (!confirm('已自动保存草稿，确定关闭吗？')) {
+            return;
+        }
+    }
     document.getElementById('editModal').classList.remove('active');
 }
 
@@ -216,6 +298,7 @@ async function submitForm(e) {
 
     if (result.code === 0) {
         showToast(id ? '更新成功！' : '发布成功！');
+        clearDraft();
         closeEditModal();
         loadList();
     } else if (result.code === 401 || result.message === '请先登录') {
@@ -273,6 +356,8 @@ async function init() {
             closeEditModal();
         }
     });
+
+    setupDraftAutoSave();
 
     const isAuthed = await checkAuth();
     if (isAuthed) {

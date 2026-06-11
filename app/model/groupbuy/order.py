@@ -47,6 +47,20 @@ class OrderModel:
         }
         return self.exec.insert(data)
 
+    def get_by_phone_and_group_buy(self, group_buy_id: int, phone: str) -> Optional[Dict[str, Any]]:
+        return self.query.find_one({
+            'group_buy_id': group_buy_id,
+            'phone': phone
+        })
+
+    def update_quantity(self, record_id: int, quantity: int) -> int:
+        now = datetime.now().isoformat()
+        data = {
+            'quantity': quantity,
+            'created_at': now
+        }
+        return self.exec.update_by_id(record_id, data)
+
     def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
         return self.query.find_by_id(record_id)
 

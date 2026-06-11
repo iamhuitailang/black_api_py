@@ -260,13 +260,25 @@ class GroupBuyBusiness:
             }
 
         try:
-            new_id = self.order_model.create(
-                group_buy_id=group_buy_id,
-                building=building.strip(),
-                room=room.strip() if room else '',
-                phone=phone.strip(),
-                quantity=quantity
+            phone_stripped = phone.strip()
+            existing_order = self.order_model.get_by_phone_and_group_buy(
+                group_buy_id, phone_stripped
             )
+
+            if existing_order:
+                new_quantity = existing_order.get('quantity', 0) + quantity
+                self.order_model.update_quantity(
+                    existing_order['id'], new_quantity
+                )
+            else:
+                self.order_model.create(
+                    group_buy_id=group_buy_id,
+                    building=building.strip(),
+                    room=room.strip() if room else '',
+                    phone=phone_stripped,
+                    quantity=quantity
+                )
+
             return self.get_group_buy_detail(group_buy_id)
         except Exception as e:
             return {
