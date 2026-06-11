@@ -272,9 +272,10 @@ class Player {
 }
 
 class Obstacle {
-    constructor(type, x, groundY) {
+    constructor(type, worldX, groundY) {
         this.type = type;
-        this.x = x;
+        this.worldX = worldX;
+        this.x = worldX;
         this.groundY = groundY;
         
         if (type === 'spike') {
@@ -288,8 +289,8 @@ class Obstacle {
         }
     }
 
-    update(speed) {
-        this.x -= speed;
+    update(distance) {
+        this.x = this.worldX - distance + 100;
     }
 
     render(ctx, terrain) {
@@ -347,10 +348,10 @@ class Obstacle {
             };
         } else if (this.type === 'pit') {
             return {
-                x: this.x,
-                y: this.y - 10,
-                width: this.width,
-                height: 20
+                x: this.x + 5,
+                y: this.y - 30,
+                width: this.width - 10,
+                height: 40
             };
         }
         return { x: this.x, y: this.y, width: this.width, height: this.height };
@@ -358,8 +359,9 @@ class Obstacle {
 }
 
 class Ring {
-    constructor(x, y) {
-        this.x = x;
+    constructor(worldX, y) {
+        this.worldX = worldX;
+        this.x = worldX;
         this.y = y;
         this.width = 20;
         this.height = 20;
@@ -368,8 +370,8 @@ class Ring {
         this.frame = 0;
     }
 
-    update(speed) {
-        this.x -= speed;
+    update(distance) {
+        this.x = this.worldX - distance + 100;
         this.frame += 0.2;
     }
 
@@ -413,8 +415,9 @@ class Ring {
 }
 
 class Spring {
-    constructor(x, groundY) {
-        this.x = x;
+    constructor(worldX, groundY) {
+        this.worldX = worldX;
+        this.x = worldX;
         this.y = groundY - 20;
         this.width = 32;
         this.height = 20;
@@ -422,8 +425,8 @@ class Spring {
         this.compressTimer = 0;
     }
 
-    update(speed) {
-        this.x -= speed;
+    update(distance) {
+        this.x = this.worldX - distance + 100;
         if (this.compressed) {
             this.compressTimer--;
             if (this.compressTimer <= 0) {
@@ -467,8 +470,9 @@ class Spring {
 }
 
 class Star {
-    constructor(x, y) {
-        this.x = x;
+    constructor(worldX, y) {
+        this.worldX = worldX;
+        this.x = worldX;
         this.y = y;
         this.width = 24;
         this.height = 24;
@@ -477,8 +481,8 @@ class Star {
         this.bobOffset = Math.random() * Math.PI * 2;
     }
 
-    update(speed) {
-        this.x -= speed;
+    update(distance) {
+        this.x = this.worldX - distance + 100;
         this.rotation += 0.1;
     }
 
@@ -842,7 +846,7 @@ class Game {
         this.isRunning = false;
         this.isGameOver = false;
         this.isPaused = false;
-        this.lastSpawnX = CONFIG.CANVAS_WIDTH;
+        this.lastSpawnWorldX = 0;
 
         this.keys = {
             space: false
@@ -850,10 +854,28 @@ class Game {
 
         this.playerName = localStorage.getItem('runner_player_name') || '玩家';
         this.scoreSubmitted = false;
+        this.saveTimer = 0;
 
         this.init();
         this.bindEvents();
+        this.checkSavedState();
         this.gameLoop();
+    }
+
+    checkSavedState() {
+        if (this.hasSavedState()) {
+            document.getElementById('continuePrompt').classList.remove('hidden');
+            document.getElementById('startPrompt').classList.add('hidden');
+        }
+    }
+
+    continueGame() {
+        if (this.loadState()) {
+            document.getElementById('continuePrompt').classList.add('hidden');
+            document.getElementById('startPrompt').classList.add('hidden');
+            this.isRunning = true;
+            this.spawnEntities();
+        }
     }
 
     init() {
@@ -869,7 +891,7 @@ class Game {
         this.distance = 0;
         this.score = 0;
         this.ringsCollected = 0;
-        this.lastSpawnX = CONFIG.CANVAS_WIDTH;
+        this.lastSpawnWorldX = 0;
         this.isGameOver = false;
         this.isRunning = false;
         this.scoreSubmitted = false;
@@ -881,7 +903,11 @@ class Game {
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (!this.isRunning && !this.isGameOver) {
-                    this.startGame();
+                    if (this.hasSavedState()) {
+                        this.restart();
+                    } else {
+                        this.startGame();
+                    }
                 } else if (this.isRunning && !this.isGameOver) {
                     if (!this.keys.space) {
                         this.player.jump();
@@ -889,6 +915,12 @@ class Game {
                     this.keys.space = true;
                 } else if (this.isGameOver) {
                     this.restart();
+                }
+            }
+            if (e.code === 'KeyC' && !this.isRunning && !this.isGameOver) {
+                e.preventDefault();
+                if (this.hasSavedState()) {
+                    this.continueGame();
                 }
             }
         });
@@ -904,7 +936,11 @@ class Game {
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (!this.isRunning && !this.isGameOver) {
-                this.startGame();
+                if (this.hasSavedState()) {
+                    this.continueGame();
+                } else {
+                    this.startGame();
+                }
             } else if (this.isRunning && !this.isGameOver) {
                 this.player.jump();
                 this.keys.space = true;
@@ -930,14 +966,100 @@ class Game {
     }
 
     restart() {
+        this.clearSavedState();
         this.init();
         document.getElementById('gameOverModal').style.display = 'none';
         document.getElementById('startPrompt').classList.remove('hidden');
         document.getElementById('submitMessage').textContent = '';
+        document.getElementById('continuePrompt').classList.add('hidden');
     }
 
     backToMenu() {
         window.location.href = '/';
+    }
+
+    saveState() {
+        if (!this.isRunning || this.isGameOver) return;
+        
+        const state = {
+            distance: this.distance,
+            score: this.score,
+            ringsCollected: this.ringsCollected,
+            lives: this.player.lives,
+            speed: this.speed,
+            terrainIndex: this.terrainManager.currentIndex,
+            playerY: this.player.y,
+            playerVy: this.player.vy,
+            playerIsJumping: this.player.isJumping,
+            lastSpawnWorldX: this.lastSpawnWorldX,
+            invincibleTimer: this.player.invincibleTimer,
+            timestamp: Date.now()
+        };
+        
+        try {
+            localStorage.setItem('runner_game_state', JSON.stringify(state));
+        } catch (e) {
+            console.warn('Failed to save game state:', e);
+        }
+    }
+
+    loadState() {
+        try {
+            const saved = localStorage.getItem('runner_game_state');
+            if (!saved) return false;
+            
+            const state = JSON.parse(saved);
+            if (!state || !state.distance) return false;
+            
+            if (Date.now() - state.timestamp > 24 * 60 * 60 * 1000) {
+                this.clearSavedState();
+                return false;
+            }
+            
+            this.distance = state.distance;
+            this.score = state.score;
+            this.ringsCollected = state.ringsCollected;
+            this.speed = state.speed;
+            this.lastSpawnWorldX = state.lastSpawnWorldX;
+            this.terrainManager.currentIndex = state.terrainIndex || 0;
+            this.player.lives = state.lives || CONFIG.INITIAL_LIVES;
+            this.player.y = state.playerY || CONFIG.GROUND_Y - CONFIG.PLAYER_HEIGHT;
+            this.player.vy = state.playerVy || 0;
+            this.player.isJumping = state.playerIsJumping || false;
+            this.player.invincibleTimer = state.invincibleTimer || 0;
+            
+            this.obstacles = [];
+            this.rings = [];
+            this.springs = [];
+            this.stars = [];
+            
+            this.updateHUD();
+            this.updateHearts();
+            
+            return true;
+        } catch (e) {
+            console.warn('Failed to load game state:', e);
+            return false;
+        }
+    }
+
+    clearSavedState() {
+        try {
+            localStorage.removeItem('runner_game_state');
+        } catch (e) {
+            console.warn('Failed to clear saved state:', e);
+        }
+    }
+
+    hasSavedState() {
+        try {
+            const saved = localStorage.getItem('runner_game_state');
+            if (!saved) return false;
+            const state = JSON.parse(saved);
+            return state && state.distance && state.distance > 0 && Date.now() - state.timestamp < 24 * 60 * 60 * 1000;
+        } catch (e) {
+            return false;
+        }
     }
 
     async submitScore() {
@@ -986,33 +1108,33 @@ class Game {
 
     spawnEntities() {
         const terrain = this.terrainManager.getTerrain();
-        const spawnX = CONFIG.CANVAS_WIDTH + 50;
+        const spawnUntilWorldX = this.distance + CONFIG.CANVAS_WIDTH + 300;
 
-        while (this.lastSpawnX < spawnX) {
+        while (this.lastSpawnWorldX < spawnUntilWorldX) {
             const rand = Math.random();
 
             if (rand < terrain.obstacleRate) {
-                this.obstacles.push(new Obstacle('spike', this.lastSpawnX, CONFIG.GROUND_Y));
-                this.lastSpawnX += 40 + Math.random() * 60;
+                this.obstacles.push(new Obstacle('spike', this.lastSpawnWorldX, CONFIG.GROUND_Y));
+                this.lastSpawnWorldX += 40 + Math.random() * 60;
             } else if (rand < terrain.obstacleRate + terrain.pitRate) {
-                this.obstacles.push(new Obstacle('pit', this.lastSpawnX, CONFIG.GROUND_Y));
-                this.lastSpawnX += 80 + Math.random() * 60;
+                this.obstacles.push(new Obstacle('pit', this.lastSpawnWorldX, CONFIG.GROUND_Y));
+                this.lastSpawnWorldX += 80 + Math.random() * 60;
             } else if (rand < terrain.obstacleRate + terrain.pitRate + terrain.ringRate) {
                 const ringY = CONFIG.GROUND_Y - 50 - Math.random() * 100;
                 const ringCount = 1 + Math.floor(Math.random() * 3);
                 for (let i = 0; i < ringCount; i++) {
-                    this.rings.push(new Ring(this.lastSpawnX + i * 25, ringY));
+                    this.rings.push(new Ring(this.lastSpawnWorldX + i * 25, ringY));
                 }
-                this.lastSpawnX += 30 + ringCount * 25;
+                this.lastSpawnWorldX += 30 + ringCount * 25;
             } else if (rand < terrain.obstacleRate + terrain.pitRate + terrain.ringRate + terrain.springRate) {
-                this.springs.push(new Spring(this.lastSpawnX, CONFIG.GROUND_Y));
-                this.lastSpawnX += 50;
+                this.springs.push(new Spring(this.lastSpawnWorldX, CONFIG.GROUND_Y));
+                this.lastSpawnWorldX += 50;
             } else if (rand < terrain.obstacleRate + terrain.pitRate + terrain.ringRate + terrain.springRate + terrain.starRate) {
                 const starY = CONFIG.GROUND_Y - 80 - Math.random() * 120;
-                this.stars.push(new Star(this.lastSpawnX, starY));
-                this.lastSpawnX += 40;
+                this.stars.push(new Star(this.lastSpawnWorldX, starY));
+                this.lastSpawnWorldX += 40;
             } else {
-                this.lastSpawnX += 20 + Math.random() * 30;
+                this.lastSpawnWorldX += 20 + Math.random() * 30;
             }
         }
     }
@@ -1061,16 +1183,16 @@ class Game {
 
         this.spawnEntities();
 
-        this.obstacles.forEach(obs => obs.update(this.speed));
+        this.obstacles.forEach(obs => obs.update(this.distance));
         this.obstacles = this.obstacles.filter(obs => obs.x + obs.width > -50);
 
-        this.rings.forEach(ring => ring.update(this.speed));
+        this.rings.forEach(ring => ring.update(this.distance));
         this.rings = this.rings.filter(ring => ring.x + ring.width > -50 && !ring.collected);
 
-        this.springs.forEach(spring => spring.update(this.speed));
+        this.springs.forEach(spring => spring.update(this.distance));
         this.springs = this.springs.filter(spring => spring.x + spring.width > -50);
 
-        this.stars.forEach(star => star.update(this.speed));
+        this.stars.forEach(star => star.update(this.distance));
         this.stars = this.stars.filter(star => star.x + star.width > -50 && !star.collected);
 
         this.particles.forEach(p => p.update());
@@ -1080,6 +1202,12 @@ class Game {
 
         if (this.player.y > CONFIG.CANVAS_HEIGHT) {
             this.gameOver();
+        }
+
+        this.saveTimer++;
+        if (this.saveTimer >= 30) {
+            this.saveState();
+            this.saveTimer = 0;
         }
 
         this.updateHUD();
@@ -1092,8 +1220,12 @@ class Game {
             const obsHitbox = obs.getHitbox();
             if (this.checkCollision(playerHitbox, obsHitbox)) {
                 if (obs.type === 'pit') {
-                    if (this.player.invincibleTimer <= 0) {
-                        this.player.y = CONFIG.CANVAS_HEIGHT + 100;
+                    if (this.player.hit()) {
+                        this.spawnHitParticles();
+                        this.updateHearts();
+                        if (this.player.lives <= 0) {
+                            this.gameOver();
+                        }
                     }
                 } else if (obs.type === 'spike') {
                     if (this.player.hit()) {
@@ -1245,6 +1377,7 @@ class Game {
     gameOver() {
         this.isGameOver = true;
         this.isRunning = false;
+        this.clearSavedState();
 
         document.getElementById('finalPlayer').textContent = this.playerName;
         document.getElementById('finalDistance').textContent = Math.floor(this.distance) + ' m';
