@@ -43,22 +43,26 @@ const App = {
     const homeActivity = ref([]);
     const topRankings = ref([]);
 
+    const readingBooks = ref([]);
+    const finishedBooks = ref([]);
     const myHomepage = reactive({
       user: null,
       stats: { total_books:0, reading_count:0, finished_count:0, monthly_finished:0, streak_days:0, total_checkin_days:0, total_pages:0 },
-      reading_books: [],
-      finished_books: []
+      get reading_books() { return readingBooks.value; },
+      get finished_books() { return finishedBooks.value; }
     });
 
     const leaderboard = ref([]);
     const activityList = ref([]);
 
+    const viewReadingBooks = ref([]);
+    const viewFinishedBooks = ref([]);
     const viewUserId = ref(null);
     const viewHomepage = reactive({
       user: null,
       stats: { total_books:0, reading_count:0, finished_count:0, monthly_finished:0, streak_days:0, total_checkin_days:0, total_pages:0 },
-      reading_books: [],
-      finished_books: []
+      get reading_books() { return viewReadingBooks.value; },
+      get finished_books() { return viewFinishedBooks.value; }
     });
 
     const showBookModal = ref(false);
@@ -189,21 +193,36 @@ const App = {
     }
 
     async function loadHome() {
-      if (!currentUser.value) return;
+      if (!currentUser.value || !currentUser.value.id) return;
       buildCalendar([]);
-      await Promise.all([loadCalendar(), loadMyHomepage(), loadLeaderboard(true), loadActivity(true)]);
+      const results = await Promise.allSettled([
+        loadCalendar(),
+        loadMyHomepage(),
+        loadLeaderboard(true),
+        loadActivity(true)
+      ]);
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) {
+        console.warn(failed + ' 个数据加载失败');
+      }
       if (myHomepage.stats) Object.assign(homeStats, myHomepage.stats);
       userStreak.value = myHomepage.stats.streak_days || 0;
     }
 
     async function loadMyHomepage() {
-      if (!currentUser.value) return;
+      if (!currentUser.value || !currentUser.value.id) {
+        showToast('用户信息异常，请重新登录');
+        logout();
+        return;
+      }
       const res = await apiFetch(API + '/bookclub/homepage/get?user_id=' + currentUser.value.id);
-      if (res.code === 0) {
+      if (res.code === 0 && res.data) {
         myHomepage.user = res.data.user;
-        Object.assign(myHomepage.stats, res.data.stats);
-        myHomepage.reading_books = res.data.reading_books || [];
-        myHomepage.finished_books = res.data.finished_books || [];
+        if (res.data.stats) Object.assign(myHomepage.stats, res.data.stats);
+        readingBooks.value = (res.data.reading_books || []).slice();
+        finishedBooks.value = (res.data.finished_books || []).slice();
+      } else {
+        showToast(res.message || '加载书架失败');
       }
     }
 
@@ -338,9 +357,9 @@ const App = {
       const res = await apiFetch(API + '/bookclub/homepage/get?user_id=' + uid);
       if (res.code === 0) {
         viewHomepage.user = res.data.user;
-        Object.assign(viewHomepage.stats, res.data.stats);
-        viewHomepage.reading_books = res.data.reading_books || [];
-        viewHomepage.finished_books = res.data.finished_books || [];
+        if (res.data.stats) Object.assign(viewHomepage.stats, res.data.stats);
+        viewReadingBooks.value = (res.data.reading_books || []).slice();
+        viewFinishedBooks.value = (res.data.finished_books || []).slice();
         page.value = 'userhome';
       } else {
         showToast(res.message || '用户不存在');
@@ -357,13 +376,22 @@ const App = {
       loadHome();
     }
 
-    onMounted(() => {
-      const stored = localStorage.getItem('bc_user');
-      if (stored) {
-        try {
-          currentUser.value = JSON.parse(stored);
-          loadHome();
-        } catch(e) {}
+    onMounted(async () => {
+      try {
+        const stored = localStorage.getItem('bc_user');
+        if (stored) {
+          const userData = JSON.parse(stored);
+          if (userData && userData.id && userData.nickname) {
+            currentUser.value = userData;
+            await loadHome();
+          } else {
+            localStorage.removeItem('bc_user');
+          }
+        }
+      } catch(e) {
+        console.error('恢复用户数据失败:', e);
+        localStorage.removeItem('bc_user');
+        currentUser.value = null;
       }
     });
 
@@ -378,7 +406,8 @@ const App = {
       calendarYear, calendarMonth, calendarDays, currentYearMonth, monthlyCheckinCount,
       lbYearMonth, lbYear, lbMonth,
       homeStats, homeActivity, topRankings,
-      myHomepage, leaderboard, activityList, viewHomepage,
+      myHomepage, readingBooks, finishedBooks,
+      leaderboard, activityList, viewHomepage, viewReadingBooks, viewFinishedBooks,
       showBookModal, showBookDetail, editBook, viewingOtherDetail, detailBook, bookForm,
       showToast, streakClass, bookColorIdx,
       changeMonth, goThisMonth, changeLbMonth,
@@ -586,14 +615,14 @@ const App = {
         <div class="bookshelf-title">📖 正在阅读</div>
         <div class="books-spine">
           <div class="book-spine"
-               v-for="b in myHomepage.reading_books"
+               v-for="b in readingBooks"
                :key="b.id"
                :class="'book-color-'+(bookColorIdx(b.title))"
                @click="openBookDetail(b)">
             <div class="spine-title">{{b.title}}</div>
             <div class="spine-rating" style="writing-mode:horizontal-tb;font-size:10px">在读</div>
           </div>
-          <div v-if="myHomepage.reading_books.length===0" style="padding:60px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">
+          <div v-if="readingBooks.length===0" style="padding:60px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">
             还没有在读的书，开始读一本吧
           </div>
           <div class="add-book-spine" @click="openAddBook()" title="添加新书">+</div>
@@ -601,7 +630,7 @@ const App = {
         <div class="bookshelf-title">🏆 已读完</div>
         <div class="books-spine">
           <div class="book-spine"
-               v-for="b in myHomepage.finished_books"
+               v-for="b in finishedBooks"
                :key="b.id"
                :class="'book-color-'+(bookColorIdx(b.title))"
                @click="openBookDetail(b)">
@@ -611,7 +640,7 @@ const App = {
               <span v-else>✓</span>
             </div>
           </div>
-          <div v-if="myHomepage.finished_books.length===0" style="padding:60px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">
+          <div v-if="finishedBooks.length===0" style="padding:60px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">
             读完的书会出现在这里，加油！
           </div>
         </div>
@@ -725,19 +754,19 @@ const App = {
         <div class="bookshelf-title">📖 在读</div>
         <div class="books-spine">
           <div class="book-spine"
-               v-for="b in viewHomepage.reading_books"
+               v-for="b in viewReadingBooks"
                :key="b.id"
                :class="'book-color-'+(bookColorIdx(b.title))"
                @click="openBookDetail(b, true)">
             <div class="spine-title">{{b.title}}</div>
             <div class="spine-rating" style="writing-mode:horizontal-tb;font-size:10px">在读</div>
           </div>
-          <div v-if="viewHomepage.reading_books.length===0" style="padding:40px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">暂无在读</div>
+          <div v-if="viewReadingBooks.length===0" style="padding:40px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">暂无在读</div>
         </div>
         <div class="bookshelf-title">🏆 已读完</div>
         <div class="books-spine">
           <div class="book-spine"
-               v-for="b in viewHomepage.finished_books"
+               v-for="b in viewFinishedBooks"
                :key="b.id"
                :class="'book-color-'+(bookColorIdx(b.title))"
                @click="openBookDetail(b, true)">
@@ -747,7 +776,7 @@ const App = {
               <span v-else>✓</span>
             </div>
           </div>
-          <div v-if="viewHomepage.finished_books.length===0" style="padding:40px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">暂无已读完</div>
+          <div v-if="viewFinishedBooks.length===0" style="padding:40px 20px;color:#A0896C;font-size:14px;text-align:center;flex:1">暂无已读完</div>
         </div>
       </div>
     </template>
