@@ -8,40 +8,40 @@ class RecipeBusiness:
         self.ingredient_model = IngredientModel()
         self.favorite_model = FavoriteModel()
 
-    def _enrich_recipe(self, recipe: Dict[str, Any]) -> Dict[str, Any]:
+    def _enrich_recipe(self, user_id: int, recipe: Dict[str, Any]) -> Dict[str, Any]:
         if not recipe:
             return recipe
         recipe_id = recipe.get('id')
         recipe['ingredients'] = self.ingredient_model.get_by_recipe_id(recipe_id)
-        recipe['is_favorited'] = self.favorite_model.is_favorited(recipe_id)
+        recipe['is_favorited'] = self.favorite_model.is_favorited(user_id, recipe_id)
         return recipe
 
-    def get_recipe(self, recipe_id: int) -> Dict[str, Any]:
-        recipe = self.recipe_model.get_with_ingredients(recipe_id)
+    def get_recipe(self, user_id: int, recipe_id: int) -> Dict[str, Any]:
+        recipe = self.recipe_model.get_with_ingredients(user_id, recipe_id)
         if not recipe:
             return {
                 'code': 1,
                 'message': f'Recipe with id {recipe_id} not found',
                 'data': None
             }
-        recipe['is_favorited'] = self.favorite_model.is_favorited(recipe_id)
+        recipe['is_favorited'] = self.favorite_model.is_favorited(user_id, recipe_id)
         return {
             'code': 0,
             'message': 'success',
             'data': recipe
         }
 
-    def get_all_recipes(self, difficulty: str = None, tag: str = None,
+    def get_all_recipes(self, user_id: int, difficulty: str = None, tag: str = None,
                         keyword: str = None) -> Dict[str, Any]:
-        recipes = self.recipe_model.get_all(difficulty, tag, keyword)
-        enriched = [self._enrich_recipe(r) for r in recipes]
+        recipes = self.recipe_model.get_all(user_id, difficulty, tag, keyword)
+        enriched = [self._enrich_recipe(user_id, r) for r in recipes]
         return {
             'code': 0,
             'message': 'success',
             'data': enriched
         }
 
-    def create_recipe(self, name: str, difficulty: str, cook_time: int,
+    def create_recipe(self, user_id: int, name: str, difficulty: str, cook_time: int,
                       tags: List[str], steps: List[str],
                       ingredients: List[Dict[str, str]]) -> Dict[str, Any]:
         if not name or not name.strip():
@@ -94,8 +94,8 @@ class RecipeBusiness:
         cleaned_ings = [{'name': i['name'].strip(), 'amount': i.get('amount', '').strip()} for i in ingredients]
         cleaned_steps = [s.strip() for s in steps if s and s.strip()]
 
-        recipe_id = self.recipe_model.create(name, difficulty, cook_time, tags, cleaned_steps, cleaned_ings)
-        recipe = self.recipe_model.get_with_ingredients(recipe_id)
+        recipe_id = self.recipe_model.create(user_id, name, difficulty, cook_time, tags, cleaned_steps, cleaned_ings)
+        recipe = self.recipe_model.get_with_ingredients(user_id, recipe_id)
         recipe['is_favorited'] = False
         return {
             'code': 0,
@@ -103,10 +103,10 @@ class RecipeBusiness:
             'data': recipe
         }
 
-    def update_recipe(self, recipe_id: int, name: str, difficulty: str, cook_time: int,
+    def update_recipe(self, user_id: int, recipe_id: int, name: str, difficulty: str, cook_time: int,
                       tags: List[str], steps: List[str],
                       ingredients: List[Dict[str, str]]) -> Dict[str, Any]:
-        existing = self.recipe_model.get_by_id(recipe_id)
+        existing = self.recipe_model.get_by_id(user_id, recipe_id)
         if not existing:
             return {
                 'code': 1,
@@ -156,17 +156,17 @@ class RecipeBusiness:
         cleaned_ings = [{'name': i['name'].strip(), 'amount': i.get('amount', '').strip()} for i in ingredients]
         cleaned_steps = [s.strip() for s in steps if s and s.strip()]
 
-        self.recipe_model.update(recipe_id, name, difficulty, cook_time, tags, cleaned_steps, cleaned_ings)
-        recipe = self.recipe_model.get_with_ingredients(recipe_id)
-        recipe['is_favorited'] = self.favorite_model.is_favorited(recipe_id)
+        self.recipe_model.update(user_id, recipe_id, name, difficulty, cook_time, tags, cleaned_steps, cleaned_ings)
+        recipe = self.recipe_model.get_with_ingredients(user_id, recipe_id)
+        recipe['is_favorited'] = self.favorite_model.is_favorited(user_id, recipe_id)
         return {
             'code': 0,
             'message': '更新成功',
             'data': recipe
         }
 
-    def delete_recipe(self, recipe_id: int) -> Dict[str, Any]:
-        existing = self.recipe_model.get_by_id(recipe_id)
+    def delete_recipe(self, user_id: int, recipe_id: int) -> Dict[str, Any]:
+        existing = self.recipe_model.get_by_id(user_id, recipe_id)
         if not existing:
             return {
                 'code': 1,
@@ -174,14 +174,14 @@ class RecipeBusiness:
                 'data': None
             }
 
-        self.recipe_model.delete(recipe_id)
+        self.recipe_model.delete(user_id, recipe_id)
         return {
             'code': 0,
             'message': '删除成功',
             'data': None
         }
 
-    def search_by_ingredients(self, ingredient_names: List[str]) -> Dict[str, Any]:
+    def search_by_ingredients(self, user_id: int, ingredient_names: List[str]) -> Dict[str, Any]:
         if not ingredient_names:
             return {
                 'code': 1,
@@ -197,8 +197,8 @@ class RecipeBusiness:
                 'data': None
             }
 
-        results = self.recipe_model.search_by_ingredients(cleaned_names)
-        enriched = [self._enrich_recipe(r) for r in results]
+        results = self.recipe_model.search_by_ingredients(user_id, cleaned_names)
+        enriched = [self._enrich_recipe(user_id, r) for r in results]
         return {
             'code': 0,
             'message': 'success',
@@ -208,7 +208,7 @@ class RecipeBusiness:
             }
         }
 
-    def generate_shopping_list(self, recipe_ids: List[int]) -> Dict[str, Any]:
+    def generate_shopping_list(self, user_id: int, recipe_ids: List[int]) -> Dict[str, Any]:
         if not recipe_ids:
             return {
                 'code': 1,
@@ -219,7 +219,7 @@ class RecipeBusiness:
         valid_ids = list(set(recipe_ids))
         valid_existing = []
         for rid in valid_ids:
-            r = self.recipe_model.get_by_id(rid)
+            r = self.recipe_model.get_by_id(user_id, rid)
             if r:
                 valid_existing.append(r)
 
@@ -240,8 +240,8 @@ class RecipeBusiness:
             }
         }
 
-    def toggle_favorite(self, recipe_id: int) -> Dict[str, Any]:
-        existing = self.recipe_model.get_by_id(recipe_id)
+    def toggle_favorite(self, user_id: int, recipe_id: int) -> Dict[str, Any]:
+        existing = self.recipe_model.get_by_id(user_id, recipe_id)
         if not existing:
             return {
                 'code': 1,
@@ -249,24 +249,24 @@ class RecipeBusiness:
                 'data': None
             }
 
-        is_fav = self.favorite_model.is_favorited(recipe_id)
+        is_fav = self.favorite_model.is_favorited(user_id, recipe_id)
         if is_fav:
-            self.favorite_model.remove(recipe_id)
+            self.favorite_model.remove(user_id, recipe_id)
             return {
                 'code': 0,
                 'message': '已取消收藏',
                 'data': {'is_favorited': False, 'recipe_id': recipe_id}
             }
         else:
-            self.favorite_model.add(recipe_id)
+            self.favorite_model.add(user_id, recipe_id)
             return {
                 'code': 0,
                 'message': '已收藏',
                 'data': {'is_favorited': True, 'recipe_id': recipe_id}
             }
 
-    def get_favorites(self) -> Dict[str, Any]:
-        favorites = self.favorite_model.get_all()
+    def get_favorites(self, user_id: int) -> Dict[str, Any]:
+        favorites = self.favorite_model.get_all(user_id)
         for fav in favorites:
             fav['ingredients'] = self.ingredient_model.get_by_recipe_id(fav['recipe_id'])
             fav['is_favorited'] = True
@@ -276,8 +276,26 @@ class RecipeBusiness:
             'data': favorites
         }
 
-    def get_all_ingredient_names(self) -> Dict[str, Any]:
-        names = self.ingredient_model.get_all_names()
+    def get_all_ingredient_names(self, user_id: int) -> Dict[str, Any]:
+        recipes = self.recipe_model.get_all(user_id)
+        recipe_ids = [r['id'] for r in recipes]
+        if not recipe_ids:
+            return {
+                'code': 0,
+                'message': 'success',
+                'data': []
+            }
+
+        placeholders = ','.join(['?' for _ in recipe_ids])
+        sql = f"""
+            SELECT DISTINCT name FROM ingredients
+            WHERE recipe_id IN ({placeholders})
+            ORDER BY name
+        """
+        from app.common.sqlite.db import get_db
+        db = get_db()
+        rows = db.fetch_all(sql, tuple(recipe_ids))
+        names = [r['name'] for r in rows]
         return {
             'code': 0,
             'message': 'success',

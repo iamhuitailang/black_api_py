@@ -7,8 +7,38 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="page-wrapper">
+    <div class="login-overlay active" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-icon">🍳</div>
+            <h2>欢迎来到我的厨房</h2>
+            <p class="login-hint">登录后管理你的专属菜谱</p>
+            <form id="loginForm">
+                <div class="login-input-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" autocomplete="username">
+                </div>
+                <div class="login-input-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="btnLogin">登 录</button>
+            </form>
+            <div class="register-link">
+                <span>还没有账号？</span>
+                <a href="#" id="showRegister">立即注册</a>
+            </div>
+            <div class="demo-account">
+                <p>演示账号：<strong>admin</strong> / <strong>admin123</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-wrapper" id="mainApp" style="display:none;">
         <header class="kitchen-header">
+            <div class="header-user-info">
+                <span class="user-name">👤 <span id="currentUsername">--</span></span>
+                <button class="btn btn-sm btn-light" id="btnLogout">退出登录</button>
+            </div>
             <h1>🍳 我的厨房菜谱本</h1>
             <p class="subtitle">记录每一道美味，发掘食材新搭配</p>
         </header>

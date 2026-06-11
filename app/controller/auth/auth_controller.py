@@ -14,6 +14,11 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., description="新密码")
 
 
+class RegisterRequest(BaseModel):
+    username: str = Field(..., description="用户名")
+    password: str = Field(..., description="密码")
+
+
 class AuthController:
     def __init__(self):
         self.auth_business = AuthBusiness()
@@ -27,6 +32,17 @@ class AuthController:
             return token
         
         return ''
+
+    def ActionAuthRegisterPost(self, request: Request, body: RegisterRequest):
+        """
+        注册接口
+        POST /api/auth/register
+        创建新用户并返回token
+        """
+        return self.auth_business.register(
+            username=body.username,
+            password=body.password
+        )
 
     def ActionAuthLoginPost(self, request: Request, body: LoginRequest):
         """

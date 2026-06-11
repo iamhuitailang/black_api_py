@@ -1058,6 +1058,143 @@ body {
 .toast.info { background: linear-gradient(135deg, #2196F3, #1976D2); }
 .toast.warning { background: linear-gradient(135deg, #FF9800, #F57C00); }
 
+.login-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--warm-bg);
+    background-image:
+        linear-gradient(45deg, var(--tile-bg) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--tile-bg) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--tile-accent) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--tile-accent) 75%);
+    background-size: 40px 40px;
+    z-index: 3000;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-overlay.active {
+    display: flex;
+}
+
+.login-card {
+    background: #FFFDF7;
+    padding: 40px 36px;
+    border-radius: 20px;
+    box-shadow: 0 15px 50px rgba(139, 90, 43, 0.25);
+    border: 3px solid var(--tile-border);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: slideIn 0.35s ease;
+}
+
+.login-icon {
+    font-size: 3.5em;
+    margin-bottom: 12px;
+}
+
+.login-card h2 {
+    color: var(--primary-dark);
+    margin-bottom: 6px;
+    font-size: 1.6em;
+}
+
+.login-hint {
+    color: var(--text-medium);
+    margin-bottom: 24px;
+    font-size: 0.95em;
+}
+
+.login-input-group {
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.login-input-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.92em;
+}
+
+.login-input-group input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 2px solid var(--tile-border);
+    border-radius: 10px;
+    font-size: 0.98em;
+    background: white;
+    color: var(--text-dark);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.login-input-group input:focus {
+    border-color: var(--primary);
+}
+
+.login-card .btn-block {
+    margin-top: 20px;
+    padding: 12px;
+    font-size: 1.05em;
+}
+
+.register-link {
+    margin-top: 18px;
+    font-size: 0.9em;
+    color: var(--text-medium);
+}
+
+.register-link a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}
+
+.demo-account {
+    margin-top: 18px;
+    padding: 10px 14px;
+    background: rgba(255, 248, 220, 0.7);
+    border-radius: 8px;
+    font-size: 0.85em;
+    color: var(--text-medium);
+}
+
+.demo-account strong {
+    color: var(--primary-dark);
+}
+
+.header-user-info {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-name {
+    font-size: 0.92em;
+    color: var(--primary-dark);
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
 @media (max-width: 768px) {
     .kitchen-header h1 { font-size: 1.8em; }
     .form-row { grid-template-columns: 1fr; }
@@ -1065,4 +1202,5 @@ body {
     .action-bar { justify-content: stretch; }
     .action-bar .btn { flex: 1; justify-content: center; }
     .modal { border-radius: 12px; }
+    .header-user-info { position: static; margin-bottom: 12px; justify-content: flex-end; }
 }

@@ -1,4 +1,8 @@
 const API_BASE = '/api/recipes';
+const AUTH_BASE = '/api/auth';
+const TOKEN_KEY = 'recipe_app_token';
+const USER_KEY = 'recipe_app_user';
+
 const state = {
     recipes: [],
     favorites: [],
@@ -7,14 +11,54 @@ const state = {
     shoppingSelectedIds: [],
     editingId: null,
     ingredientCount: 0,
-    stepCount: 0
+    stepCount: 0,
+    currentUser: null
 };
 
+function getToken() {
+    return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+function saveAuth(token, user) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    state.currentUser = user;
+}
+
+function clearAuth() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    state.currentUser = null;
+}
+
+function getStoredUser() {
+    try {
+        const u = localStorage.getItem(USER_KEY);
+        return u ? JSON.parse(u) : null;
+    } catch {
+        return null;
+    }
+}
+
 async function api(url, options = {}) {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+    }
+    if (options.headers) {
+        Object.assign(headers, options.headers);
+    }
     const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options
+        ...options,
+        headers
     });
+    if (res.status === 401 || res.status === 403) {
+        clearAuth();
+        showLoginScreen();
+        showToast('请先登录', 'warning');
+        throw new Error('Unauthorized');
+    }
     return await res.json();
 }
 
@@ -30,6 +74,90 @@ function showToast(message, type = 'info') {
         toast.style.transform = 'translateX(30px)';
         setTimeout(() => toast.remove(), 350);
     }, 2500);
+}
+
+function showLoginScreen() {
+    document.getElementById('loginOverlay').classList.add('active');
+    document.getElementById('mainApp').style.display = 'none';
+}
+
+function hideLoginScreen() {
+    document.getElementById('loginOverlay').classList.remove('active');
+    document.getElementById('mainApp').style.display = 'block';
+    const user = state.currentUser || getStoredUser();
+    if (user) {
+        document.getElementById('currentUsername').textContent = user.username;
+    }
+}
+
+async function doLogin(username, password) {
+    const res = await api(`${AUTH_BASE}/login`, {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+    });
+    if (res.code === 0) {
+        saveAuth(res.data.token, res.data.user);
+        hideLoginScreen();
+        showToast(`欢迎回来，${res.data.user.username}！`, 'success');
+        await loadAppData();
+        await seedSampleDataIfEmpty();
+        return true;
+    } else {
+        showToast(res.message || '登录失败', 'error');
+        return false;
+    }
+}
+
+async function doRegister(username, password) {
+    const res = await api(`${AUTH_BASE}/register`, {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+    });
+    if (res.code === 0) {
+        saveAuth(res.data.token, res.data.user);
+        hideLoginScreen();
+        showToast(`注册成功，欢迎 ${res.data.user.username}！`, 'success');
+        await loadAppData();
+        await seedSampleDataIfEmpty();
+        return true;
+    } else {
+        showToast(res.message || '注册失败', 'error');
+        return false;
+    }
+}
+
+async function doLogout() {
+    const token = getToken();
+    if (token) {
+        try {
+            await api(`${AUTH_BASE}/logout`, { method: 'POST' });
+        } catch (e) {}
+    }
+    clearAuth();
+    showLoginScreen();
+    showToast('已退出登录', 'info');
+}
+
+async function checkAuth() {
+    const token = getToken();
+    const user = getStoredUser();
+    if (!token || !user) {
+        clearAuth();
+        showLoginScreen();
+        return false;
+    }
+
+    const res = await api(`${AUTH_BASE}/current/user/get`);
+    if (res.code === 0 && res.data) {
+        state.currentUser = res.data;
+        localStorage.setItem(USER_KEY, JSON.stringify(res.data));
+        hideLoginScreen();
+        return true;
+    } else {
+        clearAuth();
+        showLoginScreen();
+        return false;
+    }
 }
 
 function getDifficultyClass(d) {
@@ -110,18 +238,27 @@ async function loadRecipes() {
     if (keyword) params.push(`keyword=${encodeURIComponent(keyword)}`);
     url += params.join('&');
 
-    const res = await api(url);
-    if (res.code === 0) {
-        state.recipes = res.data;
-        renderRecipesGrid();
-    }
+    try {
+        const res = await api(url);
+        if (res.code === 0) {
+            state.recipes = res.data;
+            renderRecipesGrid();
+        }
+    } catch (e) {}
 }
 
 async function loadFavorites() {
-    const res = await api(`${API_BASE}/getfavorites/get`);
-    if (res.code === 0) {
-        state.favorites = res.data;
-    }
+    try {
+        const res = await api(`${API_BASE}/getfavorites/get`);
+        if (res.code === 0) {
+            state.favorites = res.data;
+        }
+    } catch (e) {}
+}
+
+async function loadAppData() {
+    await Promise.all([loadRecipes(), loadFavorites()]);
+    renderRecipesGrid();
 }
 
 function renderRecipesGrid() {
@@ -247,134 +384,144 @@ async function saveRecipe(e) {
 
     const id = document.getElementById('recipeId').value;
 
-    if (id) {
-        const res = await api(`${API_BASE}/put`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                id: parseInt(id),
-                ...data
-            })
-        });
-        if (res.code === 0) {
-            showToast('更新成功！', 'success');
-            closeRecipeModal();
-            await Promise.all([loadRecipes(), loadFavorites()]);
+    try {
+        if (id) {
+            const res = await api(`${API_BASE}/put`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    id: parseInt(id),
+                    ...data
+                })
+            });
+            if (res.code === 0) {
+                showToast('更新成功！', 'success');
+                closeRecipeModal();
+                await loadAppData();
+            } else {
+                showToast(res.message, 'error');
+            }
         } else {
-            showToast(res.message, 'error');
+            const res = await api(`${API_BASE}/set`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            if (res.code === 0) {
+                showToast('菜谱创建成功！', 'success');
+                closeRecipeModal();
+                await loadAppData();
+            } else {
+                showToast(res.message, 'error');
+            }
         }
-    } else {
-        const res = await api(`${API_BASE}/set`, {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-        if (res.code === 0) {
-            showToast('菜谱创建成功！', 'success');
-            closeRecipeModal();
-            await Promise.all([loadRecipes(), loadFavorites()]);
-        } else {
-            showToast(res.message, 'error');
-        }
-    }
+    } catch (e) {}
 }
 
 async function editRecipe(id) {
-    const res = await api(`${API_BASE}/get?id=${id}`);
-    if (res.code !== 0 || !res.data) return showToast('获取菜谱失败', 'error');
+    try {
+        const res = await api(`${API_BASE}/get?id=${id}`);
+        if (res.code !== 0 || !res.data) return showToast('获取菜谱失败', 'error');
 
-    const r = res.data;
-    state.editingId = id;
-    document.getElementById('modalTitle').textContent = '✏️ 编辑菜谱';
-    document.getElementById('recipeId').value = r.id;
-    document.getElementById('recipeName').value = r.name;
-    document.getElementById('recipeDifficulty').value = r.difficulty;
-    document.getElementById('recipeCookTime').value = r.cook_time;
+        const r = res.data;
+        state.editingId = id;
+        document.getElementById('modalTitle').textContent = '✏️ 编辑菜谱';
+        document.getElementById('recipeId').value = r.id;
+        document.getElementById('recipeName').value = r.name;
+        document.getElementById('recipeDifficulty').value = r.difficulty;
+        document.getElementById('recipeCookTime').value = r.cook_time;
 
-    document.querySelectorAll('#tagCheckboxes input').forEach(cb => {
-        cb.checked = (r.tags || []).includes(cb.value);
-    });
+        document.querySelectorAll('#tagCheckboxes input').forEach(cb => {
+            cb.checked = (r.tags || []).includes(cb.value);
+        });
 
-    document.getElementById('ingredientsList').innerHTML = '';
-    (r.ingredients || []).forEach(ing => addIngredientRow(ing.name, ing.amount));
+        document.getElementById('ingredientsList').innerHTML = '';
+        (r.ingredients || []).forEach(ing => addIngredientRow(ing.name, ing.amount));
 
-    document.getElementById('stepsList').innerHTML = '';
-    (r.steps || []).forEach(s => addStepRow(s));
+        document.getElementById('stepsList').innerHTML = '';
+        (r.steps || []).forEach(s => addStepRow(s));
 
-    document.getElementById('recipeModal').classList.add('active');
+        document.getElementById('recipeModal').classList.add('active');
+    } catch (e) {}
 }
 
 async function deleteRecipe(id) {
     if (!confirm('确定要删除这道菜谱吗？')) return;
-    const res = await api(`${API_BASE}/delete?id=${id}`, { method: 'DELETE' });
-    if (res.code === 0) {
-        showToast('删除成功', 'success');
-        await Promise.all([loadRecipes(), loadFavorites()]);
-    } else {
-        showToast(res.message, 'error');
-    }
+    try {
+        const res = await api(`${API_BASE}/delete?id=${id}`, { method: 'DELETE' });
+        if (res.code === 0) {
+            showToast('删除成功', 'success');
+            await loadAppData();
+        } else {
+            showToast(res.message, 'error');
+        }
+    } catch (e) {}
 }
 
 async function toggleFavorite(id, btn) {
-    const res = await api(`${API_BASE}/togglefavorite/post`, {
-        method: 'POST',
-        body: JSON.stringify({ recipe_id: id })
-    });
-    if (res.code === 0) {
-        showToast(res.message, 'success');
-        btn.textContent = res.data.is_favorited ? '⭐' : '☆';
-        await loadFavorites();
-        if (state.currentView === 'favorites') {
-            renderRecipesGrid();
+    try {
+        const res = await api(`${API_BASE}/togglefavorite`, {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: id })
+        });
+        if (res.code === 0) {
+            showToast(res.message, 'success');
+            if (btn) btn.textContent = res.data.is_favorited ? '⭐' : '☆';
+            await loadFavorites();
+            if (state.currentView === 'favorites') {
+                renderRecipesGrid();
+            }
+        } else {
+            showToast(res.message, 'error');
         }
-    } else {
-        showToast(res.message, 'error');
-    }
+    } catch (e) {}
 }
 
 async function showRecipeDetail(id) {
-    const res = await api(`${API_BASE}/get?id=${id}`);
-    if (res.code !== 0 || !res.data) return showToast('获取菜谱失败', 'error');
+    try {
+        const res = await api(`${API_BASE}/get?id=${id}`);
+        if (res.code !== 0 || !res.data) return showToast('获取菜谱失败', 'error');
 
-    const r = res.data;
-    document.getElementById('detailTitle').textContent = `🍳 ${r.name}`;
-    document.getElementById('detailBody').innerHTML = `
-        <div class="detail-section">
-            <div class="detail-meta-row">
-                <span class="meta-item ${getDifficultyClass(r.difficulty)}">难度：${escapeHtml(r.difficulty)}</span>
-                <span class="meta-item">⏱ 烹饪时间：${r.cook_time}分钟</span>
-                ${r.is_favorited ? '<span class="meta-item" style="background:#FFF3E0;color:#E65100;">⭐ 已收藏</span>' : ''}
+        const r = res.data;
+        document.getElementById('detailTitle').textContent = `🍳 ${r.name}`;
+        document.getElementById('detailBody').innerHTML = `
+            <div class="detail-section">
+                <div class="detail-meta-row">
+                    <span class="meta-item ${getDifficultyClass(r.difficulty)}">难度：${escapeHtml(r.difficulty)}</span>
+                    <span class="meta-item">⏱ 烹饪时间：${r.cook_time}分钟</span>
+                    ${r.is_favorited ? '<span class="meta-item" style="background:#FFF3E0;color:#E65100;">⭐ 已收藏</span>' : ''}
+                </div>
+                <div class="recipe-tags">
+                    ${(r.tags || []).map(t => `<span class="ingredient-tag">#${escapeHtml(t)}</span>`).join('')}
+                </div>
             </div>
-            <div class="recipe-tags">
-                ${(r.tags || []).map(t => `<span class="ingredient-tag">#${escapeHtml(t)}</span>`).join('')}
+            <div class="detail-section">
+                <h3>🥬 所需食材</h3>
+                <table class="detail-ingredients-table">
+                    <tbody>
+                        ${(r.ingredients || []).map(i => `
+                            <tr>
+                                <td>${escapeHtml(i.name)}</td>
+                                <td>${escapeHtml(i.amount || '-')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="detail-section">
-            <h3>🥬 所需食材</h3>
-            <table class="detail-ingredients-table">
-                <tbody>
-                    ${(r.ingredients || []).map(i => `
-                        <tr>
-                            <td>${escapeHtml(i.name)}</td>
-                            <td>${escapeHtml(i.amount || '-')}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-        <div class="detail-section">
-            <h3>👨‍🍳 烹饪步骤</h3>
-            <ol class="detail-steps-list">
-                ${(r.steps || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}
-            </ol>
-        </div>
-        <div class="detail-actions">
-            <button class="btn btn-light" onclick="closeDetailModal(); editRecipe(${r.id});">✏️ 编辑</button>
-            <button class="btn btn-warm" onclick="closeDetailModal(); addToShopping(${r.id});">🛒 加入购物清单</button>
-            <button class="btn btn-primary" onclick="closeDetailModal(); toggleFavorite(${r.id}, null); showRecipeDetail(${r.id});">
-                ${r.is_favorited ? '💔 取消收藏' : '⭐ 收藏菜谱'}
-            </button>
-        </div>
-    `;
-    document.getElementById('recipeDetailModal').classList.add('active');
+            <div class="detail-section">
+                <h3>👨‍🍳 烹饪步骤</h3>
+                <ol class="detail-steps-list">
+                    ${(r.steps || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                </ol>
+            </div>
+            <div class="detail-actions">
+                <button class="btn btn-light" onclick="closeDetailModal(); editRecipe(${r.id});">✏️ 编辑</button>
+                <button class="btn btn-warm" onclick="closeDetailModal(); addToShopping(${r.id});">🛒 加入购物清单</button>
+                <button class="btn btn-primary" onclick="closeDetailModal(); toggleFavorite(${r.id}, null); setTimeout(() => showRecipeDetail(${r.id}), 100);">
+                    ${r.is_favorited ? '💔 取消收藏' : '⭐ 收藏菜谱'}
+                </button>
+            </div>
+        `;
+        document.getElementById('recipeDetailModal').classList.add('active');
+    } catch (e) {}
 }
 
 function closeDetailModal() {
@@ -430,59 +577,61 @@ async function doSearchByIngredients() {
         return showToast('请至少添加一个食材', 'warning');
     }
 
-    const res = await api(`${API_BASE}/searchbyingredients/post`, {
-        method: 'POST',
-        body: JSON.stringify({ ingredients: state.searchIngredients })
-    });
+    try {
+        const res = await api(`${API_BASE}/searchbyingredients`, {
+            method: 'POST',
+            body: JSON.stringify({ ingredients: state.searchIngredients })
+        });
 
-    if (res.code !== 0) {
-        showToast(res.message, 'error');
-        return;
-    }
+        if (res.code !== 0) {
+            showToast(res.message, 'error');
+            return;
+        }
 
-    const results = res.data.results;
-    const container = document.getElementById('searchResults');
-    const list = document.getElementById('searchResultsList');
-    container.style.display = 'block';
+        const results = res.data.results;
+        const container = document.getElementById('searchResults');
+        const list = document.getElementById('searchResultsList');
+        container.style.display = 'block';
 
-    if (!results || results.length === 0) {
-        list.innerHTML = `
-            <div style="padding:30px;text-align:center;color:var(--text-medium);background:rgba(255,255,255,0.6);border-radius:10px;">
-                <div style="font-size:2.5em;margin-bottom:10px;">😕</div>
-                没有找到匹配的菜谱，试试录入新菜谱吧！
-            </div>
-        `;
-        return;
-    }
+        if (!results || results.length === 0) {
+            list.innerHTML = `
+                <div style="padding:30px;text-align:center;color:var(--text-medium);background:rgba(255,255,255,0.6);border-radius:10px;">
+                    <div style="font-size:2.5em;margin-bottom:10px;">😕</div>
+                    没有找到匹配的菜谱，试试录入新菜谱吧！
+                </div>
+            `;
+            return;
+        }
 
-    list.innerHTML = results.map(r => {
-        const pct = r.match_percentage;
-        const cls = getMatchClass(pct);
-        return `
-            <div class="search-result-card" onclick="closeIngredientSearch(); showRecipeDetail(${r.id});" style="cursor:pointer;">
-                <div class="search-result-header">
-                    <span class="search-result-name">${escapeHtml(r.name)}</span>
-                    <div class="match-percent-bar ${cls}">
-                        <span class="match-color-block"></span>
-                        ${pct}%
+        list.innerHTML = results.map(r => {
+            const pct = r.match_percentage;
+            const cls = getMatchClass(pct);
+            return `
+                <div class="search-result-card" onclick="closeIngredientSearch(); showRecipeDetail(${r.id});" style="cursor:pointer;">
+                    <div class="search-result-header">
+                        <span class="search-result-name">${escapeHtml(r.name)}</span>
+                        <div class="match-percent-bar ${cls}">
+                            <span class="match-color-block"></span>
+                            ${pct}%
+                        </div>
+                    </div>
+                    <div class="search-result-meta">
+                        <span class="meta-item ${getDifficultyClass(r.difficulty)}">${escapeHtml(r.difficulty)}</span>
+                        <span class="meta-item">⏱ ${r.cook_time}分钟</span>
+                        <span class="meta-item" style="background:#E3F2FD;color:#1565C0;">
+                            匹配 ${r.match_count}/${r.total_ingredients} 样
+                        </span>
+                    </div>
+                    <div class="match-bar-outer">
+                        <div class="match-bar-inner ${cls}-bar" style="width:${pct}%; background:${pct >= 70 ? '#4CAF50' : pct >= 40 ? '#FF9800' : '#F44336'};"></div>
+                    </div>
+                    <div class="match-info">
+                        ${(r.tags || []).map(t => `<span class="ingredient-tag" style="margin-right:4px;">#${escapeHtml(t)}</span>`).join('')}
                     </div>
                 </div>
-                <div class="search-result-meta">
-                    <span class="meta-item ${getDifficultyClass(r.difficulty)}">${escapeHtml(r.difficulty)}</span>
-                    <span class="meta-item">⏱ ${r.cook_time}分钟</span>
-                    <span class="meta-item" style="background:#E3F2FD;color:#1565C0;">
-                        匹配 ${r.match_count}/${r.total_ingredients} 样
-                    </span>
-                </div>
-                <div class="match-bar-outer">
-                    <div class="match-bar-inner ${cls}-bar" style="width:${pct}%; background:${pct >= 70 ? '#4CAF50' : pct >= 40 ? '#FF9800' : '#F44336'};"></div>
-                </div>
-                <div class="match-info">
-                    ${(r.tags || []).map(t => `<span class="ingredient-tag" style="margin-right:4px;">#${escapeHtml(t)}</span>`).join('')}
-                </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    } catch (e) {}
 }
 
 function openShoppingList() {
@@ -550,44 +699,46 @@ async function generateShoppingList() {
         return showToast('请先选择要做的菜', 'warning');
     }
 
-    const res = await api(`${API_BASE}/shoppinglist/post`, {
-        method: 'POST',
-        body: JSON.stringify({ recipe_ids: state.shoppingSelectedIds })
-    });
+    try {
+        const res = await api(`${API_BASE}/shoppinglist`, {
+            method: 'POST',
+            body: JSON.stringify({ recipe_ids: state.shoppingSelectedIds })
+        });
 
-    if (res.code !== 0) {
-        showToast(res.message, 'error');
-        return;
-    }
+        if (res.code !== 0) {
+            showToast(res.message, 'error');
+            return;
+        }
 
-    const { recipes, shopping_list } = res.data;
-    const container = document.getElementById('shoppingResultList');
-    document.getElementById('shoppingSelection').style.display = 'none';
-    document.getElementById('shoppingResult').style.display = 'block';
+        const { recipes, shopping_list } = res.data;
+        const container = document.getElementById('shoppingResultList');
+        document.getElementById('shoppingSelection').style.display = 'none';
+        document.getElementById('shoppingResult').style.display = 'block';
 
-    const recipesText = recipes.map(r => `• ${r.name}`).join('\n');
-    const listText = shopping_list.map(item => {
-        const amounts = item.amounts.length ? ` (${item.amounts.join(' + ')})` : '';
-        return `□ ${item.name}${amounts}`;
-    }).join('\n');
-    window._shoppingClipboard = `准备做：\n${recipesText}\n\n购物清单：\n${listText}`;
+        const recipesText = recipes.map(r => `• ${r.name}`).join('\n');
+        const listText = shopping_list.map(item => {
+            const amounts = item.amounts.length ? ` (${item.amounts.join(' + ')})` : '';
+            return `□ ${item.name}${amounts}`;
+        }).join('\n');
+        window._shoppingClipboard = `准备做：\n${recipesText}\n\n购物清单：\n${listText}`;
 
-    container.innerHTML = `
-        <div style="margin-bottom:14px;padding:10px 14px;background:rgba(255,248,220,0.6);border-radius:8px;font-size:0.92em;">
-            <div style="font-weight:600;color:var(--primary-dark);margin-bottom:4px;">🥘 准备做的菜：</div>
-            ${recipes.map(r => `<div style="padding:2px 0;color:var(--text-dark);">• ${escapeHtml(r.name)}</div>`).join('')}
-        </div>
-        <div style="margin-bottom:8px;color:var(--text-medium);font-size:0.9em;">共需 ${shopping_list.length} 样食材：</div>
-        ${shopping_list.map(item => `
-            <div class="shopping-item">
-                <span class="shopping-item-name">${escapeHtml(item.name)}</span>
-                <div class="shopping-item-amounts">
-                    ${item.amounts.map(a => `<span class="shopping-amount-tag">${escapeHtml(a)}</span>`).join('')}
-                    ${item.recipe_count > 1 ? `<span class="shopping-amount-tag" style="background:#FFE0B2;color:#E65100;">×${item.recipe_count}道菜</span>` : ''}
-                </div>
+        container.innerHTML = `
+            <div style="margin-bottom:14px;padding:10px 14px;background:rgba(255,248,220,0.6);border-radius:8px;font-size:0.92em;">
+                <div style="font-weight:600;color:var(--primary-dark);margin-bottom:4px;">🥘 准备做的菜：</div>
+                ${recipes.map(r => `<div style="padding:2px 0;color:var(--text-dark);">• ${escapeHtml(r.name)}</div>`).join('')}
             </div>
-        `).join('')}
-    `;
+            <div style="margin-bottom:8px;color:var(--text-medium);font-size:0.9em;">共需 ${shopping_list.length} 样食材：</div>
+            ${shopping_list.map(item => `
+                <div class="shopping-item">
+                    <span class="shopping-item-name">${escapeHtml(item.name)}</span>
+                    <div class="shopping-item-amounts">
+                        ${item.amounts.map(a => `<span class="shopping-amount-tag">${escapeHtml(a)}</span>`).join('')}
+                        ${item.recipe_count > 1 ? `<span class="shopping-amount-tag" style="background:#FFE0B2;color:#E65100;">×${item.recipe_count}道菜</span>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    } catch (e) {}
 }
 
 function copyShoppingList() {
@@ -610,51 +761,8 @@ function backToShoppingSelect() {
     document.getElementById('shoppingResult').style.display = 'none';
 }
 
-function setupEventListeners() {
-    document.getElementById('btnAddRecipe').onclick = openRecipeModal;
-    document.getElementById('btnSearchIngredients').onclick = openIngredientSearch;
-    document.getElementById('btnShoppingList').onclick = openShoppingList;
-    document.getElementById('btnShowFavorites').onclick = () => { state.currentView = 'favorites'; loadFavorites().then(renderRecipesGrid); };
-    document.getElementById('btnShowAll').onclick = () => { state.currentView = 'all'; loadRecipes(); };
-
-    document.getElementById('closeRecipeModal').onclick = closeRecipeModal;
-    document.getElementById('btnCancelRecipe').onclick = closeRecipeModal;
-    document.getElementById('btnAddIngredient').onclick = () => addIngredientRow();
-    document.getElementById('btnAddStep').onclick = () => addStepRow();
-    document.getElementById('recipeForm').onsubmit = saveRecipe;
-
-    document.getElementById('closeIngredientSearchModal').onclick = closeIngredientSearch;
-    document.getElementById('btnAddSearchIngredient').onclick = addSearchIngredient;
-    document.getElementById('btnSearchRecipes').onclick = doSearchByIngredients;
-    document.getElementById('ingredientSearchInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); addSearchIngredient(); }
-    });
-
-    document.getElementById('closeShoppingModal').onclick = closeShoppingList;
-    document.getElementById('btnGenerateShoppingList').onclick = generateShoppingList;
-    document.getElementById('btnBackToSelect').onclick = backToShoppingSelect;
-    document.getElementById('btnCopyList').onclick = copyShoppingList;
-
-    document.getElementById('closeDetailModal').onclick = closeDetailModal;
-
-    document.getElementById('filterDifficulty').onchange = loadRecipes;
-    document.getElementById('filterTag').onchange = loadRecipes;
-    let searchTimer;
-    document.getElementById('searchKeyword').addEventListener('input', () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(loadRecipes, 300);
-    });
-
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', e => {
-            if (e.target === overlay) overlay.classList.remove('active');
-        });
-    });
-}
-
-async function seedSampleData() {
-    const res = await api(`${API_BASE}/get`);
-    if (res.code === 0 && res.data && res.data.length > 0) return;
+async function seedSampleDataIfEmpty() {
+    if (state.recipes && state.recipes.length > 0) return;
 
     const samples = [
         {
@@ -750,21 +858,87 @@ async function seedSampleData() {
         }
     ];
 
-    for (const sample of samples) {
-        await api(`${API_BASE}/set`, { method: 'POST', body: JSON.stringify(sample) });
-    }
-    showToast('已添加示例菜谱，可以开始使用啦！', 'success');
+    try {
+        for (const sample of samples) {
+            await api(`${API_BASE}/set`, { method: 'POST', body: JSON.stringify(sample) });
+        }
+        showToast('已为你添加5道示例菜谱，快试试吧！', 'success');
+        await loadAppData();
+    } catch (e) {}
+}
+
+function setupEventListeners() {
+    document.getElementById('btnAddRecipe').onclick = openRecipeModal;
+    document.getElementById('btnSearchIngredients').onclick = openIngredientSearch;
+    document.getElementById('btnShoppingList').onclick = openShoppingList;
+    document.getElementById('btnShowFavorites').onclick = () => { state.currentView = 'favorites'; loadFavorites().then(renderRecipesGrid); };
+    document.getElementById('btnShowAll').onclick = () => { state.currentView = 'all'; loadRecipes(); };
+
+    document.getElementById('closeRecipeModal').onclick = closeRecipeModal;
+    document.getElementById('btnCancelRecipe').onclick = closeRecipeModal;
+    document.getElementById('btnAddIngredient').onclick = () => addIngredientRow();
+    document.getElementById('btnAddStep').onclick = () => addStepRow();
+    document.getElementById('recipeForm').onsubmit = saveRecipe;
+
+    document.getElementById('closeIngredientSearchModal').onclick = closeIngredientSearch;
+    document.getElementById('btnAddSearchIngredient').onclick = addSearchIngredient;
+    document.getElementById('btnSearchRecipes').onclick = doSearchByIngredients;
+    document.getElementById('ingredientSearchInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addSearchIngredient(); }
+    });
+
+    document.getElementById('closeShoppingModal').onclick = closeShoppingList;
+    document.getElementById('btnGenerateShoppingList').onclick = generateShoppingList;
+    document.getElementById('btnBackToSelect').onclick = backToShoppingSelect;
+    document.getElementById('btnCopyList').onclick = copyShoppingList;
+
+    document.getElementById('closeDetailModal').onclick = closeDetailModal;
+
+    document.getElementById('filterDifficulty').onchange = loadRecipes;
+    document.getElementById('filterTag').onchange = loadRecipes;
+    let searchTimer;
+    document.getElementById('searchKeyword').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(loadRecipes, 300);
+    });
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!username || !password) {
+            showToast('请输入用户名和密码', 'warning');
+            return;
+        }
+        await doLogin(username, password);
+    });
+
+    document.getElementById('showRegister').addEventListener('click', async e => {
+        e.preventDefault();
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!username || !password) {
+            showToast('请输入用户名和密码再注册', 'warning');
+            return;
+        }
+        await doRegister(username, password);
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', doLogout);
 }
 
 async function init() {
     setupEventListeners();
-    await loadRecipes();
-    await loadFavorites();
-    if (state.recipes.length === 0) {
-        await seedSampleData();
-        await Promise.all([loadRecipes(), loadFavorites()]);
+    const authed = await checkAuth();
+    if (authed) {
+        await loadAppData();
     }
-    renderRecipesGrid();
 }
 
 window.addEventListener('DOMContentLoaded', init);

@@ -1,7 +1,8 @@
 from typing import Optional, List
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Header
 from pydantic import BaseModel, Field
 from app.business.recipes import RecipeBusiness
+from app.business.auth import AuthBusiness
 
 
 class IngredientItem(BaseModel):
@@ -43,34 +44,51 @@ class ToggleFavoriteRequest(BaseModel):
 class RecipesController:
     def __init__(self):
         self.business = RecipeBusiness()
+        self.auth_business = AuthBusiness()
 
-    def ActionRecipesGet(self, request: Request, id: Optional[int] = Query(None)):
-        """
-        获取菜谱详情或全部列表
-        GET /api/recipes/get
-        参数: id (可选) - 指定获取某条菜谱
-        """
+    def _get_user(self, request: Request, authorization: Optional[str] = None):
+        token = ''
+        if authorization and authorization.startswith('Bearer '):
+            token = authorization[7:]
+        
+        if not token:
+            token = request.query_params.get('token', '')
+
+        if not token:
+            return None
+
+        return self.auth_business.verify_token(token)
+
+    def ActionRecipesGet(self, request: Request, id: Optional[int] = Query(None),
+                          authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+
         if id:
-            return self.business.get_recipe(id)
-        return self.business.get_all_recipes()
+            return self.business.get_recipe(user['id'], id)
+        return self.business.get_all_recipes(user['id'])
 
     def ActionRecipesGetlist(self, request: Request,
                               difficulty: Optional[str] = Query(None),
                               tag: Optional[str] = Query(None),
-                              keyword: Optional[str] = Query(None)):
-        """
-        获取菜谱列表（支持按难度、标签、关键词筛选）
-        GET /api/recipes/getlist
-        """
-        return self.business.get_all_recipes(difficulty, tag, keyword)
+                              keyword: Optional[str] = Query(None),
+                              authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
 
-    def ActionRecipesSet(self, request: Request, body: RecipeCreateRequest):
-        """
-        创建菜谱
-        POST /api/recipes/set
-        """
+        return self.business.get_all_recipes(user['id'], difficulty, tag, keyword)
+
+    def ActionRecipesSet(self, request: Request, body: RecipeCreateRequest,
+                          authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+
         ingredients = [{'name': i.name, 'amount': i.amount} for i in body.ingredients]
         return self.business.create_recipe(
+            user_id=user['id'],
             name=body.name,
             difficulty=body.difficulty,
             cook_time=body.cook_time,
@@ -79,13 +97,15 @@ class RecipesController:
             ingredients=ingredients
         )
 
-    def ActionRecipesPut(self, request: Request, body: RecipeUpdateRequest):
-        """
-        更新菜谱
-        PUT /api/recipes/put
-        """
+    def ActionRecipesPut(self, request: Request, body: RecipeUpdateRequest,
+                          authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+
         ingredients = [{'name': i.name, 'amount': i.amount} for i in body.ingredients]
         return self.business.update_recipe(
+            user_id=user['id'],
             recipe_id=body.id,
             name=body.name,
             difficulty=body.difficulty,
@@ -95,47 +115,53 @@ class RecipesController:
             ingredients=ingredients
         )
 
-    def ActionRecipesDelete(self, request: Request, id: int = Query(..., ge=1)):
-        """
-        删除菜谱
-        DELETE /api/recipes/delete
-        """
-        return self.business.delete_recipe(id)
+    def ActionRecipesDelete(self, request: Request, id: int = Query(..., ge=1),
+                             authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
 
-    def ActionRecipesSearchbyingredientsPost(self, request: Request, body: SearchByIngredientsRequest):
-        """
-        按食材搜索菜谱（按匹配度排序）
-        POST /api/recipes/searchbyingredients/post
-        请求体: { ingredients: ["番茄", "鸡蛋"] }
-        """
-        return self.business.search_by_ingredients(body.ingredients)
+        return self.business.delete_recipe(user['id'], id)
 
-    def ActionRecipesShoppinglistPost(self, request: Request, body: GenerateShoppingListRequest):
-        """
-        生成购物清单（根据菜谱ID列表，汇总去重）
-        POST /api/recipes/shoppinglist/post
-        请求体: { recipe_ids: [1, 2, 3] }
-        """
-        return self.business.generate_shopping_list(body.recipe_ids)
+    def ActionRecipesSearchbyingredientsPost(self, request: Request,
+                                              body: SearchByIngredientsRequest,
+                                              authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
 
-    def ActionRecipesTogglefavoritePost(self, request: Request, body: ToggleFavoriteRequest):
-        """
-        收藏/取消收藏菜谱
-        POST /api/recipes/togglefavorite/post
-        请求体: { recipe_id: 1 }
-        """
-        return self.business.toggle_favorite(body.recipe_id)
+        return self.business.search_by_ingredients(user['id'], body.ingredients)
 
-    def ActionRecipesGetfavoritesGet(self, request: Request):
-        """
-        获取收藏列表
-        GET /api/recipes/getfavorites/get
-        """
-        return self.business.get_favorites()
+    def ActionRecipesShoppinglistPost(self, request: Request,
+                                       body: GenerateShoppingListRequest,
+                                       authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
 
-    def ActionRecipesGetallingredientsGet(self, request: Request):
-        """
-        获取所有已录入的食材名称（用于自动补全）
-        GET /api/recipes/getallingredients/get
-        """
-        return self.business.get_all_ingredient_names()
+        return self.business.generate_shopping_list(user['id'], body.recipe_ids)
+
+    def ActionRecipesTogglefavoritePost(self, request: Request,
+                                         body: ToggleFavoriteRequest,
+                                         authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+
+        return self.business.toggle_favorite(user['id'], body.recipe_id)
+
+    def ActionRecipesGetfavoritesGet(self, request: Request,
+                                      authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+
+        return self.business.get_favorites(user['id'])
+
+    def ActionRecipesGetallingredientsGet(self, request: Request,
+                                           authorization: Optional[str] = Header(None)):
+        user = self._get_user(request, authorization)
+        if not user:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+
+        return self.business.get_all_ingredient_names(user['id'])

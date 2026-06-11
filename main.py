@@ -23,6 +23,14 @@ def migrate_database():
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
 
+    migrated_recipes = RecipeModel.migrate_add_user_id()
+    if migrated_recipes:
+        print("  - Migrated recipes: added user_id column")
+
+    migrated_favorites = FavoriteModel.migrate_add_user_id()
+    if migrated_favorites:
+        print("  - Migrated favorites: added user_id column")
+
 
 def init_database():
     db = get_db()
