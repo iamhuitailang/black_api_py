@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的厨房菜谱本</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <header class="kitchen-header">
+            <h1>🍳 我的厨房菜谱本</h1>
+            <p class="subtitle">记录每一道美味，发掘食材新搭配</p>
+        </header>
+
+        <div class="action-bar">
+            <button class="btn btn-primary" id="btnAddRecipe">
+                <span class="icon">📝</span> 录入新菜谱
+            </button>
+            <button class="btn btn-secondary" id="btnSearchIngredients">
+                <span class="icon">🔍</span> 食材匹配
+            </button>
+            <button class="btn btn-accent" id="btnShoppingList">
+                <span class="icon">🛒</span> 购物清单
+                <span class="badge" id="shoppingBadge">0</span>
+            </button>
+            <button class="btn btn-warm" id="btnShowFavorites">
+                <span class="icon">⭐</span> 我的收藏
+            </button>
+            <button class="btn btn-light" id="btnShowAll" style="display:none;">
+                <span class="icon">📚</span> 全部菜谱
+            </button>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label>难度:</label>
+                <select id="filterDifficulty">
+                    <option value="">全部</option>
+                    <option value="简单">简单</option>
+                    <option value="中等">中等</option>
+                    <option value="复杂">复杂</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>标签:</label>
+                <select id="filterTag">
+                    <option value="">全部</option>
+                    <option value="家常菜">家常菜</option>
+                    <option value="快手菜">快手菜</option>
+                    <option value="硬菜">硬菜</option>
+                    <option value="甜品">甜品</option>
+                    <option value="汤">汤</option>
+                </select>
+            </div>
+            <div class="filter-group search-group">
+                <input type="text" id="searchKeyword" placeholder="搜索菜名...">
+            </div>
+        </div>
+
+        <div class="section-title" id="sectionTitle">
+            <h2>📖 全部菜谱</h2>
+        </div>
+
+        <div class="recipes-grid" id="recipesGrid">
+            <div class="empty-state">
+                <div class="empty-icon">🍽️</div>
+                <p>还没有菜谱，点击"录入新菜谱"开始吧！</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="recipeModal">
+        <div class="modal recipe-form-modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">📝 录入新菜谱</h2>
+                <button class="close-btn" id="closeRecipeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="recipeForm">
+                    <input type="hidden" id="recipeId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>菜名 *</label>
+                            <input type="text" id="recipeName" required placeholder="例如: 番茄炒蛋">
+                        </div>
+                        <div class="form-group">
+                            <label>难度 *</label>
+                            <select id="recipeDifficulty" required>
+                                <option value="简单">简单</option>
+                                <option value="中等">中等</option>
+                                <option value="复杂">复杂</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>烹饪时间(分钟) *</label>
+                            <input type="number" id="recipeCookTime" min="0" value="15" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>标签 (可多选)</label>
+                        <div class="tag-checkboxes" id="tagCheckboxes">
+                            <label><input type="checkbox" value="家常菜"> 家常菜</label>
+                            <label><input type="checkbox" value="快手菜"> 快手菜</label>
+                            <label><input type="checkbox" value="硬菜"> 硬菜</label>
+                            <label><input type="checkbox" value="甜品"> 甜品</label>
+                            <label><input type="checkbox" value="汤"> 汤</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>食材列表 *</label>
+                        <div id="ingredientsList">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light" id="btnAddIngredient">
+                            + 添加食材
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>步骤 * (分步描述)</label>
+                        <div id="stepsList">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light" id="btnAddStep">
+                            + 添加步骤
+                        </button>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="btnCancelRecipe">取消</button>
+                        <button type="submit" class="btn btn-primary" id="btnSaveRecipe">保存菜谱</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="ingredientSearchModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🔍 食材匹配推荐</h2>
+                <button class="close-btn" id="closeIngredientSearchModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-ingredients-section">
+                    <p class="hint">输入你现有的食材，系统会推荐能做的菜（按匹配度排序）</p>
+                    <div class="ingredient-input-group">
+                        <input type="text" id="ingredientSearchInput" placeholder="输入食材名称，回车添加...">
+                        <button class="btn btn-primary btn-sm" id="btnAddSearchIngredient">添加</button>
+                    </div>
+                    <div class="added-ingredients" id="addedSearchIngredients"></div>
+                    <button class="btn btn-primary btn-block" id="btnSearchRecipes">开始匹配推荐</button>
+                </div>
+                <div class="search-results-section" id="searchResults" style="display:none;">
+                    <h3>匹配结果</h3>
+                    <div id="searchResultsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shoppingListModal">
+        <div class="modal shopping-modal">
+            <div class="modal-header">
+                <h2>🛒 购物清单</h2>
+                <button class="close-btn" id="closeShoppingModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="shopping-selection" id="shoppingSelection">
+                    <p class="hint">选择想做的菜，一键汇总去重你缺的食材</p>
+                    <div id="shoppingRecipeList"></div>
+                    <button class="btn btn-accent btn-block" id="btnGenerateShoppingList">生成购物清单</button>
+                </div>
+                <div class="shopping-result" id="shoppingResult" style="display:none;">
+                    <div class="shopping-result-header">
+                        <h3>需要购买的食材</h3>
+                        <button class="btn btn-secondary btn-sm" id="btnBackToSelect">重新选择</button>
+                    </div>
+                    <div id="shoppingResultList"></div>
+                    <button class="btn btn-primary btn-block" id="btnCopyList">📋 复制清单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="recipeDetailModal">
+        <div class="modal detail-modal">
+            <div class="modal-header">
+                <h2 id="detailTitle">菜谱详情</h2>
+                <button class="close-btn" id="closeDetailModal">&times;</button>
+            </div>
+            <div class="modal-body" id="detailBody"></div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
