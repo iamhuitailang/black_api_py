@@ -870,7 +870,13 @@ class Game {
             document.getElementById('continuePrompt').classList.add('hidden');
             document.getElementById('startPrompt').classList.add('hidden');
             this.isRunning = true;
-            this.spawnEntities();
+            this.player.isOnGround = this.player.y >= CONFIG.GROUND_Y - CONFIG.PLAYER_HEIGHT - 2;
+            if (this.player.isOnGround) {
+                this.player.isJumping = false;
+                this.player.isBall = false;
+                this.player.vy = 0;
+            }
+            this.render();
         }
     }
 
@@ -981,14 +987,25 @@ class Game {
             distance: this.distance,
             score: this.score,
             ringsCollected: this.ringsCollected,
-            lives: this.player.lives,
             speed: this.speed,
-            terrainIndex: this.terrainManager.currentIndex,
-            playerY: this.player.y,
-            playerVy: this.player.vy,
-            playerIsJumping: this.player.isJumping,
             lastSpawnScreenX: this.lastSpawnScreenX,
-            invincibleTimer: this.player.invincibleTimer,
+            terrainIndex: this.terrainManager.currentTerrainIndex,
+            nextSwitchDistance: this.terrainManager.nextSwitchDistance,
+            isTransitioning: this.terrainManager.isTransitioning,
+            transitionProgress: this.terrainManager.transitionProgress,
+            player: {
+                y: this.player.y,
+                vy: this.player.vy,
+                isJumping: this.player.isJumping,
+                isOnGround: this.player.isOnGround,
+                isBall: this.player.isBall,
+                lives: this.player.lives,
+                invincibleTimer: this.player.invincibleTimer,
+                flashTimer: this.player.flashTimer,
+                runFrame: this.player.runFrame,
+                rotation: this.player.rotation,
+                jumpHoldTime: this.player.jumpHoldTime
+            },
             timestamp: Date.now()
         };
         
@@ -1017,22 +1034,39 @@ class Game {
             this.ringsCollected = state.ringsCollected;
             this.speed = state.speed;
             this.lastSpawnScreenX = state.lastSpawnScreenX || CONFIG.CANVAS_WIDTH + 100;
-            this.terrainManager.currentIndex = state.terrainIndex || 0;
-            this.player.lives = state.lives || CONFIG.INITIAL_LIVES;
-            this.player.y = state.playerY || CONFIG.GROUND_Y - CONFIG.PLAYER_HEIGHT;
-            this.player.vy = state.playerVy || 0;
-            this.player.isJumping = state.playerIsJumping || false;
-            this.player.invincibleTimer = state.invincibleTimer || 0;
+            
+            this.terrainManager.currentTerrainIndex = state.terrainIndex || 0;
+            this.terrainManager.currentTerrain = TERRAIN_TYPES[TERRAIN_ORDER[this.terrainManager.currentTerrainIndex]];
+            this.terrainManager.nextSwitchDistance = state.nextSwitchDistance || CONFIG.TERRAIN_SWITCH_DISTANCE;
+            this.terrainManager.isTransitioning = state.isTransitioning || false;
+            this.terrainManager.transitionProgress = state.transitionProgress || 0;
+            document.getElementById('terrainIndicator').querySelector('.terrain-name').textContent = this.terrainManager.currentTerrain.name;
+            
+            if (state.player) {
+                this.player.y = state.player.y;
+                this.player.vy = state.player.vy;
+                this.player.isJumping = state.player.isJumping;
+                this.player.isOnGround = state.player.isOnGround;
+                this.player.isBall = state.player.isBall;
+                this.player.lives = state.player.lives;
+                this.player.invincibleTimer = state.player.invincibleTimer;
+                this.player.flashTimer = state.player.flashTimer || 0;
+                this.player.runFrame = state.player.runFrame || 0;
+                this.player.rotation = state.player.rotation || 0;
+                this.player.jumpHoldTime = state.player.jumpHoldTime || 0;
+            }
             
             this.obstacles = [];
             this.rings = [];
             this.springs = [];
             this.stars = [];
+            this.particles = [];
             
             this.spawnEntities();
             
             this.updateHUD();
             this.updateHearts();
+            this.updatePowerupDisplay();
             
             return true;
         } catch (e) {
