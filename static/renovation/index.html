@@ -417,7 +417,7 @@ function showToast(msg,type='success'){
 
 async function apiCall(path,opts={}){
   try{
-    const url = API+path;
+    let url = API+path;
     const method = opts.method||'GET';
     const config = {method,headers:{'Content-Type':'application/json'}};
     if(opts.body) config.body=JSON.stringify(opts.body);
@@ -425,7 +425,7 @@ async function apiCall(path,opts={}){
       const qs = new URLSearchParams();
       for(const [k,v] of opts.params){if(v!==null&&v!==undefined) qs.append(k,v)}
       const suffix = qs.toString();
-      if(suffix) return fetch(url+'?'+suffix,config).then(r=>r.json());
+      if(suffix) url = url+'?'+suffix;
     }
     const res = await fetch(url,config);
     return await res.json();
@@ -494,7 +494,7 @@ async function updateRoomStatus(room,event){
 
 async function deleteRoom(id){
   if(!confirm('确定删除该房间？关联花销不会被删除。')) return;
-  const res = await apiCall('/room/delete',{params:[['id',id]]});
+  const res = await apiCall('/room/delete',{method:'DELETE',params:[['id',id]]});
   if(res.code===0){showToast('房间已删除');await loadAll()}
   else{showToast(res.message,'error')}
 }
@@ -531,7 +531,7 @@ async function saveExpense(){
 
 async function deleteExpense(id){
   if(!confirm('确定删除该花销记录？')) return;
-  const res = await apiCall('/expense/delete',{params:[['id',id]]});
+  const res = await apiCall('/expense/delete',{method:'DELETE',params:[['id',id]]});
   if(res.code===0){showToast('花销已删除');await loadAll()}
   else{showToast(res.message,'error')}
 }
