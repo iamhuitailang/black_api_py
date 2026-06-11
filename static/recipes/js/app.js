@@ -2,6 +2,7 @@ const API_BASE = '/api/recipes';
 const AUTH_BASE = '/api/auth';
 const TOKEN_KEY = 'recipe_app_token';
 const USER_KEY = 'recipe_app_user';
+const DRAFT_KEY = 'recipe_app_draft';
 
 const state = {
     recipes: [],
@@ -319,6 +320,7 @@ function renderRecipesGrid() {
 
 function openRecipeModal() {
     state.editingId = null;
+    clearFormDraft();
     document.getElementById('modalTitle').textContent = '📝 录入新菜谱';
     document.getElementById('recipeForm').reset();
     document.getElementById('recipeId').value = '';
@@ -340,6 +342,7 @@ function openRecipeModal() {
 
 function closeRecipeModal() {
     document.getElementById('recipeModal').classList.remove('active');
+    clearFormDraft();
 }
 
 function addIngredientRow(name = '', amount = '') {
@@ -396,6 +399,81 @@ function collectFormData() {
     return { name, difficulty, cook_time, tags, ingredients, steps };
 }
 
+function saveFormDraft() {
+    const data = collectFormData();
+    const editingId = document.getElementById('recipeId').value;
+    const draft = {
+        editingId: editingId || null,
+        ...data,
+        savedAt: Date.now()
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function clearFormDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+}
+
+function getFormDraft() {
+    try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+function applyDraftToForm(draft) {
+    document.getElementById('recipeId').value = draft.editingId || '';
+    document.getElementById('modalTitle').textContent = draft.editingId ? '✏️ 编辑菜谱（恢复草稿）' : '📝 录入新菜谱（恢复草稿）';
+    document.getElementById('recipeName').value = draft.name || '';
+    document.getElementById('recipeDifficulty').value = draft.difficulty || '简单';
+    document.getElementById('recipeCookTime').value = draft.cook_time || 15;
+
+    document.querySelectorAll('#tagCheckboxes input').forEach(cb => {
+        cb.checked = (draft.tags || []).includes(cb.value);
+    });
+
+    document.getElementById('ingredientsList').innerHTML = '';
+    (draft.ingredients || []).forEach(ing => addIngredientRow(ing.name, ing.amount));
+    if (!draft.ingredients || draft.ingredients.length === 0) {
+        addIngredientRow();
+        addIngredientRow();
+    }
+
+    document.getElementById('stepsList').innerHTML = '';
+    (draft.steps || []).forEach(s => addStepRow(s));
+    if (!draft.steps || draft.steps.length === 0) {
+        addStepRow();
+        addStepRow();
+    }
+
+    state.editingId = draft.editingId ? parseInt(draft.editingId) : null;
+}
+
+async function restoreDraftIfExists() {
+    const draft = getFormDraft();
+    if (!draft) return false;
+    const hasContent = draft.name || (draft.ingredients && draft.ingredients.some(i => i.name)) || (draft.steps && draft.steps.some(s => s));
+    if (!hasContent) {
+        clearFormDraft();
+        return false;
+    }
+    if (!confirm('检测到上次未完成的菜谱草稿，是否恢复？')) {
+        clearFormDraft();
+        return false;
+    }
+    applyDraftToForm(draft);
+    document.getElementById('recipeModal').classList.add('active');
+    return true;
+}
+
+let _draftTimer = null;
+function scheduleSaveDraft() {
+    clearTimeout(_draftTimer);
+    _draftTimer = setTimeout(saveFormDraft, 300);
+}
+
 async function saveRecipe(e) {
     e.preventDefault();
     const data = collectFormData();
@@ -417,6 +495,7 @@ async function saveRecipe(e) {
             });
             if (res.code === 0) {
                 showToast('更新成功！', 'success');
+                clearFormDraft();
                 closeRecipeModal();
                 await loadAppData();
             } else {
@@ -429,6 +508,7 @@ async function saveRecipe(e) {
             });
             if (res.code === 0) {
                 showToast('菜谱创建成功！', 'success');
+                clearFormDraft();
                 closeRecipeModal();
                 await loadAppData();
             } else {
@@ -948,9 +1028,19 @@ function setupEventListeners() {
 
     document.getElementById('closeRecipeModal').onclick = closeRecipeModal;
     document.getElementById('btnCancelRecipe').onclick = closeRecipeModal;
-    document.getElementById('btnAddIngredient').onclick = () => addIngredientRow();
-    document.getElementById('btnAddStep').onclick = () => addStepRow();
+    document.getElementById('btnAddIngredient').onclick = () => { addIngredientRow(); scheduleSaveDraft(); };
+    document.getElementById('btnAddStep').onclick = () => { addStepRow(); scheduleSaveDraft(); };
     document.getElementById('recipeForm').onsubmit = saveRecipe;
+
+    document.getElementById('recipeForm').addEventListener('input', () => {
+        scheduleSaveDraft();
+    });
+    document.getElementById('ingredientsList').addEventListener('click', e => {
+        if (e.target.classList.contains('remove-btn')) scheduleSaveDraft();
+    });
+    document.getElementById('stepsList').addEventListener('click', e => {
+        if (e.target.classList.contains('remove-btn')) scheduleSaveDraft();
+    });
 
     document.getElementById('closeIngredientSearchModal').onclick = closeIngredientSearch;
     document.getElementById('btnAddSearchIngredient').onclick = addSearchIngredient;
@@ -1010,6 +1100,7 @@ async function init() {
     const authed = await checkAuth();
     if (authed) {
         await loadAppData();
+        await restoreDraftIfExists();
     }
 }
 
