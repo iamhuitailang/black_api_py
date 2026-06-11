@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>装修记账管家</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#FBF8F3;--card:#FFFFFF;--primary:#C4956A;--primary-light:#E8D5C0;--primary-dark:#A07850;--text:#5D4E37;--text-light:#8B7D6B;--text-muted:#B5A99A;--border:#E8DDD0;--success:#7DB87D;--warning:#E8B86D;--danger:#D47878;--info:#7DAADB;--shadow:0 2px 12px rgba(139,125,107,0.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app-container{max-width:1200px;margin:0 auto;padding:20px}
+.header{background:linear-gradient(135deg,#C4956A 0%,#A07850 100%);color:#fff;border-radius:16px;padding:24px 32px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(196,149,106,0.3)}
+.header h1{font-size:24px;font-weight:700;letter-spacing:1px}
+.header-sub{font-size:13px;opacity:0.85;margin-top:4px}
+.nav-bar{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.nav-btn{padding:10px 20px;border:2px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);cursor:pointer;font-size:14px;font-weight:500;transition:all 0.2s}
+.nav-btn:hover{border-color:var(--primary);color:var(--primary)}
+.nav-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.page-section{animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.budget-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.budget-card{background:var(--card);border-radius:14px;padding:24px;text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.budget-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.budget-card.total::before{background:var(--primary)}
+.budget-card.spent::before{background:var(--warning)}
+.budget-card.remain::before{background:var(--success)}
+.budget-label{font-size:13px;color:var(--text-light);margin-bottom:8px}
+.budget-value{font-size:32px;font-weight:800}
+.budget-card.total .budget-value{color:var(--primary)}
+.budget-card.spent .budget-value{color:var(--warning)}
+.budget-card.remain .budget-value{color:var(--success)}
+.budget-card.remain .budget-value.negative{color:var(--danger)}
+.budget-bar{height:8px;background:var(--border);border-radius:4px;margin-top:12px;overflow:hidden}
+.budget-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease}
+.budget-bar-fill.normal{background:linear-gradient(90deg,var(--success),#A8D8A8)}
+.budget-bar-fill.warning{background:linear-gradient(90deg,var(--warning),#F0D090)}
+.budget-bar-fill.danger{background:linear-gradient(90deg,var(--danger),#E8A0A0)}
+.card{background:var(--card);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title .icon{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:16px}
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.room-card{background:var(--card);border-radius:14px;padding:20px;box-shadow:var(--shadow);border-left:4px solid var(--text-muted);transition:transform 0.2s}
+.room-card:hover{transform:translateY(-2px)}
+.room-card.not_started{border-left-color:var(--text-muted)}
+.room-card.in_progress{border-left-color:var(--warning)}
+.room-card.completed{border-left-color:var(--success)}
+.room-name{font-size:16px;font-weight:700;margin-bottom:8px}
+.room-status{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.room-status.not_started{background:#F0ECE7;color:var(--text-light)}
+.room-status.in_progress{background:#FFF3E0;color:#E8A030}
+.room-status.completed{background:#E8F5E9;color:#5D9E5D}
+.room-budget{font-size:13px;color:var(--text-light);margin-top:8px}
+.room-actions{display:flex;gap:8px;margin-top:12px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.progress-fill.not_started{background:var(--text-muted);width:0%}
+.progress-fill.in_progress{background:var(--warning)}
+.progress-fill.completed{background:var(--success);width:100%}
+.expense-list{display:flex;flex-direction:column;gap:12px}
+.expense-card{background:var(--card);border-radius:12px;padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;transition:transform 0.15s}
+.expense-card:hover{transform:translateX(4px)}
+.expense-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.expense-icon.硬装{background:#FFF3E0;color:#E8A030}
+.expense-icon.软装{background:#F3E5F5;color:#AB6FB0}
+.expense-icon.家电{background:#E3F2FD;color:#5B8FC9}
+.expense-icon.人工{background:#E8F5E9;color:#5D9E5D}
+.expense-icon.其他{background:#F5F5F5;color:var(--text-light)}
+.expense-info{flex:1;min-width:0}
+.expense-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.expense-meta{font-size:12px;color:var(--text-light);margin-top:3px}
+.expense-amount{font-size:18px;font-weight:800;color:var(--primary);flex-shrink:0}
+.expense-actions{display:flex;gap:4px;flex-shrink:0}
+.expense-img{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer}
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.2s;display:inline-flex;align-items:center;gap:4px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{background:#fff;color:var(--danger);border:1px solid var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;color:var(--text-light);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+.btn-success{background:var(--success);color:#fff}
+.filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-bar select,.filter-bar input{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);color:var(--text);outline:none;transition:border-color 0.2s}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--primary)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-light)}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text);outline:none;transition:border-color 0.2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(93,78,55,0.4);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn 0.2s}
+.modal{background:var(--card);border-radius:16px;padding:28px;width:90%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(93,78,55,0.2)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.chart-container{position:relative;height:300px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+.status-select{padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card);cursor:pointer;outline:none}
+@media(max-width:768px){
+.budget-overview{grid-template-columns:1fr}
+.charts-grid{grid-template-columns:1fr}
+.budget-value{font-size:24px}
+.header{padding:16px 20px}
+.header h1{font-size:18px}
+.expense-card{flex-wrap:wrap}
+.expense-actions{width:100%;justify-content:flex-end;margin-top:8px}
+}
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:10px;color:#fff;font-size:14px;z-index:2000;animation:slideIn 0.3s ease;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+.toast.success{background:var(--success)}
+.toast.error{background:var(--danger)}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.img-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:2000;cursor:pointer}
+.img-modal-overlay img{max-width:90%;max-height:90%;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.4)}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="app-container">
+<div class="header">
+<div>
+<h1>🏠 装修记账管家</h1>
+<div class="header-sub">每一笔都清清楚楚</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-primary" @click="showBudgetModal=true">设置预算</button>
+</div>
+</div>
+
+<div class="nav-bar">
+<button class="nav-btn" :class="{active:currentPage==='dashboard'}" @click="currentPage='dashboard'">📊 首页概览</button>
+<button class="nav-btn" :class="{active:currentPage==='rooms'}" @click="currentPage='rooms'">🚪 房间管理</button>
+<button class="nav-btn" :class="{active:currentPage==='expenses'}" @click="currentPage='expenses'">💰 花销记录</button>
+<button class="nav-btn" :class="{active:currentPage==='stats'}" @click="currentPage='stats'">📈 统计分析</button>
+</div>
+
+<div v-if="currentPage==='dashboard'" class="page-section">
+<div class="budget-overview">
+<div class="budget-card total">
+<div class="budget-label">总预算</div>
+<div class="budget-value">¥{{ formatMoney(budgetData.total_budget) }}</div>
+</div>
+<div class="budget-card spent">
+<div class="budget-label">已花费</div>
+<div class="budget-value">¥{{ formatMoney(budgetData.total_spent) }}</div>
+</div>
+<div class="budget-card remain">
+<div class="budget-label">剩余</div>
+<div class="budget-value" :class="{negative:budgetData.remaining<0}">¥{{ formatMoney(budgetData.remaining) }}</div>
+<div class="budget-bar">
+<div class="budget-bar-fill" :class="budgetBarClass" :style="{width:budgetBarWidth}"></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title"><span class="icon">🚪</span> 装修进度</div>
+<div class="room-grid" v-if="rooms.length">
+<div class="room-card" v-for="room in rooms" :key="room.id" :class="room.status">
+<div class="room-name">{{ room.name }}</div>
+<div class="room-status" :class="room.status">{{ statusLabel(room.status) }}</div>
+<div class="progress-bar"><div class="progress-fill" :class="room.status" :style="{width: progressWidth(room)}"></div></div>
+<div class="room-budget">预算: ¥{{ formatMoney(room.budget) }} | 花费: ¥{{ formatMoney(roomSpent(room.id)) }}</div>
+</div>
+</div>
+<div class="empty-state" v-else><div class="empty-icon">🏗️</div><p>还没有房间，去房间管理添加吧</p></div>
+</div>
+
+<div class="card">
+<div class="card-title"><span class="icon">💰</span> 最近花销</div>
+<div class="expense-list" v-if="recentExpenses.length">
+<div class="expense-card" v-for="exp in recentExpenses" :key="exp.id">
+<div class="expense-icon" :class="exp.category">{{ categoryIcon(exp.category) }}</div>
+<div class="expense-info">
+<div class="expense-title">{{ exp.room_name }} · {{ exp.category }}</div>
+<div class="expense-meta">{{ exp.date }} {{ exp.note ? '· '+exp.note : '' }}</div>
+</div>
+<div class="expense-amount">¥{{ formatMoney(exp.amount) }}</div>
+</div>
+</div>
+<div class="empty-state" v-else><div class="empty-icon">📝</div><p>还没有花销记录</p></div>
+</div>
+</div>
+
+<div v-if="currentPage==='rooms'" class="page-section">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<h3 style="font-size:18px;font-weight:700">房间管理</h3>
+<button class="btn btn-primary" @click="openRoomModal()">+ 添加房间</button>
+</div>
+<div class="room-grid" v-if="rooms.length">
+<div class="room-card" v-for="room in rooms" :key="room.id" :class="room.status">
+<div class="room-name">{{ room.name }}</div>
+<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+<span class="room-status" :class="room.status">{{ statusLabel(room.status) }}</span>
+<select class="status-select" :value="room.status" @change="updateRoomStatus(room,$event)">
+<option value="not_started">未开始</option>
+<option value="in_progress">进行中</option>
+<option value="completed">已完成</option>
+</select>
+</div>
+<div class="progress-bar"><div class="progress-fill" :class="room.status" :style="{width:progressWidth(room)}"></div></div>
+<div class="room-budget">预算: ¥{{ formatMoney(room.budget) }} | 已花: ¥{{ formatMoney(roomSpent(room.id)) }}</div>
+<div class="room-actions">
+<button class="btn btn-sm btn-primary" @click="openRoomModal(room)">编辑</button>
+<button class="btn btn-sm btn-danger" @click="deleteRoom(room.id)">删除</button>
+</div>
+</div>
+</div>
+<div class="card empty-state" v-else><div class="empty-icon">🏗️</div><p>还没有房间，点击右上角添加</p></div>
+</div>
+
+<div v-if="currentPage==='expenses'" class="page-section">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+<h3 style="font-size:18px;font-weight:700">花销记录</h3>
+<button class="btn btn-primary" @click="openExpenseModal()">+ 添加花销</button>
+</div>
+<div class="filter-bar">
+<select v-model="filterRoomId" @change="loadExpenses">
+<option :value="null">全部房间</option>
+<option v-for="room in rooms" :key="room.id" :value="room.id">{{ room.name }}</option>
+</select>
+<select v-model="filterCategory" @change="loadExpenses">
+<option :value="null">全部类别</option>
+<option value="硬装">硬装</option>
+<option value="软装">软装</option>
+<option value="家电">家电</option>
+<option value="人工">人工</option>
+<option value="其他">其他</option>
+</select>
+<input type="date" v-model="filterStartDate" @change="loadExpenses" placeholder="开始日期">
+<input type="date" v-model="filterEndDate" @change="loadExpenses" placeholder="结束日期">
+<button class="btn btn-sm btn-ghost" @click="clearFilters">清除筛选</button>
+</div>
+<div class="expense-list" v-if="expenses.length">
+<div class="expense-card" v-for="exp in expenses" :key="exp.id">
+<div class="expense-icon" :class="exp.category">{{ categoryIcon(exp.category) }}</div>
+<div class="expense-info">
+<div class="expense-title">{{ exp.room_name }} · {{ exp.category }}</div>
+<div class="expense-meta">{{ exp.date }} {{ exp.note ? '· '+exp.note : '' }}</div>
+</div>
+<img v-if="exp.image_url" :src="exp.image_url" class="expense-img" @click="previewImage=exp.image_url" alt="凭证">
+<div class="expense-amount">¥{{ formatMoney(exp.amount) }}</div>
+<div class="expense-actions">
+<button class="btn btn-sm btn-primary" @click="openExpenseModal(exp)">编辑</button>
+<button class="btn btn-sm btn-danger" @click="deleteExpense(exp.id)">删除</button>
+</div>
+</div>
+</div>
+<div class="card empty-state" v-else><div class="empty-icon">📝</div><p>没有符合条件的花销记录</p></div>
+</div>
+
+<div v-if="currentPage==='stats'" class="page-section">
+<div class="charts-grid">
+<div class="card">
+<div class="card-title"><span class="icon">🥧</span> 各房间花费占比</div>
+<div class="chart-container"><canvas ref="pieChart"></canvas></div>
+</div>
+<div class="card">
+<div class="card-title"><span class="icon">📊</span> 按类别花销对比</div>
+<div class="chart-container"><canvas ref="barChart"></canvas></div>
+</div>
+</div>
+<div class="card" style="margin-top:20px">
+<div class="card-title"><span class="icon">📋</span> 各房间明细</div>
+<table style="width:100%;border-collapse:collapse;font-size:14px" v-if="roomStats.length">
+<thead>
+<tr style="border-bottom:2px solid var(--border)">
+<th style="text-align:left;padding:10px">房间</th>
+<th style="text-align:left;padding:10px">状态</th>
+<th style="text-align:right;padding:10px">预算</th>
+<th style="text-align:right;padding:10px">已花</th>
+<th style="text-align:right;padding:10px">剩余</th>
+</tr>
+</thead>
+<tbody>
+<tr v-for="s in roomStats" :key="s.room_id" style="border-bottom:1px solid var(--border)">
+<td style="padding:10px;font-weight:600">{{ s.room_name }}</td>
+<td style="padding:10px"><span class="room-status" :class="s.status">{{ statusLabel(s.status) }}</span></td>
+<td style="padding:10px;text-align:right">¥{{ formatMoney(s.budget) }}</td>
+<td style="padding:10px;text-align:right;color:var(--primary)">¥{{ formatMoney(s.total_spent) }}</td>
+<td style="padding:10px;text-align:right" :style="{color:s.budget-s.total_spent<0?'var(--danger)':'var(--success)'}">¥{{ formatMoney(s.budget-s.total_spent) }}</td>
+</tr>
+</tbody>
+</table>
+<div class="empty-state" v-else><p>暂无数据</p></div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" v-if="showRoomModal" @click.self="showRoomModal=false">
+<div class="modal">
+<div class="modal-title">{{ editingRoom?'编辑房间':'添加房间' }}</div>
+<div class="form-group"><label>房间名称</label><input v-model="roomForm.name" placeholder="如：客厅、主卧"></div>
+<div class="form-group"><label>房间预算（元）</label><input type="number" v-model.number="roomForm.budget" placeholder="0" min="0"></div>
+<div class="form-group"><label>装修状态</label>
+<select v-model="roomForm.status"><option value="not_started">未开始</option><option value="in_progress">进行中</option><option value="completed">已完成</option></select>
+</div>
+<div class="modal-actions">
+<button class="btn btn-ghost" @click="showRoomModal=false">取消</button>
+<button class="btn btn-primary" @click="saveRoom">保存</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" v-if="showExpenseModal" @click.self="showExpenseModal=false">
+<div class="modal">
+<div class="modal-title">{{ editingExpense?'编辑花销':'添加花销' }}</div>
+<div class="form-group"><label>房间</label>
+<select v-model="expenseForm.room_id"><option v-for="room in rooms" :key="room.id" :value="room.id">{{ room.name }}</option></select>
+</div>
+<div class="form-group"><label>类别</label>
+<select v-model="expenseForm.category"><option value="硬装">硬装</option><option value="软装">软装</option><option value="家电">家电</option><option value="人工">人工</option><option value="其他">其他</option></select>
+</div>
+<div class="form-group"><label>金额（元）</label><input type="number" v-model.number="expenseForm.amount" placeholder="0.00" min="0" step="0.01"></div>
+<div class="form-group"><label>日期</label><input type="date" v-model="expenseForm.date"></div>
+<div class="form-group"><label>备注</label><textarea v-model="expenseForm.note" rows="2" placeholder="简要备注"></textarea></div>
+<div class="form-group"><label>凭证图片URL</label><input v-model="expenseForm.image_url" placeholder="https://..."></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" @click="showExpenseModal=false">取消</button>
+<button class="btn btn-primary" @click="saveExpense">保存</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" v-if="showBudgetModal" @click.self="showBudgetModal=false">
+<div class="modal">
+<div class="modal-title">设置总预算</div>
+<div class="form-group"><label>总预算金额（元）</label><input type="number" v-model.number="budgetForm.total_budget" placeholder="0" min="0"></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" @click="showBudgetModal=false">取消</button>
+<button class="btn btn-primary" @click="saveBudget">保存</button>
+</div>
+</div>
+</div>
+
+<div class="img-modal-overlay" v-if="previewImage" @click="previewImage=null">
+<img :src="previewImage" alt="凭证大图">
+</div>
+
+<div class="toast" v-if="toast.show" :class="toast.type">{{ toast.message }}</div>
+</div>
+
+<script>
+const {createApp,ref,reactive,computed,onMounted,watch,nextTick} = Vue;
+
+const API = '/api/renovation';
+
+createApp({
+setup(){
+const currentPage = ref('dashboard');
+const rooms = ref([]);
+const expenses = ref([]);
+const budgetData = reactive({total_budget:0,total_spent:0,remaining:0});
+const roomStats = ref([]);
+const categoryStats = ref([]);
+const showRoomModal = ref(false);
+const showExpenseModal = ref(false);
+const showBudgetModal = ref(false);
+const editingRoom = ref(null);
+const editingExpense = ref(null);
+const previewImage = ref(null);
+const toast = reactive({show:false,message:'',type:'success'});
+const pieChart = ref(null);
+const barChart = ref(null);
+let pieChartInstance = null;
+let barChartInstance = null;
+
+const filterRoomId = ref(null);
+const filterCategory = ref(null);
+const filterStartDate = ref(null);
+const filterEndDate = ref(null);
+
+const roomForm = reactive({name:'',status:'not_started',budget:0});
+const expenseForm = reactive({room_id:null,category:'硬装',amount:0,date:'',note:'',image_url:''});
+const budgetForm = reactive({total_budget:0});
+
+const categoryIcons = {'硬装':'🧱','软装':'🛋️','家电':'🔌','人工':'👷','其他':'📦'};
+const statusLabels = {'not_started':'未开始','in_progress':'进行中','completed':'已完成'};
+
+function formatMoney(v){return (v||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function statusLabel(s){return statusLabels[s]||s}
+function categoryIcon(c){return categoryIcons[c]||'📦'}
+function roomSpent(roomId){
+  const stats = roomStats.value.find(s=>s.room_id===roomId);
+  return stats?stats.total_spent:0;
+}
+function progressWidth(room){
+  if(room.status==='completed') return '100%';
+  if(room.status==='not_started') return '0%';
+  if(room.budget>0){
+    const spent = roomSpent(room.id);
+    return Math.min(100,Math.round(spent/room.budget*100))+'%';
+  }
+  return '50%';
+}
+
+const budgetBarWidth = computed(()=>{
+  if(budgetData.total_budget<=0) return '0%';
+  return Math.min(100,Math.round(budgetData.total_spent/budgetData.total_budget*100))+'%';
+});
+const budgetBarClass = computed(()=>{
+  if(budgetData.total_budget<=0) return 'normal';
+  const pct = budgetData.total_spent/budgetData.total_budget;
+  if(pct>=1) return 'danger';
+  if(pct>=0.8) return 'warning';
+  return 'normal';
+});
+
+const recentExpenses = computed(()=>expenses.value.slice(0,5));
+
+function showToast(msg,type='success'){
+  toast.message=msg;toast.type=type;toast.show=true;
+  setTimeout(()=>{toast.show=false},2000);
+}
+
+async function apiCall(path,opts={}){
+  try{
+    const url = API+path;
+    const method = opts.method||'GET';
+    const config = {method,headers:{'Content-Type':'application/json'}};
+    if(opts.body) config.body=JSON.stringify(opts.body);
+    if(opts.params){
+      const qs = new URLSearchParams();
+      for(const [k,v] of opts.params){if(v!==null&&v!==undefined) qs.append(k,v)}
+      const suffix = qs.toString();
+      if(suffix) return fetch(url+'?'+suffix,config).then(r=>r.json());
+    }
+    const res = await fetch(url,config);
+    return await res.json();
+  }catch(e){showToast('网络错误','error');return {code:1}}
+}
+
+async function loadBudget(){
+  const res = await apiCall('/budget/get');
+  if(res.code===0){Object.assign(budgetData,res.data)}
+}
+
+async function loadRooms(){
+  const res = await apiCall('/room/list/get');
+  if(res.code===0) rooms.value=res.data;
+}
+
+async function loadExpenses(){
+  const params = [['room_id',filterRoomId.value],['category',filterCategory.value],['start_date',filterStartDate.value],['end_date',filterEndDate.value]];
+  const res = await apiCall('/expense/list/get',{params});
+  if(res.code===0) expenses.value=res.data;
+}
+
+async function loadRoomStats(){
+  const res = await apiCall('/stats/room/get');
+  if(res.code===0) roomStats.value=res.data;
+}
+
+async function loadCategoryStats(){
+  const res = await apiCall('/stats/category/get');
+  if(res.code===0) categoryStats.value=res.data;
+}
+
+async function loadAll(){
+  await Promise.all([loadBudget(),loadRooms(),loadExpenses(),loadRoomStats(),loadCategoryStats()]);
+}
+
+function openRoomModal(room=null){
+  if(room){
+    editingRoom.value=room;
+    roomForm.name=room.name;roomForm.status=room.status;roomForm.budget=room.budget;
+  }else{
+    editingRoom.value=null;
+    roomForm.name='';roomForm.status='not_started';roomForm.budget=0;
+  }
+  showRoomModal.value=true;
+}
+
+async function saveRoom(){
+  if(!roomForm.name.trim()){showToast('请输入房间名称','error');return}
+  let res;
+  if(editingRoom.value){
+    res = await apiCall('/room/update',{method:'POST',body:{id:editingRoom.value.id,name:roomForm.name,status:roomForm.status,budget:roomForm.budget}});
+  }else{
+    res = await apiCall('/room/add',{method:'POST',body:{name:roomForm.name,status:roomForm.status,budget:roomForm.budget}});
+  }
+  if(res.code===0){showRoomModal.value=false;showToast(editingRoom.value?'房间已更新':'房间已添加');await loadAll()}
+  else{showToast(res.message,'error')}
+}
+
+async function updateRoomStatus(room,event){
+  const newStatus = event.target.value;
+  const res = await apiCall('/room/update',{method:'POST',body:{id:room.id,status:newStatus}});
+  if(res.code===0){showToast('状态已更新');await loadAll()}
+  else{showToast(res.message,'error')}
+}
+
+async function deleteRoom(id){
+  if(!confirm('确定删除该房间？关联花销不会被删除。')) return;
+  const res = await apiCall('/room/delete',{params:[['id',id]]});
+  if(res.code===0){showToast('房间已删除');await loadAll()}
+  else{showToast(res.message,'error')}
+}
+
+function openExpenseModal(exp=null){
+  if(exp){
+    editingExpense.value=exp;
+    expenseForm.room_id=exp.room_id;expenseForm.category=exp.category;
+    expenseForm.amount=exp.amount;expenseForm.date=exp.date;
+    expenseForm.note=exp.note||'';expenseForm.image_url=exp.image_url||'';
+  }else{
+    editingExpense.value=null;
+    expenseForm.room_id=rooms.value.length?rooms.value[0].id:null;
+    expenseForm.category='硬装';expenseForm.amount=0;
+    expenseForm.date=new Date().toISOString().slice(0,10);
+    expenseForm.note='';expenseForm.image_url='';
+  }
+  showExpenseModal.value=true;
+}
+
+async function saveExpense(){
+  if(!expenseForm.room_id){showToast('请选择房间','error');return}
+  if(expenseForm.amount<=0){showToast('金额必须大于0','error');return}
+  if(!expenseForm.date){showToast('请选择日期','error');return}
+  let res;
+  if(editingExpense.value){
+    res = await apiCall('/expense/update',{method:'POST',body:{id:editingExpense.value.id,room_id:expenseForm.room_id,category:expenseForm.category,amount:expenseForm.amount,date:expenseForm.date,note:expenseForm.note,image_url:expenseForm.image_url}});
+  }else{
+    res = await apiCall('/expense/add',{method:'POST',body:{room_id:expenseForm.room_id,category:expenseForm.category,amount:expenseForm.amount,date:expenseForm.date,note:expenseForm.note,image_url:expenseForm.image_url}});
+  }
+  if(res.code===0){showExpenseModal.value=false;showToast(editingExpense.value?'花销已更新':'花销已添加');await loadAll()}
+  else{showToast(res.message,'error')}
+}
+
+async function deleteExpense(id){
+  if(!confirm('确定删除该花销记录？')) return;
+  const res = await apiCall('/expense/delete',{params:[['id',id]]});
+  if(res.code===0){showToast('花销已删除');await loadAll()}
+  else{showToast(res.message,'error')}
+}
+
+async function saveBudget(){
+  if(budgetForm.total_budget<0){showToast('预算不能为负','error');return}
+  const res = await apiCall('/budget/set',{method:'POST',body:{total_budget:budgetForm.total_budget}});
+  if(res.code===0){showBudgetModal.value=false;showToast('预算已设置');await loadAll()}
+  else{showToast(res.message,'error')}
+}
+
+function clearFilters(){
+  filterRoomId.value=null;filterCategory.value=null;filterStartDate.value=null;filterEndDate.value=null;
+  loadExpenses();
+}
+
+const CHART_COLORS = ['#C4956A','#7DB87D','#7DAADB','#E8B86D','#D47878','#AB6FB0','#6BB5B5','#C4A06A'];
+
+function renderCharts(){
+  if(currentPage.value!=='stats') return;
+  nextTick(()=>{
+    if(pieChartInstance){pieChartInstance.destroy();pieChartInstance=null}
+    if(barChartInstance){barChartInstance.destroy();barChartInstance=null}
+    if(pieChart.value && roomStats.value.length){
+      const ctx = pieChart.value.getContext('2d');
+      pieChartInstance = new Chart(ctx,{
+        type:'doughnut',
+        data:{
+          labels:roomStats.value.map(s=>s.room_name),
+          datasets:[{data:roomStats.value.map(s=>s.total_spent),backgroundColor:CHART_COLORS.slice(0,roomStats.value.length),borderWidth:2,borderColor:'#fff'}]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{
+            legend:{position:'bottom',labels:{padding:12,usePointStyle:true,font:{size:12}}},
+            tooltip:{callbacks:{label:function(ctx){return ctx.label+': ¥'+(ctx.parsed||0).toLocaleString('zh-CN',{minimumFractionDigits:2})}}}
+          }
+        }
+      });
+    }
+    if(barChart.value && categoryStats.value.length){
+      const ctx = barChart.value.getContext('2d');
+      const catColors = {'硬装':'#E8A030','软装':'#AB6FB0','家电':'#5B8FC9','人工':'#5D9E5D','其他':'#B5A99A'};
+      barChartInstance = new Chart(ctx,{
+        type:'bar',
+        data:{
+          labels:categoryStats.value.map(s=>s.category),
+          datasets:[{
+            label:'花销金额',
+            data:categoryStats.value.map(s=>s.total_amount),
+            backgroundColor:categoryStats.value.map(s=>catColors[s.category]||'#C4956A'),
+            borderRadius:8,
+            maxBarThickness:48
+          }]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return '¥'+(ctx.parsed.y||0).toLocaleString('zh-CN',{minimumFractionDigits:2})}}}},
+          scales:{y:{beginAtZero:true,ticks:{callback:v=>'¥'+v.toLocaleString()},grid:{color:'#F0ECE7'}},x:{grid:{display:false}}}
+        }
+      });
+    }
+  });
+}
+
+watch(currentPage,(val)=>{
+  if(val==='stats'){nextTick(()=>renderCharts())}
+});
+
+watch(showBudgetModal,(val)=>{
+  if(val) budgetForm.total_budget=budgetData.total_budget;
+});
+
+onMounted(()=>{loadAll()});
+
+return {
+  currentPage,rooms,expenses,budgetData,roomStats,categoryStats,
+  showRoomModal,showExpenseModal,showBudgetModal,
+  editingRoom,editingExpense,previewImage,toast,
+  filterRoomId,filterCategory,filterStartDate,filterEndDate,
+  roomForm,expenseForm,budgetForm,
+  pieChart,barChart,recentExpenses,
+  budgetBarWidth,budgetBarClass,
+  formatMoney,statusLabel,categoryIcon,roomSpent,progressWidth,
+  loadAll,loadExpenses,
+  openRoomModal,saveRoom,updateRoomStatus,deleteRoom,
+  openExpenseModal,saveExpense,deleteExpense,
+  saveBudget,clearFilters
+};
+}
+}).mount('#app');
+</script>
+</body>
+</html>
