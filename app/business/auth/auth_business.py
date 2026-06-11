@@ -103,6 +103,13 @@ class AuthBusiness:
                 'message': '新密码长度至少6位',
                 'data': None
             }
+
+        if old_password == new_password:
+            return {
+                'code': 1,
+                'message': '新密码不能与原密码相同',
+                'data': None
+            }
         
         affected = self.user_model.update_password(user_id, new_password)
         if affected > 0:
