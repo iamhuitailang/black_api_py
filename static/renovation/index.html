@@ -598,6 +598,7 @@ function renderCharts(){
 }
 
 watch(currentPage,(val)=>{
+  localStorage.setItem('reno_currentPage', val);
   if(val==='stats'){nextTick(()=>renderCharts())}
 });
 
@@ -605,7 +606,70 @@ watch(showBudgetModal,(val)=>{
   if(val) budgetForm.total_budget=budgetData.total_budget;
 });
 
-onMounted(()=>{loadAll()});
+watch(showRoomModal,(val)=>{
+  localStorage.setItem('reno_showRoomModal', val?'1':'0');
+  if(!val){localStorage.removeItem('reno_roomDraft')}
+});
+
+watch(showExpenseModal,(val)=>{
+  localStorage.setItem('reno_showExpenseModal', val?'1':'0');
+  if(!val){localStorage.removeItem('reno_expenseDraft')}
+});
+
+watch(roomForm,(val)=>{
+  if(showRoomModal.value){
+    localStorage.setItem('reno_roomDraft', JSON.stringify({editing:editingRoom.value,form:val}));
+  }
+},{deep:true});
+
+watch(expenseForm,(val)=>{
+  if(showExpenseModal.value){
+    localStorage.setItem('reno_expenseDraft', JSON.stringify({editing:editingExpense.value,form:val}));
+  }
+},{deep:true});
+
+function restoreDraft(){
+  const page = localStorage.getItem('reno_currentPage');
+  if(page) currentPage.value = page;
+
+  const showRoom = localStorage.getItem('reno_showRoomModal');
+  if(showRoom==='1'){
+    const draft = localStorage.getItem('reno_roomDraft');
+    if(draft){
+      try{
+        const d = JSON.parse(draft);
+        editingRoom.value = d.editing;
+        roomForm.name = d.form.name;
+        roomForm.status = d.form.status;
+        roomForm.budget = d.form.budget;
+        showRoomModal.value = true;
+      }catch(e){}
+    }
+  }
+
+  const showExp = localStorage.getItem('reno_showExpenseModal');
+  if(showExp==='1'){
+    const draft = localStorage.getItem('reno_expenseDraft');
+    if(draft){
+      try{
+        const d = JSON.parse(draft);
+        editingExpense.value = d.editing;
+        expenseForm.room_id = d.form.room_id;
+        expenseForm.category = d.form.category;
+        expenseForm.amount = d.form.amount;
+        expenseForm.date = d.form.date;
+        expenseForm.note = d.form.note;
+        expenseForm.image_url = d.form.image_url;
+        showExpenseModal.value = true;
+      }catch(e){}
+    }
+  }
+}
+
+onMounted(async ()=>{
+  await loadAll();
+  restoreDraft();
+});
 
 return {
   currentPage,rooms,expenses,budgetData,roomStats,categoryStats,
