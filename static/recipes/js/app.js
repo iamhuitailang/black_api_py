@@ -42,17 +42,25 @@ function getStoredUser() {
 
 async function api(url, options = {}) {
     const token = getToken();
-    const headers = { 'Content-Type': 'application/json' };
+    const isGet = !options.method || options.method === 'GET';
+    const headers = {};
+    if (!isGet) {
+        headers['Content-Type'] = 'application/json';
+    }
     if (token) {
         headers['Authorization'] = 'Bearer ' + token;
     }
     if (options.headers) {
         Object.assign(headers, options.headers);
     }
-    const res = await fetch(url, {
+    const fetchOptions = {
         ...options,
         headers
-    });
+    };
+    if (isGet) {
+        fetchOptions.cache = 'no-cache';
+    }
+    const res = await fetch(url, fetchOptions);
     if (res.status === 401 || res.status === 403) {
         clearAuth();
         showLoginScreen();
@@ -147,13 +155,20 @@ async function checkAuth() {
         return false;
     }
 
-    const res = await api(`${AUTH_BASE}/current/user/get`);
-    if (res.code === 0 && res.data) {
-        state.currentUser = res.data;
-        localStorage.setItem(USER_KEY, JSON.stringify(res.data));
-        hideLoginScreen();
-        return true;
-    } else {
+    try {
+        const res = await api(`${AUTH_BASE}/current/user/get`);
+        if (res.code === 0 && res.data) {
+            state.currentUser = res.data;
+            localStorage.setItem(USER_KEY, JSON.stringify(res.data));
+            hideLoginScreen();
+            return true;
+        } else {
+            clearAuth();
+            showLoginScreen();
+            return false;
+        }
+    } catch (e) {
+        console.error('checkAuth exception:', e);
         clearAuth();
         showLoginScreen();
         return false;
@@ -231,20 +246,23 @@ async function loadRecipes() {
     const tag = document.getElementById('filterTag').value;
     const keyword = document.getElementById('searchKeyword').value;
 
-    let url = `${API_BASE}/getlist?`;
+    let url = `${API_BASE}/getlist`;
     const params = [];
     if (difficulty) params.push(`difficulty=${encodeURIComponent(difficulty)}`);
     if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
     if (keyword) params.push(`keyword=${encodeURIComponent(keyword)}`);
-    url += params.join('&');
+    if (params.length) url += '?' + params.join('&');
 
     try {
         const res = await api(url);
         if (res.code === 0) {
             state.recipes = res.data;
-            renderRecipesGrid();
+        } else {
+            console.error('loadRecipes error:', res.message);
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('loadRecipes exception:', e);
+    }
 }
 
 async function loadFavorites() {
@@ -252,8 +270,12 @@ async function loadFavorites() {
         const res = await api(`${API_BASE}/getfavorites/get`);
         if (res.code === 0) {
             state.favorites = res.data;
+        } else {
+            console.error('loadFavorites error:', res.message);
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('loadFavorites exception:', e);
+    }
 }
 
 async function loadAppData() {
@@ -464,8 +486,17 @@ async function toggleFavorite(id, btn) {
         });
         if (res.code === 0) {
             showToast(res.message, 'success');
-            if (btn) btn.textContent = res.data.is_favorited ? '⭐' : '☆';
-            await loadFavorites();
+            const isFav = res.data.is_favorited;
+            if (btn) btn.textContent = isFav ? '⭐' : '☆';
+            const recipe = state.recipes.find(r => r.id === id);
+            if (recipe) recipe.is_favorited = isFav;
+            if (isFav) {
+                if (recipe && !state.favorites.find(f => f.id === id)) {
+                    state.favorites.push(recipe);
+                }
+            } else {
+                state.favorites = state.favorites.filter(f => f.id !== id);
+            }
             if (state.currentView === 'favorites') {
                 renderRecipesGrid();
             }
@@ -487,7 +518,7 @@ async function showRecipeDetail(id) {
                 <div class="detail-meta-row">
                     <span class="meta-item ${getDifficultyClass(r.difficulty)}">难度：${escapeHtml(r.difficulty)}</span>
                     <span class="meta-item">⏱ 烹饪时间：${r.cook_time}分钟</span>
-                    ${r.is_favorited ? '<span class="meta-item" style="background:#FFF3E0;color:#E65100;">⭐ 已收藏</span>' : ''}
+                    ${r.is_favorited ? '<span class="meta-item fav-badge" style="background:#FFF3E0;color:#E65100;">⭐ 已收藏</span>' : ''}
                 </div>
                 <div class="recipe-tags">
                     ${(r.tags || []).map(t => `<span class="ingredient-tag">#${escapeHtml(t)}</span>`).join('')}
@@ -515,7 +546,7 @@ async function showRecipeDetail(id) {
             <div class="detail-actions">
                 <button class="btn btn-light" onclick="closeDetailModal(); editRecipe(${r.id});">✏️ 编辑</button>
                 <button class="btn btn-warm" onclick="closeDetailModal(); addToShopping(${r.id});">🛒 加入购物清单</button>
-                <button class="btn btn-primary" onclick="closeDetailModal(); toggleFavorite(${r.id}, null); setTimeout(() => showRecipeDetail(${r.id}), 100);">
+                <button class="btn btn-primary" id="detailFavBtn" data-id="${r.id}" data-fav="${r.is_favorited ? '1' : '0'}" onclick="toggleDetailFav(this)">
                     ${r.is_favorited ? '💔 取消收藏' : '⭐ 收藏菜谱'}
                 </button>
             </div>
@@ -526,6 +557,47 @@ async function showRecipeDetail(id) {
 
 function closeDetailModal() {
     document.getElementById('recipeDetailModal').classList.remove('active');
+}
+
+async function toggleDetailFav(btn) {
+    const id = parseInt(btn.dataset.id);
+    try {
+        const res = await api(`${API_BASE}/togglefavorite`, {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: id })
+        });
+        if (res.code === 0) {
+            const isFav = res.data.is_favorited;
+            btn.textContent = isFav ? '💔 取消收藏' : '⭐ 收藏菜谱';
+            btn.dataset.fav = isFav ? '1' : '0';
+            const favBadge = document.querySelector('.detail-meta-row .fav-badge');
+            if (isFav && !favBadge) {
+                const metaRow = document.querySelector('.detail-meta-row');
+                if (metaRow) {
+                    const span = document.createElement('span');
+                    span.className = 'meta-item fav-badge';
+                    span.style.cssText = 'background:#FFF3E0;color:#E65100;';
+                    span.textContent = '⭐ 已收藏';
+                    metaRow.appendChild(span);
+                }
+            } else if (!isFav && favBadge) {
+                favBadge.remove();
+            }
+            const cardBtn = document.querySelector(`.recipe-card[data-id="${id}"] .favorite-btn`);
+            if (cardBtn) cardBtn.textContent = isFav ? '⭐' : '☆';
+            const recipe = state.recipes.find(r => r.id === id);
+            if (recipe) recipe.is_favorited = isFav;
+            if (isFav) {
+                if (recipe && !state.favorites.find(f => f.id === id)) state.favorites.push(recipe);
+            } else {
+                state.favorites = state.favorites.filter(f => f.id !== id);
+            }
+            if (state.currentView === 'favorites') {
+                renderRecipesGrid();
+            }
+            showToast(res.message, 'success');
+        }
+    } catch (e) {}
 }
 
 function openIngredientSearch() {
