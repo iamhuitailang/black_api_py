@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>读书会 · 读书打卡平台</title>
-<script src="https://cdn.jsdelivr.net/npm/vue@3.4.30/dist/vue.global.js?v=20250611b"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@3.4.30/dist/vue.global.prod.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -25,23 +25,30 @@
   }
   .header-inner {
     max-width: 1200px; margin: 0 auto;
-    display: flex; align-items: center; gap: 16px;
-    flex-wrap: wrap;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 16px;
   }
-  .logo { font-size: 26px; font-weight: bold; letter-spacing: 4px; display: flex; align-items: center; gap: 10px; cursor:pointer; flex-shrink: 0; }
+  @media (max-width: 768px) {
+    .header-inner {
+      grid-template-columns: auto auto;
+      justify-content: space-between;
+    }
+    .nav-tabs { grid-column: 1 / -1; justify-content: center; }
+  }
+  .logo { font-size: 26px; font-weight: bold; letter-spacing: 4px; display: flex; align-items: center; gap: 10px; cursor:pointer; }
   .logo-icon {
     width: 38px; height: 38px; background: #FFF8E7; color: #8B6914;
     border-radius: 8px; display: flex; align-items: center; justify-content: center;
     font-size: 22px; box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
   }
-  .nav-tabs { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; justify-content: center; min-width: 300px; }
+  .nav-tabs { display: flex; gap: 4px; justify-content: center; }
   .nav-tab {
     padding: 8px 18px; border-radius: 20px; cursor: pointer;
     transition: all 0.3s; font-size: 15px; color: #FFF8E7;
   }
   .nav-tab:hover { background: rgba(255,248,231,0.2); }
   .nav-tab.active { background: #FFF8E7; color: #8B6914; font-weight: bold; }
-  .user-area { display: flex; align-items: center; gap: 12px; cursor:pointer; flex-shrink: 0; }
+  .user-area { display: flex; align-items: center; gap: 12px; cursor:pointer; justify-self: end; }
   .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #FFF8E7; overflow: hidden; flex-shrink: 0; }
   .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .user-nick { font-size: 15px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -363,6 +370,6 @@
 </head>
 <body class="warm-bg">
 <div id="app"></div>
-<script src="app.js?v=20250611a"></script>
+<script src="app_v2.js"></script>
 </body>
 </html>
