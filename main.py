@@ -3,6 +3,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import threading
+import time
 import sys
 import os
 
@@ -13,6 +15,7 @@ from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
 from app.model.meeting import ProjectModel, MeetingModel, ActionItemModel
+from app.business.meeting import ActionItemBusiness
 from app.common.sqlite.db import get_db
 
 
@@ -22,6 +25,8 @@ def migrate_database():
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
+
+    ActionItemModel.migrate_add_reminder_fields()
 
 
 def init_database():
@@ -37,16 +42,36 @@ def init_database():
     ProductModel.create_table()
     ProjectModel.create_table()
     MeetingModel.create_table()
-    ActionItemModel.create_table()
     
     migrate_database()
     
+    ActionItemModel.create_table()
+    
     print("Database initialized successfully")
+
+
+def start_reminder_scheduler():
+    def run():
+        time.sleep(10)
+        business = ActionItemBusiness()
+        while True:
+            try:
+                result = business.check_and_send_reminders()
+                if result.get('data', {}).get('sent_count', 0) > 0:
+                    print(f"[Reminder Scheduler] Sent {result['data']['sent_count']} reminder(s)")
+            except Exception as e:
+                print(f"[Reminder Scheduler] Error: {e}")
+            time.sleep(60)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    print("Reminder scheduler started (checks every 60s)")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_database()
+    start_reminder_scheduler()
     yield
     db = get_db()
     db.close()
@@ -117,6 +142,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=7001,
         reload=True
     )

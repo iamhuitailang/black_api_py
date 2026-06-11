@@ -5,9 +5,12 @@
         ← 返回
       </button>
       <h1>{{ isEdit ? '编辑会议纪要' : '新建会议纪要' }}</h1>
-      <button class="btn btn-primary" @click="handleSave" :disabled="saving">
-        {{ saving ? '保存中...' : '保存' }}
-      </button>
+      <div class="header-right">
+        <span v-if="hasDraft" class="draft-hint">有未保存的草稿</span>
+        <button class="btn btn-primary" @click="handleSave" :disabled="saving">
+          {{ saving ? '保存中...' : '保存' }}
+        </button>
+      </div>
     </div>
 
     <div class="form-card card">
@@ -121,16 +124,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { meetingApi, projectApi } from '../api'
 
 const route = useRoute()
 const router = useRouter()
 
+const DRAFT_KEY_PREFIX = 'meeting_draft_'
+
 const isEdit = computed(() => !!route.params.id && route.params.id !== 'new')
 const saving = ref(false)
 const projects = ref([])
+const hasDraft = ref(false)
+let autoSaveTimer = null
 
 const form = reactive({
   project_id: 0,
@@ -141,6 +148,88 @@ const form = reactive({
 })
 
 const attendeesText = ref('')
+
+function getDraftKey() {
+  if (isEdit.value) {
+    return DRAFT_KEY_PREFIX + 'edit_' + route.params.id
+  }
+  return DRAFT_KEY_PREFIX + 'new'
+}
+
+function saveDraft() {
+  const draft = {
+    project_id: form.project_id,
+    title: form.title,
+    date: form.date,
+    content: form.content,
+    action_items: [...form.action_items],
+    attendeesText: attendeesText.value,
+    savedAt: Date.now()
+  }
+  try {
+    localStorage.setItem(getDraftKey(), JSON.stringify(draft))
+    hasDraft.value = true
+  } catch (e) {
+    console.warn('保存草稿失败:', e)
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(getDraftKey())
+    if (raw) {
+      const draft = JSON.parse(raw)
+      if (confirm(`检测到未保存的草稿（${new Date(draft.savedAt).toLocaleString()}），是否恢复？`)) {
+        form.project_id = draft.project_id || 0
+        form.title = draft.title || ''
+        form.date = draft.date || new Date().toISOString().split('T')[0]
+        form.content = draft.content || ''
+        form.action_items = draft.action_items || []
+        attendeesText.value = draft.attendeesText || ''
+        hasDraft.value = true
+        return true
+      } else {
+        localStorage.removeItem(getDraftKey())
+      }
+    }
+  } catch (e) {
+    console.warn('加载草稿失败:', e)
+  }
+  hasDraft.value = false
+  return false
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(getDraftKey())
+    hasDraft.value = false
+  } catch (e) {}
+}
+
+function startAutoSave() {
+  stopAutoSave()
+  autoSaveTimer = setInterval(() => {
+    if (form.title || form.content || form.action_items.length > 0 || attendeesText.value) {
+      saveDraft()
+    }
+  }, 5000)
+}
+
+function stopAutoSave() {
+  if (autoSaveTimer) {
+    clearInterval(autoSaveTimer)
+    autoSaveTimer = null
+  }
+}
+
+watch(
+  () => [form.title, form.content, attendeesText.value, form.action_items.length],
+  () => {
+    if (form.title || form.content || attendeesText.value) {
+      hasDraft.value = true
+    }
+  }
+)
 
 async function loadProjects() {
   try {
@@ -154,17 +243,22 @@ async function loadMeeting() {
   if (!isEdit.value) return
   try {
     const data = await meetingApi.getById(route.params.id)
-    form.project_id = data.project_id || 0
-    form.title = data.title
-    form.date = data.date
-    form.content = data.content || ''
-    form.action_items = (data.action_items || []).map(item => ({
-      content: item.content,
-      assignee: item.assignee || '',
-      due_date: item.due_date || '',
-      completed: item.completed || false
-    }))
-    attendeesText.value = (data.attendees || []).join(', ')
+    if (data) {
+      const hasRestored = loadDraft()
+      if (!hasRestored) {
+        form.project_id = data.project_id || 0
+        form.title = data.title
+        form.date = data.date
+        form.content = data.content || ''
+        form.action_items = (data.action_items || []).map(item => ({
+          content: item.content,
+          assignee: item.assignee || '',
+          due_date: item.due_date || '',
+          completed: item.completed || false
+        }))
+        attendeesText.value = (data.attendees || []).join(', ')
+      }
+    }
   } catch (e) {
     console.error('加载会议失败:', e)
     alert('加载失败: ' + e)
@@ -216,6 +310,7 @@ async function handleSave() {
       await meetingApi.create(data)
     }
 
+    clearDraft()
     router.push('/meetings')
   } catch (e) {
     console.error('保存失败:', e)
@@ -226,6 +321,9 @@ async function handleSave() {
 }
 
 function goBack() {
+  if (hasDraft.value && !confirm('有未保存的内容，确定要离开吗？')) {
+    return
+  }
   if (isEdit.value) {
     router.push(`/meetings/${route.params.id}`)
   } else {
@@ -235,7 +333,15 @@ function goBack() {
 
 onMounted(() => {
   loadProjects()
+  if (!isEdit.value) {
+    loadDraft()
+  }
   loadMeeting()
+  startAutoSave()
+})
+
+onUnmounted(() => {
+  stopAutoSave()
 })
 </script>
 
@@ -257,6 +363,20 @@ onMounted(() => {
   font-weight: 600;
   color: #1f2937;
   margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.draft-hint {
+  font-size: 13px;
+  color: #d97706;
+  background-color: #fef3c7;
+  padding: 4px 10px;
+  border-radius: 4px;
 }
 
 .form-card {

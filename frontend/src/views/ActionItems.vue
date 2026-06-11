@@ -86,22 +86,76 @@
               <span v-if="item.project_name" class="meta-item">
                 📁 {{ item.project_name }}
               </span>
+              <span v-if="item.reminder_time" class="meta-item reminder-meta">
+                🔔 {{ formatDateTime(item.reminder_time) }}
+                <span v-if="item.reminder_sent" class="reminder-sent">(已发送)</span>
+              </span>
             </div>
           </div>
         </div>
-        <button
-          class="btn btn-secondary btn-sm go-btn"
-          @click="goToMeeting(item.meeting_id)"
-        >
-          查看纪要 →
-        </button>
+        <div class="action-actions">
+          <button
+            v-if="!item.completed"
+            class="btn btn-secondary btn-sm"
+            @click="openReminderModal(item)"
+          >
+            🔔 提醒
+          </button>
+          <button
+            class="btn btn-secondary btn-sm go-btn"
+            @click="goToMeeting(item.meeting_id)"
+          >
+            查看纪要 →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showReminderModal" class="modal-overlay" @click.self="closeReminderModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>设置邮件提醒</h3>
+          <button class="modal-close" @click="closeReminderModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">提醒时间 *</label>
+            <input
+              type="datetime-local"
+              class="form-input"
+              v-model="reminderForm.reminder_time"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">接收邮箱 *</label>
+            <input
+              type="email"
+              class="form-input"
+              v-model="reminderForm.reminder_email"
+              placeholder="example@company.com"
+            />
+          </div>
+          <div class="form-tip">
+            💡 未配置 SMTP 邮件服务时，提醒会打印到后端控制台日志中。
+            配置方式：设置环境变量 SMTP_HOST、SMTP_PORT、SMTP_USER、SMTP_PASS、SMTP_FROM
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closeReminderModal">取消</button>
+          <button class="btn btn-secondary" @click="clearReminder" v-if="currentItem?.reminder_time">
+            清除提醒
+          </button>
+          <button class="btn btn-primary" @click="saveReminder" :disabled="savingReminder">
+            {{ savingReminder ? '保存中...' : '保存' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { actionItemApi, projectApi } from '../api'
 import { formatDate, getDaysUntil, getUrgencyText } from '../utils'
@@ -114,6 +168,27 @@ const loading = ref(false)
 const filter = ref('pending')
 const projectFilter = ref(null)
 const assigneeFilter = ref('')
+
+const showReminderModal = ref(false)
+const currentItem = ref(null)
+const savingReminder = ref(false)
+const reminderForm = reactive({
+  reminder_time: '',
+  reminder_email: ''
+})
+
+function formatDateTime(dt) {
+  if (!dt) return ''
+  try {
+    const d = new Date(dt.replace(' ', 'T'))
+    return d.toLocaleString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    })
+  } catch {
+    return dt
+  }
+}
 
 const allAssignees = computed(() => {
   const set = new Set()
@@ -161,6 +236,68 @@ const filteredItems = computed(() => {
 function getStatusText(item) {
   const daysLeft = getDaysUntil(item.due_date)
   return getUrgencyText(item.status, daysLeft)
+}
+
+function openReminderModal(item) {
+  currentItem.value = item
+  if (item.reminder_time) {
+    const t = item.reminder_time.replace(' ', 'T').slice(0, 16)
+    reminderForm.reminder_time = t
+  } else {
+    const defaultTime = new Date()
+    defaultTime.setDate(defaultTime.getDate() + 1)
+    defaultTime.setHours(9, 0, 0, 0)
+    reminderForm.reminder_time = defaultTime.toISOString().slice(0, 16)
+  }
+  reminderForm.reminder_email = item.reminder_email || ''
+  showReminderModal.value = true
+}
+
+function closeReminderModal() {
+  showReminderModal.value = false
+  currentItem.value = null
+  reminderForm.reminder_time = ''
+  reminderForm.reminder_email = ''
+}
+
+async function saveReminder() {
+  if (!reminderForm.reminder_time) {
+    alert('请选择提醒时间')
+    return
+  }
+  if (!reminderForm.reminder_email) {
+    alert('请输入接收邮箱')
+    return
+  }
+
+  savingReminder.value = true
+  try {
+    const timeStr = reminderForm.reminder_time.replace('T', ' ') + ':00'
+    await actionItemApi.setReminder(currentItem.value.id, timeStr, reminderForm.reminder_email)
+    currentItem.value.reminder_time = timeStr
+    currentItem.value.reminder_email = reminderForm.reminder_email
+    currentItem.value.reminder_sent = false
+    alert('提醒设置成功')
+    closeReminderModal()
+  } catch (e) {
+    console.error('设置提醒失败:', e)
+    alert('设置失败: ' + e)
+  } finally {
+    savingReminder.value = false
+  }
+}
+
+async function clearReminder() {
+  if (!confirm('确定要清除此待办的提醒吗？')) return
+  try {
+    await actionItemApi.setReminder(currentItem.value.id, '', '')
+    currentItem.value.reminder_time = ''
+    currentItem.value.reminder_email = ''
+    currentItem.value.reminder_sent = false
+    closeReminderModal()
+  } catch (e) {
+    alert('清除失败: ' + e)
+  }
 }
 
 async function loadProjects() {
@@ -420,11 +557,99 @@ onMounted(() => {
   color: #059669;
 }
 
+.reminder-meta {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.reminder-sent {
+  color: #059669;
+  font-weight: normal;
+}
+
 .status-text {
   font-size: 12px;
 }
 
+.action-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .go-btn {
   flex-shrink: 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 450px;
+  max-width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #9ca3af;
+  line-height: 1;
+  padding: 0;
+}
+
+.modal-close:hover {
+  color: #374151;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-tip {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
 }
 </style>

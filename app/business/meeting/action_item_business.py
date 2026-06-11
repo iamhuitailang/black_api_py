@@ -96,6 +96,137 @@ class ActionItemBusiness:
             'data': None
         }
 
+    def set_reminder(self, action_id: int, reminder_time: str = '',
+                     reminder_email: str = '') -> Dict[str, Any]:
+        existing = self.model.get_by_id(action_id)
+        if not existing:
+            return {
+                'code': 1,
+                'message': 'Action item not found',
+                'data': None
+            }
+
+        if reminder_time:
+            try:
+                datetime.strptime(reminder_time, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                try:
+                    datetime.strptime(reminder_time, '%Y-%m-%dT%H:%M')
+                    reminder_time = reminder_time.replace('T', ' ') + ':00'
+                except ValueError:
+                    try:
+                        datetime.strptime(reminder_time, '%Y-%m-%d')
+                        reminder_time = reminder_time + ' 09:00:00'
+                    except ValueError:
+                        return {
+                            'code': 1,
+                            'message': 'Invalid reminder time format, use YYYY-MM-DD HH:MM:SS',
+                            'data': None
+                        }
+
+        if reminder_email:
+            import re
+            if not re.match(r'^[^@]+@[^@]+\.[^@]+$', reminder_email):
+                return {
+                    'code': 1,
+                    'message': 'Invalid email format',
+                    'data': None
+                }
+
+        affected = self.model.update(
+            action_id,
+            reminder_time=reminder_time,
+            reminder_email=reminder_email
+        )
+        if affected > 0:
+            record = self.model.get_by_id(action_id)
+            return {
+                'code': 0,
+                'message': 'reminder set success',
+                'data': record
+            }
+        return {
+            'code': 1,
+            'message': 'set reminder failed',
+            'data': None
+        }
+
+    def check_and_send_reminders(self) -> Dict[str, Any]:
+        pending = self.model.get_pending_reminders()
+        sent_count = 0
+        errors = []
+
+        for item in pending:
+            try:
+                self._send_reminder_email(item)
+                self.model.mark_reminder_sent(item['id'])
+                sent_count += 1
+            except Exception as e:
+                errors.append(f"ID {item['id']}: {str(e)}")
+
+        return {
+            'code': 0,
+            'message': 'check complete',
+            'data': {
+                'sent_count': sent_count,
+                'pending_count': len(pending),
+                'errors': errors
+            }
+        }
+
+    def _send_reminder_email(self, item: Dict[str, Any]):
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.header import Header
+        import os
+
+        smtp_host = os.environ.get('SMTP_HOST', '')
+        smtp_port = int(os.environ.get('SMTP_PORT', '465'))
+        smtp_user = os.environ.get('SMTP_USER', '')
+        smtp_pass = os.environ.get('SMTP_PASS', '')
+        sender = os.environ.get('SMTP_FROM', smtp_user)
+
+        to_email = item.get('reminder_email', '')
+        if not to_email:
+            return
+
+        if not smtp_host or not smtp_user:
+            print(f"[Reminder] 待办事项提醒 (未配置邮件服务，打印日志):")
+            print(f"  收件人: {to_email}")
+            print(f"  待办: {item.get('content', '')}")
+            print(f"  所属会议: {item.get('meeting_title', '')}")
+            print(f"  责任人: {item.get('assignee', '')}")
+            print(f"  截止日期: {item.get('due_date', '')}")
+            return
+
+        subject = f"[待办提醒] {item.get('content', '')}"
+        body = f"""
+        <h3>待办事项提醒</h3>
+        <p><strong>待办内容：</strong>{item.get('content', '')}</p>
+        <p><strong>所属会议：</strong>{item.get('meeting_title', '')}</p>
+        <p><strong>责任人：</strong>{item.get('assignee', '')}</p>
+        <p><strong>截止日期：</strong>{item.get('due_date', '')}</p>
+        <p>请及时处理！</p>
+        """
+
+        msg = MIMEText(body, 'html', 'utf-8')
+        msg['From'] = Header(sender, 'utf-8')
+        msg['To'] = Header(to_email, 'utf-8')
+        msg['Subject'] = Header(subject, 'utf-8')
+
+        try:
+            if smtp_port == 465:
+                server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30)
+            else:
+                server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+                server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(sender, [to_email], msg.as_string())
+            server.quit()
+        except Exception as e:
+            print(f"[Reminder] 发送邮件失败: {e}")
+            raise
+
     def create(self, meeting_id: int, content: str, assignee: str = '',
                due_date: str = '', completed: bool = False) -> Dict[str, Any]:
         if not content or not content.strip():

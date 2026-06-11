@@ -91,10 +91,6 @@ class MeetingModel:
             where_clauses.append("date <= ?")
             params.append(end_date)
 
-        if attendee:
-            where_clauses.append("attendees LIKE ?")
-            params.append(f'%{attendee}%')
-
         if project_id is not None:
             where_clauses.append("project_id = ?")
             params.append(project_id)
@@ -105,21 +101,30 @@ class MeetingModel:
 
         count_sql = f"SELECT COUNT(*) as total FROM {self.TABLE_NAME} {where_sql}"
         total_result = self.db.fetch_one(count_sql, tuple(params) if params else None)
-        total = total_result['total'] if total_result else 0
+        raw_total = total_result['total'] if total_result else 0
+
+        query_sql = f"SELECT * FROM {self.TABLE_NAME} {where_sql} ORDER BY date DESC"
+        all_rows = self.db.fetch_all(query_sql, tuple(params) if params else None)
+
+        all_items = [self._parse_attendees(row) for row in all_rows]
+
+        if attendee:
+            all_items = [
+                item for item in all_items
+                if attendee in (item.get('attendees') or [])
+            ]
+
+        filtered_total = len(all_items)
 
         offset = (page - 1) * page_size
-        query_sql = f"SELECT * FROM {self.TABLE_NAME} {where_sql} ORDER BY date DESC LIMIT ? OFFSET ?"
-        params.extend([page_size, offset])
-        rows = self.db.fetch_all(query_sql, tuple(params))
-
-        items = [self._parse_attendees(row) for row in rows]
+        items = all_items[offset:offset + page_size]
 
         return {
             'items': items,
-            'total': total,
+            'total': filtered_total,
             'page': page,
             'page_size': page_size,
-            'total_pages': (total + page_size - 1) // page_size
+            'total_pages': (filtered_total + page_size - 1) // page_size
         }
 
     def update(self, record_id: int, **kwargs) -> int:

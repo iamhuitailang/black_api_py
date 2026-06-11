@@ -24,6 +24,12 @@ class ActionItemStatusRequest(BaseModel):
     completed: bool
 
 
+class ActionItemReminderRequest(BaseModel):
+    id: int
+    reminder_time: Optional[str] = ''
+    reminder_email: Optional[str] = ''
+
+
 class ActionItemController:
     def __init__(self):
         self.business = ActionItemBusiness()
@@ -53,6 +59,30 @@ class ActionItemController:
         POST /api/action/status
         """
         result = self.business.update_status(body.id, body.completed)
+        return result
+
+    def ActionActionReminderPost(self, request: Request, body: ActionItemReminderRequest):
+        """
+        设置待办提醒时间和邮件
+        POST /api/action/reminder
+        参数:
+          - id: 待办ID
+          - reminder_time: 提醒时间 (YYYY-MM-DD HH:MM:SS)
+          - reminder_email: 接收提醒的邮箱
+        """
+        result = self.business.set_reminder(
+            action_id=body.id,
+            reminder_time=body.reminder_time or '',
+            reminder_email=body.reminder_email or ''
+        )
+        return result
+
+    def ActionActionReminderCheck(self, request: Request):
+        """
+        手动触发检查并发送待办提醒邮件
+        GET /api/action/reminder/check
+        """
+        result = self.business.check_and_send_reminders()
         return result
 
     def ActionActionCreatePost(self, request: Request, body: ActionItemCreateRequest):
