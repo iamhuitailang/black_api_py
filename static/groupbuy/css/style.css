@@ -22,7 +22,7 @@ body {
 .header {
     background: linear-gradient(135deg, #ff6b35 0%, #ff4444 100%);
     color: white;
-    padding: 16px 12px;
+    padding: 14px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -30,27 +30,42 @@ body {
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+    gap: 8px;
+}
+
+.header .header-left,
+.header .header-right {
+    width: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header h1 {
-    font-size: 22px;
+    font-size: 19px;
     font-weight: 800;
     text-align: center;
     flex: 1;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .header .admin-btn {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 18px;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .header .admin-btn:hover {
@@ -59,14 +74,34 @@ body {
 }
 
 .back-btn {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.header .logout-btn {
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.header .logout-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
 }
 
 .loading {
@@ -956,6 +991,65 @@ body {
 
 .toast.show {
     opacity: 1;
+}
+
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #ff6b35 0%, #ff4444 100%);
+}
+
+.login-card {
+    background: white;
+    border-radius: 20px;
+    padding: 36px 28px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.login-logo {
+    text-align: center;
+    font-size: 56px;
+    margin-bottom: 8px;
+}
+
+.login-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+}
+
+.login-subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 28px;
+}
+
+.login-form .form-item {
+    margin-bottom: 18px;
+}
+
+.login-tip {
+    text-align: center;
+    font-size: 13px;
+    color: #aaa;
+    margin-top: 16px;
+    line-height: 1.6;
+}
+
+.admin-content {
+    display: none;
+}
+
+.admin-content.show {
+    display: block;
 }
 
 @media (min-width: 768px) {

@@ -1,10 +1,57 @@
 let groupBuys = [];
 
+function showLogin() {
+    document.getElementById('loginView').style.display = 'flex';
+    document.getElementById('adminView').classList.remove('show');
+}
+
+function showAdmin() {
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('adminView').classList.add('show');
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    if (!username || !password) {
+        showToast('请输入用户名和密码');
+        return;
+    }
+
+    const result = await authLogin(username, password);
+    if (result.code === 0) {
+        showToast('登录成功');
+        showAdmin();
+        loadList();
+    } else {
+        showToast(result.message || '登录失败');
+    }
+}
+
+async function logout() {
+    if (confirm('确定要退出登录吗？')) {
+        await authLogout();
+        showLogin();
+        document.getElementById('loginPassword').value = '';
+        showToast('已退出登录');
+    }
+}
+
 async function loadList() {
-    const result = await apiGet('/list/get');
+    const isAuthed = await checkAuth();
+    if (!isAuthed) {
+        showLogin();
+        return;
+    }
+
+    const result = await authGet('/list/get');
     if (result.code === 0) {
         groupBuys = result.data.items || [];
         renderList();
+    } else if (result.code === 401 || result.message === '请先登录') {
+        showLogin();
     } else {
         document.getElementById('adminList').innerHTML = `
             <div class="empty-state">
@@ -145,8 +192,9 @@ async function submitForm(e) {
 
     const deadline = new Date(deadlineValue).toISOString().replace('Z', '');
 
+    let result;
     if (id) {
-        const result = await apiPost('/update', {
+        result = await authPost('/update', {
             id: parseInt(id),
             title,
             spec,
@@ -155,15 +203,8 @@ async function submitForm(e) {
             image_url,
             deadline
         });
-        if (result.code === 0) {
-            showToast('更新成功！');
-            closeEditModal();
-            loadList();
-        } else {
-            showToast(result.message);
-        }
     } else {
-        const result = await apiPost('/create', {
+        result = await authPost('/create', {
             title,
             spec,
             price,
@@ -171,13 +212,17 @@ async function submitForm(e) {
             image_url,
             deadline
         });
-        if (result.code === 0) {
-            showToast('发布成功！');
-            closeEditModal();
-            loadList();
-        } else {
-            showToast(result.message);
-        }
+    }
+
+    if (result.code === 0) {
+        showToast(id ? '更新成功！' : '发布成功！');
+        closeEditModal();
+        loadList();
+    } else if (result.code === 401 || result.message === '请先登录') {
+        showToast('登录已过期，请重新登录');
+        showLogin();
+    } else {
+        showToast(result.message);
     }
 }
 
@@ -186,17 +231,20 @@ async function closeGroupBuy(id) {
         return;
     }
 
-    const result = await apiPost(`/close?id=${id}`);
+    const result = await authPost(`/close?id=${id}`);
     if (result.code === 0) {
         showToast('截单成功！');
         loadList();
+    } else if (result.code === 401 || result.message === '请先登录') {
+        showToast('登录已过期，请重新登录');
+        showLogin();
     } else {
         showToast(result.message);
     }
 }
 
 function exportCSV(id) {
-    window.open(`${API_BASE}/export/get?id=${id}`, '_blank');
+    exportCSVWithAuth(id);
 }
 
 async function deleteGroupBuy(id) {
@@ -204,16 +252,20 @@ async function deleteGroupBuy(id) {
         return;
     }
 
-    const result = await apiDelete(`/delete?id=${id}`);
+    const result = await authDelete(`/delete?id=${id}`);
     if (result.code === 0) {
         showToast('删除成功！');
         loadList();
+    } else if (result.code === 401 || result.message === '请先登录') {
+        showToast('登录已过期，请重新登录');
+        showLogin();
     } else {
         showToast(result.message);
     }
 }
 
-function init() {
+async function init() {
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('editForm').addEventListener('submit', submitForm);
 
     document.getElementById('editModal').addEventListener('click', (e) => {
@@ -222,7 +274,13 @@ function init() {
         }
     });
 
-    loadList();
+    const isAuthed = await checkAuth();
+    if (isAuthed) {
+        showAdmin();
+        loadList();
+    } else {
+        showLogin();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);
