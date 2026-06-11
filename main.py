@@ -12,7 +12,9 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.rides import RideModel
 from app.common.sqlite.db import get_db
+from fastapi.responses import FileResponse
 
 
 def migrate_database():
@@ -34,6 +36,7 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    RideModel.create_table()
     
     migrate_database()
     
@@ -85,16 +88,7 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root():
-    return {
-        "code": 0,
-        "message": "success",
-        "data": {
-            "name": "FastAPI SQLite Backend",
-            "version": "1.0.0",
-            "docs": "/docs",
-            "redoc": "/redoc"
-        }
-    }
+    return FileResponse("static/rides/index.html")
 
 
 @app.get("/health")
@@ -113,6 +107,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8002,
         reload=True
     )

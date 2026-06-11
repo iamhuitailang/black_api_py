@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼车板 - 绿色出行</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-inner">
+            <h1 class="app-title">
+                <span class="leaf-icon">🌿</span>
+                拼车板
+            </h1>
+            <p class="app-subtitle">一起拼车，绿色出行 · 每天节约的不止是油钱</p>
+        </div>
+    </header>
+
+    <section class="filter-bar">
+        <div class="filter-inner">
+            <div class="filter-item">
+                <label>出发地</label>
+                <input type="text" id="filter-from" placeholder="如：科技园">
+            </div>
+            <div class="filter-item">
+                <label>目的地</label>
+                <input type="text" id="filter-to" placeholder="如：回龙观">
+            </div>
+            <div class="filter-item">
+                <label>状态</label>
+                <select id="filter-status">
+                    <option value="active">仅显示可约</option>
+                    <option value="all">全部</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="btn-search">搜索</button>
+            <button class="btn btn-ghost" id="btn-reset">重置</button>
+        </div>
+    </section>
+
+    <main class="main-content">
+        <div class="list-meta">
+            <span id="list-count">共 0 条拼车信息</span>
+            <span class="meta-tip">提示：工作日固定班次自动保留，单次拼车24小时后自动清理</span>
+        </div>
+
+        <div class="ride-list" id="ride-list">
+            <div class="empty-state">
+                <div class="empty-icon">🚗</div>
+                <p>还没有拼车信息</p>
+                <p class="empty-sub">快点击右下角按钮发布第一条吧！</p>
+            </div>
+        </div>
+    </main>
+
+    <button class="fab" id="btn-fab" title="发布拼车">
+        <span class="fab-plus">＋</span>
+    </button>
+
+    <!-- 发布弹窗 -->
+    <div class="modal-mask" id="modal-publish">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>发布拼车信息</h3>
+                <button class="modal-close" data-close="modal-publish">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-publish">
+                    <div class="form-row">
+                        <div class="form-item">
+                            <label>出发地 <span class="req">*</span></label>
+                            <input type="text" name="from_location" required placeholder="如：西二旗地铁站">
+                        </div>
+                        <div class="form-item">
+                            <label>目的地 <span class="req">*</span></label>
+                            <input type="text" name="to_location" required placeholder="如：望京SOHO">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-item">
+                            <label>出发时间 <span class="req">*</span></label>
+                            <input type="time" name="departure_time" required>
+                        </div>
+                        <div class="form-item">
+                            <label>座位数 <span class="req">*</span></label>
+                            <input type="number" name="seats" min="1" max="20" value="4" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-item">
+                            <label>剩余座位</label>
+                            <input type="number" name="available_seats" min="0" max="20" placeholder="默认=总座位">
+                        </div>
+                        <div class="form-item">
+                            <label>是否工作日固定</label>
+                            <label class="switch">
+                                <input type="checkbox" name="weekdays">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">周一至周五</span>
+                        </div>
+                    </div>
+                    <div class="form-item">
+                        <label>联系方式 <span class="req">*</span></label>
+                        <input type="text" name="contact" required placeholder="手机号/微信号，方便别人联系你">
+                    </div>
+                    <div class="form-item">
+                        <label>备注</label>
+                        <textarea name="remark" rows="2" placeholder="如：只走周一三五 / 后备箱可放行李 / 需提前一天约"></textarea>
+                    </div>
+                    <div class="form-item">
+                        <label>管理密码 <span class="req">*</span></label>
+                        <input type="password" name="password" minlength="4" required placeholder="4位以上，用于标记已满或删除">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" data-close="modal-publish">取消</button>
+                <button class="btn btn-primary" id="btn-submit-publish">发布</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 密码验证弹窗（标记已满/删除通用） -->
+    <div class="modal-mask" id="modal-password">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3 id="pwd-title">请输入管理密码</h3>
+                <button class="modal-close" data-close="modal-password">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-item">
+                    <label id="pwd-subtitle">验证后将执行操作</label>
+                    <input type="password" id="pwd-input" placeholder="请输入发布时设置的密码">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" data-close="modal-password">取消</button>
+                <button class="btn btn-primary" id="btn-confirm-pwd">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
