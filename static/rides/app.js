@@ -17,15 +17,35 @@ function showToast(msg, type = '') {
 function openModal(id) { $('#' + id).classList.add('show'); }
 function closeModal(id) { $('#' + id).classList.remove('show'); }
 
+$('#btn-fab').addEventListener('click', () => {
+    const hasDraft = loadDraft();
+    openModal('modal-publish');
+    if (hasDraft) {
+        showToast('已自动恢复上次填写的内容', 'success');
+    }
+});
+
 $$('[data-close]').forEach(el => {
-    el.addEventListener('click', () => closeModal(el.dataset.close));
+    el.addEventListener('click', () => {
+        const modalId = el.dataset.close;
+        if (modalId === 'modal-publish') {
+            saveDraft();
+        }
+        closeModal(modalId);
+    });
 });
 
 $$('.modal-mask').forEach(mask => {
     mask.addEventListener('click', (e) => {
-        if (e.target === mask) mask.classList.remove('show');
+        if (e.target === mask) {
+            if (mask.id === 'modal-publish') saveDraft();
+            mask.classList.remove('show');
+        }
     });
 });
+
+$('#form-publish').addEventListener('input', saveDraft);
+$('#form-publish').addEventListener('change', saveDraft);
 
 function validateContact(val) {
     val = val.trim();
@@ -39,35 +59,58 @@ function validateContact(val) {
     return '';
 }
 
+const DRAFT_FIELDS = [
+    'from_location', 'to_location', 'departure_time',
+    'seats', 'available_seats', 'weekdays',
+    'contact', 'remark', 'password'
+];
+
 function saveDraft() {
     const form = $('#form-publish');
     if (!form) return;
-    const fd = new FormData(form);
     const data = {};
-    for (const [k, v] of fd.entries()) {
-        data[k] = v;
+    DRAFT_FIELDS.forEach(name => {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (!el) return;
+        if (el.type === 'checkbox') {
+            data[name] = el.checked;
+        } else {
+            data[name] = el.value;
+        }
+    });
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+        console.warn('保存草稿失败:', e);
     }
-    data.weekdays = form.querySelector('[name=weekdays]').checked;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
 }
 
 function loadDraft() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
+        if (!raw) return false;
         const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return false;
         const form = $('#form-publish');
-        if (!form) return;
-        for (const [k, v] of Object.entries(data)) {
-            const el = form.querySelector(`[name="${k}"]`);
-            if (!el) continue;
+        if (!form) return false;
+        let hasAny = false;
+        DRAFT_FIELDS.forEach(name => {
+            if (!(name in data)) return;
+            const el = form.querySelector(`[name="${name}"]`);
+            if (!el) return;
+            const val = data[name];
             if (el.type === 'checkbox') {
-                el.checked = !!v;
+                el.checked = !!val;
             } else {
-                el.value = v;
+                el.value = val == null ? '' : val;
             }
-        }
-    } catch(e) {}
+            if (val && val !== '' && val !== false) hasAny = true;
+        });
+        return hasAny;
+    } catch (e) {
+        console.warn('恢复草稿失败:', e);
+        return false;
+    }
 }
 
 function clearDraft() {
@@ -190,14 +233,6 @@ $('#btn-reset').addEventListener('click', () => {
 });
 $('#filter-status').addEventListener('change', loadList);
 
-$('#btn-fab').addEventListener('click', () => {
-    loadDraft();
-    openModal('modal-publish');
-});
-
-$('#form-publish').addEventListener('input', saveDraft);
-$('#form-publish').addEventListener('change', saveDraft);
-
 $('#btn-submit-publish').addEventListener('click', async () => {
     const form = $('#form-publish');
     if (!form.reportValidity()) return;
@@ -307,6 +342,10 @@ $('#btn-confirm-pwd').addEventListener('click', async () => {
 
 $('#pwd-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') $('#btn-confirm-pwd').click();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadDraft();
 });
 
 loadList();
