@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.groupbuy import GroupBuyModel, OrderModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +35,8 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    GroupBuyModel.create_table()
+    OrderModel.create_table()
     
     migrate_database()
     
@@ -85,16 +88,7 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root():
-    return {
-        "code": 0,
-        "message": "success",
-        "data": {
-            "name": "FastAPI SQLite Backend",
-            "version": "1.0.0",
-            "docs": "/docs",
-            "redoc": "/redoc"
-        }
-    }
+    return RedirectResponse(url="/static/groupbuy/index.html")
 
 
 @app.get("/health")
@@ -113,6 +107,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=9001,
         reload=True
     )

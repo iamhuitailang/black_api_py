@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>团长管理后台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="back-btn" onclick="window.location.href='index.html'">← 返回首页</div>
+        <h1>🎯 团长管理后台</h1>
+        <div></div>
+    </div>
+
+    <div class="container">
+        <div class="admin-actions">
+            <button class="btn-primary" onclick="openCreateModal()">
+                ➕ 发布新团购
+            </button>
+        </div>
+
+        <div id="adminList" class="admin-list">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">发布新团购</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editForm" class="order-form">
+                <input type="hidden" id="editId">
+                <div class="form-item">
+                    <label>商品名称 <span class="required">*</span></label>
+                    <input type="text" id="title" placeholder="例如：新鲜草莓 2斤装" required>
+                </div>
+                <div class="form-item">
+                    <label>规格</label>
+                    <input type="text" id="spec" placeholder="例如：每盒2斤 / 500g/份">
+                </div>
+                <div class="form-item">
+                    <label>单价(元) <span class="required">*</span></label>
+                    <input type="number" id="price" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="form-item">
+                    <label>商品描述</label>
+                    <textarea id="description" rows="3" placeholder="商品介绍、取货时间地点等"></textarea>
+                </div>
+                <div class="form-item">
+                    <label>图片链接</label>
+                    <input type="text" id="image_url" placeholder="图片URL地址（可选）">
+                </div>
+                <div class="form-item">
+                    <label>截单时间 <span class="required">*</span></label>
+                    <input type="datetime-local" id="deadline" required>
+                </div>
+                <button type="submit" class="submit-btn">保 存</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

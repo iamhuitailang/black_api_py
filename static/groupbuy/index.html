@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小区团购接龙</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🏠 小区团购接龙</h1>
+        <div class="admin-btn" onclick="window.location.href='admin.html'" title="团长管理">
+            ⚙️
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tab-bar">
+            <div class="tab active" data-tab="active">
+                <span>🔥 进行中</span>
+                <span class="tab-count" id="activeCount">0</span>
+            </div>
+            <div class="tab" data-tab="closed">
+                <span>✅ 已截单</span>
+                <span class="tab-count" id="closedCount">0</span>
+            </div>
+        </div>
+
+        <div id="groupBuyList" class="group-buy-list">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>
