@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师管理端 - 家长通讯录</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="app">
+        <header class="admin-header">
+            <div class="header-inner">
+                <div class="header-title">
+                    <h1>👨‍🏫 家长通讯录管理</h1>
+                    <span class="badge" id="total-badge">共 0 人</span>
+                </div>
+                <button id="btn-export" class="btn btn-export">
+                    <span>📥</span> 导出CSV
+                </button>
+            </div>
+
+            <div class="search-bar">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-keyword" placeholder="搜索学生姓名 / 家长姓名 / 手机号...">
+                </div>
+                <select id="search-class">
+                    <option value="">全部班级</option>
+                </select>
+                <button id="btn-search" class="btn btn-search">搜索</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="stats-row" id="stats-row"></div>
+
+            <div class="table-wrap">
+                <table class="data-table" id="student-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px;">序号</th>
+                            <th>班级</th>
+                            <th>学生姓名</th>
+                            <th style="width:90px;">联系人</th>
+                            <th style="width:80px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-tbody">
+                        <tr class="empty-row">
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📋</div>
+                                    <p>暂无数据，点击"搜索"加载列表</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+
+    <div class="modal" id="detail-modal">
+        <div class="modal-overlay" data-close="1"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-student-name">学生姓名</h2>
+                    <p class="modal-class" id="modal-class-name">班级</p>
+                </div>
+                <button class="modal-close" data-close="1">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="contacts-list" id="contacts-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close="1">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
