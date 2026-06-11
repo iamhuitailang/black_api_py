@@ -9,6 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.common import get_router_registry
+from app.common.middleware.auth import AuthMiddleware
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
@@ -56,6 +57,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+app.add_middleware(AuthMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

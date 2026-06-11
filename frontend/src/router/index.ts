@@ -1,12 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
+import LoginPage from '@/pages/LoginPage.vue'
+import { getToken, api } from '@/utils/api'
 
-// 定义路由配置
 const routes = [
   {
     path: '/',
     name: 'home',
     component: HomePage,
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginPage,
   },
   {
     path: '/about',
@@ -17,10 +23,31 @@ const routes = [
   },
 ]
 
-// 创建路由实例
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.beforeEach(async (to, _from, next) => {
+  const token = getToken()
+  if (to.name === 'login') {
+    if (token) {
+      try {
+        const res = await api.checkAuth()
+        if (res.code === 0) {
+          next({ name: 'home' })
+          return
+        }
+      } catch {}
+    }
+    next()
+    return
+  }
+  if (!token) {
+    next({ name: 'login' })
+    return
+  }
+  next()
 })
 
 export default router

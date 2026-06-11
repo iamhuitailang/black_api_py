@@ -1,19 +1,56 @@
 import type { Project, ApiResponse, ProjectListData, AddProjectRequest, UpdateProjectRequest, BatchDeleteRequest } from '@/types'
 
 const API_BASE = '/api'
+const TOKEN_KEY = 'auth_token'
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY)
+}
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  }
+  const token = getToken()
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
   const response = await fetch(`${API_BASE}${url}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   })
+  if (response.status === 401) {
+    clearToken()
+    window.location.href = '/login'
+    return { code: 401, message: 'Unauthorized', data: null as any }
+  }
   return response.json()
 }
 
 export const api = {
+  login: (username: string, password: string) =>
+    request<{ token: string; user: { id: number; username: string } }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  logout: () =>
+    request<null>('/auth/logout', {
+      method: 'POST',
+    }),
+
+  checkAuth: () =>
+    request<{ id: number; username: string }>('/auth/current/user/get'),
+
   addProject: (data: AddProjectRequest) =>
     request<Project>('/projects/add', {
       method: 'POST',

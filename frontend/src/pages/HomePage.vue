@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Search, Plus, Shuffle, Trash2, Filter, ChevronDown, ChevronRight,
-  X, CheckSquare, Square, Loader2, GitBranch, Tag, Star, BookOpen
+  X, CheckSquare, Square, Loader2, GitBranch, Tag, Star, BookOpen, User, LogOut
 } from 'lucide-vue-next'
 import type { Project, Priority, UpdateProjectRequest } from '@/types'
 import { priorityList } from '@/types'
-import { api } from '@/utils/api'
+import { api, clearToken } from '@/utils/api'
 import ProjectCard from '@/components/ProjectCard.vue'
 import EditModal from '@/components/EditModal.vue'
 import RandomModal from '@/components/RandomModal.vue'
+
+const route = useRoute()
+const router = useRouter()
 
 const projects = ref<Project[]>([])
 const languages = ref<string[]>([])
@@ -18,10 +22,10 @@ const addingProject = ref(false)
 const addingProjectUrl = ref('')
 const addingError = ref('')
 
-const searchQuery = ref('')
-const selectedLanguage = ref('')
-const selectedPriority = ref('')
-const activeTagFilter = ref('')
+const searchQuery = ref((route.query.search as string) || '')
+const selectedLanguage = ref((route.query.language as string) || '')
+const selectedPriority = ref((route.query.priority as string) || '')
+const activeTagFilter = ref((route.query.tag as string) || '')
 
 const selectedIds = ref<number[]>([])
 const selectMode = ref(false)
@@ -34,6 +38,25 @@ const randomProject = ref<Project | null>(null)
 const randomLoading = ref(false)
 
 const expandedGroups = ref<Record<string, boolean>>({})
+
+const currentUser = ref('')
+
+async function fetchCurrentUser() {
+  try {
+    const res = await api.checkAuth()
+    if (res.code === 0) {
+      currentUser.value = res.data.username
+    }
+  } catch {}
+}
+
+async function handleLogout() {
+  try {
+    await api.logout()
+  } catch {}
+  clearToken()
+  router.push('/login')
+}
 
 async function fetchProjects() {
   loading.value = true
@@ -75,11 +98,22 @@ function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
 
 const debouncedFetch = debounce(fetchProjects, 300)
 
+function syncFiltersToUrl() {
+  const query: Record<string, string> = {}
+  if (searchQuery.value) query.search = searchQuery.value
+  if (selectedLanguage.value) query.language = selectedLanguage.value
+  if (selectedPriority.value) query.priority = selectedPriority.value
+  if (activeTagFilter.value) query.tag = activeTagFilter.value
+  router.replace({ query })
+}
+
 watch([searchQuery, selectedLanguage, selectedPriority, activeTagFilter], () => {
+  syncFiltersToUrl()
   debouncedFetch()
 })
 
 onMounted(() => {
+  fetchCurrentUser()
   fetchProjects()
   fetchLanguages()
 })
@@ -146,6 +180,13 @@ async function handleDelete(id: number) {
   }
 }
 
+const visibleProjectIds = computed(() => new Set(projects.value.map(p => p.id)))
+
+const allVisibleSelected = computed(() => {
+  if (projects.value.length === 0) return false
+  return projects.value.every(p => selectedIds.value.includes(p.id))
+})
+
 function toggleSelect(id: number) {
   const idx = selectedIds.value.indexOf(id)
   if (idx > -1) {
@@ -157,11 +198,17 @@ function toggleSelect(id: number) {
 }
 
 function toggleSelectAll() {
-  if (selectedIds.value.length === projects.value.length) {
-    selectedIds.value = []
-    selectMode.value = false
+  const visibleIds = projects.value.map(p => p.id)
+  if (allVisibleSelected.value) {
+    selectedIds.value = selectedIds.value.filter(id => !visibleProjectIds.value.has(id))
+    selectMode.value = selectedIds.value.length > 0
   } else {
-    selectedIds.value = projects.value.map(p => p.id)
+    const existingSet = new Set(selectedIds.value)
+    visibleIds.forEach(id => {
+      if (!existingSet.has(id)) {
+        selectedIds.value.push(id)
+      }
+    })
     selectMode.value = true
   }
 }
@@ -219,15 +266,30 @@ const allTags = computed(() => {
 const groupedProjects = computed(() => {
   const groups: Record<string, Project[]> = {}
   const ungrouped: Project[] = []
+  const assigned = new Set<number>()
 
   projects.value.forEach(project => {
     if (project.tags.length === 0) {
       ungrouped.push(project)
-    } else {
-      project.tags.forEach(tag => {
+      assigned.add(project.id)
+    }
+  })
+
+  const allTagList = allTags.value
+  allTagList.forEach(tag => {
+    projects.value.forEach(project => {
+      if (assigned.has(project.id)) return
+      if (project.tags.includes(tag)) {
         if (!groups[tag]) groups[tag] = []
         groups[tag].push(project)
-      })
+        assigned.add(project.id)
+      }
+    })
+  })
+
+  projects.value.forEach(project => {
+    if (!assigned.has(project.id)) {
+      ungrouped.push(project)
     }
   })
 
@@ -274,6 +336,16 @@ function clearFilters() {
             <Tag :size="14" />
             <span>{{ allTags.length }} 个标签</span>
           </div>
+        </div>
+        <div class="user-section">
+          <div class="user-info">
+            <User :size="16" class="user-icon" />
+            <span class="user-name">{{ currentUser }}</span>
+          </div>
+          <button class="btn-logout" @click="handleLogout">
+            <LogOut :size="14" />
+            退出
+          </button>
         </div>
       </div>
     </header>
@@ -344,9 +416,9 @@ function clearFilters() {
               @click="toggleSelectAll"
               :disabled="projects.length === 0"
             >
-              <CheckSquare v-if="selectedIds.length === projects.length && projects.length > 0" :size="14" />
+              <CheckSquare v-if="allVisibleSelected" :size="14" />
               <Square v-else :size="14" />
-              {{ selectMode ? '取消全选' : '全选' }}
+              {{ allVisibleSelected ? '取消全选' : '全选' }}
             </button>
 
             <button
@@ -532,6 +604,49 @@ function clearFilters() {
 
 .stat-item svg {
   color: #89b4fa;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #bac2de;
+  font-size: 13px;
+}
+
+.user-icon {
+  color: #89b4fa;
+}
+
+.user-name {
+  color: #cdd6f4;
+  font-weight: 500;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(243, 139, 168, 0.1);
+  border: 1px solid rgba(243, 139, 168, 0.3);
+  border-radius: 6px;
+  color: #f38ba8;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: rgba(243, 139, 168, 0.2);
+  border-color: #f38ba8;
 }
 
 .main-content {
