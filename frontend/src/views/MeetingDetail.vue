@@ -94,11 +94,47 @@
     <div v-if="showReminderModal" class="modal-overlay" @click.self="closeReminderModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>📩 设置待办提醒邮件</h3>
+          <h3>� 设置待办提醒</h3>
           <button class="modal-close" @click="closeReminderModal">×</button>
         </div>
         <div class="modal-body">
           <p class="modal-desc">待办：<strong>{{ editingAction?.content }}</strong></p>
+
+          <div class="reminder-type-tabs">
+            <button
+              class="type-tab"
+              :class="{ active: reminderType === 'desktop' }"
+              @click="reminderType = 'desktop'"
+            >
+              🖥️ 桌面通知
+            </button>
+            <button
+              class="type-tab"
+              :class="{ active: reminderType === 'email' }"
+              @click="reminderType = 'email'"
+            >
+              📧 邮件提醒
+            </button>
+          </div>
+
+          <div v-if="reminderType === 'desktop'" class="type-desc">
+            <p class="desc-text">
+              ✅ <strong>推荐！</strong>浏览器桌面通知，无需配置任何东西，打开网页就能用。
+            </p>
+            <p class="desc-text secondary">
+              到点会在屏幕右下角弹出通知，点击可直接跳转到对应会议纪要。
+            </p>
+          </div>
+
+          <div v-if="reminderType === 'email'" class="type-desc">
+            <p class="desc-text">
+              📧 邮件提醒需要后端配置 SMTP 邮件服务才能发送。
+            </p>
+            <p class="desc-text secondary">
+              未配置时，提醒内容会打印到后端服务器控制台日志中。
+            </p>
+          </div>
+
           <div class="form-group">
             <label class="form-label">提醒时间 *</label>
             <input
@@ -106,8 +142,15 @@
               class="form-input"
               v-model="reminderForm.reminder_time"
             />
+            <div class="quick-times">
+              <button class="quick-btn" @click="setQuickTime(60)">1小时后</button>
+              <button class="quick-btn" @click="setQuickTime(120)">2小时后</button>
+              <button class="quick-btn" @click="setQuickTime('tomorrow')">明天9点</button>
+              <button class="quick-btn" @click="setQuickTime('due_day')">截止当天</button>
+            </div>
           </div>
-          <div class="form-group">
+
+          <div v-if="reminderType === 'email'" class="form-group">
             <label class="form-label">接收邮箱 *</label>
             <input
               type="email"
@@ -116,13 +159,12 @@
               placeholder="example@company.com"
             />
           </div>
-          <div class="smtp-tip">
-            <p class="tip-title">💡 使用说明：</p>
-            <ul>
-              <li>到点系统会自动发送提醒邮件到指定邮箱</li>
-              <li>未配置 SMTP 服务时，提醒内容会打印到后端服务器控制台日志中，便于查看</li>
-              <li>配置方式：设置环境变量 <code>SMTP_HOST</code>、<code>SMTP_PORT</code>、<code>SMTP_USER</code>、<code>SMTP_PASS</code>、<code>SMTP_FROM</code> 后重启后端</li>
-            </ul>
+
+          <div class="test-row">
+            <button class="btn btn-secondary btn-sm" @click="testNotification">
+              🧪 发送测试通知
+            </button>
+            <span class="test-tip">点击预览提醒效果</span>
           </div>
         </div>
         <div class="modal-footer">
@@ -148,10 +190,13 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { meetingApi, actionItemApi, projectApi } from '../api'
 import { formatDate, formatDateTime, getUrgencyStatus, getDaysUntil, getUrgencyText } from '../utils'
+import { useReminder } from '../composables/useReminder'
 import { marked } from 'marked'
 
 const route = useRoute()
 const router = useRouter()
+
+const { notificationEnabled, requestPermission, showNotification, clearNotified } = useReminder()
 
 const meeting = ref(null)
 const actionItems = ref([])
@@ -161,6 +206,7 @@ const loading = ref(false)
 const showReminderModal = ref(false)
 const editingAction = ref(null)
 const savingReminder = ref(false)
+const reminderType = ref('desktop')
 const reminderForm = reactive({
   reminder_time: '',
   reminder_email: ''
@@ -188,29 +234,68 @@ function getStatusText(item) {
 
 function openReminderModal(item) {
   editingAction.value = item
-  if (item.reminder_time) {
-    const t = item.reminder_time.replace(' ', 'T').slice(0, 16)
-    reminderForm.reminder_time = t
-  } else {
-    const defaultTime = new Date()
-    if (item.due_date) {
-      defaultTime.setTime(new Date(item.due_date).getTime())
-    }
-    defaultTime.setDate(defaultTime.getDate() - 1)
-    defaultTime.setHours(9, 0, 0, 0)
-    if (defaultTime < new Date()) {
-      defaultTime.setTime(Date.now() + 60 * 60 * 1000)
-    }
-    reminderForm.reminder_time = defaultTime.toISOString().slice(0, 16)
-  }
-  reminderForm.reminder_email = item.reminder_email || item.assignee ? guessEmail(item.assignee) : ''
+  reminderType.value = item.reminder_email ? 'email' : 'desktop'
+  setDefaultReminderTime(item)
+  reminderForm.reminder_email = item.reminder_email || ''
   showReminderModal.value = true
 }
 
-function guessEmail(name) {
-  if (!name) return ''
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) return name
-  return ''
+function setDefaultReminderTime(item) {
+  if (item.reminder_time) {
+    const t = item.reminder_time.replace(' ', 'T').slice(0, 16)
+    reminderForm.reminder_time = t
+    return
+  }
+  const defaultTime = new Date()
+  if (item.due_date) {
+    const dueDate = new Date(item.due_date)
+    if (dueDate > defaultTime) {
+      defaultTime.setTime(dueDate.getTime() - 24 * 60 * 60 * 1000)
+      defaultTime.setHours(9, 0, 0, 0)
+      if (defaultTime < new Date()) {
+        defaultTime.setTime(Date.now() + 60 * 60 * 1000)
+      }
+    } else {
+      defaultTime.setTime(Date.now() + 60 * 60 * 1000)
+    }
+  } else {
+    defaultTime.setTime(Date.now() + 60 * 60 * 1000)
+  }
+  reminderForm.reminder_time = defaultTime.toISOString().slice(0, 16)
+}
+
+function setQuickTime(type) {
+  const d = new Date()
+  if (typeof type === 'number') {
+    d.setMinutes(d.getMinutes() + type)
+  } else if (type === 'tomorrow') {
+    d.setDate(d.getDate() + 1)
+    d.setHours(9, 0, 0, 0)
+  } else if (type === 'due_day') {
+    if (editingAction.value?.due_date) {
+      d.setTime(new Date(editingAction.value.due_date).getTime())
+      d.setHours(9, 0, 0, 0)
+    } else {
+      d.setDate(d.getDate() + 1)
+      d.setHours(9, 0, 0, 0)
+    }
+  }
+  reminderForm.reminder_time = d.toISOString().slice(0, 16)
+}
+
+async function testNotification() {
+  if (!notificationEnabled.value) {
+    const granted = await requestPermission()
+    if (!granted) {
+      alert('请先允许浏览器通知权限，再测试提醒效果。')
+      return
+    }
+  }
+  showNotification('🧪 测试通知 - 待办提醒', {
+    body: `${editingAction.value?.content || '测试待办'}\n这是一条测试通知，提醒功能正常工作！`,
+    tag: 'test-notification'
+  })
+  alert('测试通知已发送！请查看桌面右下角的通知弹出。')
 }
 
 function closeReminderModal() {
@@ -225,18 +310,29 @@ async function saveReminder() {
     alert('请选择提醒时间')
     return
   }
-  if (!reminderForm.reminder_email) {
+  if (reminderType.value === 'email' && !reminderForm.reminder_email) {
     alert('请输入接收邮箱')
     return
   }
+
+  if (reminderType.value === 'desktop' && !notificationEnabled.value) {
+    const granted = await requestPermission()
+    if (!granted) {
+      alert('请先允许浏览器通知权限，桌面提醒才能正常工作。')
+      return
+    }
+  }
+
   savingReminder.value = true
   try {
     const timeStr = reminderForm.reminder_time.replace('T', ' ') + ':00'
-    await actionItemApi.setReminder(editingAction.value.id, timeStr, reminderForm.reminder_email)
+    const email = reminderType.value === 'email' ? reminderForm.reminder_email : ''
+    await actionItemApi.setReminder(editingAction.value.id, timeStr, email)
     editingAction.value.reminder_time = timeStr
-    editingAction.value.reminder_email = reminderForm.reminder_email
+    editingAction.value.reminder_email = email
     editingAction.value.reminder_sent = false
-    alert('提醒设置成功！到点会自动发送邮件。')
+    clearNotified(editingAction.value.id)
+    alert('提醒设置成功！到点会自动提醒。')
     closeReminderModal()
   } catch (e) {
     console.error('设置提醒失败:', e)
@@ -253,6 +349,7 @@ async function clearReminder() {
     editingAction.value.reminder_time = ''
     editingAction.value.reminder_email = ''
     editingAction.value.reminder_sent = false
+    clearNotified(editingAction.value.id)
     closeReminderModal()
   } catch (e) {
     alert('清除失败: ' + e)
@@ -566,6 +663,98 @@ onMounted(() => {
   align-self: flex-start;
 }
 
+.reminder-type-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  background-color: #f3f4f6;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.type-tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.type-tab:hover {
+  color: #374151;
+}
+
+.type-tab.active {
+  background-color: white;
+  color: #1f2937;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.type-desc {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.type-desc .desc-text {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: #166534;
+  line-height: 1.6;
+}
+
+.type-desc .desc-text.secondary {
+  margin: 0;
+  color: #15803d;
+  opacity: 0.8;
+}
+
+.quick-times {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.test-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.test-tip {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -630,6 +819,14 @@ onMounted(() => {
   font-size: 13px;
   color: #374151;
   line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .smtp-tip {
