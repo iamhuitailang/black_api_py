@@ -1426,14 +1426,14 @@
                             <div 
                                 class="nav-tab" 
                                 :class="{ active: kitchenView === 'active' }"
-                                @click="kitchenView = 'active'; localStorage.setItem('restaurant_kitchenView', 'active')"
+                                @click="kitchenView = 'active'"
                             >
                                 🔥 待处理订单
                             </div>
                             <div 
                                 class="nav-tab" 
                                 :class="{ active: kitchenView === 'all' }"
-                                @click="kitchenView = 'all'; localStorage.setItem('restaurant_kitchenView', 'all')"
+                                @click="kitchenView = 'all'"
                             >
                                 📋 全部订单
                             </div>
@@ -1550,14 +1550,14 @@
                             <div 
                                 class="nav-tab" 
                                 :class="{ active: adminView === 'summary' }"
-                        @click="adminView = 'summary'; localStorage.setItem('restaurant_adminView', 'summary'); loadDailySummary()"
+                        @click="adminView = 'summary'"
                     >
                         📊 今日汇总
                     </div>
                     <div 
                         class="nav-tab" 
                         :class="{ active: adminView === 'dishes' }"
-                        @click="adminView = 'dishes'; localStorage.setItem('restaurant_adminView', 'dishes'); loadDishes()"
+                        @click="adminView = 'dishes'"
                     >
                         🍽️ 菜单管理
                     </div>
@@ -1983,7 +1983,11 @@
                                 loadOrders();
                                 startPolling();
                             } else if (role.value === 'admin') {
-                                loadDailySummary();
+                                if (adminView.value === 'dishes') {
+                                    loadDishes();
+                                } else {
+                                    loadDailySummary();
+                                }
                             }
                         } else {
                             showToast(data.message || '密码错误', 'error');
@@ -2437,6 +2441,21 @@
                     if (newRole === 'kitchen') {
                         startPolling();
                     }
+                });
+
+                watch(adminView, (newView) => {
+                    localStorage.setItem('restaurant_adminView', newView);
+                    if (role.value === 'admin' && staffLoggedIn.value) {
+                        if (newView === 'dishes') {
+                            loadDishes();
+                        } else if (newView === 'summary') {
+                            loadDailySummary();
+                        }
+                    }
+                });
+
+                watch(kitchenView, (newView) => {
+                    localStorage.setItem('restaurant_kitchenView', newView);
                 });
 
                 return {
