@@ -138,6 +138,72 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
     showToast('已退出登录', 'success');
 });
 
+const passwordModal = document.getElementById('password-modal');
+
+function openPasswordModal() {
+    document.getElementById('password-form').reset();
+    passwordModal.classList.add('show');
+}
+
+function closePasswordModal() {
+    passwordModal.classList.remove('show');
+}
+
+document.getElementById('btn-change-pwd').addEventListener('click', openPasswordModal);
+
+passwordModal.querySelectorAll('[data-pwd-close]').forEach(el => {
+    el.addEventListener('click', closePasswordModal);
+});
+
+document.getElementById('btn-save-password').addEventListener('click', async () => {
+    const form = document.getElementById('password-form');
+    const oldPwd = form.old_password.value;
+    const newPwd = form.new_password.value;
+    const confirmPwd = form.confirm_password.value;
+
+    if (!oldPwd || !newPwd || !confirmPwd) {
+        showToast('请完整填写密码', 'error');
+        return;
+    }
+    if (newPwd.length < 6) {
+        showToast('新密码至少6位', 'error');
+        return;
+    }
+    if (newPwd !== confirmPwd) {
+        showToast('两次输入的新密码不一致', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-save-password');
+    const originText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+
+    try {
+        const res = await authFetch(`${API_BASE}/auth/password/change`, {
+            method: 'POST',
+            body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+        });
+        if (!res) {
+            closePasswordModal();
+            return;
+        }
+        const data = await res.json();
+        if (data.code === 0) {
+            showToast('✅ 密码修改成功，请重新登录', 'success');
+            closePasswordModal();
+            logout();
+        } else {
+            showToast(data.message || '修改失败', 'error');
+        }
+    } catch (err) {
+        showToast('网络错误，请重试', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originText;
+    }
+});
+
 async function loadClasses() {
     try {
         const res = await authFetch(`${API_BASE}/contact/teacher/classes/get`);
