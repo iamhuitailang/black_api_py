@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Optional
 import hashlib
+import re
 from app.model.rides import RideModel
 
 
@@ -9,6 +10,15 @@ def _hash_password(password: str) -> str:
 
 def _verify_password(password: str, password_hash: str) -> bool:
     return _hash_password(password) == password_hash
+
+
+def _validate_contact(contact: str) -> Optional[str]:
+    contact = contact.strip()
+    digits = re.sub(r'[\s\-]', '', contact)
+    if re.match(r'^\d+$', digits):
+        if not re.match(r'^1[3-9]\d{9}$', digits):
+            return '手机号格式不正确，应为11位且以1开头（如13800138000），微信号请加前缀说明'
+    return None
 
 
 def _format_ride(ride: Dict[str, Any]) -> Dict[str, Any]:
@@ -44,6 +54,9 @@ class RideBusiness:
             return {'code': 1, 'message': '座位数必须大于0', 'data': None}
         if not contact or not contact.strip():
             return {'code': 1, 'message': '联系方式不能为空', 'data': None}
+        contact_err = _validate_contact(contact)
+        if contact_err:
+            return {'code': 1, 'message': contact_err, 'data': None}
         if not password or not password.strip():
             return {'code': 1, 'message': '请设置密码', 'data': None}
 

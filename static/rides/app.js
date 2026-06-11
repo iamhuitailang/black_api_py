@@ -1,4 +1,5 @@
 const API = '/api/rides';
+const STORAGE_KEY = 'carpool_draft';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -25,6 +26,53 @@ $$('.modal-mask').forEach(mask => {
         if (e.target === mask) mask.classList.remove('show');
     });
 });
+
+function validateContact(val) {
+    val = val.trim();
+    if (!val) return '联系方式不能为空';
+    const digits = val.replace(/[\s\-]/g, '');
+    if (/^\d+$/.test(digits)) {
+        if (!/^1[3-9]\d{9}$/.test(digits)) {
+            return '手机号格式不正确（应为11位且1开头），微信号请加前缀如"微信:xxx"';
+        }
+    }
+    return '';
+}
+
+function saveDraft() {
+    const form = $('#form-publish');
+    if (!form) return;
+    const fd = new FormData(form);
+    const data = {};
+    for (const [k, v] of fd.entries()) {
+        data[k] = v;
+    }
+    data.weekdays = form.querySelector('[name=weekdays]').checked;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function loadDraft() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        const form = $('#form-publish');
+        if (!form) return;
+        for (const [k, v] of Object.entries(data)) {
+            const el = form.querySelector(`[name="${k}"]`);
+            if (!el) continue;
+            if (el.type === 'checkbox') {
+                el.checked = !!v;
+            } else {
+                el.value = v;
+            }
+        }
+    } catch(e) {}
+}
+
+function clearDraft() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
 
 function formatTime(iso) {
     if (!iso) return '';
@@ -143,13 +191,24 @@ $('#btn-reset').addEventListener('click', () => {
 $('#filter-status').addEventListener('change', loadList);
 
 $('#btn-fab').addEventListener('click', () => {
-    $('#form-publish').reset();
+    loadDraft();
     openModal('modal-publish');
 });
+
+$('#form-publish').addEventListener('input', saveDraft);
+$('#form-publish').addEventListener('change', saveDraft);
 
 $('#btn-submit-publish').addEventListener('click', async () => {
     const form = $('#form-publish');
     if (!form.reportValidity()) return;
+
+    const contactVal = form.querySelector('[name="contact"]').value;
+    const contactErr = validateContact(contactVal);
+    if (contactErr) {
+        showToast(contactErr, 'error');
+        form.querySelector('[name="contact"]').focus();
+        return;
+    }
 
     const fd = new FormData(form);
     const data = {
@@ -174,6 +233,8 @@ $('#btn-submit-publish').addEventListener('click', async () => {
         const json = await res.json();
         if (json.code === 0) {
             showToast('发布成功！', 'success');
+            clearDraft();
+            form.reset();
             closeModal('modal-publish');
             loadList();
         } else {
