@@ -37,7 +37,7 @@ class UserModel:
         admin_exists = db.fetch_one(f"SELECT id FROM {cls.TABLE_NAME} WHERE username = 'admin'")
         if not admin_exists:
             salt = secrets.token_hex(8)
-            password = 'admin123'
+            password = 'star123'
             password_hash = cls._hash_password(password, salt)
             now = datetime.now().isoformat()
             db.execute(

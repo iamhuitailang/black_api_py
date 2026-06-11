@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -58,8 +58,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.add_middleware(AuthMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -87,10 +85,19 @@ router_registry = get_router_registry()
 api_router = router_registry.register_all(prefix="/api")
 app.include_router(api_router)
 
-import os
-from fastapi.responses import FileResponse
-
 frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+
+
+@app.get("/health")
+async def health_check():
+    return {
+        "code": 0,
+        "message": "ok",
+        "data": {
+            "status": "healthy"
+        }
+    }
+
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
@@ -120,15 +127,7 @@ async def serve_frontend(full_path: str):
     }
 
 
-@app.get("/health")
-async def health_check():
-    return {
-        "code": 0,
-        "message": "ok",
-        "data": {
-            "status": "healthy"
-        }
-    }
+app = AuthMiddleware(app)
 
 
 if __name__ == "__main__":
