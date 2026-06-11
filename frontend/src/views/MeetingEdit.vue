@@ -138,6 +138,7 @@ const saving = ref(false)
 const projects = ref([])
 const hasDraft = ref(false)
 let autoSaveTimer = null
+let debounceTimer = null
 
 const form = reactive({
   project_id: 0,
@@ -162,7 +163,7 @@ function saveDraft() {
     title: form.title,
     date: form.date,
     content: form.content,
-    action_items: [...form.action_items],
+    action_items: form.action_items.map(item => ({ ...item })),
     attendeesText: attendeesText.value,
     savedAt: Date.now()
   }
@@ -174,17 +175,33 @@ function saveDraft() {
   }
 }
 
+function debounceSaveDraft() {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    if (form.title || form.content || form.action_items.length > 0 || attendeesText.value) {
+      saveDraft()
+    }
+  }, 500)
+}
+
+function handleBeforeUnload() {
+  if (form.title || form.content || form.action_items.length > 0 || attendeesText.value) {
+    saveDraft()
+  }
+}
+
 function loadDraft() {
   try {
     const raw = localStorage.getItem(getDraftKey())
     if (raw) {
       const draft = JSON.parse(raw)
-      if (confirm(`检测到未保存的草稿（${new Date(draft.savedAt).toLocaleString()}），是否恢复？`)) {
+      const timeStr = new Date(draft.savedAt).toLocaleString()
+      if (confirm(`检测到未保存的草稿（${timeStr}），是否恢复？\n恢复后可找回您输入的内容。`)) {
         form.project_id = draft.project_id || 0
         form.title = draft.title || ''
         form.date = draft.date || new Date().toISOString().split('T')[0]
         form.content = draft.content || ''
-        form.action_items = draft.action_items || []
+        form.action_items = (draft.action_items || []).map(item => ({ ...item }))
         attendeesText.value = draft.attendeesText || ''
         hasDraft.value = true
         return true
@@ -212,7 +229,8 @@ function startAutoSave() {
     if (form.title || form.content || form.action_items.length > 0 || attendeesText.value) {
       saveDraft()
     }
-  }, 5000)
+  }, 10000)
+  window.addEventListener('beforeunload', handleBeforeUnload)
 }
 
 function stopAutoSave() {
@@ -220,15 +238,37 @@ function stopAutoSave() {
     clearInterval(autoSaveTimer)
     autoSaveTimer = null
   }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 }
 
 watch(
-  () => [form.title, form.content, attendeesText.value, form.action_items.length],
+  () => [
+    form.title,
+    form.content,
+    attendeesText.value,
+    form.project_id,
+    form.date,
+    form.action_items.length
+  ],
   () => {
     if (form.title || form.content || attendeesText.value) {
       hasDraft.value = true
     }
-  }
+    debounceSaveDraft()
+  },
+  { deep: true }
+)
+
+watch(
+  () => form.action_items,
+  () => {
+    debounceSaveDraft()
+  },
+  { deep: true }
 )
 
 async function loadProjects() {
@@ -244,28 +284,46 @@ async function loadMeeting() {
   try {
     const data = await meetingApi.getById(route.params.id)
     if (data) {
-      const hasRestored = loadDraft()
-      if (!hasRestored) {
-        form.project_id = data.project_id || 0
-        form.title = data.title
-        form.date = data.date
-        form.content = data.content || ''
-        form.action_items = (data.action_items || []).map(item => ({
-          id: item.id,
-          content: item.content,
-          assignee: item.assignee || '',
-          due_date: item.due_date || '',
-          completed: item.completed || false,
-          reminder_time: item.reminder_time || '',
-          reminder_email: item.reminder_email || ''
-        }))
-        attendeesText.value = (data.attendees || []).join(', ')
+      const draftExists = checkDraftExists()
+      if (!draftExists) {
+        applyServerData(data)
+      } else {
+        const hasRestored = loadDraft()
+        if (!hasRestored) {
+          applyServerData(data)
+        }
       }
     }
   } catch (e) {
     console.error('加载会议失败:', e)
     alert('加载失败: ' + e)
   }
+}
+
+function checkDraftExists() {
+  try {
+    return !!localStorage.getItem(getDraftKey())
+  } catch (e) {
+    return false
+  }
+}
+
+function applyServerData(data) {
+  form.project_id = data.project_id || 0
+  form.title = data.title
+  form.date = data.date
+  form.content = data.content || ''
+  form.action_items = (data.action_items || []).map(item => ({
+    id: item.id,
+    content: item.content,
+    assignee: item.assignee || '',
+    due_date: item.due_date || '',
+    completed: item.completed || false,
+    reminder_time: item.reminder_time || '',
+    reminder_email: item.reminder_email || ''
+  }))
+  attendeesText.value = (data.attendees || []).join(', ')
+  hasDraft.value = false
 }
 
 function addActionItem() {
