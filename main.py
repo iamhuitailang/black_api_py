@@ -5,6 +5,9 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import sys
 import os
+import threading
+import time
+from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,6 +26,53 @@ def migrate_database():
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
+
+
+_daily_cleanup_stop = threading.Event()
+_daily_cleanup_thread = None
+
+
+def _daily_cleanup_worker():
+    from app.business.rides import RideBusiness
+    business = RideBusiness()
+    print(f"[DailyCleanup] 每日凌晨自动清理任务已启动，将在每天 00:00 执行")
+    
+    while not _daily_cleanup_stop.is_set():
+        now = datetime.now()
+        next_run = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        wait_seconds = (next_run - now).total_seconds()
+        
+        print(f"[DailyCleanup] 下次清理时间: {next_run.strftime('%Y-%m-%d %H:%M:%S')} (等待 {int(wait_seconds)} 秒)")
+        
+        if _daily_cleanup_stop.wait(timeout=wait_seconds):
+            break
+        
+        try:
+            result = business.clean_expired(24)
+            if result.get('code') == 0:
+                count = result.get('data', {}).get('cleaned_count', 0)
+                print(f"[DailyCleanup] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 自动清理完成，共清理 {count} 条过期拼车信息")
+            else:
+                print(f"[DailyCleanup] 清理失败: {result.get('message', '未知错误')}")
+        except Exception as e:
+            print(f"[DailyCleanup] 清理异常: {e}")
+        
+        time.sleep(60)
+
+
+def start_daily_cleanup():
+    global _daily_cleanup_thread
+    if _daily_cleanup_thread and _daily_cleanup_thread.is_alive():
+        return
+    _daily_cleanup_stop.clear()
+    _daily_cleanup_thread = threading.Thread(target=_daily_cleanup_worker, daemon=True)
+    _daily_cleanup_thread.start()
+
+
+def stop_daily_cleanup():
+    _daily_cleanup_stop.set()
+    if _daily_cleanup_thread:
+        _daily_cleanup_thread.join(timeout=5)
 
 
 def init_database():
@@ -46,7 +96,9 @@ def init_database():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_database()
+    start_daily_cleanup()
     yield
+    stop_daily_cleanup()
     db = get_db()
     db.close()
 
