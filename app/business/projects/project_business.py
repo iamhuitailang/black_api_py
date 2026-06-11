@@ -59,11 +59,12 @@ class ProjectBusiness:
                 'data': None
             }
 
-        existing = self.model.get_by_github_url(github_url)
+        normalized_url = f"https://github.com/{full_name}"
+        existing = self.model.get_by_github_url(normalized_url)
         if existing:
             return {
                 'code': 1,
-                'message': 'Project already exists in favorites',
+                'message': f'项目「{existing.get("name", full_name)}」已在收藏夹中',
                 'data': existing
             }
 
@@ -76,7 +77,7 @@ class ProjectBusiness:
             }
 
         project_id = self.model.create(
-            github_url=github_url,
+            github_url=normalized_url,
             name=repo_info.get('name', full_name.split('/')[-1]),
             description=repo_info.get('description'),
             language=repo_info.get('language'),
