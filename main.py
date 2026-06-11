@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.restaurant import DishModel, OrderModel, OrderItemModel
 from app.common.sqlite.db import get_db
 
 
@@ -21,6 +22,48 @@ def migrate_database():
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
+
+
+def seed_database():
+    dish_model = DishModel()
+    count = dish_model.count()
+    
+    if count == 0:
+        print("Seeding database with sample dishes...")
+        
+        sample_dishes = [
+            {'name': '凉拌黄瓜', 'category': 'cold', 'price': 12.0, 'description': '清爽开胃，夏日必备', 'spicy_level': 1, 'image_url': ''},
+            {'name': '口水鸡', 'category': 'cold', 'price': 38.0, 'description': '麻辣鲜香，皮嫩肉滑', 'spicy_level': 3, 'image_url': ''},
+            {'name': '麻酱拉皮', 'category': 'cold', 'price': 16.0, 'description': '口感爽滑，酱香浓郁', 'spicy_level': 0, 'image_url': ''},
+            {'name': '夫妻肺片', 'category': 'cold', 'price': 42.0, 'description': '经典川菜，麻辣过瘾', 'spicy_level': 3, 'image_url': ''},
+            {'name': '宫保鸡丁', 'category': 'hot', 'price': 32.0, 'description': '花生香脆，鸡肉嫩滑', 'spicy_level': 2, 'image_url': ''},
+            {'name': '鱼香肉丝', 'category': 'hot', 'price': 28.0, 'description': '酸甜微辣，下饭神器', 'spicy_level': 2, 'image_url': ''},
+            {'name': '水煮牛肉', 'category': 'hot', 'price': 58.0, 'description': '麻辣鲜香，肉质嫩滑', 'spicy_level': 3, 'image_url': ''},
+            {'name': '红烧肉', 'category': 'hot', 'price': 48.0, 'description': '肥而不腻，入口即化', 'spicy_level': 0, 'image_url': ''},
+            {'name': '麻婆豆腐', 'category': 'hot', 'price': 22.0, 'description': '麻辣鲜香，嫩滑可口', 'spicy_level': 2, 'image_url': ''},
+            {'name': '糖醋里脊', 'category': 'hot', 'price': 36.0, 'description': '酸甜可口，外酥里嫩', 'spicy_level': 0, 'image_url': ''},
+            {'name': '米饭', 'category': 'staple', 'price': 2.0, 'description': '香糯可口，粒粒分明', 'spicy_level': 0, 'image_url': ''},
+            {'name': '牛肉面', 'category': 'staple', 'price': 26.0, 'description': '汤浓味美，牛肉软烂', 'spicy_level': 1, 'image_url': ''},
+            {'name': '蛋炒饭', 'category': 'staple', 'price': 15.0, 'description': '粒粒分明，蛋香四溢', 'spicy_level': 0, 'image_url': ''},
+            {'name': '葱油拌面', 'category': 'staple', 'price': 12.0, 'description': '葱香浓郁，简单美味', 'spicy_level': 0, 'image_url': ''},
+            {'name': '可乐', 'category': 'drink', 'price': 6.0, 'description': '冰爽可口', 'spicy_level': 0, 'image_url': ''},
+            {'name': '酸梅汤', 'category': 'drink', 'price': 8.0, 'description': '酸甜解腻，开胃消食', 'spicy_level': 0, 'image_url': ''},
+            {'name': '青岛啤酒', 'category': 'drink', 'price': 10.0, 'description': '清爽麦香', 'spicy_level': 0, 'image_url': ''},
+            {'name': '鲜榨橙汁', 'category': 'drink', 'price': 18.0, 'description': '新鲜现榨，维C满满', 'spicy_level': 0, 'image_url': ''},
+        ]
+        
+        for dish in sample_dishes:
+            dish_model.create(
+                dish['name'],
+                dish['category'],
+                dish['price'],
+                dish['description'],
+                dish['spicy_level'],
+                dish['image_url'],
+                1
+            )
+        
+        print(f"  - Added {len(sample_dishes)} sample dishes")
 
 
 def init_database():
@@ -34,8 +77,12 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    DishModel.create_table()
+    OrderModel.create_table()
+    OrderItemModel.create_table()
     
     migrate_database()
+    seed_database()
     
     print("Database initialized successfully")
 
@@ -113,6 +160,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8780,
         reload=True
     )
