@@ -860,8 +860,7 @@ class Game {
 
     checkSavedState() {
         if (this.hasSavedState()) {
-            document.getElementById('continuePrompt').classList.remove('hidden');
-            document.getElementById('startPrompt').classList.add('hidden');
+            this.continueGame();
         }
     }
 
@@ -905,11 +904,7 @@ class Game {
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (!this.isRunning && !this.isGameOver) {
-                    if (this.hasSavedState()) {
-                        this.restart();
-                    } else {
-                        this.startGame();
-                    }
+                    this.startGame();
                 } else if (this.isRunning && !this.isGameOver) {
                     if (!this.keys.space) {
                         this.player.jump();
@@ -917,12 +912,6 @@ class Game {
                     this.keys.space = true;
                 } else if (this.isGameOver) {
                     this.restart();
-                }
-            }
-            if (e.code === 'KeyC' && !this.isRunning && !this.isGameOver) {
-                e.preventDefault();
-                if (this.hasSavedState()) {
-                    this.continueGame();
                 }
             }
         });
@@ -938,11 +927,7 @@ class Game {
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (!this.isRunning && !this.isGameOver) {
-                if (this.hasSavedState()) {
-                    this.continueGame();
-                } else {
-                    this.startGame();
-                }
+                this.startGame();
             } else if (this.isRunning && !this.isGameOver) {
                 this.player.jump();
                 this.keys.space = true;
@@ -960,6 +945,10 @@ class Game {
         document.getElementById('restartBtn').addEventListener('click', () => this.restart());
         document.getElementById('backMenuBtn').addEventListener('click', () => this.backToMenu());
         document.getElementById('submitScoreBtn').addEventListener('click', () => this.submitScore());
+
+        window.addEventListener('beforeunload', () => {
+            this.saveState();
+        });
     }
 
     startGame() {
@@ -1005,6 +994,39 @@ class Game {
                 runFrame: this.player.runFrame,
                 rotation: this.player.rotation,
                 jumpHoldTime: this.player.jumpHoldTime
+            },
+            obstacles: this.obstacles.map(o => ({
+                type: o.type,
+                x: o.x,
+                y: o.y,
+                width: o.width,
+                height: o.height,
+                groundY: o.groundY
+            })),
+            rings: this.rings.filter(r => !r.collected).map(r => ({
+                x: r.x,
+                y: r.y,
+                bobOffset: r.bobOffset,
+                frame: r.frame
+            })),
+            springs: this.springs.map(s => ({
+                x: s.x,
+                y: s.y,
+                compressed: s.compressed,
+                compressTimer: s.compressTimer
+            })),
+            stars: this.stars.filter(s => !s.collected).map(s => ({
+                x: s.x,
+                y: s.y,
+                rotation: s.rotation,
+                bobOffset: s.bobOffset
+            })),
+            background: {
+                clouds: this.background.clouds.map(c => ({ x: c.x, y: c.y })),
+                mountains: this.background.mountains.map(m => ({ x: m.x })),
+                trees: this.background.trees.map(t => ({ x: t.x })),
+                factoryElements: this.background.factoryElements.map(f => ({ x: f.x })),
+                volcanoElements: this.background.volcanoElements.map(v => ({ x: v.x }))
             },
             timestamp: Date.now()
         };
@@ -1056,13 +1078,76 @@ class Game {
                 this.player.jumpHoldTime = state.player.jumpHoldTime || 0;
             }
             
-            this.obstacles = [];
-            this.rings = [];
-            this.springs = [];
-            this.stars = [];
-            this.particles = [];
+            this.obstacles = (state.obstacles || []).map(o => {
+                const obs = new Obstacle(o.type, o.x, o.groundY);
+                obs.y = o.y;
+                obs.width = o.width;
+                obs.height = o.height;
+                return obs;
+            });
             
-            this.spawnEntities();
+            this.rings = (state.rings || []).map(r => {
+                const ring = new Ring(r.x, r.y);
+                ring.bobOffset = r.bobOffset;
+                ring.frame = r.frame;
+                return ring;
+            });
+            
+            this.springs = (state.springs || []).map(s => {
+                const spring = new Spring(s.x, CONFIG.GROUND_Y);
+                spring.y = s.y;
+                spring.compressed = s.compressed;
+                spring.compressTimer = s.compressTimer;
+                return spring;
+            });
+            
+            this.stars = (state.stars || []).map(s => {
+                const star = new Star(s.x, s.y);
+                star.rotation = s.rotation;
+                star.bobOffset = s.bobOffset;
+                return star;
+            });
+            
+            if (state.background) {
+                if (state.background.clouds) {
+                    state.background.clouds.forEach((c, i) => {
+                        if (this.background.clouds[i]) {
+                            this.background.clouds[i].x = c.x;
+                            this.background.clouds[i].y = c.y;
+                        }
+                    });
+                }
+                if (state.background.mountains) {
+                    state.background.mountains.forEach((m, i) => {
+                        if (this.background.mountains[i]) {
+                            this.background.mountains[i].x = m.x;
+                        }
+                    });
+                }
+                if (state.background.trees) {
+                    state.background.trees.forEach((t, i) => {
+                        if (this.background.trees[i]) {
+                            this.background.trees[i].x = t.x;
+                        }
+                    });
+                }
+                if (state.background.factoryElements) {
+                    state.background.factoryElements.forEach((f, i) => {
+                        if (this.background.factoryElements[i]) {
+                            this.background.factoryElements[i].x = f.x;
+                        }
+                    });
+                }
+                if (state.background.volcanoElements) {
+                    state.background.volcanoElements.forEach((v, i) => {
+                        if (this.background.volcanoElements[i]) {
+                            this.background.volcanoElements[i].x = v.x;
+                        }
+                    });
+                }
+            }
+            
+            this.particles = [];
             
             this.updateHUD();
             this.updateHearts();
