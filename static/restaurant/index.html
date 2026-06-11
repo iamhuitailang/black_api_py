@@ -1426,14 +1426,14 @@
                             <div 
                                 class="nav-tab" 
                                 :class="{ active: kitchenView === 'active' }"
-                                @click="kitchenView = 'active'"
+                                @click="kitchenView = 'active'; localStorage.setItem('restaurant_kitchenView', 'active')"
                             >
                                 🔥 待处理订单
                             </div>
                             <div 
                                 class="nav-tab" 
                                 :class="{ active: kitchenView === 'all' }"
-                                @click="kitchenView = 'all'"
+                                @click="kitchenView = 'all'; localStorage.setItem('restaurant_kitchenView', 'all')"
                             >
                                 📋 全部订单
                             </div>
@@ -1550,14 +1550,14 @@
                             <div 
                                 class="nav-tab" 
                                 :class="{ active: adminView === 'summary' }"
-                        @click="adminView = 'summary'; loadDailySummary()"
+                        @click="adminView = 'summary'; localStorage.setItem('restaurant_adminView', 'summary'); loadDailySummary()"
                     >
                         📊 今日汇总
                     </div>
                     <div 
                         class="nav-tab" 
                         :class="{ active: adminView === 'dishes' }"
-                        @click="adminView = 'dishes'; loadDishes()"
+                        @click="adminView = 'dishes'; localStorage.setItem('restaurant_adminView', 'dishes'); loadDishes()"
                     >
                         🍽️ 菜单管理
                     </div>
@@ -1814,8 +1814,8 @@
                 const tempTable = ref(tableParam ? parseInt(tableParam) : null);
                 const selectedTable = ref(parseInt(localStorage.getItem('restaurant_selectedTable')) || (tableParam ? parseInt(tableParam) : null));
                 const customerView = ref('menu');
-                const kitchenView = ref('active');
-                const adminView = ref('summary');
+                const kitchenView = ref(localStorage.getItem('restaurant_kitchenView') || 'active');
+                const adminView = ref(localStorage.getItem('restaurant_adminView') || 'summary');
                 const selectedCategory = ref('all');
                 const cartOpen = ref(false);
                 const cartItems = ref(JSON.parse(localStorage.getItem('restaurant_cartItems') || '[]'));
@@ -1949,7 +1949,11 @@
                                     loadOrders();
                                     startPolling();
                                 } else if (role.value === 'admin') {
-                                    loadDailySummary();
+                                    if (adminView.value === 'summary') {
+                                        loadDailySummary();
+                                    } else if (adminView.value === 'dishes') {
+                                        loadDishes();
+                                    }
                                 }
                                 return;
                             }
@@ -2318,6 +2322,8 @@
                             showToast(editingDish.value ? '修改成功' : '添加成功');
                             closeDishModal();
                             loadDishes();
+                        } else if (data.code === 401) {
+                            handleAuthError();
                         } else {
                             showToast(data.message || '保存失败', 'error');
                         }
