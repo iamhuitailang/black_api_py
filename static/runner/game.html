@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏中 - 刺猬跑酷</title>
+    <link rel="stylesheet" href="/static/runner/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body class="game-body">
+    <div class="game-wrapper">
+        <div class="game-container">
+            <div class="game-hud">
+                <div class="hud-left">
+                    <div class="lives-display">
+                        <span class="hud-label">生命</span>
+                        <div class="hearts" id="hearts">
+                            <span class="heart">❤</span>
+                            <span class="heart">❤</span>
+                            <span class="heart">❤</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="terrain-indicator" id="terrainIndicator">
+                        <span class="terrain-name">草地</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="distance-display">
+                        <span class="hud-label">距离</span>
+                        <span class="hud-value" id="distance">0</span>
+                        <span class="hud-unit">m</span>
+                    </div>
+                    <div class="score-display">
+                        <span class="hud-label">分数</span>
+                        <span class="hud-value" id="score">0</span>
+                    </div>
+                </div>
+                <div class="hud-bottom-left">
+                    <div class="rings-display">
+                        <span class="ring-icon">◎</span>
+                        <span class="hud-value" id="rings">0</span>
+                    </div>
+                </div>
+                <div class="hud-bottom-right">
+                    <div class="powerup-display" id="powerupDisplay"></div>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+            <div class="transition-overlay" id="transitionOverlay">
+                <div class="transition-text" id="transitionText"></div>
+            </div>
+
+            <div class="game-over-modal" id="gameOverModal" style="display: none;">
+                <div class="modal-content">
+                    <h2 class="modal-title">游戏结束</h2>
+                    <div class="final-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">玩家</span>
+                            <span class="stat-value" id="finalPlayer">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">距离</span>
+                            <span class="stat-value" id="finalDistance">0 m</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">金币</span>
+                            <span class="stat-value" id="finalRings">0</span>
+                        </div>
+                        <div class="stat-row highlight">
+                            <span class="stat-label">总分</span>
+                            <span class="stat-value" id="finalScore">0</span>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="submitScoreBtn" class="pixel-btn btn-primary">
+                            <span class="btn-text">提交成绩</span>
+                        </button>
+                        <button id="restartBtn" class="pixel-btn btn-secondary">
+                            <span class="btn-text">重新开始</span>
+                        </button>
+                        <button id="backMenuBtn" class="pixel-btn btn-tertiary">
+                            <span class="btn-text">返回菜单</span>
+                        </button>
+                    </div>
+                    <div id="submitMessage" class="submit-message"></div>
+                </div>
+            </div>
+
+            <div class="start-prompt" id="startPrompt">
+                <div class="prompt-content">
+                    <p class="prompt-text">按 空格键 开始</p>
+                    <p class="prompt-hint">长按跳得更高！</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-tips">
+            <span>💡 提示：躲避尖刺和坑洞，收集金币，踩弹簧跳更高，星星可获得3秒无敌！</span>
+        </div>
+    </div>
+
+    <script src="/static/runner/js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刺猬跑酷 - Hedgehog Runner</title>
+    <link rel="stylesheet" href="/static/runner/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body class="menu-body">
+    <div class="menu-container">
+        <div class="title-wrap">
+            <h1 class="game-title">
+                <span class="title-char" style="color: #FFD700;">刺</span>
+                <span class="title-char" style="color: #FF6B6B;">猬</span>
+                <span class="title-char" style="color: #4ECDC4;">跑</span>
+                <span class="title-char" style="color: #45B7D1;">酷</span>
+            </h1>
+            <p class="subtitle">HEDGEHOG RUNNER</p>
+        </div>
+
+        <div class="pixel-hedgehog">
+            <div class="hedgehog-preview">
+                <div class="hedgehog-body"></div>
+            </div>
+        </div>
+
+        <div class="menu-form">
+            <div class="input-group">
+                <label class="pixel-label">输入昵称</label>
+                <input type="text" id="playerName" class="pixel-input" maxlength="20" placeholder="PLAYER" value="玩家1">
+            </div>
+
+            <div class="button-group">
+                <button id="startBtn" class="pixel-btn btn-primary">
+                    <span class="btn-text">开始游戏</span>
+                    <span class="btn-icon">▶</span>
+                </button>
+
+                <button id="leaderboardBtn" class="pixel-btn btn-secondary">
+                    <span class="btn-text">排行榜</span>
+                    <span class="btn-icon">🏆</span>
+                </button>
+            </div>
+
+            <div class="controls-info">
+                <p class="info-title">操作说明</p>
+                <div class="key-hints">
+                    <div class="key-hint">
+                        <span class="key">SPACE</span>
+                        <span class="key-desc">跳跃</span>
+                    </div>
+                    <div class="key-hint">
+                        <span class="key">长按</span>
+                        <span class="key-desc">跳更高</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="decorations">
+            <div class="floating-ring ring-1"></div>
+            <div class="floating-ring ring-2"></div>
+            <div class="floating-ring ring-3"></div>
+        </div>
+    </div>
+
+    <script src="/static/runner/js/menu.js"></script>
+</body>
+</html>
