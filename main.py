@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.projects import ProjectModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +35,7 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    ProjectModel.create_table()
     
     migrate_database()
     
@@ -82,18 +84,36 @@ router_registry = get_router_registry()
 api_router = router_registry.register_all(prefix="/api")
 app.include_router(api_router)
 
+import os
+from fastapi.responses import FileResponse
 
-@app.get("/")
-async def root():
-    return {
-        "code": 0,
-        "message": "success",
-        "data": {
-            "name": "FastAPI SQLite Backend",
-            "version": "1.0.0",
-            "docs": "/docs",
-            "redoc": "/redoc"
+frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    if not os.path.exists(frontend_dist):
+        return {
+            "code": 0,
+            "message": "Frontend not built yet",
+            "data": {
+                "name": "FastAPI SQLite Backend",
+                "version": "1.0.0",
+                "docs": "/docs"
+            }
         }
+    
+    file_path = os.path.join(frontend_dist, full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    index_path = os.path.join(frontend_dist, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    
+    return {
+        "code": 404,
+        "message": "Not found",
+        "data": None
     }
 
 
