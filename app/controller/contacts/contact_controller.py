@@ -1,8 +1,9 @@
 from typing import Optional
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from app.business.contacts import ContactBusiness
+from app.business.auth import AuthBusiness
 
 
 class ParentSubmitRequest(BaseModel):
@@ -16,6 +17,7 @@ class ParentSubmitRequest(BaseModel):
 
 class ParentUpdateRequest(BaseModel):
     phone: str
+    contact_id: Optional[int] = None
     student_name: Optional[str] = None
     class_name: Optional[str] = None
     parent_name: Optional[str] = None
@@ -33,6 +35,28 @@ class TeacherUpdateContactRequest(BaseModel):
 class ContactController:
     def __init__(self):
         self.business = ContactBusiness()
+        self.auth_business = AuthBusiness()
+
+    def _get_token_from_header(self, request: Request, authorization: Optional[str] = None) -> str:
+        if authorization and authorization.startswith('Bearer '):
+            return authorization[7:]
+        
+        token = request.query_params.get('token')
+        if token:
+            return token
+        
+        return ''
+
+    def _verify_teacher(self, request: Request, authorization: Optional[str] = None):
+        token = self._get_token_from_header(request, authorization)
+        user = self.auth_business.verify_token(token)
+        if not user:
+            return None, {
+                "code": 401,
+                "message": "请先登录",
+                "data": None
+            }
+        return user, None
 
     def ActionContactParentSubmitPost(self, request: Request, body: ParentSubmitRequest):
         """
@@ -50,7 +74,7 @@ class ContactController:
         PUT /api/contact/parent/modify/put
         """
         return self.business.parent_update(
-            body.phone, body.student_name, body.class_name,
+            body.phone, body.contact_id, body.student_name, body.class_name,
             body.parent_name, body.relation, body.new_phone, body.address
         )
 
@@ -65,54 +89,78 @@ class ContactController:
                                         keyword: Optional[str] = Query(None),
                                         class_name: Optional[str] = Query(None),
                                         page: int = Query(1, ge=1),
-                                        page_size: int = Query(100, ge=1, le=500)):
+                                        page_size: int = Query(100, ge=1, le=500),
+                                        authorization: Optional[str] = Header(None)):
         """
         教师查询学生列表（支持姓名模糊搜索和班级筛选）
         GET /api/contact/teacher/students/get
         """
+        _, err = self._verify_teacher(request, authorization)
+        if err:
+            return err
         return self.business.teacher_get_students(keyword, class_name, page, page_size)
 
     def ActionContactTeacherStudentcontactsGet(self, request: Request,
-                                         student_id: int = Query(..., ge=1)):
+                                         student_id: int = Query(..., ge=1),
+                                         authorization: Optional[str] = Header(None)):
         """
         教师查询某学生的所有家长联系人
         GET /api/contact/teacher/studentcontacts/get
         """
+        _, err = self._verify_teacher(request, authorization)
+        if err:
+            return err
         return self.business.teacher_get_contacts_by_student(student_id)
 
     def ActionContactTeacherUpdatecontactPut(self, request: Request,
-                                           body: TeacherUpdateContactRequest):
+                                           body: TeacherUpdateContactRequest,
+                                           authorization: Optional[str] = Header(None)):
         """
         教师修改联系人：紧急联系人标记、备注
         PUT /api/contact/teacher/updatecontact/put
         """
+        _, err = self._verify_teacher(request, authorization)
+        if err:
+            return err
         return self.business.teacher_update_contact(
             body.contact_id, body.is_emergency, body.note
         )
 
     def ActionContactTeacherAllcontactsGet(self, request: Request,
                                             keyword: Optional[str] = Query(None),
-                                            class_name: Optional[str] = Query(None)):
+                                            class_name: Optional[str] = Query(None),
+                                            authorization: Optional[str] = Header(None)):
         """
         教师查询所有联系人明细（支持搜索和班级筛选）
         GET /api/contact/teacher/allcontacts/get
         """
+        _, err = self._verify_teacher(request, authorization)
+        if err:
+            return err
         return self.business.teacher_get_all_contacts(keyword, class_name)
 
-    def ActionContactTeacherClassesGet(self, request: Request):
+    def ActionContactTeacherClassesGet(self, request: Request,
+                                        authorization: Optional[str] = Header(None)):
         """
         教师获取所有班级列表
         GET /api/contact/teacher/classes/get
         """
+        _, err = self._verify_teacher(request, authorization)
+        if err:
+            return err
         return self.business.teacher_get_classes()
 
     def ActionContactTeacherExportcsvGet(self, request: Request,
                                        keyword: Optional[str] = Query(None),
-                                       class_name: Optional[str] = Query(None)):
+                                       class_name: Optional[str] = Query(None),
+                                       authorization: Optional[str] = Header(None)):
         """
         教师导出联系人CSV文件
         GET /api/contact/teacher/exportcsv/get
         """
+        _, err = self._verify_teacher(request, authorization)
+        if err:
+            return err
         csv_content, filename = self.business.export_csv(keyword, class_name)
         import io
         from urllib.parse import quote

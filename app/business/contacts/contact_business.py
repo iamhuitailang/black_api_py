@@ -21,15 +21,18 @@ class ContactBusiness:
             return self._error("请填写必填项")
 
         phone = phone.strip()
-        existing = self.contact_model.get_by_phone_with_student(phone)
-        if existing:
-            return self._error("该手机号已登记，如需修改请使用修改功能")
+        student_name = student_name.strip()
+        class_name = class_name.strip()
 
-        student = self.student_model.get_by_name_and_class(student_name.strip(), class_name.strip())
+        student = self.student_model.get_by_name_and_class(student_name, class_name)
         if not student:
-            student_id = self.student_model.create(student_name.strip(), class_name.strip())
+            student_id = self.student_model.create(student_name, class_name)
         else:
             student_id = student['id']
+
+        existing = self.contact_model.get_by_student_and_phone(student_id, phone)
+        if existing:
+            return self._error("该学生已使用此手机号登记过，如需修改请使用修改功能")
 
         contact_id = self.contact_model.create(
             student_id=student_id,
@@ -40,26 +43,39 @@ class ContactBusiness:
         )
         return self._success({"contact_id": contact_id, "student_id": student_id}, "信息提交成功")
 
-    def parent_update(self, phone: str, student_name: str = None, class_name: str = None,
+    def parent_update(self, phone: str, contact_id: int = None,
+                      student_name: str = None, class_name: str = None,
                       parent_name: str = None, relation: str = None,
                       new_phone: str = None, address: str = None) -> Dict[str, Any]:
         if not phone:
             return self._error("请输入手机号验证身份")
 
-        contact = self.contact_model.get_by_phone(phone.strip())
-        if not contact:
+        phone = phone.strip()
+        all_contacts = self.contact_model.get_all_by_phone_with_student(phone)
+        if not all_contacts:
             return self._error("未找到该手机号的登记信息")
 
-        student = self.student_model.get_by_id(contact['student_id'])
+        target_contact = None
+        if contact_id:
+            for c in all_contacts:
+                if c['id'] == contact_id:
+                    target_contact = c
+                    break
+            if not target_contact:
+                return self._error("未找到该联系人记录")
+        else:
+            if len(all_contacts) > 1:
+                return self._error("该手机号绑定了多个孩子，请选择要修改的记录", 300, {"contacts": all_contacts})
+            target_contact = all_contacts[0]
+
+        student = self.student_model.get_by_id(target_contact['student_id'])
 
         update_data = {}
         if parent_name is not None:
             update_data['parent_name'] = parent_name.strip()
         if relation is not None:
             update_data['relation'] = relation.strip()
-        if new_phone is not None and new_phone.strip() != phone.strip():
-            if self.contact_model.get_by_phone(new_phone.strip()):
-                return self._error("新手机号已被使用")
+        if new_phone is not None and new_phone.strip() != phone:
             update_data['phone'] = new_phone.strip()
         if address is not None:
             update_data['address'] = address.strip() if address.strip() else None
@@ -81,17 +97,17 @@ class ContactBusiness:
                 self.student_model.update(student['id'], **student_update_data)
 
         if update_data:
-            self.contact_model.update(contact['id'], **update_data)
+            self.contact_model.update(target_contact['id'], **update_data)
 
         return self._success(None, "信息更新成功")
 
     def parent_get_by_phone(self, phone: str) -> Dict[str, Any]:
         if not phone:
             return self._error("请输入手机号")
-        result = self.contact_model.get_by_phone_with_student(phone.strip())
-        if not result:
+        results = self.contact_model.get_all_by_phone_with_student(phone.strip())
+        if not results:
             return self._error("未找到该手机号的登记信息", 404)
-        return self._success(result)
+        return self._success(results)
 
     def teacher_get_students(self, keyword: str = None, class_name: str = None,
                              page: int = 1, page_size: int = 100) -> Dict[str, Any]:

@@ -1,4 +1,6 @@
 const API_BASE = '/api';
+const TOKEN_KEY = 'contact_teacher_token';
+const USER_KEY = 'contact_teacher_user';
 
 const state = {
     students: [],
@@ -9,7 +11,9 @@ const state = {
     keyword: '',
     class_name: '',
     classes: [],
-    allContacts: []
+    allContacts: [],
+    token: '',
+    user: null
 };
 
 function showToast(message, type = '') {
@@ -19,13 +23,131 @@ function showToast(message, type = '') {
     setTimeout(() => { toast.className = 'toast ' + type; }, 2500);
 }
 
+function getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (state.token) {
+        headers['Authorization'] = `Bearer ${state.token}`;
+    }
+    return headers;
+}
+
+async function authFetch(url, options = {}) {
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            ...getAuthHeaders(),
+            ...(options.headers || {})
+        }
+    });
+
+    if (res.status === 401) {
+        logout();
+        showToast('登录已过期，请重新登录', 'error');
+        return null;
+    }
+
+    return res;
+}
+
+function saveLogin(token, user) {
+    state.token = token;
+    state.user = user;
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+function clearLogin() {
+    state.token = '';
+    state.user = null;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+}
+
+function restoreLogin() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const userStr = localStorage.getItem(USER_KEY);
+    if (token && userStr) {
+        try {
+            state.token = token;
+            state.user = JSON.parse(userStr);
+            return true;
+        } catch (e) {}
+    }
+    return false;
+}
+
+function showLogin() {
+    document.getElementById('login-wrap').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
+}
+
+function showApp() {
+    document.getElementById('login-wrap').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    if (state.user) {
+        document.getElementById('user-info').textContent = `👤 ${state.user.username}`;
+    }
+}
+
+function logout() {
+    clearLogin();
+    showLogin();
+    document.getElementById('login-form').reset();
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '登录中...';
+
+    try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: form.username.value.trim(),
+                password: form.password.value
+            })
+        });
+        const data = await res.json();
+
+        if (data.code === 0 && data.data && data.data.token) {
+            saveLogin(data.data.token, data.data.user);
+            showToast('✅ 登录成功', 'success');
+            showApp();
+            await initApp();
+        } else {
+            showToast(data.message || '用户名或密码错误', 'error');
+        }
+    } catch (err) {
+        showToast('网络错误，请重试', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+});
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+    try {
+        await authFetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+    } catch (e) {}
+    logout();
+    showToast('已退出登录', 'success');
+});
+
 async function loadClasses() {
     try {
-        const res = await fetch(`${API_BASE}/contact/teacher/classes/get`);
+        const res = await authFetch(`${API_BASE}/contact/teacher/classes/get`);
+        if (!res) return false;
         const data = await res.json();
+        if (data.code === 401) return false;
         if (data.code === 0 && data.data) {
             state.classes = data.data;
             const select = document.getElementById('search-class');
+            select.innerHTML = '<option value="">全部班级</option>';
             state.classes.forEach(cls => {
                 const opt = document.createElement('option');
                 opt.value = cls;
@@ -34,6 +156,7 @@ async function loadClasses() {
             });
         }
     } catch (e) {}
+    return true;
 }
 
 async function loadStudents(resetPage = true) {
@@ -47,8 +170,10 @@ async function loadStudents(resetPage = true) {
     if (state.class_name) params.append('class_name', state.class_name);
 
     try {
-        const res = await fetch(`${API_BASE}/contact/teacher/students/get?${params.toString()}`);
+        const res = await authFetch(`${API_BASE}/contact/teacher/students/get?${params.toString()}`);
+        if (!res) return false;
         const data = await res.json();
+        if (data.code === 401) return false;
         if (data.code === 0 && data.data) {
             state.students = data.data.items || [];
             state.total = data.data.total || 0;
@@ -60,6 +185,7 @@ async function loadStudents(resetPage = true) {
     } catch (e) {
         showToast('加载失败，请刷新重试', 'error');
     }
+    return true;
 }
 
 function renderStats() {
@@ -158,8 +284,10 @@ function renderPagination() {
 
 async function openDetail(studentId) {
     try {
-        const res = await fetch(`${API_BASE}/contact/teacher/studentcontacts/get?student_id=${studentId}`);
+        const res = await authFetch(`${API_BASE}/contact/teacher/studentcontacts/get?student_id=${studentId}`);
+        if (!res) return;
         const data = await res.json();
+        if (data.code === 401) return;
         if (data.code !== 0 || !data.data) {
             showToast('加载详情失败', 'error');
             return;
@@ -239,12 +367,13 @@ function renderContacts(contacts) {
 
 async function updateContact(contactId, payload) {
     try {
-        const res = await fetch(`${API_BASE}/contact/teacher/updatecontact/put`, {
+        const res = await authFetch(`${API_BASE}/contact/teacher/updatecontact/put`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contact_id: contactId, ...payload })
         });
+        if (!res) return;
         const data = await res.json();
+        if (data.code === 401) return;
         if (data.code === 0) {
             showToast('✅ 保存成功', 'success');
             if (payload.is_emergency !== undefined) {
@@ -288,6 +417,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
     const params = new URLSearchParams();
     if (state.keyword) params.append('keyword', state.keyword);
     if (state.class_name) params.append('class_name', state.class_name);
+    if (state.token) params.append('token', state.token);
     const url = `${API_BASE}/contact/teacher/exportcsv/get${params.toString() ? '?' + params.toString() : ''}`;
     window.open(url, '_blank');
 });
@@ -305,7 +435,18 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+async function initApp() {
+    const ok1 = await loadClasses();
+    if (!ok1) return;
+    const ok2 = await loadStudents(true);
+    if (!ok2) return;
+}
+
 (async function init() {
-    await loadClasses();
-    await loadStudents(true);
+    if (restoreLogin()) {
+        showApp();
+        await initApp();
+    } else {
+        showLogin();
+    }
 })();

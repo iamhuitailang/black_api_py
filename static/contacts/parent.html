@@ -75,6 +75,13 @@
                 </div>
             </div>
 
+            <div id="contact-selector" class="form hidden">
+                <div class="form-group">
+                    <label>该手机号绑定了多个孩子，请选择要修改的记录 <span class="required">*</span></label>
+                    <div id="contact-list" class="contact-list-select"></div>
+                </div>
+            </div>
+
             <form id="edit-form" class="form hidden">
                 <div class="form-group">
                     <label>学生姓名 <span class="required">*</span></label>
@@ -116,6 +123,7 @@
                 </div>
 
                 <input type="hidden" name="phone" id="edit-original-phone">
+                <input type="hidden" name="contact_id" id="edit-contact-id">
                 <button type="submit" class="btn btn-success btn-block">💾 保存修改</button>
             </form>
         </div>

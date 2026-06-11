@@ -161,6 +161,16 @@ class ContactModel:
     def get_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
         return self.query.find_one({'phone': phone})
 
+    def get_all_by_phone_with_student(self, phone: str) -> List[Dict[str, Any]]:
+        sql = f"""
+            SELECT c.*, s.name as student_name, s.class_name
+            FROM {self.TABLE_NAME} c
+            LEFT JOIN students s ON c.student_id = s.id
+            WHERE c.phone = ?
+            ORDER BY c.id ASC
+        """
+        return self.db.fetch_all(sql, (phone,))
+
     def get_by_phone_with_student(self, phone: str) -> Optional[Dict[str, Any]]:
         sql = f"""
             SELECT c.*, s.name as student_name, s.class_name
@@ -170,6 +180,9 @@ class ContactModel:
             LIMIT 1
         """
         return self.db.fetch_one(sql, (phone,))
+
+    def get_by_student_and_phone(self, student_id: int, phone: str) -> Optional[Dict[str, Any]]:
+        return self.query.find_one({'student_id': student_id, 'phone': phone})
 
     def get_all_with_student(self, keyword: str = None, class_name: str = None) -> List[Dict[str, Any]]:
         where_clauses = []
