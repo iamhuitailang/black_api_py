@@ -21,6 +21,8 @@ class OrderItemModel:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 order_id INTEGER NOT NULL,
                 dish_id INTEGER NOT NULL,
+                dish_name TEXT NOT NULL,
+                price REAL NOT NULL,
                 quantity INTEGER NOT NULL DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -34,11 +36,35 @@ class OrderItemModel:
         index_sql2 = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_dish_id ON {cls.TABLE_NAME}(dish_id)"
         db.execute(index_sql2)
 
-    def create(self, order_id: int, dish_id: int, quantity: int = 1) -> int:
+    @classmethod
+    def migrate_add_price_columns(cls):
+        db = get_db()
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN price REAL DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN dish_name TEXT DEFAULT ''")
+        except Exception:
+            pass
+        db.execute(f"""
+            UPDATE {cls.TABLE_NAME} SET price = (
+                SELECT d.price FROM dishes d WHERE d.id = {cls.TABLE_NAME}.dish_id
+            ) WHERE price = 0 OR price IS NULL
+        """)
+        db.execute(f"""
+            UPDATE {cls.TABLE_NAME} SET dish_name = (
+                SELECT d.name FROM dishes d WHERE d.id = {cls.TABLE_NAME}.dish_id
+            ) WHERE dish_name = '' OR dish_name IS NULL
+        """)
+
+    def create(self, order_id: int, dish_id: int, dish_name: str, price: float, quantity: int = 1) -> int:
         now = datetime.now().isoformat()
         data = {
             'order_id': order_id,
             'dish_id': dish_id,
+            'dish_name': dish_name,
+            'price': price,
             'quantity': quantity,
             'created_at': now
         }
@@ -51,6 +77,8 @@ class OrderItemModel:
             data_list.append({
                 'order_id': item['order_id'],
                 'dish_id': item['dish_id'],
+                'dish_name': item['dish_name'],
+                'price': item['price'],
                 'quantity': item['quantity'],
                 'created_at': now
             })
@@ -61,9 +89,10 @@ class OrderItemModel:
 
     def get_by_order_id(self, order_id: int) -> List[Dict[str, Any]]:
         sql = f"""
-            SELECT oi.*, d.name, d.price, d.category, d.description, d.spicy_level, d.image_url
+            SELECT oi.id, oi.order_id, oi.dish_id, oi.dish_name, oi.price, oi.quantity, oi.created_at,
+                   d.category, d.description, d.spicy_level, d.image_url
             FROM {self.TABLE_NAME} oi
-            JOIN dishes d ON oi.dish_id = d.id
+            LEFT JOIN dishes d ON oi.dish_id = d.id
             WHERE oi.order_id = ?
             ORDER BY oi.id ASC
         """

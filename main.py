@@ -82,6 +82,7 @@ def init_database():
     OrderItemModel.create_table()
     
     migrate_database()
+    OrderItemModel.migrate_add_price_columns()
     seed_database()
     
     print("Database initialized successfully")
@@ -110,24 +111,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "code": 500,
-            "message": str(exc),
-            "data": None
-        }
-    )
-
-
 router_registry = get_router_registry()
 api_router = router_registry.register_all(prefix="/api")
 app.include_router(api_router)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/")

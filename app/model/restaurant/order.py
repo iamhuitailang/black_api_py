@@ -93,12 +93,12 @@ class OrderModel:
                 o.status,
                 o.created_at,
                 oi.quantity,
-                d.price,
-                d.name as dish_name,
+                oi.price,
+                oi.dish_name,
                 d.category
             FROM {self.TABLE_NAME} o
             JOIN order_items oi ON o.id = oi.order_id
-            JOIN dishes d ON oi.dish_id = d.id
+            LEFT JOIN dishes d ON oi.dish_id = d.id
             WHERE DATE(o.created_at) = ?
             ORDER BY o.created_at DESC
         """

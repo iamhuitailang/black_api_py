@@ -958,6 +958,93 @@
             color: #757575;
         }
 
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+        }
+
+        .login-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .login-card h2 {
+            color: #c62828;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .login-input:focus {
+            border-color: #e53935;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #e53935, #c62828);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: opacity 0.2s;
+        }
+
+        .login-btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .logout-btn {
+            padding: 6px 16px;
+            background: #f5f5f5;
+            color: #757575;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #ffebee;
+            color: #c62828;
+            border-color: #ffcdd2;
+        }
+
         .spinner {
             border: 4px solid #f5f5f5;
             border-top: 4px solid #e53935;
@@ -1237,7 +1324,7 @@
                                 </div>
                                 <div class="order-items-list">
                                     <div v-for="item in order.items" :key="item.id" class="order-item-row">
-                                        <span>{{ item.name }} × {{ item.quantity }}</span>
+                                        <span>{{ item.dish_name || item.name }} × {{ item.quantity }}</span>
                                         <span>¥{{ (item.price * item.quantity).toFixed(1) }}</span>
                                     </div>
                                 </div>
@@ -1310,22 +1397,49 @@
 
             <!-- Kitchen View -->
             <div v-if="role === 'kitchen'" class="kitchen-container">
-                <div class="nav-tabs">
-                    <div 
-                        class="nav-tab" 
-                        :class="{ active: kitchenView === 'active' }"
-                        @click="kitchenView = 'active'"
-                    >
-                        🔥 待处理订单
-                    </div>
-                    <div 
-                        class="nav-tab" 
-                        :class="{ active: kitchenView === 'all' }"
-                        @click="kitchenView = 'all'"
-                    >
-                        📋 全部订单
+                <!-- Login Gate -->
+                <div v-if="!staffLoggedIn" class="login-page">
+                    <div class="login-card">
+                        <div class="login-icon">🔐</div>
+                        <h2>后厨登录</h2>
+                        <p style="color: #999; margin: 10px 0 24px;">请输入员工密码以访问后厨管理</p>
+                        <form @submit.prevent="staffLogin">
+                            <input 
+                                type="password" 
+                                v-model="loginPassword" 
+                                class="login-input" 
+                                placeholder="请输入员工密码"
+                                autofocus
+                            />
+                            <button type="submit" class="login-btn" :disabled="loginLoading">
+                                {{ loginLoading ? '登录中...' : '登 录' }}
+                            </button>
+                        </form>
+                        <p style="color: #bbb; margin-top: 16px; font-size: 13px;">默认密码：8888</p>
                     </div>
                 </div>
+
+                <!-- Kitchen Content (after login) -->
+                <template v-else>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 16px 8px;">
+                        <div class="nav-tabs" style="flex:1;">
+                            <div 
+                                class="nav-tab" 
+                                :class="{ active: kitchenView === 'active' }"
+                                @click="kitchenView = 'active'"
+                            >
+                                🔥 待处理订单
+                            </div>
+                            <div 
+                                class="nav-tab" 
+                                :class="{ active: kitchenView === 'all' }"
+                                @click="kitchenView = 'all'"
+                            >
+                                📋 全部订单
+                            </div>
+                        </div>
+                        <button class="logout-btn" @click="staffLogout">退出登录</button>
+                    </div>
 
                 <div v-if="loadingOrders" class="loading">
                     <div class="spinner"></div>
@@ -1368,7 +1482,7 @@
                             <div class="kitchen-order-items">
                                 <div v-for="item in order.items" :key="item.id" class="kitchen-order-item">
                                     <span class="kitchen-item-name">
-                                        {{ item.name }}
+                                        {{ item.dish_name || item.name }}
                                         <span class="spicy-icons" style="font-size: 14px;">{{ getSpicyIcons(item.spicy_level) }}</span>
                                     </span>
                                     <span class="kitchen-item-qty">× {{ item.quantity }}</span>
@@ -1402,14 +1516,40 @@
                         </div>
                     </div>
                 </div>
+                </template>
             </div>
 
             <!-- Admin View -->
             <div v-if="role === 'admin'">
-                <div class="nav-tabs">
-                    <div 
-                        class="nav-tab" 
-                        :class="{ active: adminView === 'summary' }"
+                <!-- Login Gate -->
+                <div v-if="!staffLoggedIn" class="login-page">
+                    <div class="login-card">
+                        <div class="login-icon">🔐</div>
+                        <h2>管理端登录</h2>
+                        <p style="color: #999; margin: 10px 0 24px;">请输入员工密码以访问管理后台</p>
+                        <form @submit.prevent="staffLogin">
+                            <input 
+                                type="password" 
+                                v-model="loginPassword" 
+                                class="login-input" 
+                                placeholder="请输入员工密码"
+                                autofocus
+                            />
+                            <button type="submit" class="login-btn" :disabled="loginLoading">
+                                {{ loginLoading ? '登录中...' : '登 录' }}
+                            </button>
+                        </form>
+                        <p style="color: #bbb; margin-top: 16px; font-size: 13px;">默认密码：8888</p>
+                    </div>
+                </div>
+
+                <!-- Admin Content (after login) -->
+                <template v-else>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 16px 8px;">
+                        <div class="nav-tabs" style="flex:1;">
+                            <div 
+                                class="nav-tab" 
+                                :class="{ active: adminView === 'summary' }"
                         @click="adminView = 'summary'; loadDailySummary()"
                     >
                         📊 今日汇总
@@ -1422,6 +1562,8 @@
                         🍽️ 菜单管理
                     </div>
                 </div>
+                        <button class="logout-btn" @click="staffLogout">退出登录</button>
+                    </div>
 
                 <!-- Summary View -->
                 <div v-if="adminView === 'summary'">
@@ -1551,8 +1693,8 @@
                         </div>
                     </div>
                 </div>
+                </template>
             </div>
-        </div>
 
         <!-- Dish Modal -->
         <div v-if="dishModalOpen" class="modal-overlay" @click.self="closeDishModal">
@@ -1668,16 +1810,15 @@
                 const role = ref(urlParams.get('role') || '');
                 const tableParam = urlParams.get('table');
 
-                // State
                 const restaurantName = ref('小饭馆');
                 const tempTable = ref(tableParam ? parseInt(tableParam) : null);
-                const selectedTable = ref(tableParam ? parseInt(tableParam) : null);
+                const selectedTable = ref(parseInt(localStorage.getItem('restaurant_selectedTable')) || (tableParam ? parseInt(tableParam) : null));
                 const customerView = ref('menu');
                 const kitchenView = ref('active');
                 const adminView = ref('summary');
                 const selectedCategory = ref('all');
                 const cartOpen = ref(false);
-                const cartItems = ref([]);
+                const cartItems = ref(JSON.parse(localStorage.getItem('restaurant_cartItems') || '[]'));
                 const submittingOrder = ref(false);
                 const myOrders = ref([]);
                 const allOrders = ref([]);
@@ -1687,6 +1828,11 @@
                 const loadingSummary = ref(false);
                 const knownOrderIds = ref(new Set());
                 const lastCheckTime = ref(Date.now());
+
+                const staffToken = ref(localStorage.getItem('restaurant_staffToken') || '');
+                const staffLoggedIn = ref(false);
+                const loginPassword = ref('');
+                const loginLoading = ref(false);
 
                 const dishModalOpen = ref(false);
                 const editingDish = ref(null);
@@ -1783,17 +1929,83 @@
                     
                     if (r === 'customer') {
                         loadDishes();
-                    } else if (r === 'kitchen') {
-                        loadOrders();
-                        startPolling();
-                    } else if (r === 'admin') {
-                        loadDailySummary();
+                    } else if (r === 'kitchen' || r === 'admin') {
+                        verifyAndLoad();
                     }
+                };
+
+                const staffHeaders = () => {
+                    return staffToken.value ? { 'X-Staff-Token': staffToken.value } : {};
+                };
+
+                const verifyAndLoad = async () => {
+                    if (staffToken.value) {
+                        try {
+                            const res = await fetch(`${API_BASE}/auth/staff/verify/get?token=${staffToken.value}`);
+                            const data = await res.json();
+                            if (data.code === 0) {
+                                staffLoggedIn.value = true;
+                                if (role.value === 'kitchen') {
+                                    loadOrders();
+                                    startPolling();
+                                } else if (role.value === 'admin') {
+                                    loadDailySummary();
+                                }
+                                return;
+                            }
+                        } catch (e) {
+                            console.error('Token verify failed:', e);
+                        }
+                    }
+                    staffLoggedIn.value = false;
+                };
+
+                const staffLogin = async () => {
+                    loginLoading.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/auth/staff/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ password: loginPassword.value })
+                        });
+                        const data = await res.json();
+                        if (data.code === 0) {
+                            staffToken.value = data.data.token;
+                            localStorage.setItem('restaurant_staffToken', data.data.token);
+                            staffLoggedIn.value = true;
+                            loginPassword.value = '';
+                            showToast('登录成功');
+                            if (role.value === 'kitchen') {
+                                loadOrders();
+                                startPolling();
+                            } else if (role.value === 'admin') {
+                                loadDailySummary();
+                            }
+                        } else {
+                            showToast(data.message || '密码错误', 'error');
+                        }
+                    } catch (e) {
+                        console.error('Login failed:', e);
+                        showToast('登录失败', 'error');
+                    } finally {
+                        loginLoading.value = false;
+                    }
+                };
+
+                const staffLogout = async () => {
+                    try {
+                        await fetch(`${API_BASE}/auth/staff/logout?token=${staffToken.value}`, { method: 'POST' });
+                    } catch (e) {}
+                    staffToken.value = '';
+                    localStorage.removeItem('restaurant_staffToken');
+                    staffLoggedIn.value = false;
+                    showToast('已登出');
                 };
 
                 const confirmTable = () => {
                     if (tempTable.value) {
                         selectedTable.value = tempTable.value;
+                        localStorage.setItem('restaurant_selectedTable', String(tempTable.value));
                         urlParams.set('table', tempTable.value);
                         window.history.replaceState({}, '', `${window.location.pathname}?${urlParams.toString()}`);
                         loadDishes();
@@ -1858,6 +2070,7 @@
                     } else {
                         cartItems.value.push({ ...dish, quantity: 1 });
                     }
+                    saveCart();
                     showToast(`已添加 ${dish.name} 到购物车`);
                 };
 
@@ -1867,6 +2080,14 @@
                         cartItems.value = cartItems.value.filter(i => i.id !== item.id);
                     } else {
                         item.quantity = newQty;
+                    }
+                    saveCart();
+                };
+
+                const saveCart = () => {
+                    localStorage.setItem('restaurant_cartItems', JSON.stringify(cartItems.value));
+                    if (selectedTable.value) {
+                        localStorage.setItem('restaurant_selectedTable', String(selectedTable.value));
                     }
                 };
 
@@ -1889,7 +2110,9 @@
                 const loadOrders = async () => {
                     loadingOrders.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/order/getlist`);
+                        const res = await fetch(`${API_BASE}/order/getlist`, {
+                            headers: staffHeaders()
+                        });
                         const data = await res.json();
                         if (data.code === 0) {
                             const newOrders = data.data;
@@ -1912,6 +2135,8 @@
                             
                             lastCheckTime.value = Date.now();
                             allOrders.value = newOrders;
+                        } else if (data.code === 401) {
+                            handleAuthError();
                         }
                     } catch (e) {
                         console.error('Failed to load orders:', e);
@@ -1940,10 +2165,14 @@
                 const loadDailySummary = async () => {
                     loadingSummary.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/order/getdailysummary`);
+                        const res = await fetch(`${API_BASE}/order/getdailysummary`, {
+                            headers: staffHeaders()
+                        });
                         const data = await res.json();
                         if (data.code === 0) {
                             dailySummary.value = data.data;
+                        } else if (data.code === 401) {
+                            handleAuthError();
                         }
                     } catch (e) {
                         console.error('Failed to load summary:', e);
@@ -1980,6 +2209,7 @@
                         if (data.code === 0) {
                             showToast('订单提交成功！');
                             cartItems.value = [];
+                            localStorage.removeItem('restaurant_cartItems');
                             cartOpen.value = false;
                             customerView.value = 'orders';
                             loadMyOrders();
@@ -1997,7 +2227,8 @@
                 const updateOrderStatus = async (orderId, status) => {
                     try {
                         const res = await fetch(`${API_BASE}/order/updatestatus?id=${orderId}&status=${status}`, {
-                            method: 'POST'
+                            method: 'POST',
+                            headers: staffHeaders()
                         });
                         const data = await res.json();
                         if (data.code === 0) {
@@ -2078,7 +2309,7 @@
 
                         const res = await fetch(url, {
                             method: method,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...staffHeaders() },
                             body: body
                         });
 
@@ -2102,12 +2333,15 @@
                     const newStatus = dish.is_active === 1 ? 0 : 1;
                     try {
                         const res = await fetch(`${API_BASE}/dish/setactive?id=${dish.id}&is_active=${newStatus}`, {
-                            method: 'POST'
+                            method: 'POST',
+                            headers: staffHeaders()
                         });
                         const data = await res.json();
                         if (data.code === 0) {
                             dish.is_active = newStatus;
                             showToast(newStatus === 1 ? '已上架' : '已下架');
+                        } else if (data.code === 401) {
+                            handleAuthError();
                         } else {
                             showToast(data.message || '操作失败', 'error');
                         }
@@ -2121,12 +2355,15 @@
                     if (!confirm('确定要删除这个菜品吗？')) return;
                     try {
                         const res = await fetch(`${API_BASE}/dish/delete?id=${dishId}`, {
-                            method: 'DELETE'
+                            method: 'DELETE',
+                            headers: staffHeaders()
                         });
                         const data = await res.json();
                         if (data.code === 0) {
                             showToast('删除成功');
                             loadDishes();
+                        } else if (data.code === 401) {
+                            handleAuthError();
                         } else {
                             showToast(data.message || '删除失败', 'error');
                         }
@@ -2134,6 +2371,13 @@
                         console.error('Failed to delete dish:', e);
                         showToast('删除失败', 'error');
                     }
+                };
+
+                const handleAuthError = () => {
+                    staffToken.value = '';
+                    localStorage.removeItem('restaurant_staffToken');
+                    staffLoggedIn.value = false;
+                    showToast('登录已过期，请重新登录', 'error');
                 };
 
                 const hasNewOrder = (orders) => {
@@ -2173,11 +2417,8 @@
                 onMounted(() => {
                     if (role.value === 'customer' && selectedTable.value) {
                         loadDishes();
-                    } else if (role.value === 'kitchen') {
-                        loadOrders();
-                        startPolling();
-                    } else if (role.value === 'admin') {
-                        loadDailySummary();
+                    } else if (role.value === 'kitchen' || role.value === 'admin') {
+                        verifyAndLoad();
                     }
                 });
 
@@ -2222,6 +2463,10 @@
                     toast,
                     orderSound,
                     categories,
+                    staffToken,
+                    staffLoggedIn,
+                    loginPassword,
+                    loginLoading,
                     selectRole,
                     confirmTable,
                     getCategoryLabel,
@@ -2244,7 +2489,9 @@
                     saveDish,
                     toggleDishActive,
                     deleteDish,
-                    hasNewOrder
+                    hasNewOrder,
+                    staffLogin,
+                    staffLogout
                 };
             }
         });

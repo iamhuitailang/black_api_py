@@ -20,8 +20,14 @@ class OrderBusiness:
             }
 
         items = self.order_item_model.get_by_order_id(order_id)
+        for item in items:
+            if item.get('price') is None:
+                dish = self.dish_model.get_by_id(item.get('dish_id'))
+                if dish:
+                    item['price'] = dish['price']
+                    item['dish_name'] = item.get('dish_name') or dish['name']
         order['items'] = items
-        order['total'] = sum(item['price'] * item['quantity'] for item in items)
+        order['total'] = sum((item['price'] or 0) * item['quantity'] for item in items)
 
         return {
             'code': 0,
@@ -40,8 +46,14 @@ class OrderBusiness:
         orders = self.order_model.get_by_table(table_number)
         for order in orders:
             items = self.order_item_model.get_by_order_id(order['id'])
+            for item in items:
+                if item.get('price') is None:
+                    dish = self.dish_model.get_by_id(item.get('dish_id'))
+                    if dish:
+                        item['price'] = dish['price']
+                        item['dish_name'] = item.get('dish_name') or dish['name']
             order['items'] = items
-            order['total'] = sum(item['price'] * item['quantity'] for item in items)
+            order['total'] = sum((item['price'] or 0) * item['quantity'] for item in items)
 
         return {
             'code': 0,
@@ -53,8 +65,14 @@ class OrderBusiness:
         orders = self.order_model.get_all(status, table_number)
         for order in orders:
             items = self.order_item_model.get_by_order_id(order['id'])
+            for item in items:
+                if item.get('price') is None:
+                    dish = self.dish_model.get_by_id(item.get('dish_id'))
+                    if dish:
+                        item['price'] = dish['price']
+                        item['dish_name'] = item.get('dish_name') or dish['name']
             order['items'] = items
-            order['total'] = sum(item['price'] * item['quantity'] for item in items)
+            order['total'] = sum((item['price'] or 0) * item['quantity'] for item in items)
 
         return {
             'code': 0,
@@ -111,9 +129,12 @@ class OrderBusiness:
 
             order_items = []
             for item in items:
+                dish = self.dish_model.get_by_id(item['dish_id'])
                 order_items.append({
                     'order_id': order_id,
                     'dish_id': item['dish_id'],
+                    'dish_name': dish['name'],
+                    'price': dish['price'],
                     'quantity': item.get('quantity', 1)
                 })
 
@@ -199,9 +220,9 @@ class OrderBusiness:
         for row in raw_data:
             order_id = row['order_id']
             table_number = row['table_number']
-            price = row['price']
+            price = row['price'] or 0
             quantity = row['quantity']
-            dish_name = row['dish_name']
+            dish_name = row['dish_name'] or '未知菜品'
             item_total = price * quantity
 
             total_revenue += item_total
