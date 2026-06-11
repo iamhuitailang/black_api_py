@@ -272,10 +272,9 @@ class Player {
 }
 
 class Obstacle {
-    constructor(type, worldX, groundY) {
+    constructor(type, x, groundY) {
         this.type = type;
-        this.worldX = worldX;
-        this.x = worldX;
+        this.x = x;
         this.groundY = groundY;
         
         if (type === 'spike') {
@@ -289,8 +288,8 @@ class Obstacle {
         }
     }
 
-    update(distance) {
-        this.x = this.worldX - distance + 100;
+    update(speed) {
+        this.x -= speed;
     }
 
     render(ctx, terrain) {
@@ -359,9 +358,8 @@ class Obstacle {
 }
 
 class Ring {
-    constructor(worldX, y) {
-        this.worldX = worldX;
-        this.x = worldX;
+    constructor(x, y) {
+        this.x = x;
         this.y = y;
         this.width = 20;
         this.height = 20;
@@ -370,8 +368,8 @@ class Ring {
         this.frame = 0;
     }
 
-    update(distance) {
-        this.x = this.worldX - distance + 100;
+    update(speed) {
+        this.x -= speed;
         this.frame += 0.2;
     }
 
@@ -415,9 +413,8 @@ class Ring {
 }
 
 class Spring {
-    constructor(worldX, groundY) {
-        this.worldX = worldX;
-        this.x = worldX;
+    constructor(x, groundY) {
+        this.x = x;
         this.y = groundY - 20;
         this.width = 32;
         this.height = 20;
@@ -425,8 +422,8 @@ class Spring {
         this.compressTimer = 0;
     }
 
-    update(distance) {
-        this.x = this.worldX - distance + 100;
+    update(speed) {
+        this.x -= speed;
         if (this.compressed) {
             this.compressTimer--;
             if (this.compressTimer <= 0) {
@@ -470,9 +467,8 @@ class Spring {
 }
 
 class Star {
-    constructor(worldX, y) {
-        this.worldX = worldX;
-        this.x = worldX;
+    constructor(x, y) {
+        this.x = x;
         this.y = y;
         this.width = 24;
         this.height = 24;
@@ -481,8 +477,8 @@ class Star {
         this.bobOffset = Math.random() * Math.PI * 2;
     }
 
-    update(distance) {
-        this.x = this.worldX - distance + 100;
+    update(speed) {
+        this.x -= speed;
         this.rotation += 0.1;
     }
 
@@ -846,7 +842,7 @@ class Game {
         this.isRunning = false;
         this.isGameOver = false;
         this.isPaused = false;
-        this.lastSpawnWorldX = 0;
+        this.lastSpawnScreenX = CONFIG.CANVAS_WIDTH + 100;
 
         this.keys = {
             space: false
@@ -891,7 +887,7 @@ class Game {
         this.distance = 0;
         this.score = 0;
         this.ringsCollected = 0;
-        this.lastSpawnWorldX = 0;
+        this.lastSpawnScreenX = CONFIG.CANVAS_WIDTH + 100;
         this.isGameOver = false;
         this.isRunning = false;
         this.scoreSubmitted = false;
@@ -991,7 +987,7 @@ class Game {
             playerY: this.player.y,
             playerVy: this.player.vy,
             playerIsJumping: this.player.isJumping,
-            lastSpawnWorldX: this.lastSpawnWorldX,
+            lastSpawnScreenX: this.lastSpawnScreenX,
             invincibleTimer: this.player.invincibleTimer,
             timestamp: Date.now()
         };
@@ -1020,7 +1016,7 @@ class Game {
             this.score = state.score;
             this.ringsCollected = state.ringsCollected;
             this.speed = state.speed;
-            this.lastSpawnWorldX = state.lastSpawnWorldX;
+            this.lastSpawnScreenX = state.lastSpawnScreenX || CONFIG.CANVAS_WIDTH + 100;
             this.terrainManager.currentIndex = state.terrainIndex || 0;
             this.player.lives = state.lives || CONFIG.INITIAL_LIVES;
             this.player.y = state.playerY || CONFIG.GROUND_Y - CONFIG.PLAYER_HEIGHT;
@@ -1032,6 +1028,8 @@ class Game {
             this.rings = [];
             this.springs = [];
             this.stars = [];
+            
+            this.spawnEntities();
             
             this.updateHUD();
             this.updateHearts();
@@ -1108,33 +1106,33 @@ class Game {
 
     spawnEntities() {
         const terrain = this.terrainManager.getTerrain();
-        const spawnUntilWorldX = this.distance + CONFIG.CANVAS_WIDTH + 300;
+        const spawnTargetX = CONFIG.CANVAS_WIDTH + 100;
 
-        while (this.lastSpawnWorldX < spawnUntilWorldX) {
+        while (this.lastSpawnScreenX < spawnTargetX) {
             const rand = Math.random();
 
             if (rand < terrain.obstacleRate) {
-                this.obstacles.push(new Obstacle('spike', this.lastSpawnWorldX, CONFIG.GROUND_Y));
-                this.lastSpawnWorldX += 40 + Math.random() * 60;
+                this.obstacles.push(new Obstacle('spike', this.lastSpawnScreenX, CONFIG.GROUND_Y));
+                this.lastSpawnScreenX += 40 + Math.random() * 60;
             } else if (rand < terrain.obstacleRate + terrain.pitRate) {
-                this.obstacles.push(new Obstacle('pit', this.lastSpawnWorldX, CONFIG.GROUND_Y));
-                this.lastSpawnWorldX += 80 + Math.random() * 60;
+                this.obstacles.push(new Obstacle('pit', this.lastSpawnScreenX, CONFIG.GROUND_Y));
+                this.lastSpawnScreenX += 80 + Math.random() * 60;
             } else if (rand < terrain.obstacleRate + terrain.pitRate + terrain.ringRate) {
                 const ringY = CONFIG.GROUND_Y - 50 - Math.random() * 100;
                 const ringCount = 1 + Math.floor(Math.random() * 3);
                 for (let i = 0; i < ringCount; i++) {
-                    this.rings.push(new Ring(this.lastSpawnWorldX + i * 25, ringY));
+                    this.rings.push(new Ring(this.lastSpawnScreenX + i * 25, ringY));
                 }
-                this.lastSpawnWorldX += 30 + ringCount * 25;
+                this.lastSpawnScreenX += 30 + ringCount * 25;
             } else if (rand < terrain.obstacleRate + terrain.pitRate + terrain.ringRate + terrain.springRate) {
-                this.springs.push(new Spring(this.lastSpawnWorldX, CONFIG.GROUND_Y));
-                this.lastSpawnWorldX += 50;
+                this.springs.push(new Spring(this.lastSpawnScreenX, CONFIG.GROUND_Y));
+                this.lastSpawnScreenX += 50;
             } else if (rand < terrain.obstacleRate + terrain.pitRate + terrain.ringRate + terrain.springRate + terrain.starRate) {
                 const starY = CONFIG.GROUND_Y - 80 - Math.random() * 120;
-                this.stars.push(new Star(this.lastSpawnWorldX, starY));
-                this.lastSpawnWorldX += 40;
+                this.stars.push(new Star(this.lastSpawnScreenX, starY));
+                this.lastSpawnScreenX += 40;
             } else {
-                this.lastSpawnWorldX += 20 + Math.random() * 30;
+                this.lastSpawnScreenX += 20 + Math.random() * 30;
             }
         }
     }
@@ -1181,18 +1179,20 @@ class Game {
         this.player.update(this.speed, CONFIG.GROUND_Y);
         this.background.update(this.speed, terrain);
 
+        this.lastSpawnScreenX -= this.speed;
+
         this.spawnEntities();
 
-        this.obstacles.forEach(obs => obs.update(this.distance));
+        this.obstacles.forEach(obs => obs.update(this.speed));
         this.obstacles = this.obstacles.filter(obs => obs.x + obs.width > -50);
 
-        this.rings.forEach(ring => ring.update(this.distance));
+        this.rings.forEach(ring => ring.update(this.speed));
         this.rings = this.rings.filter(ring => ring.x + ring.width > -50 && !ring.collected);
 
-        this.springs.forEach(spring => spring.update(this.distance));
+        this.springs.forEach(spring => spring.update(this.speed));
         this.springs = this.springs.filter(spring => spring.x + spring.width > -50);
 
-        this.stars.forEach(star => star.update(this.distance));
+        this.stars.forEach(star => star.update(this.speed));
         this.stars = this.stars.filter(star => star.x + star.width > -50 && !star.collected);
 
         this.particles.forEach(p => p.update());
