@@ -524,6 +524,15 @@ class Player {
 
         ctx.restore();
     }
+
+    getBounds() {
+        return {
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height
+        };
+    }
 }
 
 class Bullet {
@@ -1345,6 +1354,12 @@ class Game {
             initAudio();
             this.startNewGame();
         });
+
+        window.addEventListener('beforeunload', () => {
+            if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+                this.saveGame();
+            }
+        });
     }
 
     loadSave() {
@@ -1446,6 +1461,7 @@ class Game {
     }
 
     continueGame() {
+        this.loadSave();
         this.resetWave();
         this.player = new Player();
         this.player.updateWeaponUI();
@@ -1566,8 +1582,15 @@ class Game {
     }
 
     checkCollision(a, b) {
+        if (!a || !b || !a.getBounds || !b.getBounds) {
+            return false;
+        }
         const boundsA = a.getBounds();
         const boundsB = b.getBounds();
+        
+        if (!boundsA || !boundsB) {
+            return false;
+        }
         
         return boundsA.x < boundsB.x + boundsB.width &&
                boundsA.x + boundsA.width > boundsB.x &&
@@ -1620,14 +1643,16 @@ class Game {
 
         this.bullets.forEach(bullet => {
             if (bullet.owner !== 'player') return;
+            if (!bullet.active) return;
+            if (bullet instanceof Missile && bullet.exploding) return;
             
             this.enemies.forEach(enemy => {
                 if (!enemy.active) return;
                 
                 if (this.checkCollision(bullet, enemy)) {
-                    if (bullet instanceof Missile && !bullet.exploding) {
+                    if (bullet instanceof Missile) {
                         bullet.hit();
-                    } else if (!(bullet instanceof Missile)) {
+                    } else if (!(bullet instanceof LaserBeam)) {
                         bullet.active = false;
                     }
                     
@@ -1641,6 +1666,7 @@ class Game {
                             this.player.screenShake = 500;
                         }
                         
+                        this.checkSkinUnlocks();
                         this.updateUI();
                     }
                 }
@@ -1718,11 +1744,25 @@ class Game {
     }
 
     gameLoop(timestamp) {
-        const deltaTime = timestamp - this.lastTime;
-        this.lastTime = timestamp;
+        try {
+            const deltaTime = timestamp - this.lastTime;
+            this.lastTime = timestamp;
 
-        this.update(deltaTime);
-        this.draw();
+            if (deltaTime < 500) {
+                this.update(deltaTime);
+            }
+            this.draw();
+
+            this.autoSaveTimer = (this.autoSaveTimer || 0) + deltaTime;
+            if (this.autoSaveTimer >= 2000) {
+                this.autoSaveTimer = 0;
+                if (this.state === GameState.PLAYING) {
+                    this.saveGame();
+                }
+            }
+        } catch (error) {
+            console.error('Game error:', error);
+        }
 
         requestAnimationFrame((t) => this.gameLoop(t));
     }
