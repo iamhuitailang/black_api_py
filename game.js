@@ -28,7 +28,8 @@ let gameState = {
     bestDistance: 0,
     unlockedColors: ['brown'],
     selectedColor: 'brown',
-    lastSpeedIncrease: 0
+    lastSpeedIncrease: 0,
+    gameOver: false
 };
 
 let dog = {
@@ -177,6 +178,15 @@ function loadGameData() {
         gameState.bestDistance = data.bestDistance || 0;
         gameState.unlockedColors = data.unlockedColors || ['brown'];
         gameState.selectedColor = data.selectedColor || 'brown';
+        gameState.gameOver = data.gameOver !== undefined ? data.gameOver : true;
+        
+        if (data.savedGame && !data.gameOver) {
+            gameState.distance = data.savedGame.distance || 0;
+            gameState.score = data.savedGame.score || 0;
+            gameState.lives = data.savedGame.lives || 3;
+            gameState.speed = data.savedGame.speed || INITIAL_SPEED;
+            gameState.lastSpeedIncrease = data.savedGame.lastSpeedIncrease || 0;
+        }
     }
     updateUI();
     updateColorButtons();
@@ -186,7 +196,15 @@ function saveGameData() {
     const data = {
         bestDistance: gameState.bestDistance,
         unlockedColors: gameState.unlockedColors,
-        selectedColor: gameState.selectedColor
+        selectedColor: gameState.selectedColor,
+        gameOver: gameState.gameOver,
+        savedGame: {
+            distance: gameState.distance,
+            score: gameState.score,
+            lives: gameState.lives,
+            speed: gameState.speed,
+            lastSpeedIncrease: gameState.lastSpeedIncrease
+        }
     };
     localStorage.setItem('dogRunnerSave', JSON.stringify(data));
 }
@@ -246,10 +264,11 @@ function initBackground() {
     
     trees = [];
     for (let i = 0; i < 8; i++) {
+        const size = 40 + Math.random() * 30;
         trees.push({
             x: Math.random() * GAME_WIDTH,
-            y: GROUND_Y - 60 - Math.random() * 20,
-            size: 40 + Math.random() * 30,
+            y: GROUND_Y,
+            size: size,
             speed: 1
         });
     }
@@ -278,7 +297,7 @@ function drawBackground() {
         tree.x -= gameState.speed * tree.speed * 0.5;
         if (tree.x < -tree.size) {
             tree.x = GAME_WIDTH + tree.size + Math.random() * 100;
-            tree.y = GROUND_Y - 60 - Math.random() * 20;
+            tree.size = 40 + Math.random() * 30;
         }
     });
 }
@@ -293,22 +312,26 @@ function drawCloud(x, y, size) {
 }
 
 function drawTree(x, y, size) {
+    const trunkHeight = size * 0.5;
+    const trunkWidth = size * 0.15;
+    const trunkX = x + size * 0.4;
+    
     ctx.fillStyle = '#8B4513';
-    ctx.fillRect(x + size * 0.4, y, size * 0.2, size * 0.6);
+    ctx.fillRect(trunkX, y - trunkHeight, trunkWidth, trunkHeight);
     
     ctx.fillStyle = '#228B22';
     ctx.beginPath();
-    ctx.moveTo(x, y + size * 0.3);
-    ctx.lineTo(x + size * 0.5, y - size * 0.3);
-    ctx.lineTo(x + size, y + size * 0.3);
+    ctx.moveTo(x, y - trunkHeight + size * 0.15);
+    ctx.lineTo(x + size * 0.5, y - trunkHeight - size * 0.25);
+    ctx.lineTo(x + size, y - trunkHeight + size * 0.15);
     ctx.closePath();
     ctx.fill();
     
     ctx.fillStyle = '#2E8B57';
     ctx.beginPath();
-    ctx.moveTo(x + size * 0.1, y + size * 0.1);
-    ctx.lineTo(x + size * 0.5, y - size * 0.5);
-    ctx.lineTo(x + size * 0.9, y + size * 0.1);
+    ctx.moveTo(x + size * 0.1, y - trunkHeight - size * 0.05);
+    ctx.lineTo(x + size * 0.5, y - trunkHeight - size * 0.45);
+    ctx.lineTo(x + size * 0.9, y - trunkHeight - size * 0.05);
     ctx.closePath();
     ctx.fill();
 }
@@ -316,47 +339,101 @@ function drawTree(x, y, size) {
 function drawGround() {
     const groundOffset = (frameCount * gameState.speed * 1.5) % 40;
     
-    ctx.fillStyle = '#7CFC00';
-    ctx.fillRect(0, GROUND_Y, GAME_WIDTH, 10);
+    const pits = obstacles.filter(obs => obs.type === 'pit');
+    
+    function isInPit(x) {
+        for (const pit of pits) {
+            if (x >= pit.x && x <= pit.x + pit.width) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    function drawSegmentWithPits(drawFunc) {
+        let currentX = 0;
+        const segments = [];
+        
+        segments.push({ start: 0, end: GAME_WIDTH });
+        
+        pits.forEach(pit => {
+            const newSegments = [];
+            segments.forEach(seg => {
+                if (pit.x > seg.start && pit.x < seg.end) {
+                    newSegments.push({ start: seg.start, end: pit.x });
+                }
+                if (pit.x + pit.width > seg.start && pit.x + pit.width < seg.end) {
+                    newSegments.push({ start: pit.x + pit.width, end: seg.end });
+                }
+                if (pit.x <= seg.start && pit.x + pit.width >= seg.end) {
+                } else if (pit.x >= seg.start && pit.x + pit.width <= seg.end) {
+                } else if (pit.x < seg.start && pit.x + pit.width > seg.start) {
+                    newSegments.push({ start: pit.x + pit.width, end: seg.end });
+                } else if (pit.x < seg.end && pit.x + pit.width > seg.end) {
+                    newSegments.push({ start: seg.start, end: pit.x });
+                } else {
+                    newSegments.push(seg);
+                }
+            });
+            segments.length = 0;
+            segments.push(...newSegments);
+        });
+        
+        segments.forEach(seg => {
+            if (seg.end > seg.start) {
+                drawFunc(seg.start, seg.end - seg.start);
+            }
+        });
+    }
+    
+    drawSegmentWithPits((x, w) => {
+        ctx.fillStyle = '#7CFC00';
+        ctx.fillRect(x, GROUND_Y, w, 10);
+    });
     
     ctx.fillStyle = '#228B22';
     for (let i = -groundOffset; i < GAME_WIDTH; i += 40) {
-        obstacles.forEach(obs => {
-            if (obs.type === 'pit') {
-                if (i + 40 > obs.x && i < obs.x + obs.width) return;
-            }
-        });
-        
-        ctx.beginPath();
-        ctx.moveTo(i, GROUND_Y);
-        ctx.lineTo(i + 5, GROUND_Y - 8);
-        ctx.lineTo(i + 10, GROUND_Y);
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.moveTo(i + 20, GROUND_Y);
-        ctx.lineTo(i + 25, GROUND_Y - 10);
-        ctx.lineTo(i + 30, GROUND_Y);
-        ctx.fill();
+        if (!isInPit(i) && !isInPit(i + 30)) {
+            ctx.beginPath();
+            ctx.moveTo(i, GROUND_Y);
+            ctx.lineTo(i + 5, GROUND_Y - 8);
+            ctx.lineTo(i + 10, GROUND_Y);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(i + 20, GROUND_Y);
+            ctx.lineTo(i + 25, GROUND_Y - 10);
+            ctx.lineTo(i + 30, GROUND_Y);
+            ctx.fill();
+        }
     }
     
-    ctx.fillStyle = '#8B4513';
-    ctx.fillRect(0, GROUND_Y + 10, GAME_WIDTH, GAME_HEIGHT - GROUND_Y - 10);
+    drawSegmentWithPits((x, w) => {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(x, GROUND_Y + 10, w, GAME_HEIGHT - GROUND_Y - 10);
+    });
     
     ctx.fillStyle = '#654321';
     for (let i = -groundOffset * 2; i < GAME_WIDTH; i += 30) {
-        ctx.fillRect(i, GROUND_Y + 20, 15, 3);
-        ctx.fillRect(i + 10, GROUND_Y + 35, 12, 3);
+        if (!isInPit(i) && !isInPit(i + 15)) {
+            ctx.fillRect(i, GROUND_Y + 20, 15, 3);
+            ctx.fillRect(i + 10, GROUND_Y + 35, 12, 3);
+        }
     }
     
-    obstacles.forEach(obs => {
-        if (obs.type === 'pit') {
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(obs.x, GROUND_Y, obs.width, GAME_HEIGHT - GROUND_Y);
-            
-            ctx.fillStyle = '#0f0f1a';
-            ctx.fillRect(obs.x, GROUND_Y, obs.width, 5);
-        }
+    pits.forEach(pit => {
+        const gradient = ctx.createLinearGradient(pit.x, GROUND_Y, pit.x, GAME_HEIGHT);
+        gradient.addColorStop(0, '#1a1a2e');
+        gradient.addColorStop(1, '#0a0a15');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(pit.x, GROUND_Y, pit.width, GAME_HEIGHT - GROUND_Y);
+        
+        ctx.fillStyle = '#0f0f1a';
+        ctx.fillRect(pit.x, GROUND_Y, pit.width, 3);
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(pit.x, GROUND_Y, 5, GAME_HEIGHT - GROUND_Y);
+        ctx.fillRect(pit.x + pit.width - 5, GROUND_Y, 5, GAME_HEIGHT - GROUND_Y);
     });
 }
 
@@ -723,6 +800,7 @@ function takeDamage() {
 
 function gameOver() {
     gameState.running = false;
+    gameState.gameOver = true;
     
     let newUnlock = null;
     Object.entries(DOG_COLORS).forEach(([name, data]) => {
@@ -765,6 +843,7 @@ function resetGame() {
     gameState.lives = 3;
     gameState.speed = INITIAL_SPEED;
     gameState.lastSpeedIncrease = 0;
+    gameState.gameOver = false;
     
     dog.y = GROUND_Y - 40;
     dog.velocityY = 0;
@@ -916,6 +995,7 @@ function update() {
     
     handleCollisions();
     updateUI();
+    autoSave();
 }
 
 function drawParticles() {
@@ -953,6 +1033,12 @@ document.addEventListener('keydown', (e) => {
         initAudio();
         
         if (!gameState.running && !document.getElementById('startScreen').classList.contains('hidden')) {
+            if (!gameState.gameOver && gameState.distance > 0) {
+                continueGame();
+            } else {
+                startGame();
+            }
+        } else if (!gameState.running && !document.getElementById('gameOverScreen').classList.contains('hidden')) {
             startGame();
         } else if (gameState.running && !gameState.paused) {
             jump();
@@ -977,21 +1063,130 @@ document.addEventListener('keyup', (e) => {
     }
 });
 
+function initTouchControls() {
+    const touchBtn = document.getElementById('touchJumpBtn');
+    
+    function handleTouchStart(e) {
+        e.preventDefault();
+        initAudio();
+        
+        if (!gameState.running && !document.getElementById('startScreen').classList.contains('hidden')) {
+            continueGame();
+        } else if (!gameState.running && !document.getElementById('gameOverScreen').classList.contains('hidden')) {
+            startGame();
+        } else if (gameState.running && !gameState.paused) {
+            jump();
+        }
+    }
+    
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        dog.isHoldingJump = false;
+    }
+    
+    touchBtn.addEventListener('touchstart', handleTouchStart, { passive: false });
+    touchBtn.addEventListener('touchend', handleTouchEnd, { passive: false });
+    touchBtn.addEventListener('mousedown', handleTouchStart);
+    touchBtn.addEventListener('mouseup', handleTouchEnd);
+    touchBtn.addEventListener('mouseleave', handleTouchEnd);
+    
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        initAudio();
+        if (gameState.running && !gameState.paused) {
+            jump();
+        }
+    }, { passive: false });
+    
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        dog.isHoldingJump = false;
+    }, { passive: false });
+}
+
+function updateStartScreen() {
+    const hasSavedGame = !gameState.gameOver && gameState.distance > 0;
+    
+    document.getElementById('continueBtn').classList.toggle('hidden', !hasSavedGame);
+    document.getElementById('currentProgress').classList.toggle('hidden', !hasSavedGame);
+    document.getElementById('currentDistance').textContent = Math.floor(gameState.distance);
+    
+    if (hasSavedGame) {
+        document.getElementById('startBtn').textContent = '重新开始';
+        document.getElementById('startBtn').classList.add('secondary');
+    } else {
+        document.getElementById('startBtn').textContent = '开始游戏';
+        document.getElementById('startBtn').classList.remove('secondary');
+    }
+}
+
+function continueGame() {
+    if (gameState.gameOver || gameState.distance <= 0) {
+        startGame();
+        return;
+    }
+    
+    initAudio();
+    gameState.running = true;
+    gameState.paused = false;
+    gameState.gameOver = false;
+    
+    dog.y = GROUND_Y - 40;
+    dog.velocityY = 0;
+    dog.isJumping = false;
+    dog.isHit = false;
+    dog.hitTimer = 0;
+    
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('pauseScreen').classList.add('hidden');
+    
+    saveGameData();
+}
+
 function startGame() {
     initAudio();
     resetGame();
     gameState.running = true;
     gameState.paused = false;
+    gameState.gameOver = false;
     
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
+    
+    saveGameData();
+}
+
+let saveCounter = 0;
+function autoSave() {
+    if (gameState.running && !gameState.paused) {
+        saveCounter++;
+        if (saveCounter >= 60) {
+            saveCounter = 0;
+            saveGameData();
+        }
+    }
 }
 
 document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('continueBtn').addEventListener('click', continueGame);
 document.getElementById('restartBtn').addEventListener('click', startGame);
+
+window.addEventListener('beforeunload', () => {
+    if (gameState.running) {
+        gameState.paused = true;
+        saveGameData();
+    }
+});
+
+window.addEventListener('pagehide', () => {
+    saveGameData();
+});
 
 loadGameData();
 initBackground();
+initTouchControls();
+updateStartScreen();
 draw();
 gameLoop();

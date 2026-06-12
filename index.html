@@ -30,6 +30,10 @@
         
         <canvas id="gameCanvas" width="800" height="400"></canvas>
         
+        <div class="touch-controls">
+            <div id="touchJumpBtn" class="touch-btn">跳跃</div>
+        </div>
+        
         <div class="game-overlay" id="startScreen">
             <h1>🐕 小狗跑酷</h1>
             <p class="subtitle">按空格键跳跃，收集骨头，躲避障碍！</p>
@@ -45,8 +49,14 @@
             </div>
             <div class="records">
                 <p><strong>最远距离：</strong><span id="bestDistance">0</span> 米</p>
+                <p id="currentProgress" class="current-progress hidden">
+                    <strong>当前进度：</strong><span id="currentDistance">0</span> 米
+                </p>
             </div>
-            <button id="startBtn" class="game-btn">开始游戏</button>
+            <div class="button-group">
+                <button id="continueBtn" class="game-btn hidden">继续游戏</button>
+                <button id="startBtn" class="game-btn">开始游戏</button>
+            </div>
         </div>
         
         <div class="game-overlay hidden" id="gameOverScreen">

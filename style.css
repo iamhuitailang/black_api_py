@@ -12,6 +12,7 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    -webkit-text-size-adjust: 100%;
 }
 
 .game-container {
@@ -20,13 +21,15 @@ body {
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    max-width: 100vw;
+    max-height: 100vh;
 }
 
 .game-header {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 12px 20px;
+    padding: 8px 12px;
     background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
     color: white;
     font-weight: bold;
@@ -35,34 +38,38 @@ body {
 .stat-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 16px;
+    gap: 4px;
+    font-size: 14px;
 }
 
 .stat-label {
     opacity: 0.9;
-    font-size: 12px;
+    font-size: 10px;
     text-transform: uppercase;
 }
 
 .stat-value {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 800;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .stat-unit {
-    font-size: 12px;
+    font-size: 10px;
     opacity: 0.9;
 }
 
 .lives .stat-value {
-    font-size: 18px;
+    font-size: 14px;
 }
 
 #gameCanvas {
     display: block;
     background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #90EE90 100%);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    max-width: 100%;
+    height: auto;
 }
 
 .game-overlay {
@@ -71,15 +78,18 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.92);
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     color: white;
     z-index: 10;
-    padding: 40px;
+    padding: 15px;
+    padding-top: 20px;
     text-align: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .game-overlay.hidden {
@@ -87,58 +97,65 @@ body {
 }
 
 .game-overlay h1 {
-    font-size: 48px;
-    margin-bottom: 20px;
+    font-size: 32px;
+    margin-bottom: 8px;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
     animation: bounce 1s ease-in-out infinite;
+    flex-shrink: 0;
 }
 
 @keyframes bounce {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    50% { transform: translateY(-8px); }
 }
 
 .subtitle {
-    font-size: 18px;
-    margin-bottom: 24px;
+    font-size: 14px;
+    margin-bottom: 12px;
     color: #ffd700;
+    flex-shrink: 0;
 }
 
 .controls-info {
     background: rgba(255, 255, 255, 0.1);
-    padding: 20px 30px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    line-height: 2;
+    padding: 10px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    line-height: 1.7;
+    font-size: 12px;
+    flex-shrink: 0;
 }
 
 .controls-info p {
-    margin: 4px 0;
+    margin: 2px 0;
 }
 
 .unlocked-colors {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    flex-shrink: 0;
 }
 
 .unlocked-colors p {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 #colorButtons {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     justify-content: center;
     flex-wrap: wrap;
 }
 
 .color-btn {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: 3px solid white;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
+    flex-shrink: 0;
 }
 
 .color-btn:hover {
@@ -158,7 +175,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .color-btn.selected {
@@ -178,8 +195,12 @@ body {
 }
 
 .records {
-    margin-bottom: 20px;
-    font-size: 18px;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.records p {
+    margin: 5px 0;
 }
 
 .records span {
@@ -187,10 +208,26 @@ body {
     font-weight: bold;
 }
 
+.current-progress {
+    color: #4facfe;
+    margin-top: 8px;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
 .final-stats {
-    font-size: 20px;
+    font-size: 18px;
     line-height: 2;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .final-stats span {
@@ -200,10 +237,10 @@ body {
 
 .unlock-message {
     background: linear-gradient(90deg, #ffd700, #ff6b6b);
-    padding: 15px 30px;
+    padding: 12px 24px;
     border-radius: 10px;
-    margin-bottom: 20px;
-    font-size: 18px;
+    margin-bottom: 15px;
+    font-size: 16px;
     font-weight: bold;
     animation: pulse 0.5s ease-in-out infinite alternate;
 }
@@ -228,6 +265,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .game-btn:hover {
@@ -237,4 +275,167 @@ body {
 
 .game-btn:active {
     transform: translateY(-1px);
+}
+
+.game-btn.secondary {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+.game-btn.secondary:hover {
+    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.6);
+}
+
+.touch-controls {
+    display: none;
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.touch-btn {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    border: 4px solid rgba(255, 255, 255, 0.6);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.touch-btn:active {
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(0.95);
+}
+
+@media (max-width: 850px) {
+    .game-container {
+        width: 100vw;
+        border-radius: 0;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        height: auto;
+    }
+    
+    .game-header {
+        padding: 8px 10px;
+    }
+    
+    .stat-item {
+        gap: 3px;
+        font-size: 12px;
+    }
+    
+    .stat-value {
+        font-size: 14px;
+    }
+    
+    .game-overlay {
+        padding: 12px;
+        padding-top: 15px;
+    }
+    
+    .game-overlay h1 {
+        font-size: 28px;
+        margin-bottom: 6px;
+    }
+    
+    .subtitle {
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+    
+    .controls-info {
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        font-size: 11px;
+    }
+    
+    .unlocked-colors {
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+    
+    .color-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .records {
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+    
+    .game-btn {
+        padding: 12px 40px;
+        font-size: 18px;
+    }
+    
+    .touch-controls {
+        display: block;
+    }
+}
+
+@media (max-height: 550px) and (min-width: 600px) {
+    .game-overlay {
+        padding: 10px;
+        padding-top: 12px;
+    }
+    
+    .game-overlay h1 {
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+    
+    .subtitle {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .controls-info {
+        padding: 6px 12px;
+        margin-bottom: 8px;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+    
+    .unlocked-colors {
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .color-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .records {
+        margin-bottom: 10px;
+        font-size: 13px;
+    }
+    
+    .game-btn {
+        padding: 10px 35px;
+        font-size: 16px;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .touch-controls {
+        display: block;
+    }
 }
