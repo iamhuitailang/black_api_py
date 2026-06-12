@@ -305,8 +305,15 @@ class Player {
         if (keys.ArrowRight || keys.d) {
             this.x += speed;
         }
+        if (keys.ArrowUp || keys.w) {
+            this.y -= speed;
+        }
+        if (keys.ArrowDown || keys.s) {
+            this.y += speed;
+        }
 
         this.x = Math.max(0, Math.min(GAME_WIDTH - this.width, this.x));
+        this.y = Math.max(GAME_HEIGHT * 0.3, Math.min(GAME_HEIGHT - this.height - 20, this.y));
 
         const weapon = this.weapons[this.currentWeapon];
         
@@ -1355,8 +1362,21 @@ class Game {
             this.startNewGame();
         });
 
+        document.getElementById('continueFromWaveBtn').addEventListener('click', () => {
+            initAudio();
+            this.continueGame();
+        });
+
         window.addEventListener('beforeunload', () => {
-            if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+            try {
+                this.saveGame();
+            } catch (e) {
+                console.error('Save on unload failed:', e);
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && this.state === GameState.PLAYING) {
                 this.saveGame();
             }
         });
@@ -1378,8 +1398,21 @@ class Game {
                 
                 this.checkSkinUnlocks();
                 
-                if (this.score > 0 || this.wave > 1) {
-                    document.getElementById('continueBtn').style.display = 'block';
+                const hasProgress = this.score > 0 || this.wave > 1;
+                const continueBtn = document.getElementById('continueBtn');
+                const savedInfo = document.getElementById('savedInfo');
+                
+                if (hasProgress) {
+                    continueBtn.style.display = 'block';
+                    if (savedInfo) {
+                        savedInfo.style.display = 'block';
+                        savedInfo.textContent = `已保存进度：第 ${this.wave} 波 · ${this.score} 分`;
+                    }
+                } else {
+                    continueBtn.style.display = 'none';
+                    if (savedInfo) {
+                        savedInfo.style.display = 'none';
+                    }
                 }
             }
         } catch (e) {
@@ -1505,7 +1538,10 @@ class Game {
         SoundEffects.playLaser(false);
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('finalWave').textContent = this.wave;
+        document.getElementById('continueWaveNum').textContent = this.wave;
         document.getElementById('gameOverScreen').style.display = 'flex';
+        
+        this.loadSave();
     }
 
     spawnEnemy() {
