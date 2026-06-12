@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微观世界大冒险</title>
+    <link rel="stylesheet" href="micro-adventure.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 开始界面 -->
+        <div id="start-screen" class="screen active">
+            <div class="micro-bg">
+                <div class="floating-organelle" style="--delay:0s;--size:80px;--x:10%;--y:20%;background:radial-gradient(circle,#ff6b9d,#c44569)"></div>
+                <div class="floating-organelle" style="--delay:1s;--size:60px;--x:80%;--y:30%;background:radial-gradient(circle,#45b7d1,#2980b9)"></div>
+                <div class="floating-organelle" style="--delay:2s;--size:100px;--x:20%;--y:70%;background:radial-gradient(circle,#f9ca24,#f0932b)"></div>
+                <div class="floating-organelle" style="--delay:0.5s;--size:50px;--x:70%;--y:80%;background:radial-gradient(circle,#6ab04c,#badc58)"></div>
+                <div class="floating-organelle" style="--delay:1.5s;--size:70px;--x:50%;--y:50%;background:radial-gradient(circle,#be2edd,#a29bfe)"></div>
+            </div>
+            <div class="start-content">
+                <h1 class="game-title">
+                    <span class="title-particle" style="--d:0s">微</span>
+                    <span class="title-particle" style="--d:0.1s">观</span>
+                    <span class="title-particle" style="--d:0.2s">世</span>
+                    <span class="title-particle" style="--d:0.3s">界</span>
+                    <span class="title-particle" style="--d:0.4s">大</span>
+                    <span class="title-particle" style="--d:0.5s">冒</span>
+                    <span class="title-particle" style="--d:0.6s">险</span>
+                </h1>
+                <p class="subtitle">你被缩小到微观世界，需要在细胞、细菌和分子之间冒险，寻找返回正常世界的方法！</p>
+                <button id="start-btn" class="btn-primary">开始冒险</button>
+                <button id="how-to-play-btn" class="btn-secondary">游戏说明</button>
+            </div>
+        </div>
+
+        <!-- 游戏说明 -->
+        <div id="how-to-play-screen" class="screen">
+            <div class="modal-content">
+                <h2>🎮 游戏说明</h2>
+                <div class="instructions">
+                    <div class="instruction-item">
+                        <span class="key">W A S D / ← ↑ → ↓</span>
+                        <span class="desc">移动角色</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="key">空格键</span>
+                        <span class="desc">使用已获得的特殊能力</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="key">E 键</span>
+                        <span class="desc">与生物/物体互动</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="key">ESC</span>
+                        <span class="desc">暂停游戏</span>
+                    </div>
+                </div>
+                <h3 style="margin-top:20px;">🧬 游戏流程</h3>
+                <ol class="flow-list">
+                    <li>🌿 <strong>微观探索</strong> - 在微观世界中探索</li>
+                    <li>🦠 <strong>生物互动</strong> - 与各种微生物互动</li>
+                    <li>🧩 <strong>谜题解决</strong> - 利用微观特性解决谜题</li>
+                    <li>⚡ <strong>能力获得</strong> - 获得特殊能力</li>
+                    <li>🏆 <strong>关卡挑战</strong> - 挑战各种微观关卡</li>
+                </ol>
+                <button id="back-from-help" class="btn-primary">返回</button>
+            </div>
+        </div>
+
+        <!-- 关卡选择 -->
+        <div id="level-select-screen" class="screen">
+            <h2 class="screen-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <button id="back-to-start" class="btn-secondary" style="margin-top:30px;">返回主菜单</button>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div id="game-screen" class="screen">
+            <div id="game-ui-top">
+                <div id="level-info">
+                    <span id="level-name">第一关</span>
+                    <span id="level-subtitle"></span>
+                </div>
+                <div id="player-stats">
+                    <div id="health-container">
+                        <span>❤️</span>
+                        <div id="health-bar"><div id="health-fill"></div></div>
+                    </div>
+                    <div id="ability-container">
+                        <span>⚡</span>
+                        <div id="ability-bar"><div id="ability-fill"></div></div>
+                    </div>
+                </div>
+                <div id="score-display">
+                    <span>🧬 分数: <span id="score">0</span></span>
+                </div>
+            </div>
+            
+            <canvas id="game-canvas"></canvas>
+            
+            <div id="game-ui-bottom">
+                <div id="ability-slots">
+                    <div class="ability-slot" id="slot-1" data-ability="none">
+                        <span class="ability-icon">?</span>
+                        <span class="ability-name">无能力</span>
+                    </div>
+                </div>
+                <div id="objective">
+                    <span id="objective-text">探索关卡，寻找出口</span>
+                </div>
+                <div id="interaction-hint" style="display:none;">
+                    按 <span class="key">E</span> 互动
+                </div>
+            </div>
+            
+            <div id="dialog-box" style="display:none;">
+                <div id="dialog-speaker"></div>
+                <div id="dialog-text"></div>
+                <div id="dialog-hint">按 空格 继续...</div>
+            </div>
+            
+            <div id="pause-menu" style="display:none;">
+                <div class="modal-content">
+                    <h2>⏸ 游戏暂停</h2>
+                    <button id="resume-btn" class="btn-primary">继续游戏</button>
+                    <button id="restart-btn" class="btn-secondary">重新开始</button>
+                    <button id="quit-btn" class="btn-secondary">返回菜单</button>
+                </div>
+            </div>
+            
+            <div id="level-complete" style="display:none;">
+                <div class="modal-content">
+                    <h2>🎉 关卡完成！</h2>
+                    <div id="level-stats"></div>
+                    <div id="new-ability" style="display:none;">
+                        <h3>✨ 获得新能力！</h3>
+                        <div id="ability-info"></div>
+                    </div>
+                    <button id="next-level-btn" class="btn-primary">下一关</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 游戏结束 -->
+        <div id="game-over-screen" class="screen">
+            <div class="modal-content">
+                <h2 id="game-over-title">💀 游戏结束</h2>
+                <p id="game-over-text"></p>
+                <button id="retry-btn" class="btn-primary">再试一次</button>
+                <button id="menu-btn" class="btn-secondary">返回菜单</button>
+            </div>
+        </div>
+
+        <!-- 游戏通关 -->
+        <div id="victory-screen" class="screen">
+            <div class="micro-bg">
+                <div class="floating-organelle" style="--delay:0s;--size:80px;--x:10%;--y:20%;background:radial-gradient(circle,#ffd700,#ff8c00)"></div>
+                <div class="floating-organelle" style="--delay:1s;--size:60px;--x:80%;--y:30%;background:radial-gradient(circle,#ff69b4,#ff1493)"></div>
+                <div class="floating-organelle" style="--delay:2s;--size:100px;--x:20%;--y:70%;background:radial-gradient(circle,#00ff7f,#32cd32)"></div>
+            </div>
+            <div class="modal-content victory-content">
+                <h1>🏆 恭喜你！</h1>
+                <h2>你成功返回了正常世界！</h2>
+                <p>在微观世界的冒险中，你学会了：</p>
+                <ul id="learned-abilities"></ul>
+                <p style="margin-top:20px;font-size:1.2em;">最终得分: <span id="final-score" style="color:#ffd700;font-weight:bold;"></span></p>
+                <button id="play-again-btn" class="btn-primary">再玩一次</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="micro-adventure.js"></script>
+</body>
+</html>
