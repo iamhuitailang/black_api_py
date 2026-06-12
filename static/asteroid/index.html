@@ -34,6 +34,12 @@ canvas{display:block}
 #leaderboard td{color:#aabbcc;font-size:12px;padding:3px 6px;border-bottom:1px solid #112}
 #leaderboard td:first-child{color:#00ff88}
 #start-hint{color:#00ff88;font-size:16px;animation:blink 1.2s infinite}
+#btn-row{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+.menu-btn{background:transparent;border:1px solid #00ff88;color:#00ff88;padding:10px 24px;font-size:14px;font-family:'Courier New',monospace;cursor:pointer;border-radius:4px;transition:all 0.2s}
+.menu-btn:hover{background:#00ff88;color:#000}
+.menu-btn.secondary{border-color:#668877;color:#88aabb}
+.menu-btn.secondary:hover{background:#668877;color:#000}
+#save-info{color:#88ccaa;font-size:12px;margin-top:8px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 #wave-announce{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#00ff88;font-size:36px;font-family:'Courier New',monospace;z-index:15;pointer-events:none;opacity:0;transition:opacity 0.5s}
 </style>
@@ -61,7 +67,12 @@ canvas{display:block}
   <p>消灭陨石，收集道具，击败Boss！</p>
   <p id="final-score" style="display:none;margin-top:16px"></p>
   <input type="text" id="name-input" placeholder="输入名字" maxlength="20" style="display:none">
-  <button id="submit-btn" style="display:none">提交成绩</button>
+  <div id="btn-row">
+    <button id="submit-btn" class="menu-btn" style="display:none">提交成绩</button>
+    <button id="continue-btn" class="menu-btn" style="display:none">继续游戏</button>
+    <button id="newgame-btn" class="menu-btn secondary" style="display:none">新游戏</button>
+  </div>
+  <p id="save-info" style="display:none"></p>
   <div id="leaderboard">
     <h3>— 排行榜 TOP 20 —</h3>
     <table id="lb-table"><thead><tr><th>#</th><th>名字</th><th>分数</th><th>波次</th></tr></thead><tbody id="lb-body"></tbody></table>
@@ -180,7 +191,11 @@ window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (e.code === 'Space' && gameState === 'menu') {
         audioCtx.resume();
-        startGame();
+        if (savedStateAvailable) {
+            startGame(true);
+        } else {
+            startGame(false);
+        }
     }
 });
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
@@ -197,6 +212,8 @@ let powerups = [];
 let bossBullets = [];
 let boss = null;
 let stars = [];
+const SAVE_KEY = 'asteroid_game_save';
+let savedStateAvailable = false;
 
 for (let i = 0; i < 120; i++) {
     stars.push({
@@ -208,34 +225,102 @@ for (let i = 0; i < 120; i++) {
     });
 }
 
-function startGame() {
+function saveGameState() {
+    try {
+        const state = {
+            gameState, score, wave, lives, invincible, hasShield,
+            trishotTimer, slowmoTimer, frameCount,
+            ship: { x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, angle: ship.angle },
+            asteroids: asteroids.map(a => ({
+                x: a.x, y: a.y, vx: a.vx, vy: a.vy,
+                size: a.size, radius: a.radius, verts: a.verts, hp: a.hp,
+                rot: a.rot, rotSpeed: a.rotSpeed
+            })),
+            powerups: powerups.map(p => ({ x: p.x, y: p.y, type: p.type, radius: p.radius, age: p.age })),
+            boss: boss ? {
+                x: boss.x, y: boss.y, vx: boss.vx, hp: boss.hp, maxHp: boss.maxHp,
+                shootTimer: boss.shootTimer, radius: boss.radius, flash: boss.flash
+            } : null
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) { console.warn('Save failed', e); }
+}
+
+function loadGameState() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        if (s.gameState !== 'playing') return false;
+        gameState = s.gameState;
+        score = s.score;
+        wave = s.wave;
+        lives = s.lives;
+        invincible = s.invincible;
+        hasShield = s.hasShield;
+        trishotTimer = s.trishotTimer;
+        slowmoTimer = s.slowmoTimer;
+        frameCount = s.frameCount;
+        Object.assign(ship, s.ship);
+        asteroids = s.asteroids || [];
+        powerups = s.powerups || [];
+        boss = s.boss || null;
+        bossBullets = [];
+        bullets = [];
+        particles = [];
+        return true;
+    } catch (e) { return false; }
+}
+
+function clearSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+}
+
+function checkSavedState() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    try {
+        const s = JSON.parse(raw);
+        return s.gameState === 'playing';
+    } catch (e) { return false; }
+}
+
+function startGame(useSave) {
     gameState = 'playing';
-    score = 0;
-    wave = 0;
-    lives = 3;
-    invincible = 0;
-    hasShield = false;
-    trishotTimer = 0;
-    slowmoTimer = 0;
-    ship.x = W / 2;
-    ship.y = H / 2;
-    ship.vx = 0;
-    ship.vy = 0;
-    bullets = [];
-    asteroids = [];
-    particles = [];
-    powerups = [];
-    bossBullets = [];
-    boss = null;
-    shootCooldown = 0;
+    if (useSave) {
+        loadGameState();
+    } else {
+        score = 0;
+        wave = 0;
+        lives = 3;
+        invincible = 0;
+        hasShield = false;
+        trishotTimer = 0;
+        slowmoTimer = 0;
+        ship.x = W / 2;
+        ship.y = H / 2;
+        ship.vx = 0;
+        ship.vy = 0;
+        bullets = [];
+        asteroids = [];
+        particles = [];
+        powerups = [];
+        bossBullets = [];
+        boss = null;
+        shootCooldown = 0;
+    }
+    savedStateAvailable = false;
     updateUI();
     document.getElementById('overlay').classList.add('hidden');
-    nextWave();
+    if (!useSave || asteroids.length === 0) {
+        nextWave();
+    }
 }
 
 function nextWave() {
     wave++;
-    const count = Math.min(5 + Math.floor(Math.random() * 11) + Math.floor(wave / 2), 20);
+    const baseCount = 2 + Math.floor(wave / 4);
+    const count = Math.min(baseCount + Math.floor(Math.random() * 3), 10);
     for (let i = 0; i < count; i++) {
         spawnAsteroid('large');
     }
@@ -253,9 +338,9 @@ function announceWave() {
     setTimeout(() => el.style.opacity = '0', 1500);
 }
 
-function spawnAsteroid(size, x, y) {
+function spawnAsteroid(size, x, y, vx, vy) {
     const radiusMap = { large: 40, medium: 25, small: 12 };
-    const speedMap = { large: 1.5, medium: 2.5, small: 4 };
+    const speedMap = { large: 0.8, medium: 1.3, small: 2.0 };
     const r = radiusMap[size];
     let px, py;
     if (x !== undefined && y !== undefined) {
@@ -267,8 +352,16 @@ function spawnAsteroid(size, x, y) {
         else if (side === 2) { px = Math.random() * W; py = -r; }
         else { px = Math.random() * W; py = H + r; }
     }
-    const angle = Math.atan2(H / 2 - py + (Math.random() - 0.5) * H * 0.6, W / 2 - px + (Math.random() - 0.5) * W * 0.6);
-    const speed = speedMap[size] * (0.8 + Math.random() * 0.4);
+    let angle, speed;
+    if (vx !== undefined && vy !== undefined) {
+        angle = Math.atan2(vy, vx);
+        speed = Math.sqrt(vx * vx + vy * vy);
+    } else {
+        const targetX = W / 2 + (Math.random() - 0.5) * W * 0.4;
+        const targetY = H / 2 + (Math.random() - 0.5) * H * 0.4;
+        angle = Math.atan2(targetY - py, targetX - px);
+        speed = speedMap[size] * (0.8 + Math.random() * 0.4);
+    }
     const verts = [];
     const numVerts = size === 'large' ? 10 : size === 'medium' ? 8 : 6;
     for (let i = 0; i < numVerts; i++) {
@@ -341,11 +434,12 @@ function updateUI() {
     if (slowmoTimer > 0) document.getElementById('slowmo-timer').textContent = Math.ceil(slowmoTimer / 60) + 's';
 }
 
-function wrap(obj) {
-    if (obj.x < -60) obj.x += W + 120;
-    if (obj.x > W + 60) obj.x -= W + 120;
-    if (obj.y < -60) obj.y += H + 120;
-    if (obj.y > H + 60) obj.y -= H + 120;
+function wrap(obj, margin) {
+    const m = margin === undefined ? 60 : margin;
+    if (obj.x < -m) obj.x += W + m * 2;
+    if (obj.x > W + m) obj.x -= W + m * 2;
+    if (obj.y < -m) obj.y += H + m * 2;
+    if (obj.y > H + m) obj.y -= H + m * 2;
 }
 
 function dist(a, b) {
@@ -366,12 +460,12 @@ function update() {
     if (gameState !== 'playing') return;
     frameCount++;
 
-    if (keys['w'] || keys['arrowup']) ship.vy -= 0.2;
-    if (keys['s'] || keys['arrowdown']) ship.vy += 0.2;
-    if (keys['a'] || keys['arrowleft']) ship.vx -= 0.2;
-    if (keys['d'] || keys['arrowright']) ship.vx += 0.2;
-    ship.vx *= 0.97;
-    ship.vy *= 0.97;
+    if (keys['w'] || keys['arrowup']) ship.vy -= 0.35;
+    if (keys['s'] || keys['arrowdown']) ship.vy += 0.35;
+    if (keys['a'] || keys['arrowleft']) ship.vx -= 0.35;
+    if (keys['d'] || keys['arrowright']) ship.vx += 0.35;
+    ship.vx *= 0.96;
+    ship.vy *= 0.96;
     ship.x += ship.vx;
     ship.y += ship.vy;
     wrap(ship);
@@ -383,9 +477,9 @@ function update() {
             bullets.push({
                 x: ship.x + Math.cos(a) * 18,
                 y: ship.y + Math.sin(a) * 18,
-                vx: Math.cos(angle) * 8,
-                vy: Math.sin(angle) * 8,
-                life: 80,
+                vx: Math.cos(angle) * 10,
+                vy: Math.sin(angle) * 10,
+                life: 500,
                 trail: []
             });
         };
@@ -395,7 +489,7 @@ function update() {
             spawn(a + 0.2);
         }
         playSound('shoot');
-        shootCooldown = 8;
+        shootCooldown = 6;
     }
     if (shootCooldown > 0) shootCooldown--;
 
@@ -404,11 +498,16 @@ function update() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         b.trail.push({ x: b.x, y: b.y });
-        if (b.trail.length > 6) b.trail.shift();
+        if (b.trail.length > 8) b.trail.shift();
+        const oldX = b.x, oldY = b.y;
         b.x += b.vx;
         b.y += b.vy;
         b.life--;
-        if (b.life <= 0 || b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20) {
+        wrap(b, 0);
+        if (Math.abs(b.x - oldX) > 100 || Math.abs(b.y - oldY) > 100) {
+            b.trail = [];
+        }
+        if (b.life <= 0) {
             bullets.splice(i, 1);
         }
     }
@@ -471,14 +570,20 @@ function update() {
                 if (a.hp <= 0) {
                     if (a.size === 'large') {
                         playSound('explode_big');
-                        spawnAsteroid('medium', a.x, a.y);
-                        spawnAsteroid('medium', a.x, a.y);
+                        const ang1 = Math.atan2(a.vy, a.vx) - 0.4;
+                        const ang2 = Math.atan2(a.vy, a.vx) + 0.4;
+                        const sp = Math.sqrt(a.vx * a.vx + a.vy * a.vy) * 1.1;
+                        spawnAsteroid('medium', a.x, a.y, Math.cos(ang1) * sp, Math.sin(ang1) * sp);
+                        spawnAsteroid('medium', a.x, a.y, Math.cos(ang2) * sp, Math.sin(ang2) * sp);
                         spawnExplosion(a.x, a.y, '#ff6633', 12, 3);
                         score += 20;
                     } else if (a.size === 'medium') {
                         playSound('explode_big');
-                        spawnAsteroid('small', a.x, a.y);
-                        spawnAsteroid('small', a.x, a.y);
+                        const ang1 = Math.atan2(a.vy, a.vx) - 0.5;
+                        const ang2 = Math.atan2(a.vy, a.vx) + 0.5;
+                        const sp = Math.sqrt(a.vx * a.vx + a.vy * a.vy) * 1.15;
+                        spawnAsteroid('small', a.x, a.y, Math.cos(ang1) * sp, Math.sin(ang1) * sp);
+                        spawnAsteroid('small', a.x, a.y, Math.cos(ang2) * sp, Math.sin(ang2) * sp);
                         spawnExplosion(a.x, a.y, '#ff8844', 8, 3);
                         score += 50;
                     } else {
@@ -566,6 +671,10 @@ function update() {
     }
 
     updateUI();
+
+    if (frameCount % 30 === 0) {
+        saveGameState();
+    }
 }
 
 function hitShip() {
@@ -588,6 +697,8 @@ function hitShip() {
 
 function gameOver() {
     gameState = 'menu';
+    clearSave();
+    savedStateAvailable = false;
     const ov = document.getElementById('overlay');
     ov.classList.remove('hidden');
     ov.querySelector('h1').textContent = '游戏结束';
@@ -597,7 +708,42 @@ function gameOver() {
     fs.innerHTML = `最终分数: <span class="highlight">${score}</span> | 到达波次: <span class="highlight">${wave}</span>`;
     document.getElementById('name-input').style.display = 'inline-block';
     document.getElementById('submit-btn').style.display = 'inline-block';
-    document.getElementById('start-hint').textContent = '按 空格键 重新开始';
+    document.getElementById('continue-btn').style.display = 'none';
+    document.getElementById('newgame-btn').style.display = 'inline-block';
+    document.getElementById('save-info').style.display = 'none';
+    document.getElementById('start-hint').textContent = '按 空格键 重新开始（新游戏）';
+    loadLeaderboard();
+}
+
+function showMainMenu() {
+    gameState = 'menu';
+    const ov = document.getElementById('overlay');
+    ov.classList.remove('hidden');
+    ov.querySelector('h1').textContent = '星际陨石';
+    const fs = document.getElementById('final-score');
+    fs.style.display = 'none';
+    document.getElementById('name-input').style.display = 'none';
+    document.getElementById('submit-btn').style.display = 'none';
+    document.getElementById('newgame-btn').style.display = 'inline-block';
+    const saveInfo = document.getElementById('save-info');
+    savedStateAvailable = checkSavedState();
+    if (savedStateAvailable) {
+        try {
+            const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+            document.getElementById('continue-btn').style.display = 'inline-block';
+            saveInfo.style.display = 'block';
+            saveInfo.textContent = `检测到存档: 分数 ${s.score} | 波次 ${s.wave} | 生命 ${s.lives}`;
+            document.getElementById('start-hint').textContent = '按 空格键 继续游戏';
+        } catch (e) {
+            document.getElementById('continue-btn').style.display = 'none';
+            saveInfo.style.display = 'none';
+            document.getElementById('start-hint').textContent = '按 空格键 开始游戏';
+        }
+    } else {
+        document.getElementById('continue-btn').style.display = 'none';
+        saveInfo.style.display = 'none';
+        document.getElementById('start-hint').textContent = '按 空格键 开始游戏';
+    }
     loadLeaderboard();
 }
 
@@ -635,6 +781,8 @@ async function loadLeaderboard() {
 }
 
 document.getElementById('submit-btn').addEventListener('click', submitScore);
+document.getElementById('continue-btn').addEventListener('click', () => { audioCtx.resume(); startGame(true); });
+document.getElementById('newgame-btn').addEventListener('click', () => { audioCtx.resume(); startGame(false); });
 
 function draw() {
     ctx.fillStyle = '#000';
@@ -835,6 +983,7 @@ function loop() {
 }
 
 loadLeaderboard();
+showMainMenu();
 loop();
 </script>
 </body>
