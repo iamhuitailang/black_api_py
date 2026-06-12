@@ -743,7 +743,10 @@
             </div>
 
             <div v-if="view==='publish'" class="form-page">
-                <h2 class="form-title">发布房源</h2>
+                <h2 class="form-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    发布房源
+                    <button class="btn btn-outline" style="padding: 6px 14px; font-size: 13px;" @click="resetForm">清空草稿</button>
+                </h2>
                 <div class="form-card">
                     <div class="form-grid">
                         <div class="form-group full">
@@ -1104,6 +1107,48 @@
                 return pages;
             });
 
+            const DRAFT_KEY = 'rental_form_draft';
+
+            function saveDraft() {
+                try {
+                    const hasContent = form.title || form.district || form.address || form.room_type ||
+                        form.area_sqm || form.price_month || form.deposit || form.floor ||
+                        form.description || form.contact_name || form.contact_phone ||
+                        form.images.some(x => x && x.trim());
+                    if (hasContent) {
+                        localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+                    } else {
+                        localStorage.removeItem(DRAFT_KEY);
+                    }
+                } catch (e) {}
+            }
+
+            function restoreDraft() {
+                try {
+                    const saved = localStorage.getItem(DRAFT_KEY);
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        Object.assign(form, data);
+                        return true;
+                    }
+                } catch (e) {}
+                return false;
+            }
+
+            function clearDraft() {
+                localStorage.removeItem(DRAFT_KEY);
+            }
+
+            function resetForm() {
+                Object.assign(form, {
+                    title: '', district: '', address: '', room_type: '',
+                    area_sqm: 0, price_month: 0, deposit: '', is_shared: false,
+                    floor: '', has_elevator: false, has_parking: false,
+                    description: '', images: [''], contact_name: '', contact_phone: '', password: ''
+                });
+                clearDraft();
+            }
+
             async function submitForm() {
                 const data = { ...form, images: form.images.filter(x => x && x.trim()) };
                 if (!data.title || !data.district || !data.address || !data.room_type ||
@@ -1121,12 +1166,7 @@
                 });
                 if (r.code === 0) {
                     showToast('发布成功！');
-                    Object.assign(form, {
-                        title: '', district: '', address: '', room_type: '',
-                        area_sqm: 0, price_month: 0, deposit: '', is_shared: false,
-                        floor: '', has_elevator: false, has_parking: false,
-                        description: '', images: [''], contact_name: '', contact_phone: '', password: ''
-                    });
+                    resetForm();
                     view.value = 'list';
                     loadListings();
                 } else {
@@ -1196,6 +1236,23 @@
                 loadListings();
             });
 
+            watch(form, () => {
+                if (view.value === 'publish') {
+                    saveDraft();
+                }
+            }, { deep: true });
+
+            let hasRestored = false;
+            watch(() => view.value, (newView) => {
+                if (newView === 'publish' && !hasRestored) {
+                    const restored = restoreDraft();
+                    if (restored) {
+                        showToast('已恢复上次未完成的填写内容');
+                    }
+                    hasRestored = true;
+                }
+            });
+
             onMounted(() => {
                 loadDistricts();
                 loadListings();
@@ -1208,7 +1265,7 @@
                 showManage, manageAction, managePassword, manageStatus, form, pageNumbers,
                 loadListings, openDetail, carouselPrev, carouselNext, toggleFav, toggleDetailFav,
                 resetFilters, changePage, submitForm, goHome, manageCancel, manageConfirm,
-                formatDate, statusText
+                formatDate, statusText, resetForm
             };
         }
     }).mount('#app');
