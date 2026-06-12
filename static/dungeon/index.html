@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地牢探险 - Dungeon Roguelike</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <div class="game-header">
+                <h1 class="game-title">⚔️ 地牢探险 ⚔️</h1>
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">层数</span>
+                        <span class="stat-value depth">{{ gameState.depth }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">金币</span>
+                        <span class="stat-value gold">{{ gameState.gold }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">杀敌</span>
+                        <span class="stat-value kills">{{ gameState.kills }}</span>
+                    </div>
+                    <div class="stat-item hp-bar">
+                        <span class="stat-label">HP</span>
+                        <div class="hp-bar-container">
+                            <div class="hp-bar-fill" :style="{ width: (gameState.player.hp / gameState.player.maxHp * 100) + '%' }"></div>
+                            <span class="hp-text">{{ gameState.player.hp }}/{{ gameState.player.maxHp }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-main">
+                <div class="game-left-panel">
+                    <div class="dungeon-wrapper">
+                        <div class="dungeon-grid" :style="{ gridTemplateColumns: `repeat(${GRID_SIZE}, 48px)` }">
+                            <div 
+                                v-for="(cell, index) in visibleGrid" 
+                                :key="index"
+                                class="grid-cell"
+                                :class="getCellClass(cell)"
+                            >
+                                <div v-if="cell.visible" class="cell-content">
+                                    <div v-if="cell.tile === 'trap'" class="trap-sprite"></div>
+                                    <div v-else-if="cell.tile === 'chest' && !cell.opened" class="chest-sprite"></div>
+                                    <div v-else-if="cell.tile === 'chest' && cell.opened" class="chest-opened-sprite"></div>
+                                    <div v-else-if="cell.tile === 'stairs'" class="stairs-sprite"></div>
+                                    <div v-else-if="cell.enemy" class="enemy-sprite" :class="cell.enemy.type">
+                                        <div class="enemy-hp-bar">
+                                            <div class="enemy-hp-fill" :style="{ width: (cell.enemy.hp / cell.enemy.maxHp * 100) + '%' }"></div>
+                                        </div>
+                                    </div>
+                                    <div v-if="cell.player" class="player-sprite" :class="'facing-' + gameState.player.facing"></div>
+                                </div>
+                                <div v-else class="fog-cover"></div>
+                            </div>
+                        </div>
+                        <div class="floating-texts">
+                            <div 
+                                v-for="text in floatingTexts" 
+                                :key="text.id"
+                                class="floating-text"
+                                :class="text.type"
+                                :style="{ left: text.x + 'px', top: text.y + 'px' }"
+                            >
+                                {{ text.text }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls-info">
+                        <div class="control-hint">
+                            <span class="key">W/↑</span> 上
+                            <span class="key">S/↓</span> 下
+                            <span class="key">A/←</span> 左
+                            <span class="key">D/→</span> 右
+                        </div>
+                        <div class="control-hint">
+                            <span class="key">1-4</span> 使用背包物品
+                            <span class="key">空格</span> 等待一回合
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-right-panel">
+                    <div class="panel-section">
+                        <h3 class="panel-title">装备栏</h3>
+                        <div class="equipment-slots">
+                            <div class="equip-slot" :class="{ filled: gameState.player.equipment.weapon }">
+                                <span class="slot-label">武器</span>
+                                <div v-if="gameState.player.equipment.weapon" class="equip-item weapon">
+                                    <span class="equip-icon">⚔️</span>
+                                    <span class="equip-name">{{ gameState.player.equipment.weapon.name }}</span>
+                                    <span class="equip-bonus">+{{ gameState.player.equipment.weapon.attack }} 攻击</span>
+                                </div>
+                                <span v-else class="empty-slot">空</span>
+                            </div>
+                            <div class="equip-slot" :class="{ filled: gameState.player.equipment.armor }">
+                                <span class="slot-label">护甲</span>
+                                <div v-if="gameState.player.equipment.armor" class="equip-item armor">
+                                    <span class="equip-icon">🛡️</span>
+                                    <span class="equip-name">{{ gameState.player.equipment.armor.name }}</span>
+                                    <span class="equip-bonus">+{{ gameState.player.equipment.armor.defense }} 防御</span>
+                                </div>
+                                <span v-else class="empty-slot">空</span>
+                            </div>
+                        </div>
+                        <div class="player-attrs">
+                            <div class="attr-item">
+                                <span>攻击力:</span>
+                                <span class="attr-value">{{ gameState.player.attack }}</span>
+                            </div>
+                            <div class="attr-item">
+                                <span>防御力:</span>
+                                <span class="attr-value">{{ gameState.player.defense }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <h3 class="panel-title">背包 ({{ gameState.player.inventory.length }}/4)</h3>
+                        <div class="inventory-slots">
+                            <div 
+                                v-for="(item, index) in 4" 
+                                :key="index"
+                                class="inv-slot"
+                                :class="{ filled: gameState.player.inventory[index], usable: gameState.player.inventory[index] }"
+                                @click="useItem(index)"
+                            >
+                                <span class="slot-key">{{ index + 1 }}</span>
+                                <div v-if="gameState.player.inventory[index]" class="inv-item" :class="gameState.player.inventory[index].type">
+                                    <span class="item-icon">{{ getItemIcon(gameState.player.inventory[index]) }}</span>
+                                    <span class="item-name">{{ gameState.player.inventory[index].name }}</span>
+                                </div>
+                                <span v-else class="empty-slot">空</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <h3 class="panel-title">战斗日志</h3>
+                        <div class="combat-log" ref="combatLog">
+                            <div v-for="(log, index) in combatLogs.slice(-10)" :key="index" class="log-entry" :class="log.type">
+                                {{ log.message }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <button class="btn btn-leaderboard" @click="showLeaderboard = true">🏆 排行榜</button>
+                        <button class="btn btn-restart" @click="showRestartConfirm = true">🔄 重新开始</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="gameState.gameOver" class="overlay game-over-overlay">
+                <div class="overlay-content game-over-content">
+                    <h2 class="game-over-title">💀 你死了 💀</h2>
+                    <div class="final-stats">
+                        <div class="final-stat">
+                            <span class="final-label">探索层数</span>
+                            <span class="final-value">{{ gameState.depth }}</span>
+                        </div>
+                        <div class="final-stat">
+                            <span class="final-label">杀敌数量</span>
+                            <span class="final-value">{{ gameState.kills }}</span>
+                        </div>
+                        <div class="final-stat">
+                            <span class="final-label">获得金币</span>
+                            <span class="final-value gold">{{ gameState.gold }}</span>
+                        </div>
+                        <div class="final-stat total-score">
+                            <span class="final-label">总分</span>
+                            <span class="final-value">{{ gameState.gold }}</span>
+                        </div>
+                    </div>
+                    <div class="name-input">
+                        <label>输入你的名字:</label>
+                        <input v-model="playerName" type="text" maxlength="20" placeholder="冒险者" />
+                    </div>
+                    <div class="game-over-buttons">
+                        <button class="btn btn-submit" @click="submitScore" :disabled="scoreSubmitted">
+                            {{ scoreSubmitted ? '已提交' : '提交分数' }}
+                        </button>
+                        <button class="btn btn-restart" @click="restartGame">再来一局</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="showLeaderboard" class="overlay leaderboard-overlay">
+                <div class="overlay-content leaderboard-content">
+                    <h2 class="leaderboard-title">🏆 排行榜 🏆</h2>
+                    <div class="leaderboard-tabs">
+                        <button 
+                            class="tab-btn" 
+                            :class="{ active: leaderboardSort === 'gold' }"
+                            @click="leaderboardSort = 'gold'; loadLeaderboard()"
+                        >
+                            金币排行
+                        </button>
+                        <button 
+                            class="tab-btn" 
+                            :class="{ active: leaderboardSort === 'depth' }"
+                            @click="leaderboardSort = 'depth'; loadLeaderboard()"
+                        >
+                            层数排行
+                        </button>
+                    </div>
+                    <div class="leaderboard-list">
+                        <div class="leaderboard-header">
+                            <span class="lb-rank">排名</span>
+                            <span class="lb-name">玩家</span>
+                            <span class="lb-depth">层数</span>
+                            <span class="lb-kills">杀敌</span>
+                            <span class="lb-gold">金币</span>
+                        </div>
+                        <div v-for="score in leaderboardData" :key="score.id" class="leaderboard-item" :class="{ 'top-3': score.rank <= 3 }">
+                            <span class="lb-rank">
+                                <span v-if="score.rank === 1">🥇</span>
+                                <span v-else-if="score.rank === 2">🥈</span>
+                                <span v-else-if="score.rank === 3">🥉</span>
+                                <span v-else>{{ score.rank }}</span>
+                            </span>
+                            <span class="lb-name">{{ score.player_name }}</span>
+                            <span class="lb-depth">{{ score.depth }}</span>
+                            <span class="lb-kills">{{ score.kills }}</span>
+                            <span class="lb-gold">{{ score.gold }}</span>
+                        </div>
+                        <div v-if="leaderboardData.length === 0" class="no-records">
+                            暂无记录，成为第一个上榜的冒险者吧！
+                        </div>
+                    </div>
+                    <button class="btn btn-close" @click="showLeaderboard = false">关闭</button>
+                </div>
+            </div>
+
+            <div v-if="showRestartConfirm" class="overlay confirm-overlay">
+                <div class="overlay-content confirm-content">
+                    <h3>确定要重新开始吗？</h3>
+                    <p>当前进度将会丢失</p>
+                    <div class="confirm-buttons">
+                        <button class="btn btn-confirm" @click="restartGame">确定</button>
+                        <button class="btn btn-cancel" @click="showRestartConfirm = false">取消</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="!gameState.gameStarted" class="overlay start-overlay">
+                <div class="overlay-content start-content">
+                    <h1 class="start-title">⚔️ 地牢探险 ⚔️</h1>
+                    <p class="start-subtitle">Roguelike 回合制地牢冒险</p>
+                    <div class="game-rules">
+                        <h4>游戏规则:</h4>
+                        <ul>
+                            <li>🎯 目标：找到楼梯不断深入地牢</li>
+                            <li>⚔️ 回合制：你走一步，敌人走一步</li>
+                            <li>💀 死亡后从头开始，但金币会计入总分</li>
+                            <li>🌑 第5层开始视野受限，只能看到周围3格</li>
+                            <li>📦 宝箱可能有宝物，也可能是陷阱</li>
+                        </ul>
+                    </div>
+                    <div class="enemy-info">
+                        <h4>敌人类型:</h4>
+                        <div class="enemy-types">
+                            <div class="enemy-type">
+                                <span class="enemy-icon skeleton"></span>
+                                <div>
+                                    <strong>骷髅</strong>
+                                    <p>HP:20 | 攻击:8 | 追击玩家</p>
+                                </div>
+                            </div>
+                            <div class="enemy-type">
+                                <span class="enemy-icon slime"></span>
+                                <div>
+                                    <strong>史莱姆</strong>
+                                    <p>HP:10 | 攻击:5 | 随机移动，死亡分裂</p>
+                                </div>
+                            </div>
+                            <div class="enemy-type">
+                                <span class="enemy-icon mage"></span>
+                                <div>
+                                    <strong>暗影法师</strong>
+                                    <p>HP:15 | 攻击:15 | 远程魔法，保持距离</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-start" @click="startGame">开始冒险</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
