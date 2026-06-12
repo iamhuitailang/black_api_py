@@ -203,10 +203,38 @@ function saveGameData() {
             score: gameState.score,
             lives: gameState.lives,
             speed: gameState.speed,
-            lastSpeedIncrease: gameState.lastSpeedIncrease
+            lastSpeedIncrease: gameState.lastSpeedIncrease,
+            frameCount: frameCount,
+            nextObstacleX: nextObstacleX,
+            dog: {
+                x: dog.x,
+                y: dog.y,
+                velocityY: dog.velocityY,
+                isJumping: dog.isJumping,
+                jumpHoldFrames: dog.jumpHoldFrames,
+                isHoldingJump: dog.isHoldingJump,
+                canDoubleJump: dog.canDoubleJump,
+                doubleJumped: dog.doubleJumped,
+                animFrame: dog.animFrame,
+                animTimer: dog.animTimer,
+                squash: dog.squash,
+                stretch: dog.stretch,
+                tailWag: dog.tailWag,
+                isHit: dog.isHit,
+                hitTimer: dog.hitTimer
+            },
+            obstacles: obstacles.map(o => ({...o})),
+            collectibles: collectibles.map(c => ({...c})),
+            clouds: clouds.map(c => ({...c})),
+            trees: trees.map(t => ({...t}))
         }
     };
-    localStorage.setItem('dogRunnerSave', JSON.stringify(data));
+    
+    try {
+        localStorage.setItem('dogRunnerSave', JSON.stringify(data));
+    } catch (e) {
+        console.warn('保存游戏失败，可能是localStorage容量不足:', e);
+    }
 }
 
 function updateUI() {
@@ -1048,6 +1076,9 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyP' && gameState.running) {
         gameState.paused = !gameState.paused;
         document.getElementById('pauseScreen').classList.toggle('hidden', !gameState.paused);
+        if (gameState.paused) {
+            saveGameData();
+        }
     }
     
     if (e.code === 'KeyR') {
@@ -1126,21 +1157,82 @@ function continueGame() {
         return;
     }
     
+    const saved = localStorage.getItem('dogRunnerSave');
+    if (!saved) {
+        startGame();
+        return;
+    }
+    
+    const data = JSON.parse(saved);
+    if (!data.savedGame || data.gameOver) {
+        startGame();
+        return;
+    }
+    
     initAudio();
+    
+    const sg = data.savedGame;
+    
+    gameState.distance = sg.distance || 0;
+    gameState.score = sg.score || 0;
+    gameState.lives = sg.lives || 3;
+    gameState.speed = sg.speed || INITIAL_SPEED;
+    gameState.lastSpeedIncrease = sg.lastSpeedIncrease || 0;
     gameState.running = true;
     gameState.paused = false;
     gameState.gameOver = false;
     
-    dog.y = GROUND_Y - 40;
-    dog.velocityY = 0;
-    dog.isJumping = false;
-    dog.isHit = false;
-    dog.hitTimer = 0;
+    frameCount = sg.frameCount || 0;
+    nextObstacleX = sg.nextObstacleX || (GAME_WIDTH + 200);
+    
+    if (sg.dog) {
+        dog.x = sg.dog.x || 100;
+        dog.y = sg.dog.y !== undefined ? sg.dog.y : GROUND_Y - 40;
+        dog.velocityY = sg.dog.velocityY || 0;
+        dog.isJumping = sg.dog.isJumping || false;
+        dog.jumpHoldFrames = sg.dog.jumpHoldFrames || 0;
+        dog.isHoldingJump = sg.dog.isHoldingJump || false;
+        dog.canDoubleJump = sg.dog.canDoubleJump !== undefined ? sg.dog.canDoubleJump : true;
+        dog.doubleJumped = sg.dog.doubleJumped || false;
+        dog.animFrame = sg.dog.animFrame || 0;
+        dog.animTimer = sg.dog.animTimer || 0;
+        dog.squash = sg.dog.squash || 1;
+        dog.stretch = sg.dog.stretch || 1;
+        dog.tailWag = sg.dog.tailWag || 0;
+        dog.isHit = sg.dog.isHit || false;
+        dog.hitTimer = sg.dog.hitTimer || 0;
+        dog.stars = [];
+    }
+    
+    if (sg.obstacles && sg.obstacles.length > 0) {
+        obstacles = sg.obstacles.map(o => ({...o}));
+    } else {
+        obstacles = [];
+    }
+    
+    if (sg.collectibles && sg.collectibles.length > 0) {
+        collectibles = sg.collectibles.map(c => ({...c}));
+    } else {
+        collectibles = [];
+    }
+    
+    if (sg.clouds && sg.clouds.length > 0) {
+        clouds = sg.clouds.map(c => ({...c}));
+    } else {
+        initBackground();
+    }
+    
+    if (sg.trees && sg.trees.length > 0) {
+        trees = sg.trees.map(t => ({...t}));
+    }
+    
+    particles = [];
     
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
     
+    updateUI();
     saveGameData();
 }
 
@@ -1182,6 +1274,14 @@ window.addEventListener('beforeunload', () => {
 
 window.addEventListener('pagehide', () => {
     saveGameData();
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && gameState.running) {
+        gameState.paused = true;
+        document.getElementById('pauseScreen').classList.remove('hidden');
+        saveGameData();
+    }
 });
 
 loadGameData();
