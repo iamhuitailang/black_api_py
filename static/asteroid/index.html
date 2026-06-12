@@ -231,12 +231,16 @@ function saveGameState() {
             gameState, score, wave, lives, invincible, hasShield,
             trishotTimer, slowmoTimer, frameCount,
             ship: { x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, angle: ship.angle },
+            bullets: bullets.map(b => ({
+                x: b.x, y: b.y, vx: b.vx, vy: b.vy, life: b.life, trail: b.trail
+            })),
             asteroids: asteroids.map(a => ({
                 x: a.x, y: a.y, vx: a.vx, vy: a.vy,
                 size: a.size, radius: a.radius, verts: a.verts, hp: a.hp,
                 rot: a.rot, rotSpeed: a.rotSpeed
             })),
             powerups: powerups.map(p => ({ x: p.x, y: p.y, type: p.type, radius: p.radius, age: p.age })),
+            bossBullets: bossBullets.map(b => ({ x: b.x, y: b.y, vx: b.vx, vy: b.vy, radius: b.radius })),
             boss: boss ? {
                 x: boss.x, y: boss.y, vx: boss.vx, hp: boss.hp, maxHp: boss.maxHp,
                 shootTimer: boss.shootTimer, radius: boss.radius, flash: boss.flash
@@ -262,11 +266,11 @@ function loadGameState() {
         slowmoTimer = s.slowmoTimer;
         frameCount = s.frameCount;
         Object.assign(ship, s.ship);
+        bullets = s.bullets || [];
         asteroids = s.asteroids || [];
         powerups = s.powerups || [];
+        bossBullets = s.bossBullets || [];
         boss = s.boss || null;
-        bossBullets = [];
-        bullets = [];
         particles = [];
         return true;
     } catch (e) { return false; }
