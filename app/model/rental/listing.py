@@ -120,7 +120,7 @@ class ListingModel:
                   page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         self._auto_expire_old()
 
-        where_clauses = ["status != 'offline'"]
+        where_clauses = ["status = 'active'"]
         params = []
 
         if district:
