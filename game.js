@@ -29,7 +29,8 @@ let gameState = {
     unlockedColors: ['brown'],
     selectedColor: 'brown',
     lastSpeedIncrease: 0,
-    gameOver: false
+    gameOver: false,
+    hasValidSave: false
 };
 
 let dog = {
@@ -180,12 +181,20 @@ function loadGameData() {
         gameState.selectedColor = data.selectedColor || 'brown';
         gameState.gameOver = data.gameOver !== undefined ? data.gameOver : true;
         
-        if (data.savedGame && !data.gameOver) {
+        if (data.savedGame && !data.gameOver && data.savedGame.distance > 0) {
             gameState.distance = data.savedGame.distance || 0;
             gameState.score = data.savedGame.score || 0;
-            gameState.lives = data.savedGame.lives || 3;
+            gameState.lives = data.savedGame.lives !== undefined ? data.savedGame.lives : 3;
             gameState.speed = data.savedGame.speed || INITIAL_SPEED;
             gameState.lastSpeedIncrease = data.savedGame.lastSpeedIncrease || 0;
+            gameState.hasValidSave = true;
+        } else {
+            gameState.distance = 0;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.speed = INITIAL_SPEED;
+            gameState.lastSpeedIncrease = 0;
+            gameState.hasValidSave = false;
         }
     }
     updateUI();
@@ -233,7 +242,31 @@ function saveGameData() {
     try {
         localStorage.setItem('dogRunnerSave', JSON.stringify(data));
     } catch (e) {
-        console.warn('保存游戏失败，可能是localStorage容量不足:', e);
+        console.warn('保存游戏失败:', e);
+    }
+}
+
+function saveSettingsOnly() {
+    const saved = localStorage.getItem('dogRunnerSave');
+    let existingData = {};
+    try {
+        existingData = saved ? JSON.parse(saved) : {};
+    } catch (e) {
+        existingData = {};
+    }
+    
+    const data = {
+        bestDistance: gameState.bestDistance,
+        unlockedColors: gameState.unlockedColors,
+        selectedColor: gameState.selectedColor,
+        gameOver: gameState.gameOver,
+        savedGame: gameState.gameOver ? null : (existingData.savedGame || null)
+    };
+    
+    try {
+        localStorage.setItem('dogRunnerSave', JSON.stringify(data));
+    } catch (e) {
+        console.warn('保存设置失败:', e);
     }
 }
 
@@ -270,7 +303,7 @@ function updateColorButtons() {
         if (isUnlocked) {
             btn.addEventListener('click', () => {
                 gameState.selectedColor = name;
-                saveGameData();
+                saveSettingsOnly();
                 updateColorButtons();
             });
         }
@@ -829,6 +862,7 @@ function takeDamage() {
 function gameOver() {
     gameState.running = false;
     gameState.gameOver = true;
+    gameState.hasValidSave = false;
     
     let newUnlock = null;
     Object.entries(DOG_COLORS).forEach(([name, data]) => {
@@ -842,7 +876,7 @@ function gameOver() {
         gameState.bestDistance = Math.floor(gameState.distance);
     }
     
-    saveGameData();
+    saveSettingsOnly();
     
     document.getElementById('finalDistance').textContent = Math.floor(gameState.distance);
     document.getElementById('finalScore').textContent = gameState.score;
@@ -872,6 +906,7 @@ function resetGame() {
     gameState.speed = INITIAL_SPEED;
     gameState.lastSpeedIncrease = 0;
     gameState.gameOver = false;
+    gameState.hasValidSave = false;
     
     dog.y = GROUND_Y - 40;
     dog.velocityY = 0;
@@ -1136,7 +1171,7 @@ function initTouchControls() {
 }
 
 function updateStartScreen() {
-    const hasSavedGame = !gameState.gameOver && gameState.distance > 0;
+    const hasSavedGame = gameState.hasValidSave && !gameState.gameOver && gameState.distance > 0;
     
     document.getElementById('continueBtn').classList.toggle('hidden', !hasSavedGame);
     document.getElementById('currentProgress').classList.toggle('hidden', !hasSavedGame);
@@ -1175,12 +1210,13 @@ function continueGame() {
     
     gameState.distance = sg.distance || 0;
     gameState.score = sg.score || 0;
-    gameState.lives = sg.lives || 3;
+    gameState.lives = sg.lives !== undefined ? sg.lives : 3;
     gameState.speed = sg.speed || INITIAL_SPEED;
     gameState.lastSpeedIncrease = sg.lastSpeedIncrease || 0;
     gameState.running = true;
     gameState.paused = false;
     gameState.gameOver = false;
+    gameState.hasValidSave = true;
     
     frameCount = sg.frameCount || 0;
     nextObstacleX = sg.nextObstacleX || (GAME_WIDTH + 200);
@@ -1242,6 +1278,7 @@ function startGame() {
     gameState.running = true;
     gameState.paused = false;
     gameState.gameOver = false;
+    gameState.hasValidSave = true;
     
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
@@ -1266,18 +1303,20 @@ document.getElementById('continueBtn').addEventListener('click', continueGame);
 document.getElementById('restartBtn').addEventListener('click', startGame);
 
 window.addEventListener('beforeunload', () => {
-    if (gameState.running) {
+    if (gameState.running && gameState.hasValidSave) {
         gameState.paused = true;
         saveGameData();
     }
 });
 
 window.addEventListener('pagehide', () => {
-    saveGameData();
+    if (gameState.running && gameState.hasValidSave) {
+        saveGameData();
+    }
 });
 
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden && gameState.running) {
+    if (document.hidden && gameState.running && gameState.hasValidSave) {
         gameState.paused = true;
         document.getElementById('pauseScreen').classList.remove('hidden');
         saveGameData();
