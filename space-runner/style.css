@@ -1,0 +1,460 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #050816;
+  color: #e6e9ff;
+  user-select: none;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #0a0e27;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+}
+.screen.active { display: block; pointer-events: auto; }
+.screen.overlay {
+  background: rgba(5, 8, 22, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.screen.overlay.active { display: flex; }
+
+/* ===== 菜单背景星空 ===== */
+.stars-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 20% 30%, #fff 50%, transparent),
+    radial-gradient(1px 1px at 70% 60%, #9fd8ff 50%, transparent),
+    radial-gradient(1.5px 1.5px at 40% 80%, #ffd6a5 50%, transparent),
+    radial-gradient(1px 1px at 85% 20%, #fff 50%, transparent),
+    radial-gradient(2px 2px at 55% 45%, #caffbf 50%, transparent),
+    radial-gradient(1px 1px at 10% 70%, #fff 50%, transparent),
+    radial-gradient(1.5px 1.5px at 90% 85%, #ffadad 50%, transparent),
+    linear-gradient(180deg, #0a0e27 0%, #1a1a4a 50%, #0a0e27 100%);
+  background-size: 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 100% 100%;
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
+/* ===== 菜单内容 ===== */
+.menu-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+}
+
+.game-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(42px, 8vw, 84px);
+  font-weight: 900;
+  background: linear-gradient(135deg, #00f5d4 0%, #00bbf9 50%, #9b5de5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 6px;
+  text-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
+  margin-top: 20px;
+  animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { filter: drop-shadow(0 0 10px rgba(0, 245, 212, 0.4)); }
+  to   { filter: drop-shadow(0 0 25px rgba(155, 93, 229, 0.6)); }
+}
+
+.game-subtitle {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(14px, 2vw, 20px);
+  letter-spacing: 12px;
+  color: #6c7aa8;
+  margin-bottom: 36px;
+  margin-top: 4px;
+}
+
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: #8a9bd1;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+/* ===== 星球卡片 ===== */
+.level-select { width: 100%; max-width: 880px; margin-bottom: 32px; }
+.planet-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+.planet-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(.2,.8,.2,1);
+  position: relative;
+  overflow: hidden;
+}
+.planet-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, var(--glow, rgba(0,245,212,0.15)), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.planet-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(0, 245, 212, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 245, 212, 0.15), 0 0 0 1px rgba(0,245,212,0.2);
+}
+.planet-card:hover::before { opacity: 1; }
+
+.planet-thumb {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  position: relative;
+  box-shadow: inset -12px -10px 24px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.4);
+}
+.planet-thumb.desert {
+  background: radial-gradient(circle at 30% 30%, #ffd89b, #ff6b35 60%, #8b3a0f);
+  --glow: rgba(255, 107, 53, 0.3);
+}
+.planet-thumb.jungle {
+  background: radial-gradient(circle at 30% 30%, #b7e4c7, #2d6a4f 60%, #1b4332);
+  --glow: rgba(45, 106, 79, 0.35);
+}
+.planet-thumb.ice {
+  background: radial-gradient(circle at 30% 30%, #e0f7fa, #48cae4 60%, #0077b6);
+  --glow: rgba(72, 202, 228, 0.35);
+}
+.planet-thumb.mech {
+  background: radial-gradient(circle at 30% 30%, #adb5bd, #495057 60%, #212529);
+  --glow: rgba(173, 181, 189, 0.25);
+}
+
+.planet-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #e6e9ff;
+  margin-bottom: 6px;
+}
+
+.planet-difficulty {
+  font-size: 14px;
+  color: #ffbe0b;
+  letter-spacing: 2px;
+}
+
+/* ===== 操作说明 ===== */
+.controls-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  justify-content: center;
+  padding: 14px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  color: #a5b1d9;
+  font-size: 14px;
+}
+.hint-item { display: flex; align-items: center; gap: 8px; }
+kbd {
+  display: inline-block;
+  padding: 3px 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: #e6e9ff;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  margin-right: 4px;
+}
+
+/* ===== HUD ===== */
+#hud {
+  padding: 16px 20px;
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+#hud.active { display: flex; }
+.hud-top, .hud-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: auto;
+}
+.hud-left, .hud-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hud-right { align-items: flex-end; }
+
+.hud-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #8a9bd1;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.lives-bar { background: rgba(5,8,22,0.55); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); }
+#lives-hearts { display: flex; gap: 6px; }
+.heart { font-size: 18px; color: #ff4d6d; text-shadow: 0 0 8px rgba(255,77,109,0.6); transition: all 0.3s; }
+.heart.lost { color: #3c3f5a; text-shadow: none; opacity: 0.5; }
+
+.crystal-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(5,8,22,0.55);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,245,212,0.2);
+}
+.crystal-icon { color: #00f5d4; font-size: 18px; text-shadow: 0 0 10px rgba(0,245,212,0.8); }
+#crystal-num { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: #00f5d4; }
+
+.distance-info {
+  background: rgba(5,8,22,0.55);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  width: 200px;
+}
+.distance-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+#distance-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00f5d4, #00bbf9);
+  border-radius: 4px;
+  transition: width 0.2s linear;
+  box-shadow: 0 0 10px rgba(0,245,212,0.6);
+}
+#distance-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  color: #c3cced;
+}
+
+.pause-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(5,8,22,0.6);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e6e9ff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  pointer-events: auto;
+}
+.pause-btn:hover { background: rgba(0,245,212,0.15); border-color: rgba(0,245,212,0.4); }
+
+.boost-bar {
+  background: rgba(5,8,22,0.55);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,190,11,0.2);
+  width: 240px;
+}
+.boost-track {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 5px;
+  overflow: hidden;
+}
+#boost-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffbe0b, #fb5607);
+  border-radius: 5px;
+  box-shadow: 0 0 12px rgba(255,190,11,0.7);
+  transition: width 0.1s;
+}
+
+/* ===== Overlay 弹窗 ===== */
+.overlay-box {
+  background: linear-gradient(160deg, rgba(25,30,70,0.95), rgba(10,14,39,0.95));
+  border: 1px solid rgba(0,245,212,0.2);
+  border-radius: 22px;
+  padding: 36px 44px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(0,245,212,0.1);
+  min-width: 320px;
+  animation: popIn 0.4s cubic-bezier(.2,.9,.2,1.2);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.overlay-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, #00f5d4, #9b5de5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 14px;
+}
+#result-title.lose {
+  background: linear-gradient(135deg, #ff006e, #ffbe0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.result-stars {
+  font-size: 36px;
+  color: #ffbe0b;
+  text-shadow: 0 0 16px rgba(255,190,11,0.7);
+  letter-spacing: 8px;
+  margin-bottom: 20px;
+}
+
+.result-stats {
+  background: rgba(0,0,0,0.25);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: #a5b1d9;
+  font-size: 14px;
+}
+.stat-row span:last-child {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  color: #e6e9ff;
+}
+
+.game-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 24px;
+  margin: 10px 0 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: #e6e9ff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.game-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
+.game-btn.primary {
+  background: linear-gradient(135deg, #00f5d4, #00bbf9);
+  color: #050816;
+  border: none;
+  box-shadow: 0 6px 20px rgba(0,245,212,0.35);
+}
+.game-btn.primary:hover { box-shadow: 0 8px 28px rgba(0,245,212,0.55); }
+
+/* ===== 移动端虚拟按键 ===== */
+.mobile-controls {
+  position: absolute;
+  left: 0; right: 0; bottom: 24px;
+  display: none;
+  justify-content: space-between;
+  padding: 0 24px;
+  pointer-events: none;
+  z-index: 10;
+}
+.mobile-btn {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: rgba(5,8,22,0.6);
+  border: 2px solid rgba(0,245,212,0.35);
+  color: #e6e9ff;
+  font-size: 14px;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.15s;
+  backdrop-filter: blur(4px);
+}
+.mobile-btn:active {
+  transform: scale(0.92);
+  background: rgba(0,245,212,0.25);
+  box-shadow: 0 0 20px rgba(0,245,212,0.5);
+}
+.slide-btn { border-color: rgba(255,190,11,0.4); }
+.slide-btn:active { background: rgba(255,190,11,0.25); box-shadow: 0 0 20px rgba(255,190,11,0.5); }
+
+@media (max-width: 768px) {
+  .mobile-controls { display: flex; }
+  .distance-info { width: 150px; }
+  .boost-bar { width: 180px; }
+  .overlay-box { min-width: 280px; padding: 28px 28px; }
+}

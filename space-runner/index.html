@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>星际狂奔 · Space Runner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="menu-screen" class="screen active">
+      <div class="stars-bg"></div>
+      <div class="menu-content">
+        <h1 class="game-title">星际狂奔</h1>
+        <p class="game-subtitle">SPACE · RUNNER</p>
+
+        <div class="level-select">
+          <h2 class="section-title">选择星球</h2>
+          <div class="planet-cards">
+            <div class="planet-card" data-level="0">
+              <div class="planet-thumb desert"></div>
+              <div class="planet-name">沙漠星球</div>
+              <div class="planet-difficulty">★☆☆☆</div>
+            </div>
+            <div class="planet-card" data-level="1">
+              <div class="planet-thumb jungle"></div>
+              <div class="planet-name">丛林星球</div>
+              <div class="planet-difficulty">★★☆☆</div>
+            </div>
+            <div class="planet-card" data-level="2">
+              <div class="planet-thumb ice"></div>
+              <div class="planet-name">冰雪星球</div>
+              <div class="planet-difficulty">★★★☆</div>
+            </div>
+            <div class="planet-card" data-level="3">
+              <div class="planet-thumb mech"></div>
+              <div class="planet-name">机械星球</div>
+              <div class="planet-difficulty">★★★★</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-hint">
+          <div class="hint-item"><kbd>空格</kbd><kbd>↑</kbd> 跳跃（可二段跳）</div>
+          <div class="hint-item"><kbd>↓</kbd> 下滑</div>
+          <div class="hint-item"><kbd>P</kbd> 暂停</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" class="screen">
+      <div class="hud-top">
+        <div class="hud-left">
+          <div class="lives-bar">
+            <span class="hud-label">生命</span>
+            <div id="lives-hearts">
+              <span class="heart">❤</span>
+              <span class="heart">❤</span>
+              <span class="heart">❤</span>
+            </div>
+          </div>
+          <div class="crystal-count">
+            <span class="crystal-icon">◆</span>
+            <span id="crystal-num">0</span>
+          </div>
+        </div>
+        <div class="hud-right">
+          <div class="distance-info">
+            <span class="hud-label">距离</span>
+            <div class="distance-bar"><div id="distance-fill"></div></div>
+            <span id="distance-text">0 / 2000 m</span>
+          </div>
+          <button id="pause-btn" class="pause-btn">⏸</button>
+        </div>
+      </div>
+      <div class="hud-bottom">
+        <div class="boost-bar">
+          <span class="hud-label">加速</span>
+          <div class="boost-track"><div id="boost-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause-screen" class="screen overlay">
+      <div class="overlay-box">
+        <h2 class="overlay-title">已暂停</h2>
+        <button class="game-btn primary" id="resume-btn">继续游戏</button>
+        <button class="game-btn" id="menu-from-pause">返回菜单</button>
+      </div>
+    </div>
+
+    <div id="result-screen" class="screen overlay">
+      <div class="overlay-box">
+        <h2 id="result-title" class="overlay-title">通关成功！</h2>
+        <div id="result-stars" class="result-stars">★★★</div>
+        <div class="result-stats">
+          <div class="stat-row"><span>跑动距离</span><span id="result-distance">0 m</span></div>
+          <div class="stat-row"><span>收集晶体</span><span id="result-crystals">0</span></div>
+        </div>
+        <button class="game-btn primary" id="retry-btn">重新挑战</button>
+        <button class="game-btn" id="menu-btn">返回菜单</button>
+      </div>
+    </div>
+
+    <div id="mobile-controls" class="mobile-controls">
+      <button class="mobile-btn jump-btn" id="mobile-jump">↑<br/>跳跃</button>
+      <button class="mobile-btn slide-btn" id="mobile-slide">↓<br/>下滑</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
