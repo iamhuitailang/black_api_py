@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小狗跑酷 - Dog Runner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="stat-item">
+                <span class="stat-label">距离</span>
+                <span class="stat-value" id="distance">0</span>
+                <span class="stat-unit">米</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">分数</span>
+                <span class="stat-value" id="score">0</span>
+            </div>
+            <div class="stat-item lives">
+                <span class="stat-label">生命</span>
+                <span class="stat-value" id="lives">❤️❤️❤️</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">速度</span>
+                <span class="stat-value" id="speed">4.0</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div class="game-overlay" id="startScreen">
+            <h1>🐕 小狗跑酷</h1>
+            <p class="subtitle">按空格键跳跃，收集骨头，躲避障碍！</p>
+            <div class="controls-info">
+                <p><strong>操作说明：</strong></p>
+                <p>空格键 - 跳跃 / 二段跳</p>
+                <p>长按空格 - 跳得更高</p>
+                <p>R键 - 重新开始</p>
+            </div>
+            <div class="unlocked-colors">
+                <p><strong>已解锁皮肤：</strong></p>
+                <div id="colorButtons"></div>
+            </div>
+            <div class="records">
+                <p><strong>最远距离：</strong><span id="bestDistance">0</span> 米</p>
+            </div>
+            <button id="startBtn" class="game-btn">开始游戏</button>
+        </div>
+        
+        <div class="game-overlay hidden" id="gameOverScreen">
+            <h1>游戏结束</h1>
+            <p class="final-stats">
+                本次距离: <span id="finalDistance">0</span> 米<br>
+                本次分数: <span id="finalScore">0</span><br>
+                最高记录: <span id="finalBest">0</span> 米
+            </p>
+            <div id="unlockMessage" class="unlock-message hidden"></div>
+            <button id="restartBtn" class="game-btn">再来一局</button>
+        </div>
+        
+        <div class="game-overlay hidden" id="pauseScreen">
+            <h1>游戏暂停</h1>
+            <p>按 P 键继续</p>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
