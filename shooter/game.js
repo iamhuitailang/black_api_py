@@ -1406,7 +1406,18 @@ class Game {
                     continueBtn.style.display = 'block';
                     if (savedInfo) {
                         savedInfo.style.display = 'block';
-                        savedInfo.textContent = `已保存进度：第 ${this.wave} 波 · ${this.score} 分`;
+                        let infoText = `已保存进度：第 ${this.wave} 波 · ${this.score} 分`;
+                        
+                        if (data.stateSaved && data.player) {
+                            infoText += ` · HP ${data.player.hp}/${data.player.maxHp || 100}`;
+                            const enemyCount = (data.enemies || []).length;
+                            const itemCount = (data.powerUps || []).length;
+                            if (enemyCount > 0) infoText += ` · 敌人${enemyCount}个`;
+                            if (itemCount > 0) infoText += ` · 补给${itemCount}个`;
+                            infoText += ' ✅完整状态';
+                        }
+                        
+                        savedInfo.textContent = infoText;
                     }
                 } else {
                     continueBtn.style.display = 'none';
@@ -1421,15 +1432,215 @@ class Game {
         this.updateSkinUI();
     }
 
+    serializeState() {
+        const serializeWeapon = (w, key) => ({
+            lastFire: w.lastFire || 0,
+            fireRate: w.fireRate,
+            damage: w.damage,
+            charging: w.charging,
+            chargeTime: w.chargeTime || 0,
+            chargeNeeded: w.chargeNeeded,
+            active: w.active,
+            activeTime: w.activeTime || 0,
+            activeDuration: w.activeDuration,
+            speed: w.speed
+        });
+
+        const serializePlayer = (p) => ({
+            x: p.x,
+            y: p.y,
+            hp: p.hp,
+            maxHp: p.maxHp,
+            currentWeapon: p.currentWeapon,
+            weapons: {
+                scatter: serializeWeapon(p.weapons[WeaponType.SCATTER]),
+                laser: serializeWeapon(p.weapons[WeaponType.LASER]),
+                missile: serializeWeapon(p.weapons[WeaponType.MISSILE])
+            },
+            buffs: {
+                shield: { ...p.buffs.shield },
+                speed: { ...p.buffs.speed },
+                weapon: { ...p.buffs.weapon }
+            }
+        });
+
+        const serializeEnemy = (e) => ({
+            type: e.type,
+            x: e.x,
+            y: e.y,
+            hp: e.hp,
+            maxHp: e.maxHp,
+            shootTimer: e.shootTimer,
+            attackMode: e.attackMode,
+            attackTimer: e.attackTimer,
+            direction: e.direction
+        });
+
+        const serializeBullet = (b) => ({
+            x: b.x,
+            y: b.y,
+            vx: b.vx,
+            vy: b.vy,
+            damage: b.damage,
+            owner: b.owner,
+            type: b.type,
+            color: b.color,
+            width: b.width,
+            height: b.height
+        });
+
+        const serializePowerUp = (p) => ({
+            x: p.x,
+            y: p.y,
+            type: p.type
+        });
+
+        return {
+            score: this.score,
+            wave: this.wave,
+            highScore: Math.max(this.highScore, this.score),
+            unlockedSkins: this.unlockedSkins,
+            stateSaved: true,
+            waveState: {
+                enemiesSpawned: this.enemiesSpawned,
+                enemiesPerWave: this.enemiesPerWave,
+                waveComplete: this.waveComplete,
+                spawnTimer: this.spawnTimer,
+                spawnInterval: this.spawnInterval,
+                bossSpawned: this.bossSpawned
+            },
+            player: serializePlayer(this.player),
+            enemies: this.enemies.filter(e => e.active).map(serializeEnemy),
+            playerBullets: this.bullets.filter(b => b.active && !(b instanceof LaserBeam)).map(serializeBullet),
+            enemyBullets: this.enemyBullets.filter(b => b.active).map(serializeBullet),
+            powerUps: this.powerUps.filter(p => p.active).map(serializePowerUp)
+        };
+    }
+
+    restoreState(data) {
+        if (!data || !data.stateSaved || !data.player) {
+            return false;
+        }
+
+        try {
+            this.score = data.score || 0;
+            this.wave = data.wave || 1;
+            this.highScore = data.highScore || 0;
+            this.unlockedSkins = data.unlockedSkins || {
+                scatter: ['default'],
+                laser: ['default'],
+                missile: ['default']
+            };
+
+            if (data.waveState) {
+                this.enemiesSpawned = data.waveState.enemiesSpawned || 0;
+                this.enemiesPerWave = data.waveState.enemiesPerWave || (6 + this.wave * 2);
+                this.waveComplete = data.waveState.waveComplete || false;
+                this.spawnTimer = data.waveState.spawnTimer || 0;
+                this.spawnInterval = data.waveState.spawnInterval || 1500;
+                this.bossSpawned = data.waveState.bossSpawned || false;
+            }
+
+            const pd = data.player;
+            this.player = new Player();
+            this.player.x = pd.x;
+            this.player.y = pd.y;
+            this.player.hp = pd.hp;
+            this.player.maxHp = pd.maxHp || 100;
+            this.player.currentWeapon = pd.currentWeapon;
+
+            if (pd.weapons) {
+                Object.keys(pd.weapons).forEach(key => {
+                    if (this.player.weapons[key]) {
+                        Object.assign(this.player.weapons[key], pd.weapons[key]);
+                    }
+                });
+                if (this.player.weapons[WeaponType.LASER].active) {
+                    SoundEffects.playLaser(true);
+                }
+            }
+
+            if (pd.buffs) {
+                Object.keys(pd.buffs).forEach(key => {
+                    if (this.player.buffs[key]) {
+                        Object.assign(this.player.buffs[key], pd.buffs[key]);
+                    }
+                });
+            }
+
+            this.player.updateWeaponUI();
+            this.player.updateBuffUI();
+
+            this.enemies = [];
+            if (data.enemies) {
+                data.enemies.forEach(ed => {
+                    const enemy = new Enemy(ed.type, ed.x, ed.y);
+                    enemy.hp = ed.hp;
+                    enemy.maxHp = ed.maxHp;
+                    enemy.shootTimer = ed.shootTimer || 0;
+                    if (ed.attackMode !== undefined) enemy.attackMode = ed.attackMode;
+                    if (ed.attackTimer !== undefined) enemy.attackTimer = ed.attackTimer;
+                    if (ed.direction !== undefined) enemy.direction = ed.direction;
+                    enemy.active = true;
+                    this.enemies.push(enemy);
+                });
+            }
+
+            this.bullets = [];
+            if (data.playerBullets) {
+                data.playerBullets.forEach(bd => {
+                    this.bullets.push(new Bullet(bd.x, bd.y, bd.vx, bd.vy, bd.damage, bd.owner, bd.type, bd.color));
+                });
+            }
+
+            this.enemyBullets = [];
+            if (data.enemyBullets) {
+                data.enemyBullets.forEach(bd => {
+                    this.enemyBullets.push(new Bullet(bd.x, bd.y, bd.vx, bd.vy, bd.damage, bd.owner, bd.type, bd.color));
+                });
+            }
+
+            this.powerUps = [];
+            if (data.powerUps) {
+                data.powerUps.forEach(pd => {
+                    this.powerUps.push(new PowerUp(pd.x, pd.y, pd.type));
+                });
+            }
+
+            this.particles = [];
+
+            this.checkSkinUnlocks();
+            this.updateUI();
+            document.getElementById('hpFill').style.width = (this.player.hp / this.player.maxHp * 100) + '%';
+
+            return true;
+        } catch (e) {
+            console.error('Failed to restore state:', e);
+            return false;
+        }
+    }
+
     saveGame() {
         try {
-            const data = {
-                score: this.score,
-                wave: this.wave,
-                highScore: Math.max(this.highScore, this.score),
-                unlockedSkins: this.unlockedSkins
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            const data = this.serializeState();
+            const jsonStr = JSON.stringify(data);
+            
+            try {
+                localStorage.setItem(STORAGE_KEY, jsonStr);
+            } catch (storageErr) {
+                if (storageErr.name === 'QuotaExceededError') {
+                    const lightData = {
+                        score: this.score,
+                        wave: this.wave,
+                        highScore: Math.max(this.highScore, this.score),
+                        unlockedSkins: this.unlockedSkins,
+                        stateSaved: false
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(lightData));
+                } else {
+                    throw storageErr;
+                }
+            }
         } catch (e) {
             console.error('Failed to save game:', e);
         }
@@ -1494,18 +1705,51 @@ class Game {
     }
 
     continueGame() {
-        this.loadSave();
-        this.resetWave();
-        this.player = new Player();
+        let saveData = null;
+        try {
+            const save = localStorage.getItem(STORAGE_KEY);
+            if (save) {
+                saveData = JSON.parse(save);
+            }
+        } catch (e) {
+            console.error('Failed to parse save:', e);
+        }
+
+        if (saveData) {
+            const restored = this.restoreState(saveData);
+            if (!restored) {
+                this.score = saveData.score || 0;
+                this.wave = saveData.wave || 1;
+                this.highScore = saveData.highScore || 0;
+                this.unlockedSkins = saveData.unlockedSkins || {
+                    scatter: ['default'],
+                    laser: ['default'],
+                    missile: ['default']
+                };
+                this.resetWave();
+                this.player = new Player();
+                this.bullets = [];
+                this.enemyBullets = [];
+                this.enemies = [];
+                this.powerUps = [];
+                this.particles = [];
+                this.checkSkinUnlocks();
+            }
+        } else {
+            this.resetWave();
+            this.player = new Player();
+            this.bullets = [];
+            this.enemyBullets = [];
+            this.enemies = [];
+            this.powerUps = [];
+            this.particles = [];
+        }
+
         this.player.updateWeaponUI();
-        this.bullets = [];
-        this.enemyBullets = [];
-        this.enemies = [];
-        this.powerUps = [];
-        this.particles = [];
-        this.checkSkinUnlocks();
+        this.player.updateBuffUI();
         
         document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('gameOverScreen').style.display = 'none';
         this.state = GameState.PLAYING;
         this.updateUI();
     }
