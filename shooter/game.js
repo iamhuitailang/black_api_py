@@ -4,6 +4,7 @@ const GAME_WIDTH = canvas.width;
 const GAME_HEIGHT = canvas.height;
 
 const STORAGE_KEY = 'star_shooter_save';
+const STORAGE_FULLSTATE_KEY = 'star_shooter_fullstate';
 
 const GameState = {
     MENU: 'menu',
@@ -1369,15 +1370,21 @@ class Game {
 
         window.addEventListener('beforeunload', () => {
             try {
-                this.saveGame();
+                if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+                    this.saveGame();
+                } else {
+                    this.savePersistentData();
+                }
             } catch (e) {
                 console.error('Save on unload failed:', e);
             }
         });
 
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden && this.state === GameState.PLAYING) {
-                this.saveGame();
+            if (document.hidden) {
+                if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+                    this.saveGame();
+                }
             }
         });
     }
@@ -1395,41 +1402,59 @@ class Game {
                     laser: ['default'],
                     missile: ['default']
                 };
-                
-                this.checkSkinUnlocks();
-                
-                const hasProgress = this.score > 0 || this.wave > 1;
-                const continueBtn = document.getElementById('continueBtn');
-                const savedInfo = document.getElementById('savedInfo');
-                
-                if (hasProgress) {
-                    continueBtn.style.display = 'block';
-                    if (savedInfo) {
-                        savedInfo.style.display = 'block';
-                        let infoText = `已保存进度：第 ${this.wave} 波 · ${this.score} 分`;
-                        
-                        if (data.stateSaved && data.player) {
-                            infoText += ` · HP ${data.player.hp}/${data.player.maxHp || 100}`;
-                            const enemyCount = (data.enemies || []).length;
-                            const itemCount = (data.powerUps || []).length;
-                            if (enemyCount > 0) infoText += ` · 敌人${enemyCount}个`;
-                            if (itemCount > 0) infoText += ` · 补给${itemCount}个`;
-                            infoText += ' ✅完整状态';
-                        }
-                        
-                        savedInfo.textContent = infoText;
+            }
+
+            const fullState = localStorage.getItem(STORAGE_FULLSTATE_KEY);
+            const hasFullState = fullState !== null;
+            const fullStateData = hasFullState ? JSON.parse(fullState) : null;
+
+            this.checkSkinUnlocks();
+
+            const hasProgress = this.score > 0 || this.wave > 1;
+            const continueBtn = document.getElementById('continueBtn');
+            const savedInfo = document.getElementById('savedInfo');
+
+            if (hasProgress) {
+                continueBtn.style.display = 'block';
+                if (savedInfo) {
+                    savedInfo.style.display = 'block';
+                    let infoText = `已保存进度：第 ${this.wave} 波 · ${this.score} 分`;
+
+                    if (hasFullState && fullStateData && fullStateData.player) {
+                        infoText += ` · HP ${fullStateData.player.hp}/${fullStateData.player.maxHp || 100}`;
+                        const enemyCount = (fullStateData.enemies || []).length;
+                        const itemCount = (fullStateData.powerUps || []).length;
+                        if (enemyCount > 0) infoText += ` · 敌人${enemyCount}个`;
+                        if (itemCount > 0) infoText += ` · 补给${itemCount}个`;
+                        infoText += ' ✅完整状态';
                     }
-                } else {
-                    continueBtn.style.display = 'none';
-                    if (savedInfo) {
-                        savedInfo.style.display = 'none';
-                    }
+
+                    savedInfo.textContent = infoText;
+                }
+            } else {
+                continueBtn.style.display = 'none';
+                if (savedInfo) {
+                    savedInfo.style.display = 'none';
                 }
             }
         } catch (e) {
             console.error('Failed to load save:', e);
         }
         this.updateSkinUI();
+    }
+
+    savePersistentData() {
+        try {
+            const data = {
+                score: this.score,
+                wave: this.wave,
+                highScore: Math.max(this.highScore, this.score),
+                unlockedSkins: this.unlockedSkins
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.error('Failed to save persistent data:', e);
+        }
     }
 
     serializeState() {
@@ -1622,27 +1647,30 @@ class Game {
 
     saveGame() {
         try {
-            const data = this.serializeState();
-            const jsonStr = JSON.stringify(data);
-            
-            try {
-                localStorage.setItem(STORAGE_KEY, jsonStr);
-            } catch (storageErr) {
-                if (storageErr.name === 'QuotaExceededError') {
-                    const lightData = {
-                        score: this.score,
-                        wave: this.wave,
-                        highScore: Math.max(this.highScore, this.score),
-                        unlockedSkins: this.unlockedSkins,
-                        stateSaved: false
-                    };
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(lightData));
-                } else {
-                    throw storageErr;
+            this.savePersistentData();
+
+            if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+                const data = this.serializeState();
+                try {
+                    localStorage.setItem(STORAGE_FULLSTATE_KEY, JSON.stringify(data));
+                } catch (storageErr) {
+                    if (storageErr.name === 'QuotaExceededError') {
+                        localStorage.removeItem(STORAGE_FULLSTATE_KEY);
+                    } else {
+                        throw storageErr;
+                    }
                 }
             }
         } catch (e) {
             console.error('Failed to save game:', e);
+        }
+    }
+
+    clearFullState() {
+        try {
+            localStorage.removeItem(STORAGE_FULLSTATE_KEY);
+        } catch (e) {
+            console.error('Failed to clear full state:', e);
         }
     }
 
@@ -1696,7 +1724,9 @@ class Game {
         this.enemies = [];
         this.powerUps = [];
         this.particles = [];
+        this.clearFullState();
         this.checkSkinUnlocks();
+        this.savePersistentData();
         
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('gameOverScreen').style.display = 'none';
@@ -1705,36 +1735,34 @@ class Game {
     }
 
     continueGame() {
-        let saveData = null;
+        let fullStateData = null;
+        let persistentData = null;
+
+        try {
+            const fullState = localStorage.getItem(STORAGE_FULLSTATE_KEY);
+            if (fullState) {
+                fullStateData = JSON.parse(fullState);
+            }
+        } catch (e) {
+            console.error('Failed to parse full state:', e);
+        }
+
         try {
             const save = localStorage.getItem(STORAGE_KEY);
             if (save) {
-                saveData = JSON.parse(save);
+                persistentData = JSON.parse(save);
             }
         } catch (e) {
-            console.error('Failed to parse save:', e);
+            console.error('Failed to parse persistent data:', e);
         }
 
-        if (saveData) {
-            const restored = this.restoreState(saveData);
+        if (fullStateData && fullStateData.stateSaved && fullStateData.player) {
+            const restored = this.restoreState(fullStateData);
             if (!restored) {
-                this.score = saveData.score || 0;
-                this.wave = saveData.wave || 1;
-                this.highScore = saveData.highScore || 0;
-                this.unlockedSkins = saveData.unlockedSkins || {
-                    scatter: ['default'],
-                    laser: ['default'],
-                    missile: ['default']
-                };
-                this.resetWave();
-                this.player = new Player();
-                this.bullets = [];
-                this.enemyBullets = [];
-                this.enemies = [];
-                this.powerUps = [];
-                this.particles = [];
-                this.checkSkinUnlocks();
+                this._initFromPersistent(persistentData);
             }
+        } else if (persistentData) {
+            this._initFromPersistent(persistentData);
         } else {
             this.resetWave();
             this.player = new Player();
@@ -1752,6 +1780,27 @@ class Game {
         document.getElementById('gameOverScreen').style.display = 'none';
         this.state = GameState.PLAYING;
         this.updateUI();
+    }
+
+    _initFromPersistent(persistentData) {
+        if (persistentData) {
+            this.score = persistentData.score || 0;
+            this.wave = persistentData.wave || 1;
+            this.highScore = persistentData.highScore || 0;
+            this.unlockedSkins = persistentData.unlockedSkins || {
+                scatter: ['default'],
+                laser: ['default'],
+                missile: ['default']
+            };
+        }
+        this.resetWave();
+        this.player = new Player();
+        this.bullets = [];
+        this.enemyBullets = [];
+        this.enemies = [];
+        this.powerUps = [];
+        this.particles = [];
+        this.checkSkinUnlocks();
     }
 
     resetWave() {
@@ -1777,7 +1826,8 @@ class Game {
     gameOver() {
         this.state = GameState.GAME_OVER;
         this.highScore = Math.max(this.highScore, this.score);
-        this.saveGame();
+        this.savePersistentData();
+        this.clearFullState();
         
         SoundEffects.playLaser(false);
         document.getElementById('finalScore').textContent = this.score;
