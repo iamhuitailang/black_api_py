@@ -153,15 +153,15 @@
             const data = localStorage.getItem(SAVE_KEY);
             if (!data) return false;
             const saveData = JSON.parse(data);
-            if (!saveData || !saveData.wave) return false;
+            if (!saveData || saveData.wave === undefined || saveData.wave === null) return false;
 
-            gameState.wave = saveData.wave;
-            gameState.gold = saveData.gold;
-            gameState.score = saveData.score;
-            gameState.castleHp = saveData.castleHp;
-            gameState.castleMaxHp = saveData.castleMaxHp;
-            gameState.arrowLevel = saveData.arrowLevel;
-            gameState.wallLevel = saveData.wallLevel;
+            gameState.wave = saveData.wave || 0;
+            gameState.gold = saveData.gold || 0;
+            gameState.score = saveData.score || 0;
+            gameState.castleHp = saveData.castleHp || 100;
+            gameState.castleMaxHp = saveData.castleMaxHp || 100;
+            gameState.arrowLevel = saveData.arrowLevel || 0;
+            gameState.wallLevel = saveData.wallLevel || 0;
             gameState.playerName = saveData.playerName || '弓箭手';
             gameState.skyProgress = saveData.skyProgress || 0;
             gameState.resting = false;
@@ -232,25 +232,33 @@
         startScreen.classList.remove('hidden');
 
         const subtitle = startScreen.querySelector('.subtitle');
-        const instructions = startScreen.querySelector('.instructions');
-        const btnGroup = document.getElementById('start-btn').parentElement;
 
-        const oldContinueBtn = document.getElementById('continue-btn');
-        if (oldContinueBtn) oldContinueBtn.remove();
+        const existingStartBtn = document.getElementById('start-btn');
+        const existingContinueBtn = document.getElementById('continue-btn');
+        let mainBtn = existingStartBtn || existingContinueBtn;
+
         const oldNewGameBtn = document.getElementById('new-game-btn');
         if (oldNewGameBtn) oldNewGameBtn.remove();
         const oldDeleteBtn = document.getElementById('delete-save-btn');
         if (oldDeleteBtn) oldDeleteBtn.remove();
 
-        document.getElementById('start-btn').style.display = '';
-        document.getElementById('show-leaderboard-btn').style.display = '';
-
         if (hasSavedGame()) {
-            const saveData = JSON.parse(localStorage.getItem(SAVE_KEY));
-            subtitle.textContent = `上次进度：第 ${saveData.wave} 波 | 金币 ${saveData.gold} | 分数 ${saveData.score}`;
+            try {
+                const saveData = JSON.parse(localStorage.getItem(SAVE_KEY));
+                subtitle.textContent = `上次进度：第 ${saveData.wave} 波 | 金币 ${saveData.gold} | 分数 ${saveData.score}`;
+            } catch (e) {
+                subtitle.textContent = '发现存档数据';
+            }
 
-            document.getElementById('start-btn').textContent = '继续游戏';
-            document.getElementById('start-btn').id = 'continue-btn';
+            if (mainBtn) {
+                mainBtn.id = 'start-btn';
+                mainBtn.textContent = '继续游戏';
+                mainBtn.onclick = null;
+                mainBtn.removeEventListener('click', startGame);
+                mainBtn.addEventListener('click', startGame);
+            }
+
+            const btnGroup = mainBtn.parentElement;
 
             const newGameBtn = document.createElement('button');
             newGameBtn.id = 'new-game-btn';
@@ -277,10 +285,13 @@
             });
         } else {
             subtitle.textContent = '守卫你的城堡，击退敌人的进攻！';
-            const currentStartBtn = document.getElementById('continue-btn') || document.getElementById('start-btn');
-            if (currentStartBtn) {
-                currentStartBtn.textContent = '开始游戏';
-                currentStartBtn.id = 'start-btn';
+
+            if (mainBtn) {
+                mainBtn.id = 'start-btn';
+                mainBtn.textContent = '开始游戏';
+                mainBtn.onclick = null;
+                mainBtn.removeEventListener('click', startGame);
+                mainBtn.addEventListener('click', startGame);
             }
         }
     }
@@ -297,14 +308,11 @@
     function startGame() {
         if (hasSavedGame()) {
             const loaded = loadGame();
-            if (loaded) {
+            if (loaded && gameState.wave > 0) {
                 document.getElementById('player-name').value = gameState.playerName;
                 document.getElementById('start-screen').classList.add('hidden');
-                if (gameState.wave >= 20 && gameState.victory) {
-                    endGame(true);
-                    return;
-                }
-                if (gameState.resting || gameState.wave % 5 === 0) {
+                updateUI();
+                if (gameState.wave % 5 === 0 && gameState.wave < gameState.maxWave) {
                     startRestPeriod();
                 } else {
                     generateWaveEnemies(gameState.wave);
@@ -835,14 +843,14 @@
                 let targetX;
 
                 if (enemy.side === 'left') {
-                    targetX = castleLeftEdge - enemy.width + 2;
+                    targetX = castleLeftEdge;
                 } else {
-                    targetX = castleRightEdge - 2;
+                    targetX = castleRightEdge - enemy.width;
                 }
 
                 let reachedCastle = false;
-                if (enemy.side === 'left' && enemy.x >= targetX) {
-                    enemy.x = targetX;
+                if (enemy.side === 'left' && enemy.x + enemy.width >= targetX) {
+                    enemy.x = targetX - enemy.width;
                     reachedCastle = true;
                 } else if (enemy.side === 'right' && enemy.x <= targetX) {
                     enemy.x = targetX;
@@ -1361,6 +1369,7 @@
 
             ctx.save();
 
+            const isFlashing = enemy.hitFlash > 0 && enemy.hitFlash % 3 !== 0;
             const baseAlpha = enemy.isStealthed ? 0.25 : 1.0;
             ctx.globalAlpha = baseAlpha;
 
@@ -1369,44 +1378,27 @@
             const ew = enemy.width;
             const eh = enemy.height;
 
-            switch (enemy.type) {
-                case 'goblin':
-                    drawGoblin(enemy, ex, ey, ew, eh);
-                    break;
-                case 'skeleton':
-                    drawSkeleton(enemy, ex, ey, ew, eh);
-                    break;
-                case 'orc':
-                    drawOrc(enemy, ex, ey, ew, eh);
-                    break;
-                case 'assassin':
-                    drawAssassin(enemy, ex, ey, ew, eh);
-                    break;
-                case 'boss':
-                    drawBoss(enemy, ex, ey, ew, eh);
-                    break;
-            }
-
-            if (enemy.hitFlash > 0) {
-                const flashAlpha = Math.min(1, enemy.hitFlash / 10) * baseAlpha;
-                ctx.globalAlpha = flashAlpha;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(ex, ey, ew, eh);
-                ctx.globalAlpha = flashAlpha * 0.5;
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(ex, ey, ew, eh);
-                ctx.globalAlpha = baseAlpha;
+            if (isFlashing) {
+                drawEnemyWhite(enemy, ex, ey, ew, eh);
+            } else {
+                switch (enemy.type) {
+                    case 'goblin': drawGoblin(enemy, ex, ey, ew, eh); break;
+                    case 'skeleton': drawSkeleton(enemy, ex, ey, ew, eh); break;
+                    case 'orc': drawOrc(enemy, ex, ey, ew, eh); break;
+                    case 'assassin': drawAssassin(enemy, ex, ey, ew, eh); break;
+                    case 'boss': drawBoss(enemy, ex, ey, ew, eh); break;
+                }
             }
 
             if (enemy.burnTimer > 0) {
-                ctx.globalAlpha = 0.45 * baseAlpha;
+                ctx.globalAlpha = 0.4 * baseAlpha;
                 ctx.fillStyle = '#ff6b35';
                 ctx.fillRect(ex, ey, ew, eh);
                 ctx.globalAlpha = baseAlpha;
             }
 
             if (enemy.slowTimer > 0) {
-                ctx.globalAlpha = 0.45 * baseAlpha;
+                ctx.globalAlpha = 0.4 * baseAlpha;
                 ctx.fillStyle = '#74b9ff';
                 ctx.fillRect(ex, ey, ew, eh);
                 ctx.globalAlpha = baseAlpha;
@@ -1435,6 +1427,54 @@
             }
 
             ctx.restore();
+        }
+    }
+
+    function drawEnemyWhite(enemy, x, y, w, h) {
+        ctx.fillStyle = '#ffffff';
+        switch (enemy.type) {
+            case 'goblin':
+                ctx.beginPath();
+                ctx.ellipse(x + w / 2, y + h * 0.6, w / 2 - 2, h * 0.35, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + w / 2, y + h * 0.25, w / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillRect(x + w * 0.25 - 2, y + h - 8, 5, 8);
+                ctx.fillRect(x + w * 0.65 - 2, y + h - 8, 5, 8);
+                break;
+            case 'skeleton':
+                ctx.beginPath();
+                ctx.arc(x + w / 2, y + h * 0.18, w * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillRect(x + w * 0.4, y + h * 0.35, w * 0.2, h * 0.3);
+                break;
+            case 'orc':
+                ctx.fillRect(x + w * 0.1, y + h * 0.35, w * 0.8, h * 0.5);
+                ctx.beginPath();
+                ctx.arc(x + w / 2, y + h * 0.25, w * 0.38, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            case 'assassin':
+                ctx.beginPath();
+                ctx.moveTo(x + w / 2, y + h * 0.2);
+                ctx.lineTo(x + w * 0.15, y + h * 0.95);
+                ctx.lineTo(x + w * 0.85, y + h * 0.95);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + w / 2, y + h * 0.18, w * 0.32, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            case 'boss':
+                ctx.fillRect(x, y + h * 0.2, w, h * 0.8);
+                ctx.beginPath();
+                ctx.moveTo(x - 5, y + h * 0.2);
+                ctx.lineTo(x + w / 2, y);
+                ctx.lineTo(x + w + 5, y + h * 0.2);
+                ctx.closePath();
+                ctx.fill();
+                break;
         }
     }
 
@@ -2032,11 +2072,6 @@
         canvas.addEventListener('mouseup', handleMouseUp);
         canvas.addEventListener('mouseleave', handleMouseLeave);
 
-        const startBtn = document.getElementById('start-btn') || document.getElementById('continue-btn');
-        if (startBtn) {
-            startBtn.addEventListener('click', startGame);
-        }
-
         document.getElementById('show-leaderboard-btn').addEventListener('click', () => {
             loadLeaderboard();
             document.getElementById('leaderboard-screen').classList.remove('hidden');
@@ -2068,6 +2103,12 @@
                 gameState.resting = false;
                 saveGame();
                 startNextWave();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'start-btn' || e.target.id === 'continue-btn') {
+                startGame();
             }
         });
     }
