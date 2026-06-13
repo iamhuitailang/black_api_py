@@ -307,6 +307,17 @@
 </style>
 </head>
 <body>
+<div id="debug-indicator" style="position:fixed;top:8px;left:8px;z-index:10000;background:rgba(231,76,60,0.9);color:#fff;padding:4px 10px;font-size:12px;font-family:monospace;border-radius:4px;pointer-events:none;">
+  HTML OK
+</div>
+<noscript>
+  <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;font-size:20px;">
+    请启用 JavaScript 以运行游戏
+  </div>
+</noscript>
+<div id="app-loading" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#f4c430;font-family:'Orbitron',sans-serif;font-size:24px;z-index:9999;">
+  加载中...
+</div>
 <div id="app">
   <div class="game-wrapper">
     <canvas ref="gameCanvas" width="1200" height="800"></canvas>
@@ -322,7 +333,7 @@
                class="track-card" :class="{selected: selectedTrack === track.id}"
                @click="selectTrack(track.id)">
             <div class="track-preview">
-              <canvas :ref="el => trackCanvases[track.id] = el"
+              <canvas :id="'track-preview-' + track.id"
                       width="240" height="100"
                       style="width:100%;height:100%;"></canvas>
             </div>
@@ -393,14 +404,76 @@
 </div>
 
 <script>
-const { createApp, ref, reactive, onMounted, nextTick, computed } = Vue;
+var updateDebug;
+(function() {
+  updateDebug = function(msg, color) {
+    try {
+      const d = document.getElementById('debug-indicator');
+      if (d) {
+        d.innerHTML = msg;
+        if (color) d.style.background = color;
+      }
+    } catch(e) {}
+    console.log('[DEBUG]', msg);
+  };
+  updateDebug('JS Start', '#2980b9');
+})();
 
-createApp({
+window.onerror = function(msg, url, line, col, error) {
+  console.error('Global error:', msg, url, line, col, error);
+  try {
+    const loading = document.getElementById('app-loading');
+    if (loading) {
+      loading.innerHTML = '加载失败: ' + msg + '<br><span style="font-size:14px;color:#888;">第 ' + line + ' 行</span>';
+      loading.style.color = '#e74c3c';
+      loading.style.fontSize = '16px';
+      loading.style.textAlign = 'center';
+      loading.style.maxWidth = '80%';
+      loading.style.wordBreak = 'break-all';
+    }
+    updateDebug('ERROR: ' + String(msg).substring(0, 30), '#e74c3c');
+  } catch(e) {}
+  return false;
+};
+window.onunhandledrejection = function(e) {
+  console.error('Unhandled rejection:', e.reason);
+  try {
+    const loading = document.getElementById('app-loading');
+    if (loading) {
+      loading.innerHTML = '加载失败: ' + (e.reason ? e.reason.message || e.reason : '未知错误');
+      loading.style.color = '#e74c3c';
+      loading.style.fontSize = '16px';
+    }
+  } catch(err) {}
+};
+
+updateDebug('Before Vue import check', '#2980b9');
+if (typeof Vue === 'undefined') {
+  updateDebug('Vue NOT loaded!', '#e74c3c');
+  document.getElementById('app-loading').innerHTML = 'Vue 加载失败，请检查网络连接';
+} else {
+  updateDebug('Vue loaded v' + (Vue.version || '?'), '#27ae60');
+}
+
+const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+updateDebug('Vue destructured OK', '#27ae60');
+
+const app = createApp({
+  errorCaptured(err) {
+    console.error('Vue error:', err);
+    const loading = document.getElementById('app-loading');
+    if (loading) {
+      loading.innerHTML = '加载失败: ' + err.message;
+      loading.style.color = '#e74c3c';
+      loading.style.fontSize = '16px';
+    }
+    return false;
+  },
   setup() {
+    updateDebug('Setup starting...', '#2980b9');
     const gameCanvas = ref(null);
     const view = ref('menu');
     const countdown = ref(3);
-    const trackCanvases = reactive({});
 
     const trackList = [
       { id: 'beginner', name: '新手环道', width: 100, difficulty: 1, unlockTime: 30000 },
@@ -443,11 +516,13 @@ createApp({
       } catch (e) { console.warn('load save failed', e); }
     }
     function persistSave() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        bestTimes: saveData.bestTimes,
-        unlockedColors: saveData.unlockedColors,
-        selectedColor: saveData.selectedColor
-      }));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          bestTimes: saveData.bestTimes,
+          unlockedColors: saveData.unlockedColors,
+          selectedColor: saveData.selectedColor
+        }));
+      } catch (e) { console.warn('save failed', e); }
     }
 
     const TRACKS = {
@@ -1448,7 +1523,10 @@ createApp({
     }
 
     function drawAllTrackPreviews() {
-      trackList.forEach(t => drawTrackPreview(trackCanvases[t.id], t.id));
+      trackList.forEach(t => {
+        const canvas = document.getElementById('track-preview-' + t.id);
+        drawTrackPreview(canvas, t.id);
+      });
     }
 
     function onKeyDown(e) {
@@ -1460,19 +1538,47 @@ createApp({
     }
 
     onMounted(() => {
-      loadSave();
-      ctx = gameCanvas.value.getContext('2d');
-      window.addEventListener('keydown', onKeyDown);
-      window.addEventListener('keyup', onKeyUp);
-      gameLoop = requestAnimationFrame(gameLoopFn);
-      nextTick(drawAllTrackPreviews);
+      updateDebug('onMounted start', '#2980b9');
+      try {
+        loadSave();
+        updateDebug('loadSave OK', '#2980b9');
+        try {
+          ctx = gameCanvas.value.getContext('2d');
+          updateDebug('canvas ctx OK', '#2980b9');
+        } catch(e) { console.warn('canvas context failed', e); }
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        gameLoop = requestAnimationFrame(gameLoopFn);
+        nextTick(() => {
+          updateDebug('nextTick running', '#2980b9');
+          try {
+            drawAllTrackPreviews();
+            updateDebug('READY ✓', '#27ae60');
+          } catch(e) {
+            console.warn('draw previews failed', e);
+            updateDebug('previews err', '#e67e22');
+          }
+        });
+        const loadingEl = document.getElementById('app-loading');
+        if (loadingEl) loadingEl.style.display = 'none';
+      } catch(e) {
+        console.error('init failed:', e);
+        const loadingEl = document.getElementById('app-loading');
+        if (loadingEl) {
+          loadingEl.style.display = 'block';
+          loadingEl.innerHTML = '初始化失败: ' + e.message;
+          loadingEl.style.color = '#e74c3c';
+          loadingEl.style.fontSize = '16px';
+        }
+        updateDebug('Mounted FAIL', '#e74c3c');
+      }
     });
 
+    updateDebug('Setup complete, returning', '#27ae60');
     return {
       gameCanvas,
       view,
       countdown,
-      trackCanvases,
       trackList,
       colorList,
       selectedTrack,
@@ -1489,7 +1595,38 @@ createApp({
       restartRace
     };
   }
-}).mount('#app');
+});
+
+app.config.errorHandler = function(err, instance, info) {
+  console.error('Vue app error:', err, info);
+  try {
+    const loading = document.getElementById('app-loading');
+    if (loading) {
+      loading.style.display = 'block';
+      loading.innerHTML = '加载失败: ' + err.message + '<br><span style="font-size:14px;color:#888;">' + info + '</span>';
+      loading.style.color = '#e74c3c';
+      loading.style.fontSize = '16px';
+      loading.style.textAlign = 'center';
+      loading.style.maxWidth = '80%';
+    }
+    updateDebug('Vue ERR: ' + String(err.message).substring(0, 25), '#e74c3c');
+  } catch(e) {}
+};
+
+updateDebug('About to mount app...', '#2980b9');
+try {
+  app.mount('#app');
+  updateDebug('App mounted! Waiting...', '#27ae60');
+} catch(e) {
+  console.error('Mount failed:', e);
+  updateDebug('Mount FAIL: ' + String(e.message).substring(0, 25), '#e74c3c');
+  const loading = document.getElementById('app-loading');
+  if (loading) {
+    loading.innerHTML = '挂载失败: ' + e.message;
+    loading.style.color = '#e74c3c';
+    loading.style.fontSize = '16px';
+  }
+}
 </script>
 </body>
 </html>
