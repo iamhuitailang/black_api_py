@@ -127,6 +127,72 @@
         victory: false
     };
 
+    const SAVE_KEY = 'archer_game_save_v1';
+
+    function saveGame() {
+        try {
+            const saveData = {
+                wave: gameState.wave,
+                gold: gameState.gold,
+                score: gameState.score,
+                castleHp: gameState.castleHp,
+                castleMaxHp: gameState.castleMaxHp,
+                arrowLevel: gameState.arrowLevel,
+                wallLevel: gameState.wallLevel,
+                playerName: gameState.playerName,
+                resting: gameState.resting,
+                skyProgress: gameState.skyProgress
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        } catch (e) {
+        }
+    }
+
+    function loadGame() {
+        try {
+            const data = localStorage.getItem(SAVE_KEY);
+            if (!data) return false;
+            const saveData = JSON.parse(data);
+            if (!saveData || !saveData.wave) return false;
+
+            gameState.wave = saveData.wave;
+            gameState.gold = saveData.gold;
+            gameState.score = saveData.score;
+            gameState.castleHp = saveData.castleHp;
+            gameState.castleMaxHp = saveData.castleMaxHp;
+            gameState.arrowLevel = saveData.arrowLevel;
+            gameState.wallLevel = saveData.wallLevel;
+            gameState.playerName = saveData.playerName || '弓箭手';
+            gameState.skyProgress = saveData.skyProgress || 0;
+            gameState.resting = false;
+            gameState.enemies = [];
+            gameState.arrows = [];
+            gameState.particles = [];
+            gameState.enemyArrows = [];
+            gameState.gameOver = false;
+            gameState.victory = false;
+            gameState.running = true;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function hasSavedGame() {
+        try {
+            return !!localStorage.getItem(SAVE_KEY);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function clearSave() {
+        try {
+            localStorage.removeItem(SAVE_KEY);
+        } catch (e) {
+        }
+    }
+
     function initGame() {
         gameState = {
             running: false,
@@ -161,12 +227,94 @@
         updateUI();
     }
 
-    function startGame() {
+    function showStartScreen() {
+        const startScreen = document.getElementById('start-screen');
+        startScreen.classList.remove('hidden');
+
+        const subtitle = startScreen.querySelector('.subtitle');
+        const instructions = startScreen.querySelector('.instructions');
+        const btnGroup = document.getElementById('start-btn').parentElement;
+
+        const oldContinueBtn = document.getElementById('continue-btn');
+        if (oldContinueBtn) oldContinueBtn.remove();
+        const oldNewGameBtn = document.getElementById('new-game-btn');
+        if (oldNewGameBtn) oldNewGameBtn.remove();
+        const oldDeleteBtn = document.getElementById('delete-save-btn');
+        if (oldDeleteBtn) oldDeleteBtn.remove();
+
+        document.getElementById('start-btn').style.display = '';
+        document.getElementById('show-leaderboard-btn').style.display = '';
+
+        if (hasSavedGame()) {
+            const saveData = JSON.parse(localStorage.getItem(SAVE_KEY));
+            subtitle.textContent = `上次进度：第 ${saveData.wave} 波 | 金币 ${saveData.gold} | 分数 ${saveData.score}`;
+
+            document.getElementById('start-btn').textContent = '继续游戏';
+            document.getElementById('start-btn').id = 'continue-btn';
+
+            const newGameBtn = document.createElement('button');
+            newGameBtn.id = 'new-game-btn';
+            newGameBtn.className = 'btn btn-secondary';
+            newGameBtn.textContent = '新游戏（覆盖存档）';
+            btnGroup.appendChild(newGameBtn);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.id = 'delete-save-btn';
+            deleteBtn.className = 'btn btn-secondary';
+            deleteBtn.textContent = '删除存档';
+            btnGroup.appendChild(deleteBtn);
+
+            newGameBtn.addEventListener('click', () => {
+                clearSave();
+                document.getElementById('player-name').value = '';
+                startNewGame();
+            });
+
+            deleteBtn.addEventListener('click', () => {
+                clearSave();
+                alert('存档已删除');
+                showStartScreen();
+            });
+        } else {
+            subtitle.textContent = '守卫你的城堡，击退敌人的进攻！';
+            const currentStartBtn = document.getElementById('continue-btn') || document.getElementById('start-btn');
+            if (currentStartBtn) {
+                currentStartBtn.textContent = '开始游戏';
+                currentStartBtn.id = 'start-btn';
+            }
+        }
+    }
+
+    function startNewGame() {
         initGame();
         gameState.running = true;
         document.getElementById('start-screen').classList.add('hidden');
         startNextWave();
         requestAnimationFrame(gameLoop);
+        saveGame();
+    }
+
+    function startGame() {
+        if (hasSavedGame()) {
+            const loaded = loadGame();
+            if (loaded) {
+                document.getElementById('player-name').value = gameState.playerName;
+                document.getElementById('start-screen').classList.add('hidden');
+                if (gameState.wave >= 20 && gameState.victory) {
+                    endGame(true);
+                    return;
+                }
+                if (gameState.resting || gameState.wave % 5 === 0) {
+                    startRestPeriod();
+                } else {
+                    generateWaveEnemies(gameState.wave);
+                    announceWave(gameState.wave);
+                }
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+        }
+        startNewGame();
     }
 
     function startNextWave() {
@@ -176,6 +324,7 @@
         document.getElementById('upgrade-screen').classList.add('hidden');
         announceWave(gameState.wave);
         generateWaveEnemies(gameState.wave);
+        saveGame();
     }
 
     function generateWaveEnemies(wave) {
@@ -270,6 +419,7 @@
             actionTimer: 0,
             actionCooldown: 0,
             hitFlash: 0,
+            hitKnockback: 0,
             burnTimer: 0,
             burnDamage: 0,
             slowTimer: 0,
@@ -277,6 +427,8 @@
             climbProgress: 0,
             climbTime: config.climbTime || 5000,
             climbDamage: config.climbDamage || 5,
+            climbAnimFrame: 0,
+            climbAnimTimer: 0,
             shootInterval: config.shootInterval || 3000,
             shootDamage: config.shootDamage || 5,
             shootRange: config.shootRange || 300,
@@ -420,7 +572,11 @@
 
     function hitEnemy(enemy, arrow) {
         enemy.hp -= arrow.damage;
-        enemy.hitFlash = 10;
+        enemy.hitFlash = 15;
+
+        const knockbackDir = arrow.vx >= 0 ? 1 : -1;
+        enemy.hitKnockback = 6;
+        enemy.knockbackDir = knockbackDir;
 
         if (arrow.type === 'fire' && arrow.burnDamage > 0) {
             enemy.burnTimer = arrow.burnDuration;
@@ -432,18 +588,30 @@
             enemy.slowFactor = arrow.slowFactor;
         }
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 8; i++) {
             gameState.particles.push({
                 x: arrow.x,
                 y: arrow.y,
-                vx: (Math.random() - 0.5) * 4,
-                vy: (Math.random() - 0.5) * 4 - 2,
-                life: 20,
-                maxLife: 20,
-                color: arrow.type === 'fire' ? '#ff6b35' : arrow.type === 'ice' ? '#74b9ff' : '#fff',
-                size: 3
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5 - 2,
+                life: 25,
+                maxLife: 25,
+                color: arrow.type === 'fire' ? '#ff6b35' : arrow.type === 'ice' ? '#74b9ff' : '#ff3333',
+                size: 3 + Math.random() * 2
             });
         }
+
+        gameState.particles.push({
+            x: enemy.x + enemy.width / 2,
+            y: enemy.y + enemy.height / 4,
+            vx: 0,
+            vy: -1.5,
+            life: 40,
+            maxLife: 40,
+            color: '#ff0000',
+            size: 12,
+            text: '-' + arrow.damage
+        });
 
         if (enemy.hp <= 0) {
             killEnemy(enemy);
@@ -456,20 +624,33 @@
         gameState.score += enemy.score;
         gameState.waveEnemiesLeft--;
 
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 15; i++) {
             gameState.particles.push({
                 x: enemy.x + enemy.width / 2,
                 y: enemy.y + enemy.height / 2,
-                vx: (Math.random() - 0.5) * 6,
-                vy: (Math.random() - 0.5) * 6 - 3,
-                life: 30,
-                maxLife: 30,
+                vx: (Math.random() - 0.5) * 7,
+                vy: (Math.random() - 0.5) * 7 - 3,
+                life: 35,
+                maxLife: 35,
                 color: enemy.color,
-                size: 4
+                size: 4 + Math.random() * 3
             });
         }
 
+        gameState.particles.push({
+            x: enemy.x + enemy.width / 2,
+            y: enemy.y,
+            vx: 0,
+            vy: -1.2,
+            life: 50,
+            maxLife: 50,
+            color: '#ffd700',
+            size: 14,
+            text: '+' + enemy.gold + '金'
+        });
+
         updateUI();
+        saveGame();
 
         if (gameState.waveEnemiesLeft <= 0 && gameState.waveSpawnQueue.length === 0) {
             onWaveComplete();
@@ -477,6 +658,7 @@
     }
 
     function onWaveComplete() {
+        saveGame();
         if (gameState.wave >= gameState.maxWave) {
             gameState.victory = true;
             endGame(true);
@@ -561,6 +743,7 @@
         gameState.arrowLevel = nextLevel;
         updateUpgradeUI();
         updateUI();
+        saveGame();
     }
 
     function upgradeWall() {
@@ -576,6 +759,7 @@
         gameState.castleHp = gameState.castleMaxHp;
         updateUpgradeUI();
         updateUI();
+        saveGame();
     }
 
     function updateEnemies(deltaTime) {
@@ -589,6 +773,11 @@
             }
 
             if (enemy.hitFlash > 0) enemy.hitFlash--;
+
+            if (enemy.hitKnockback > 0) {
+                enemy.x += enemy.knockbackDir * (enemy.hitKnockback / 2);
+                enemy.hitKnockback--;
+            }
 
             if (enemy.burnTimer > 0) {
                 enemy.burnTimer -= dt;
@@ -641,16 +830,37 @@
             }
 
             if (enemy.state === 'walking') {
-                const targetX = CASTLE_X + (enemy.side === 'left' ? -CASTLE_WIDTH / 2 - enemy.width / 2 : CASTLE_WIDTH / 2 + enemy.width / 2);
+                const castleLeftEdge = CASTLE_X - CASTLE_WIDTH / 2;
+                const castleRightEdge = CASTLE_X + CASTLE_WIDTH / 2;
+                let targetX;
 
-                if (enemy.side === 'left' && enemy.x < targetX) {
-                    enemy.x += speed;
-                } else if (enemy.side === 'right' && enemy.x > targetX) {
-                    enemy.x -= speed;
+                if (enemy.side === 'left') {
+                    targetX = castleLeftEdge - enemy.width + 2;
+                } else {
+                    targetX = castleRightEdge - 2;
+                }
+
+                let reachedCastle = false;
+                if (enemy.side === 'left' && enemy.x >= targetX) {
+                    enemy.x = targetX;
+                    reachedCastle = true;
+                } else if (enemy.side === 'right' && enemy.x <= targetX) {
+                    enemy.x = targetX;
+                    reachedCastle = true;
+                }
+
+                if (!reachedCastle) {
+                    if (enemy.side === 'left') {
+                        enemy.x += speed;
+                    } else {
+                        enemy.x -= speed;
+                    }
                 } else {
                     if (enemy.behavior === 'climb') {
                         enemy.state = 'climbing';
                         enemy.climbProgress = 0;
+                        enemy.climbAnimFrame = 0;
+                        enemy.climbAnimTimer = 0;
                     } else if (enemy.behavior === 'shoot') {
                         enemy.state = 'attacking';
                         enemy.actionCooldown = 1000;
@@ -670,9 +880,17 @@
                 }
             } else if (enemy.state === 'climbing') {
                 enemy.climbProgress += dt / enemy.climbTime;
+
+                enemy.climbAnimTimer++;
+                if (enemy.climbAnimTimer > 8) {
+                    enemy.climbAnimTimer = 0;
+                    enemy.climbAnimFrame = (enemy.climbAnimFrame + 1) % 4;
+                }
+
                 if (enemy.climbProgress >= 1) {
                     gameState.castleHp -= enemy.climbDamage;
                     updateUI();
+                    saveGame();
                     if (gameState.castleHp <= 0) {
                         endGame(false);
                         return;
@@ -680,8 +898,16 @@
                     enemy.y = GROUND_Y - enemy.height;
                     enemy.state = 'walking';
                     enemy.climbProgress = 0;
+                    enemy.x = enemy.side === 'left' ?
+                        CASTLE_X - CASTLE_WIDTH / 2 - enemy.width - 40 :
+                        CASTLE_X + CASTLE_WIDTH / 2 + 40;
                 } else {
                     enemy.y = GROUND_Y - enemy.height - (CASTLE_HEIGHT - 40) * enemy.climbProgress;
+                    if (enemy.side === 'left') {
+                        enemy.x = CASTLE_X - CASTLE_WIDTH / 2 - enemy.width + 5;
+                    } else {
+                        enemy.x = CASTLE_X + CASTLE_WIDTH / 2 - 5;
+                    }
                 }
             } else if (enemy.state === 'attacking') {
                 enemy.actionCooldown -= dt;
@@ -692,16 +918,19 @@
                     } else if (enemy.behavior === 'smash' || enemy.behavior === 'boss_smash') {
                         gameState.castleHp -= enemy.smashDamage;
                         updateUI();
-                        for (let p = 0; p < 8; p++) {
+                        saveGame();
+                        for (let p = 0; p < 12; p++) {
                             gameState.particles.push({
-                                x: CASTLE_X + (enemy.side === 'left' ? -CASTLE_WIDTH / 2 : CASTLE_WIDTH / 2),
-                                y: GROUND_Y - 20,
-                                vx: (Math.random() - 0.5) * 4,
-                                vy: -2 - Math.random() * 3,
-                                life: 25,
-                                maxLife: 25,
-                                color: '#888',
-                                size: 4
+                                x: enemy.side === 'left' ?
+                                    CASTLE_X - CASTLE_WIDTH / 2 :
+                                    CASTLE_X + CASTLE_WIDTH / 2,
+                                y: GROUND_Y - 30 - Math.random() * 60,
+                                vx: (enemy.side === 'left' ? -1 : 1) * (1 + Math.random() * 3),
+                                vy: -2 - Math.random() * 4,
+                                life: 30,
+                                maxLife: 30,
+                                color: Math.random() < 0.5 ? '#888' : '#aaa',
+                                size: 3 + Math.random() * 4
                             });
                         }
                         if (gameState.castleHp <= 0) {
@@ -712,6 +941,7 @@
                     } else if (enemy.behavior === 'stealth') {
                         gameState.castleHp -= 3;
                         updateUI();
+                        saveGame();
                         if (gameState.castleHp <= 0) {
                             endGame(false);
                             return;
@@ -760,6 +990,19 @@
                 arrow.y > castleTop && arrow.y < GROUND_Y) {
                 gameState.castleHp -= arrow.damage;
                 updateUI();
+                saveGame();
+                for (let p = 0; p < 5; p++) {
+                    gameState.particles.push({
+                        x: arrow.x,
+                        y: arrow.y,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: -1 - Math.random() * 3,
+                        life: 25,
+                        maxLife: 25,
+                        color: '#888',
+                        size: 3
+                    });
+                }
                 if (gameState.castleHp <= 0) {
                     endGame(false);
                     return;
@@ -1118,13 +1361,8 @@
 
             ctx.save();
 
-            if (enemy.isStealthed) {
-                ctx.globalAlpha = 0.2;
-            }
-
-            if (enemy.hitFlash > 0) {
-                ctx.globalAlpha = ctx.globalAlpha * 0.5 + 0.5;
-            }
+            const baseAlpha = enemy.isStealthed ? 0.25 : 1.0;
+            ctx.globalAlpha = baseAlpha;
 
             const ex = enemy.x;
             const ey = enemy.y;
@@ -1149,31 +1387,51 @@
                     break;
             }
 
-            if (!enemy.isStealthed) {
-                const hpRatio = enemy.hp / enemy.maxHp;
-                const barW = ew + 4;
-                const barH = 4;
-                const barX = ex + ew / 2 - barW / 2;
-                const barY = ey - 8;
-
-                ctx.fillStyle = '#333';
-                ctx.fillRect(barX, barY, barW, barH);
-                ctx.fillStyle = hpRatio > 0.5 ? '#2ecc71' : hpRatio > 0.25 ? '#f1c40f' : '#e74c3c';
-                ctx.fillRect(barX, barY, barW * hpRatio, barH);
+            if (enemy.hitFlash > 0) {
+                const flashAlpha = Math.min(1, enemy.hitFlash / 10) * baseAlpha;
+                ctx.globalAlpha = flashAlpha;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.globalAlpha = flashAlpha * 0.5;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.globalAlpha = baseAlpha;
             }
 
             if (enemy.burnTimer > 0) {
-                ctx.fillStyle = 'rgba(255, 107, 53, 0.5)';
-                ctx.beginPath();
-                ctx.arc(ex + ew / 2, ey + eh / 2, ew * 0.8, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.globalAlpha = 0.45 * baseAlpha;
+                ctx.fillStyle = '#ff6b35';
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.globalAlpha = baseAlpha;
             }
 
             if (enemy.slowTimer > 0) {
-                ctx.fillStyle = 'rgba(116, 185, 255, 0.5)';
-                ctx.beginPath();
-                ctx.arc(ex + ew / 2, ey + eh / 2, ew * 0.8, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.globalAlpha = 0.45 * baseAlpha;
+                ctx.fillStyle = '#74b9ff';
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.globalAlpha = baseAlpha;
+            }
+
+            if (!enemy.isStealthed) {
+                const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
+                const barW = Math.max(24, ew + 6);
+                const barH = 5;
+                const barX = ex + ew / 2 - barW / 2;
+                const barY = ey - 10;
+
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#000';
+                ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+                ctx.fillStyle = '#222';
+                ctx.fillRect(barX, barY, barW, barH);
+                const hpColor = hpRatio > 0.5 ? '#2ecc71' : hpRatio > 0.25 ? '#f1c40f' : '#e74c3c';
+                ctx.fillStyle = hpColor;
+                ctx.fillRect(barX, barY, barW * hpRatio, barH);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.5;
+                ctx.strokeRect(barX, barY, barW, barH);
+                ctx.globalAlpha = 1;
             }
 
             ctx.restore();
@@ -1181,47 +1439,169 @@
     }
 
     function drawGoblin(enemy, x, y, w, h) {
-        const legOffset = enemy.animFrame === 0 ? 0 : 3;
+        const isClimbing = enemy.state === 'climbing';
 
-        ctx.fillStyle = '#2ecc71';
-        ctx.beginPath();
-        ctx.ellipse(x + w / 2, y + h * 0.6, w / 2 - 2, h * 0.35, 0, 0, Math.PI * 2);
-        ctx.fill();
+        if (isClimbing) {
+            const frame = enemy.climbAnimFrame;
 
-        ctx.fillStyle = '#27ae60';
-        ctx.beginPath();
-        ctx.arc(x + w / 2, y + h * 0.25, w / 2, 0, Math.PI * 2);
-        ctx.fill();
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
 
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.35, y + h * 0.22, 4, 0, Math.PI * 2);
-        ctx.arc(x + w * 0.65, y + h * 0.22, 4, 0, Math.PI * 2);
-        ctx.fill();
+            if (frame === 0 || frame === 2) {
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.3, y + h * 0.45);
+                ctx.lineTo(x + w * 0.05, y + h * 0.35);
+                ctx.stroke();
 
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.35, y + h * 0.22, 2, 0, Math.PI * 2);
-        ctx.arc(x + w * 0.65, y + h * 0.22, 2, 0, Math.PI * 2);
-        ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.7, y + h * 0.5);
+                ctx.lineTo(x + w * 0.95, y + h * 0.45);
+                ctx.stroke();
 
-        ctx.fillStyle = '#2ecc71';
-        ctx.beginPath();
-        ctx.moveTo(x + w * 0.2, y + h * 0.2);
-        ctx.lineTo(x + w * 0.05, y + h * 0.05);
-        ctx.lineTo(x + w * 0.25, y + h * 0.1);
-        ctx.closePath();
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(x + w * 0.8, y + h * 0.2);
-        ctx.lineTo(x + w * 0.95, y + h * 0.05);
-        ctx.lineTo(x + w * 0.75, y + h * 0.1);
-        ctx.closePath();
-        ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.35, y + h * 0.75);
+                ctx.lineTo(x + w * 0.1, y + h * 0.6);
+                ctx.stroke();
 
-        ctx.fillStyle = '#27ae60';
-        ctx.fillRect(x + w * 0.25 - 2, y + h - 8 + legOffset, 5, 8);
-        ctx.fillRect(x + w * 0.65 - 2, y + h - 8 - legOffset, 5, 8);
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.65, y + h * 0.8);
+                ctx.lineTo(x + w * 0.9, y + h * 0.7);
+                ctx.stroke();
+            } else if (frame === 1) {
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.3, y + h * 0.5);
+                ctx.lineTo(x + w * 0.05, y + h * 0.55);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.7, y + h * 0.45);
+                ctx.lineTo(x + w * 0.95, y + h * 0.3);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.35, y + h * 0.8);
+                ctx.lineTo(x + w * 0.1, y + h * 0.75);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.65, y + h * 0.75);
+                ctx.lineTo(x + w * 0.9, y + h * 0.55);
+                ctx.stroke();
+            } else if (frame === 3) {
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.3, y + h * 0.4);
+                ctx.lineTo(x + w * 0.05, y + h * 0.25);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.7, y + h * 0.55);
+                ctx.lineTo(x + w * 0.95, y + h * 0.5);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.35, y + h * 0.7);
+                ctx.lineTo(x + w * 0.1, y + h * 0.5);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.65, y + h * 0.85);
+                ctx.lineTo(x + w * 0.9, y + h * 0.8);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.ellipse(x + w / 2, y + h * 0.55, w / 2 - 2, h * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.arc(x + w / 2, y + h * 0.2, w / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x + w * 0.35, y + h * 0.17, 4, 0, Math.PI * 2);
+            ctx.arc(x + w * 0.65, y + h * 0.17, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + w * 0.35, y + h * 0.17, 2, 0, Math.PI * 2);
+            ctx.arc(x + w * 0.65, y + h * 0.17, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.2, y + h * 0.15);
+            ctx.lineTo(x + w * 0.05, y + h * 0.0);
+            ctx.lineTo(x + w * 0.25, y + h * 0.05);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.8, y + h * 0.15);
+            ctx.lineTo(x + w * 0.95, y + h * 0.0);
+            ctx.lineTo(x + w * 0.75, y + h * 0.05);
+            ctx.closePath();
+            ctx.fill();
+
+        } else {
+            const legOffset = enemy.animFrame === 0 ? 0 : 3;
+
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.ellipse(x + w / 2, y + h * 0.6, w / 2 - 2, h * 0.35, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.arc(x + w / 2, y + h * 0.25, w / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x + w * 0.35, y + h * 0.22, 4, 0, Math.PI * 2);
+            ctx.arc(x + w * 0.65, y + h * 0.22, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + w * 0.35, y + h * 0.22, 2, 0, Math.PI * 2);
+            ctx.arc(x + w * 0.65, y + h * 0.22, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.2, y + h * 0.2);
+            ctx.lineTo(x + w * 0.05, y + h * 0.05);
+            ctx.lineTo(x + w * 0.25, y + h * 0.1);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.8, y + h * 0.2);
+            ctx.lineTo(x + w * 0.95, y + h * 0.05);
+            ctx.lineTo(x + w * 0.75, y + h * 0.1);
+            ctx.closePath();
+            ctx.fill();
+
+            const armSwing = enemy.animFrame === 0 ? 0 : 4;
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.2, y + h * 0.5);
+            ctx.lineTo(x + w * 0.05, y + h * 0.55 + armSwing);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.8, y + h * 0.5);
+            ctx.lineTo(x + w * 0.95, y + h * 0.55 - armSwing);
+            ctx.stroke();
+
+            ctx.fillStyle = '#27ae60';
+            ctx.fillRect(x + w * 0.25 - 2, y + h - 8 + legOffset, 5, 8);
+            ctx.fillRect(x + w * 0.65 - 2, y + h - 8 - legOffset, 5, 8);
+        }
     }
 
     function drawSkeleton(enemy, x, y, w, h) {
@@ -1419,11 +1799,23 @@
     function drawParticles() {
         for (const p of gameState.particles) {
             const alpha = p.life / p.maxLife;
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = alpha;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
-            ctx.fill();
+            if (p.text) {
+                ctx.font = `bold ${p.size}px Microsoft YaHei, sans-serif`;
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = alpha;
+                ctx.textAlign = 'center';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(p.text, p.x, p.y);
+                ctx.fillText(p.text, p.x, p.y);
+                ctx.textAlign = 'start';
+            } else {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
         ctx.globalAlpha = 1;
     }
@@ -1457,6 +1849,8 @@
         gameState.gameOver = true;
         gameState.running = false;
         gameState.victory = victory;
+
+        clearSave();
 
         document.getElementById('gameover-screen').classList.remove('hidden');
         document.getElementById('final-wave').textContent = gameState.wave;
@@ -1546,6 +1940,7 @@
     }
 
     let lastTime = 0;
+    let saveTimer = 0;
     function gameLoop(timestamp) {
         if (!gameState.running && gameState.gameOver) {
             return;
@@ -1568,6 +1963,12 @@
             updateEnemyArrows();
             updateParticles();
             updateChargeUI();
+
+            saveTimer += deltaTime;
+            if (saveTimer > 5000) {
+                saveTimer = 0;
+                saveGame();
+            }
         }
 
         drawSky();
@@ -1631,7 +2032,11 @@
         canvas.addEventListener('mouseup', handleMouseUp);
         canvas.addEventListener('mouseleave', handleMouseLeave);
 
-        document.getElementById('start-btn').addEventListener('click', startGame);
+        const startBtn = document.getElementById('start-btn') || document.getElementById('continue-btn');
+        if (startBtn) {
+            startBtn.addEventListener('click', startGame);
+        }
+
         document.getElementById('show-leaderboard-btn').addEventListener('click', () => {
             loadLeaderboard();
             document.getElementById('leaderboard-screen').classList.remove('hidden');
@@ -1646,13 +2051,14 @@
 
         document.getElementById('restart-btn').addEventListener('click', () => {
             document.getElementById('gameover-screen').classList.add('hidden');
-            startGame();
+            startNewGame();
         });
 
         document.getElementById('arrow-upgrade-btn').addEventListener('click', upgradeArrow);
         document.getElementById('wall-upgrade-btn').addEventListener('click', upgradeWall);
         document.getElementById('next-wave-btn').addEventListener('click', () => {
             gameState.resting = false;
+            saveGame();
             startNextWave();
         });
 
@@ -1660,11 +2066,13 @@
             if (e.code === 'Space' && gameState.resting) {
                 e.preventDefault();
                 gameState.resting = false;
+                saveGame();
                 startNextWave();
             }
         });
     }
 
     initEventListeners();
+    showStartScreen();
 
 })();
