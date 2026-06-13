@@ -520,7 +520,7 @@ const app = createApp({
           playerLapTimes: gameState.playerLapTimes,
           finished: gameState.finished,
           cars: gameState.cars.map(c => ({
-            x: c.x, y: c.y, angle: c.angle, speed: c.speed,
+            x: c.x, y: c.y, angle: c.angle, moveAngle: c.moveAngle, speed: c.speed,
             maxSpeed: c.maxSpeed, drift: c.drift, driftFrames: c.driftFrames,
             boostFrames: c.boostFrames, lap: c.lap, lastCheckpoint: c.lastCheckpoint,
             nextQuadrant: c.nextQuadrant, lapStartFrame: c.lapStartFrame,
@@ -758,9 +758,11 @@ const app = createApp({
     }
 
     function createCar(opts) {
+      const angle = opts.angle || 0;
       return {
         x: opts.x, y: opts.y,
-        angle: opts.angle || 0,
+        angle: angle,
+        moveAngle: angle,
         speed: 0,
         maxSpeed: opts.isPlayer ? 8 : 6,
         drift: false,
@@ -856,7 +858,6 @@ const app = createApp({
       const accel = 0.15;
       const brakeDecel = 0.3;
       const friction = car.drift ? 0.05 : 0.1;
-      const turnSpeed = 3 * Math.PI / 180;
 
       if (input.accel) {
         let max = car.maxSpeed;
@@ -875,15 +876,25 @@ const app = createApp({
       if (car.boostFrames > 0) car.boostFrames--;
 
       const absSpeed = Math.abs(car.speed);
-      const speedFactor = 1 + 5 / Math.max(absSpeed, 1);
-      let turnFactor = turnSpeed * speedFactor;
-      if (absSpeed < 1) {
-        turnFactor = turnSpeed * (1 + absSpeed * 5);
+      let turnRate;
+      if (absSpeed < 0.15) {
+        turnRate = 0;
+      } else if (absSpeed < 2) {
+        turnRate = 0.04 * absSpeed / 2;
+      } else {
+        turnRate = 0.04 * (1 + 2.5 / absSpeed);
       }
-      if (absSpeed < 0.1) turnFactor = 0;
+      if (car.drift) turnRate *= 1.4;
 
-      if (input.left) car.angle -= turnFactor;
-      if (input.right) car.angle += turnFactor;
+      if (input.left) car.angle -= turnRate;
+      if (input.right) car.angle += turnRate;
+
+      if (car.moveAngle === undefined) car.moveAngle = car.angle;
+      const grip = car.drift ? 0.04 : 0.15;
+      let angleDiff = car.angle - car.moveAngle;
+      while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+      while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+      car.moveAngle += angleDiff * grip;
 
       const wasDrifting = car.drift;
       car.drift = input.brake && (input.left || input.right) && Math.abs(car.speed) > 2;
@@ -906,30 +917,27 @@ const app = createApp({
         if (input.accel && car.boostFrames > 110) soundManager.playTurbo();
       }
 
-      let driftAngle = 0;
-      if (car.drift) {
-        driftAngle = (input.left ? -1 : 1) * 0.3;
-      }
-
-      car.x += Math.cos(car.angle + driftAngle) * car.speed;
-      car.y += Math.sin(car.angle + driftAngle) * car.speed;
+      const moveA = car.moveAngle;
+      car.x += Math.cos(moveA) * car.speed;
+      car.y += Math.sin(moveA) * car.speed;
 
       const near = nearestPointOnTrack(car.x, car.y, gameState.track);
       const halfW = gameState.track.width / 2;
       if (near.dist > halfW) {
         const nx = (car.x - near.x) / near.dist;
         const ny = (car.y - near.y) / near.dist;
-        car.x = near.x + nx * halfW;
-        car.y = near.y + ny * halfW;
-        car.speed *= 0.5;
+        car.x = near.x + nx * halfW * 0.98;
+        car.y = near.y + ny * halfW * 0.98;
+        car.speed *= 0.7;
+        car.moveAngle = Math.atan2(ny, nx) * 0.3 + car.moveAngle * 0.7;
         if (car.isPlayer) {
           soundManager.playCollision();
-          for (let i = 0; i < 10; i++) {
+          for (let i = 0; i < 6; i++) {
             gameState.sparks.push({
               x: car.x, y: car.y,
-              vx: (Math.random() - 0.5) * 8,
-              vy: (Math.random() - 0.5) * 8,
-              life: 20
+              vx: (Math.random() - 0.5) * 6,
+              vy: (Math.random() - 0.5) * 6,
+              life: 15
             });
           }
         }
@@ -1541,6 +1549,7 @@ const app = createApp({
         });
         car.speed = c.speed;
         car.maxSpeed = c.maxSpeed;
+        car.moveAngle = c.moveAngle !== undefined ? c.moveAngle : c.angle;
         car.drift = c.drift;
         car.driftFrames = c.driftFrames;
         car.boostFrames = c.boostFrames;
