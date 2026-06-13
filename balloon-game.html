@@ -284,7 +284,8 @@ let gameState = {
   wind: 0,
   windTimer: 0,
   currentCrosshair: 'cross',
-  unlockedCrosshairs: ['cross']
+  unlockedCrosshairs: ['cross'],
+  gameOver: false
 };
 
 const CROSSHAIR_UNLOCKS = [
@@ -305,6 +306,14 @@ function loadGame() {
       if (!gameState.unlockedCrosshairs.includes(gameState.currentCrosshair)) {
         gameState.currentCrosshair = 'cross';
       }
+      if (typeof data.gameOver === 'boolean' && !data.gameOver) {
+        gameState.score = data.score || 0;
+        gameState.lives = typeof data.lives === 'number' ? data.lives : 3;
+        gameState.wind = data.wind || 0;
+        gameState.gameOver = false;
+      } else {
+        gameState.gameOver = !!data.gameOver;
+      }
     }
   } catch(e) { console.error('读取存档失败', e); }
 }
@@ -314,7 +323,11 @@ function saveGame() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       highScore: gameState.highScore,
       unlockedCrosshairs: gameState.unlockedCrosshairs,
-      currentCrosshair: gameState.currentCrosshair
+      currentCrosshair: gameState.currentCrosshair,
+      score: gameState.score,
+      lives: gameState.lives,
+      wind: gameState.wind,
+      gameOver: !!gameState.gameOver
     }));
   } catch(e) { console.error('保存存档失败', e); }
 }
@@ -807,6 +820,7 @@ canvas.addEventListener('click', (e) => {
         updateComboUI();
         checkCrosshairUnlocks();
       }
+      saveGame();
       break;
     }
   }
@@ -975,9 +989,19 @@ function restartGame() {
 let lastTime = performance.now();
 let spawnAccumulator = 0;
 
+let autoSaveTimer = 0;
+
 function gameLoop(currentTime) {
   const dt = currentTime - lastTime;
   lastTime = currentTime;
+
+  ctx.clearRect(0, 0, W, H);
+
+  autoSaveTimer += dt;
+  if (autoSaveTimer >= 2000) {
+    autoSaveTimer = 0;
+    saveGame();
+  }
 
   if (!gameState.gameOver) {
     gameState.windTimer += dt;
@@ -1068,11 +1092,17 @@ function drawClouds() {
   ctx.restore();
 }
 
+window.addEventListener('beforeunload', () => saveGame());
+
 updateScoreUI();
 updateLivesUI();
 updateComboUI();
 updateWindUI();
 renderCrosshairSelector();
+if (gameState.gameOver) {
+  document.getElementById('finalScore').textContent = gameState.score;
+  document.getElementById('gameOver').style.display = 'block';
+}
 requestAnimationFrame(gameLoop);
 </script>
 </body>
