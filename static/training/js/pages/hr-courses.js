@@ -1,13 +1,14 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
+var DRAFT_KEY = 'hr_course_draft';
 window.HrCoursesPage = {
-    setup() {
+    setup: function() {
         requireRole('hr');
-        const courses = ref([]);
-        const departments = ref([]);
-        const loading = ref(false);
-        const showModal = ref(false);
-        const editingCourse = ref(null);
-        const form = reactive({
+        var courses = ref([]);
+        var departments = ref([]);
+        var loading = ref(false);
+        var showModal = ref(false);
+        var editingCourse = ref(null);
+        var form = reactive({
             title: '',
             description: '',
             instructor: '',
@@ -18,21 +19,65 @@ window.HrCoursesPage = {
             departments: []
         });
 
-        const loadData = async () => {
+        var saveDraft = function() {
+            try {
+                if (showModal.value) {
+                    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+                        editing: editingCourse.value ? { id: editingCourse.value.id } : null,
+                        form: Object.assign({}, form)
+                    }));
+                }
+            } catch(e) {}
+        };
+
+        var restoreDraft = function() {
+            try {
+                var raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return false;
+                var d = JSON.parse(raw);
+                if (d.form) Object.assign(form, d.form);
+                if (d.editing && d.editing.id) {
+                    var match = (courses.value || []).find(function(c) { return c.id === d.editing.id; });
+                    if (match) editingCourse.value = match;
+                }
+                showModal.value = true;
+                return true;
+            } catch(e) { return false; }
+        };
+
+        var clearDraft = function() {
+            try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+        };
+
+        watch(function() { return form.title; }, saveDraft);
+        watch(function() { return form.description; }, saveDraft);
+        watch(function() { return form.instructor; }, saveDraft);
+        watch(function() { return form.datetime; }, saveDraft);
+        watch(function() { return form.location; }, saveDraft);
+        watch(function() { return form.link; }, saveDraft);
+        watch(function() { return form.capacity; }, saveDraft);
+        watch(function() { return JSON.stringify(form.departments); }, saveDraft);
+        watch(function() { return showModal.value; }, function(v) { if (!v) clearDraft(); });
+
+        var loadData = async function() {
             loading.value = true;
             try {
-                const [coursesRes, deptsRes] = await Promise.all([
+                var [coursesRes, deptsRes] = await Promise.all([
                     Api.getCourses(),
                     Api.getDepartments()
                 ]);
                 if (coursesRes.code === 0) courses.value = coursesRes.data || [];
                 if (deptsRes.code === 0) departments.value = deptsRes.data || [];
+                if (courses.value.length > 0) setTimeout(restoreDraft, 100);
+            } catch(e) {
+                console.error(e);
+                GlobalStore.addToast('error', '加载失败', (e && e.message) || '请稍后重试');
             } finally {
                 loading.value = false;
             }
         };
 
-        const openCreateModal = () => {
+        var openCreateModal = function() {
             editingCourse.value = null;
             Object.assign(form, {
                 title: '',
@@ -47,13 +92,15 @@ window.HrCoursesPage = {
             showModal.value = true;
         };
 
-        const openEditModal = async (course) => {
+        var openEditModal = function(course) {
             editingCourse.value = course;
+            var dt = course.datetime || '';
+            if (dt && dt.indexOf(' ') > 0 && dt.indexOf('T') === -1) dt = dt.replace(' ', 'T');
             Object.assign(form, {
                 title: course.title,
                 description: course.description || '',
                 instructor: course.instructor || '',
-                datetime: course.datetime,
+                datetime: dt,
                 location: course.location || '',
                 link: course.link || '',
                 capacity: course.capacity,
@@ -62,8 +109,9 @@ window.HrCoursesPage = {
             showModal.value = true;
         };
 
-        const closeModal = () => {
+        var closeModal = function() {
             showModal.value = false;
+            clearDraft();
         };
 
         const saveCourse = async () => {
@@ -76,30 +124,29 @@ window.HrCoursesPage = {
                 return;
             }
 
+            var payload = Object.assign({}, form);
+            if (payload.datetime && payload.datetime.indexOf('T') > 0) {
+                payload.datetime = payload.datetime.replace('T', ' ');
+            }
             if (editingCourse.value) {
-                const res = await Api.updateCourse({
-                    id: editingCourse.value.id,
-                    ...form,
-                    datetime: form.datetime
-                });
+                var res = await Api.updateCourse(Object.assign({ id: editingCourse.value.id }, payload));
                 if (res.code === 0) {
                     GlobalStore.addToast('success', '更新成功', '课程已更新');
                     closeModal();
+                    clearDraft();
                     loadData();
                 } else {
                     GlobalStore.addToast('error', '更新失败', res.message || '更新失败');
                 }
             } else {
-                const res = await Api.createCourse({
-                    ...form,
-                    datetime: form.datetime
-                });
-                if (res.code === 0) {
+                var res2 = await Api.createCourse(payload);
+                if (res2.code === 0) {
                     GlobalStore.addToast('success', '创建成功', '课程已创建并通知相关员工');
                     closeModal();
+                    clearDraft();
                     loadData();
                 } else {
-                    GlobalStore.addToast('error', '创建失败', res.message || '创建失败');
+                    GlobalStore.addToast('error', '创建失败', res2.message || '创建失败');
                 }
             }
         };

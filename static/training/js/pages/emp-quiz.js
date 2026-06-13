@@ -17,7 +17,13 @@ window.EmpQuizPage = {
         async function loadEnrollments() {
             loading.value = true;
             try {
-                var res = await Api.getEmployeeCourses(GlobalStore.currentUser.id);
+                var user = GlobalStore.currentUser;
+                if (!user) {
+                    GlobalStore.addToast('warning', '请先登录', '正在跳转登录页...');
+                    GlobalStore.setRoute('login');
+                    return;
+                }
+                var res = await Api.getEmployeeCourses(user.id);
                 if (res.code === 0) {
                     var list = (res.data || []).filter(function(e) {
                         return e.status !== 'pending' && e.status !== 'leave_pending'
@@ -37,7 +43,12 @@ window.EmpQuizPage = {
                             || list[0];
                         if (defaultPick) await selectEnrollment(defaultPick);
                     }
+                } else {
+                    GlobalStore.addToast('error', '加载失败', res.message || '请稍后重试');
                 }
+            } catch(e) {
+                console.error(e);
+                GlobalStore.addToast('error', '网络异常', (e && e.message) || '请检查网络后刷新页面');
             } finally {
                 loading.value = false;
             }
@@ -80,8 +91,13 @@ window.EmpQuizPage = {
                         enroll._hasQuiz = false;
                         quizData.value = { no_quiz: true };
                     }
+                } else {
+                    GlobalStore.addToast('warning', '加载测评失败', res.message || '请稍后重试');
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error(e);
+                GlobalStore.addToast('error', '网络异常', (e && e.message) || '加载测评失败');
+            }
         }
 
         var answeredCount = computed(function() {

@@ -47,13 +47,21 @@ window.EmpCoursesPage = {
             loading.value = true;
             try {
                 var user = GlobalStore.currentUser;
-                if (user) {
-                    var res = await Api.getEmployeeCourses(user.id);
-                    if (res.code === 0) {
-                        courses.value = res.data || [];
-                        GlobalStore.notificationCount = pendingCourses.value.length;
-                    }
+                if (!user) {
+                    GlobalStore.addToast('warning', '请先登录', '正在跳转登录页...');
+                    GlobalStore.setRoute('login');
+                    return;
                 }
+                var res = await Api.getEmployeeCourses(user.id);
+                if (res.code === 0) {
+                    courses.value = res.data || [];
+                    GlobalStore.notificationCount = pendingCourses.value.length;
+                } else {
+                    GlobalStore.addToast('error', '加载失败', res.message || '请稍后重试');
+                }
+            } catch(e) {
+                console.error(e);
+                GlobalStore.addToast('error', '网络异常', (e && e.message) || '请检查网络后刷新页面');
             } finally {
                 loading.value = false;
             }
