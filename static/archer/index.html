@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弓箭手大作战 - 城堡防御</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="header-item">
+                <span class="label">波次</span>
+                <span id="wave-display" class="value">1 / 20</span>
+            </div>
+            <div class="header-item">
+                <span class="label">城堡生命</span>
+                <div class="hp-bar-container">
+                    <div id="castle-hp-bar" class="hp-bar"></div>
+                    <span id="castle-hp-text" class="hp-text">100 / 100</span>
+                </div>
+            </div>
+            <div class="header-item">
+                <span class="label">金币</span>
+                <span id="gold-display" class="value gold">0</span>
+            </div>
+            <div class="header-item">
+                <span class="label">得分</span>
+                <span id="score-display" class="value">0</span>
+            </div>
+        </div>
+
+        <canvas id="game-canvas" width="900" height="600"></canvas>
+
+        <div class="charge-bar-container" id="charge-bar-container">
+            <div class="charge-bar-bg">
+                <div id="charge-bar" class="charge-bar"></div>
+            </div>
+            <span id="charge-text" class="charge-text">蓄力 0%</span>
+        </div>
+
+        <div id="start-screen" class="overlay-screen">
+            <div class="overlay-content">
+                <h1 class="game-title">🏹 弓箭手大作战</h1>
+                <p class="subtitle">守卫你的城堡，击退敌人的进攻！</p>
+                <div class="instructions">
+                    <h3>游戏说明</h3>
+                    <ul>
+                        <li>🎯 移动鼠标瞄准方向</li>
+                        <li>💪 按住鼠标左键蓄力</li>
+                        <li>🏹 松开鼠标射箭</li>
+                        <li>⬆️ 每5波可升级箭矢和城墙</li>
+                        <li>👹 击杀敌人获得金币</li>
+                    </ul>
+                </div>
+                <div class="input-group">
+                    <label for="player-name">玩家名称：</label>
+                    <input type="text" id="player-name" maxlength="20" placeholder="请输入你的名字" value="弓箭手">
+                </div>
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+                <button id="show-leaderboard-btn" class="btn btn-secondary">查看排行榜</button>
+            </div>
+        </div>
+
+        <div id="upgrade-screen" class="overlay-screen hidden">
+            <div class="overlay-content">
+                <h2>⚔️ 升级商店</h2>
+                <p class="rest-timer">休息时间：<span id="rest-timer">10</span> 秒</p>
+                <div class="upgrade-gold">当前金币：<span id="upgrade-gold" class="gold">0</span></div>
+                <div class="upgrade-options">
+                    <div class="upgrade-card" id="arrow-upgrade-card">
+                        <h3>🏹 箭矢升级</h3>
+                        <p id="arrow-level-text">当前：普通箭</p>
+                        <p class="upgrade-desc">升级后箭矢附带特殊效果</p>
+                        <p class="upgrade-cost">费用：<span id="arrow-upgrade-cost">100</span> 金币</p>
+                        <button id="arrow-upgrade-btn" class="btn btn-upgrade">升级箭矢</button>
+                    </div>
+                    <div class="upgrade-card" id="wall-upgrade-card">
+                        <h3>🏰 城墙升级</h3>
+                        <p id="wall-level-text">当前：生命上限 100</p>
+                        <p class="upgrade-desc">提升生命上限并完全修复</p>
+                        <p class="upgrade-cost">费用：<span id="wall-upgrade-cost">150</span> 金币</p>
+                        <button id="wall-upgrade-btn" class="btn btn-upgrade">升级城墙</button>
+                    </div>
+                </div>
+                <button id="next-wave-btn" class="btn btn-primary">开始下一波</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="overlay-screen hidden">
+            <div class="overlay-content">
+                <h2 id="gameover-title">💀 游戏结束</h2>
+                <div class="gameover-stats">
+                    <p>到达波次：<span id="final-wave">1</span></p>
+                    <p>最终得分：<span id="final-score">0</span></p>
+                    <p>获得金币：<span id="final-gold">0</span></p>
+                </div>
+                <div id="submit-status" class="submit-status"></div>
+                <button id="restart-btn" class="btn btn-primary">重新开始</button>
+                <button id="gameover-leaderboard-btn" class="btn btn-secondary">查看排行榜</button>
+            </div>
+        </div>
+
+        <div id="leaderboard-screen" class="overlay-screen hidden">
+            <div class="overlay-content">
+                <h2>🏆 排行榜</h2>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <p class="loading-text">加载中...</p>
+                </div>
+                <button id="close-leaderboard-btn" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+
+        <div id="wave-announce" class="wave-announce hidden">
+            <span id="wave-announce-text">第 1 波</span>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
