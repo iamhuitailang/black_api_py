@@ -272,7 +272,8 @@ window.addEventListener('resize', () => {
   canvas.height = H;
 });
 
-const SAVE_KEY = 'balloon_game_save_v1';
+const SAVE_KEY = 'balloon_game_save_v2';
+const SAVE_VERSION = 2;
 
 let gameState = {
   score: 0,
@@ -298,8 +299,27 @@ const CROSSHAIR_UNLOCKS = [
 function loadGame() {
   try {
     const saved = localStorage.getItem(SAVE_KEY);
+    console.log('[存档] 读取原始数据:', saved);
+
     if (saved) {
       const data = JSON.parse(saved);
+      console.log('[存档] 解析后:', data);
+
+      if (data.version !== SAVE_VERSION) {
+        console.log('[存档] 版本不匹配,迁移数据');
+        if (typeof data.highScore === 'number') gameState.highScore = data.highScore;
+        if (Array.isArray(data.unlockedCrosshairs)) gameState.unlockedCrosshairs = data.unlockedCrosshairs;
+        if (typeof data.currentCrosshair === 'string' && gameState.unlockedCrosshairs.includes(data.currentCrosshair)) {
+          gameState.currentCrosshair = data.currentCrosshair;
+        }
+        gameState.score = 0;
+        gameState.lives = 3;
+        gameState.wind = 0;
+        gameState.gameOver = false;
+        saveGame();
+        return;
+      }
+
       gameState.highScore = typeof data.highScore === 'number' ? data.highScore : 0;
       gameState.unlockedCrosshairs = Array.isArray(data.unlockedCrosshairs) && data.unlockedCrosshairs.length > 0
         ? data.unlockedCrosshairs : ['cross'];
@@ -307,24 +327,30 @@ function loadGame() {
         && gameState.unlockedCrosshairs.includes(data.currentCrosshair)
         ? data.currentCrosshair : 'cross';
 
-      const isGameOver = data.gameOver === true;
-      gameState.gameOver = isGameOver;
+      gameState.gameOver = data.gameOver === true;
+      gameState.score = typeof data.score === 'number' ? data.score : 0;
+      gameState.lives = typeof data.lives === 'number' && data.lives > 0 ? data.lives : 3;
+      gameState.wind = typeof data.wind === 'number' ? data.wind : 0;
 
-      if (!isGameOver) {
-        gameState.score = typeof data.score === 'number' ? data.score : 0;
-        gameState.lives = typeof data.lives === 'number' && data.lives >= 0 ? data.lives : 3;
-        if (gameState.lives === 0) gameState.lives = 3;
-        gameState.wind = typeof data.wind === 'number' ? data.wind : 0;
-      } else {
-        gameState.score = typeof data.score === 'number' ? data.score : 0;
-      }
+      console.log('[存档] 恢复后 gameState:', {
+        score: gameState.score,
+        lives: gameState.lives,
+        wind: gameState.wind,
+        gameOver: gameState.gameOver,
+        highScore: gameState.highScore
+      });
+    } else {
+      console.log('[存档] 无存档,使用默认值');
     }
-  } catch(e) { console.error('读取存档失败', e); }
+  } catch(e) {
+    console.error('[存档] 读取失败:', e);
+  }
 }
 
 function saveGame() {
   try {
     const payload = {
+      version: SAVE_VERSION,
       highScore: gameState.highScore,
       unlockedCrosshairs: gameState.unlockedCrosshairs,
       currentCrosshair: gameState.currentCrosshair,
@@ -335,10 +361,41 @@ function saveGame() {
       savedAt: Date.now()
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  } catch(e) { console.error('保存存档失败', e); }
+    console.log('[存档] 已保存:', payload);
+  } catch(e) {
+    console.error('[存档] 保存失败:', e);
+  }
 }
 
 loadGame();
+
+(function migrateOldSave() {
+  try {
+    const oldSave = localStorage.getItem('balloon_game_save_v1');
+    if (oldSave) {
+      const data = JSON.parse(oldSave);
+      console.log('[迁移] 发现 v1 存档:', data);
+      if (typeof data.highScore === 'number' && data.highScore > gameState.highScore) {
+        gameState.highScore = data.highScore;
+      }
+      if (Array.isArray(data.unlockedCrosshairs)) {
+        for (const id of data.unlockedCrosshairs) {
+          if (!gameState.unlockedCrosshairs.includes(id)) {
+            gameState.unlockedCrosshairs.push(id);
+          }
+        }
+      }
+      if (typeof data.currentCrosshair === 'string' && gameState.unlockedCrosshairs.includes(data.currentCrosshair)) {
+        gameState.currentCrosshair = data.currentCrosshair;
+      }
+      localStorage.removeItem('balloon_game_save_v1');
+      saveGame();
+      console.log('[迁移] v1 数据已合并到 v2,旧存档已删除');
+    }
+  } catch(e) {
+    console.error('[迁移] 失败:', e);
+  }
+})();
 
 const BALLOON_TYPES = {
   red:    { radius: 25, speed: 1.5, score: 10,  prob: 0.45, color: '#FF4444', darkColor: '#CC0000' },
@@ -878,6 +935,7 @@ function changeWind() {
   gameState.wind = (Math.random() * 4 - 2);
   playWindSound();
   updateWindUI();
+  saveGame();
 }
 
 function checkCrosshairUnlocks() {
@@ -1107,6 +1165,18 @@ window.addEventListener('beforeunload', () => saveGame());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) saveGame();
 });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 's' || e.key === 'S') {
+    saveGame();
+    console.log('[调试] 手动保存完成');
+    alert('手动保存完成！查看控制台确认数据');
+  }
+  if (e.key === 'l' || e.key === 'L') {
+    const raw = localStorage.getItem(SAVE_KEY);
+    console.log('[调试] 手动读取 localStorage 原始内容:', raw);
+    alert('查看控制台中的存档数据');
+  }
+});
 
 updateScoreUI();
 updateLivesUI();
@@ -1117,6 +1187,13 @@ if (gameState.gameOver) {
   document.getElementById('finalScore').textContent = gameState.score;
   document.getElementById('gameOver').style.display = 'block';
 }
+saveGame();
+console.log('[初始化] 完成,当前状态:', {
+  score: gameState.score,
+  lives: gameState.lives,
+  gameOver: gameState.gameOver,
+  highScore: gameState.highScore
+});
 requestAnimationFrame(gameLoop);
 </script>
 </body>
