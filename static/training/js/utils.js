@@ -14,121 +14,77 @@ if (!window.VueApi) {
 }
 var VueApi = window.VueApi;
 
-const Utils = {
-    formatDate(datetimeStr) {
-        if (!datetimeStr) return '-';
-        try {
-            const dt = new Date(datetimeStr);
-            return dt.toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (e) {
-            return datetimeStr;
-        }
+var Utils = {
+    showToast: function(msg, type) {
+        type = type || 'info';
+        var toast = document.createElement('div');
+        toast.className = 'toast-simple toast-' + type;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.classList.add('show'); }, 10);
+        setTimeout(function() {
+            toast.classList.remove('show');
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 2500);
     },
 
-    formatDateOnly(datetimeStr) {
-        if (!datetimeStr) return '-';
-        try {
-            const dt = new Date(datetimeStr);
-            return dt.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-        } catch (e) {
-            return datetimeStr;
-        }
+    formatDate: function(str) {
+        if (!str) return '';
+        var d = new Date(str.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return str;
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
     },
 
-    getDay(datetimeStr) {
-        if (!datetimeStr) return '?';
-        try {
-            const dt = new Date(datetimeStr);
-            return dt.getDate();
-        } catch (e) {
-            return '?';
-        }
+    formatDateTime: function(str) {
+        if (!str) return '';
+        var d = new Date(str.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return str;
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        var wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+        return (d.getFullYear()) + '-' + m + '-' + day + ' ' + wd + ' ' + hh + ':' + mm;
     },
 
-    getMonth(datetimeStr) {
-        if (!datetimeStr) return '?';
-        try {
-            const dt = new Date(datetimeStr);
-            const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-            return months[dt.getMonth()];
-        } catch (e) {
-            return '?';
-        }
+    getMonth: function(str) {
+        if (!str) return '';
+        var d = new Date(str.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '';
+        var m = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+        return m[d.getMonth()];
     },
 
-    getStatusText(status) {
-        const map = {
-            'pending': '待确认',
-            'confirmed': '已确认',
-            'checked_in': '已签到',
-            'completed': '已完成',
-            'leave': '请假中'
-        };
-        return map[status] || status;
+    getDay: function(str) {
+        if (!str) return '';
+        var d = new Date(str.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '';
+        return String(d.getDate());
     },
 
-    getStatusClass(status) {
-        return 'status-' + status;
+    getWeekday: function(str) {
+        if (!str) return '';
+        var d = new Date(str.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '';
+        return ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
     },
 
-    getLeaveStatusText(status) {
-        const map = {
-            'pending': '待审批',
-            'approved': '已批准',
-            'rejected': '已拒绝'
-        };
-        return map[status] || status;
-    },
-
-    getCurrentUser() {
-        try {
-            const user = localStorage.getItem('training_user');
-            return user ? JSON.parse(user) : null;
-        } catch (e) {
-            return null;
-        }
-    },
-
-    setCurrentUser(user) {
-        localStorage.setItem('training_user', JSON.stringify(user));
-    },
-
-    clearCurrentUser() {
-        localStorage.removeItem('training_user');
-    },
-
-    showToast(message, type = 'info') {
-        const container = document.querySelector('.toast-container') || (() => {
-            const el = document.createElement('div');
-            el.className = 'toast-container';
-            document.body.appendChild(el);
-            return el;
-        })();
-
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
-        toast.innerHTML = `
-            <span class="toast-icon">${icons[type] || 'ℹ'}</span>
-            <span class="toast-message">${message}</span>
-        `;
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'slideIn 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+    isUpcoming: function(str) {
+        if (!str) return false;
+        var d = new Date(str.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return false;
+        var diff = d.getTime() - Date.now();
+        return diff > 0 && diff < 7 * 24 * 3600 * 1000;
     }
 };
 
 window.Utils = Utils;
+window.formatDate = Utils.formatDate;
+window.formatDateTime = Utils.formatDateTime;
+window.formatMonth = Utils.getMonth;
+window.formatDay = Utils.getDay;
+window.formatWeekday = Utils.getWeekday;
+window.isUpcoming = Utils.isUpcoming;

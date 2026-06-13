@@ -25,7 +25,22 @@ class TrainingBusiness:
 
     def init_demo_data(self):
         self.employee_model.init_default_employees()
+        self._migrate_passwords()
         return self._success(message='Demo data initialized')
+
+    def _migrate_passwords(self):
+        all_emps = self.employee_model.get_all()
+        for emp in all_emps:
+            if not emp.get('password'):
+                self.employee_model.update(emp['id'], password=emp['employee_id'])
+
+    def login(self, employee_id: str, password: str) -> Dict[str, Any]:
+        if not employee_id or not password:
+            return self._error('工号和密码不能为空')
+        employee = self.employee_model.login(employee_id, password)
+        if not employee:
+            return self._error('工号或密码错误')
+        return self._success(employee, '登录成功')
 
     def get_employees(self) -> Dict[str, Any]:
         employees = self.employee_model.get_all()
@@ -239,6 +254,9 @@ class TrainingBusiness:
         if not enrollment:
             return self._error('You are not enrolled in this course')
 
+        if enrollment['status'] not in [EnrollmentModel.STATUS_CHECKED_IN, EnrollmentModel.STATUS_COMPLETED]:
+            return self._error('请先完成签到后再参与测评')
+
         quiz = self.quiz_model.get_by_course_id(course_id)
         if not quiz:
             return self._success(None)
@@ -262,6 +280,9 @@ class TrainingBusiness:
         enrollment = self.enrollment_model.get_by_id(enrollment_id)
         if not enrollment:
             return self._error('Enrollment not found')
+
+        if enrollment['status'] not in [EnrollmentModel.STATUS_CHECKED_IN, EnrollmentModel.STATUS_COMPLETED]:
+            return self._error('请先完成签到后再参与测评')
 
         existing = self.quiz_result_model.get_by_enrollment_id(enrollment_id)
         if existing:

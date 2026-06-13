@@ -45,6 +45,10 @@ const Api = {
         return this.get('/training/initdemo/get');
     },
 
+    async login(employeeId, password) {
+        return this.post('/training/login', { employee_id: employeeId, password });
+    },
+
     async getEmployees() {
         return this.get('/training/employees/get');
     },

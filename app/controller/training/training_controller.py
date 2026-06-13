@@ -64,9 +64,17 @@ class CreateEmployeeRequest(BaseModel):
     role: str = 'employee'
 
 
+class LoginRequest(BaseModel):
+    employee_id: str
+    password: str
+
+
 class TrainingController:
     def __init__(self):
         self.business = TrainingBusiness()
+
+    def ActionTrainingLoginPost(self, request: Request, body: LoginRequest):
+        return self.business.login(body.employee_id, body.password)
 
     def ActionTrainingInitdemoGet(self, request: Request):
         return self.business.init_demo_data()

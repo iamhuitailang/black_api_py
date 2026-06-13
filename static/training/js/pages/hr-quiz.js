@@ -1,6 +1,7 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
-const HrQuizPage = {
+window.HrQuizPage = {
     setup() {
+        requireRole('hr');
         const courses = ref([]);
         const selectedCourse = ref(null);
         const loading = ref(false);
@@ -30,7 +31,7 @@ const HrQuizPage = {
 
         const addQuestion = () => {
             if (questions.value.length >= 10) {
-                Utils.showToast('最多10道题', 'warning');
+                GlobalStore.addToast('warning', '提示', '最多10道题');
                 return;
             }
             questions.value.push({
@@ -43,7 +44,7 @@ const HrQuizPage = {
 
         const removeQuestion = (index) => {
             if (questions.value.length <= 1) {
-                Utils.showToast('至少保留1道题', 'warning');
+                GlobalStore.addToast('warning', '提示', '至少保留1道题');
                 return;
             }
             questions.value.splice(index, 1);
@@ -51,7 +52,7 @@ const HrQuizPage = {
 
         const addOption = (qIndex) => {
             if (questions.value[qIndex].options.length >= 6) {
-                Utils.showToast('最多6个选项', 'warning');
+                GlobalStore.addToast('warning', '提示', '最多6个选项');
                 return;
             }
             questions.value[qIndex].options.push('');
@@ -59,7 +60,7 @@ const HrQuizPage = {
 
         const removeOption = (qIndex, oIndex) => {
             if (questions.value[qIndex].options.length <= 2) {
-                Utils.showToast('至少2个选项', 'warning');
+                GlobalStore.addToast('warning', '提示', '至少2个选项');
                 return;
             }
             questions.value[qIndex].options.splice(oIndex, 1);
@@ -70,18 +71,18 @@ const HrQuizPage = {
 
         const saveQuiz = async () => {
             if (!selectedCourse.value) {
-                Utils.showToast('请先选择课程', 'warning');
+                GlobalStore.addToast('warning', '提示', '请先选择课程');
                 return;
             }
             for (let i = 0; i < questions.value.length; i++) {
                 const q = questions.value[i];
                 if (!q.question.trim()) {
-                    Utils.showToast(`第${i + 1}题题干不能为空`, 'warning');
+                    GlobalStore.addToast('warning', '提示', `第${i + 1}题题干不能为空`);
                     return;
                 }
                 const validOptions = q.options.filter(o => o.trim());
-                if (validOptions.length < 2) {
-                    Utils.showToast(`第${i + 1}题至少2个有效选项`, 'warning');
+                if (validOptions < 2) {
+                    GlobalStore.addToast('warning', '提示', `第${i + 1}题至少2个有效选项`);
                     return;
                 }
             }
@@ -89,9 +90,9 @@ const HrQuizPage = {
             try {
                 const res = await Api.saveQuiz(selectedCourse.value.id, questions.value);
                 if (res.code === 0) {
-                    Utils.showToast('测评保存成功', 'success');
+                    GlobalStore.addToast('success', '保存成功', '测评保存成功');
                 } else {
-                    Utils.showToast(res.message || '保存失败', 'error');
+                    GlobalStore.addToast('error', '保存失败', res.message || '保存失败');
                 }
             } finally {
                 saving.value = false;
@@ -107,18 +108,12 @@ const HrQuizPage = {
         return {
             courses, selectedCourse, loading, saving, questions,
             selectCourse, addQuestion, removeQuestion, addOption, removeOption,
-            saveQuiz, optionLabels, Utils
+            saveQuiz, optionLabels,
+            toasts: GlobalStore.toasts, removeToast: GlobalStore.removeToast.bind(GlobalStore), formatDate: formatDate, formatDateTime: formatDateTime
         };
     },
     template: `
-        <div>
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">测评管理</h1>
-                    <p class="page-subtitle">为培训课程发布课后测评问卷（最多10道单选题）</p>
-                </div>
-            </div>
-
+        <LayoutWrapper title="测评管理" active-menu="hr-quiz" role="hr">
             <div style="display:grid;grid-template-columns:280px 1fr;gap:24px;">
                 <div>
                     <div class="card" style="padding:16px;">
@@ -133,7 +128,7 @@ const HrQuizPage = {
                                     @click="selectCourse(course)">
                                 <div style="flex:1;overflow:hidden;">
                                     <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ course.title }}</div>
-                                    <div style="font-size:12px;opacity:0.8;margin-top:2px;">{{ Utils.formatDate(course.datetime) }}</div>
+                                    <div style="font-size:12px;opacity:0.8;margin-top:2px;">{{ formatDate(course.datetime) }}</div>
                                 </div>
                             </button>
                         </div>
@@ -151,7 +146,7 @@ const HrQuizPage = {
                             <div style="display:flex;justify-content:space-between;align-items:center;">
                                 <div>
                                     <div style="font-size:16px;font-weight:600;">{{ selectedCourse.title }}</div>
-                                    <div style="color:#718096;font-size:13px;margin-top:4px;">{{ selectedCourse.instructor }} · {{ Utils.formatDate(selectedCourse.datetime) }}</div>
+                                    <div style="color:#718096;font-size:13px;margin-top:4px;">{{ selectedCourse.instructor }} · {{ formatDate(selectedCourse.datetime) }}</div>
                                 </div>
                                 <div style="display:flex;gap:8px;">
                                     <button class="btn btn-secondary" @click="addQuestion">＋ 添加题目</button>
@@ -193,8 +188,16 @@ const HrQuizPage = {
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div class="toast-container">
+                <transition-group name="toast">
+                    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" @click="removeToast(t.id)">
+                        <div class="toast-icon"><span v-if="t.type==='success'">✅</span><span v-else-if="t.type==='error'">❌</span><span v-else-if="t.type==='warning'">⚠️</span><span v-else>ℹ️</span></div>
+                        <div class="toast-content"><div class="toast-title">{{ t.title }}</div><div v-if="t.message" class="toast-message">{{ t.message }}</div></div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </transition-group>
+            </div>
+        </LayoutWrapper>
     `
 };
-
-window.HrQuizPage = HrQuizPage;

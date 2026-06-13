@@ -1,6 +1,7 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
-const HrStatisticsPage = {
+window.HrStatisticsPage = {
     setup() {
+        requireRole('hr');
         const data = reactive({
             overview: {},
             by_department: [],
@@ -33,17 +34,13 @@ const HrStatisticsPage = {
             loadData();
         });
 
-        return { data, loading, maxDeptAttendance, maxQuarterCourses, Utils };
+        return {
+            data, loading, maxDeptAttendance, maxQuarterCourses, Utils,
+            toasts: GlobalStore.toasts, removeToast: GlobalStore.removeToast.bind(GlobalStore)
+        };
     },
     template: `
-        <div>
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">统计报表</h1>
-                    <p class="page-subtitle">全公司培训数据汇总分析</p>
-                </div>
-            </div>
-
+        <LayoutWrapper title="统计报表" active-menu="hr-statistics" role="hr">
             <div v-if="loading" class="empty-state">
                 <div class="empty-icon">⏳</div>
                 <p>加载中...</p>
@@ -167,8 +164,16 @@ const HrStatisticsPage = {
                     <div v-else style="color:#a0aec0;text-align:center;padding:20px;">暂无数据</div>
                 </div>
             </template>
-        </div>
+
+            <div class="toast-container">
+                <transition-group name="toast">
+                    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" @click="removeToast(t.id)">
+                        <div class="toast-icon"><span v-if="t.type==='success'">✅</span><span v-else-if="t.type==='error'">❌</span><span v-else-if="t.type==='warning'">⚠️</span><span v-else>ℹ️</span></div>
+                        <div class="toast-content"><div class="toast-title">{{ t.title }}</div><div v-if="t.message" class="toast-message">{{ t.message }}</div></div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </transition-group>
+            </div>
+        </LayoutWrapper>
     `
 };
-
-window.HrStatisticsPage = HrStatisticsPage;

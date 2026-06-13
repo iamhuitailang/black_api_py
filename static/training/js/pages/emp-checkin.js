@@ -1,6 +1,7 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
-const EmpCheckinPage = {
+window.EmpCheckInPage = {
     setup() {
+        requireRole('employee');
         const courses = ref([]);
         const loading = ref(false);
         const checkingIn = ref(false);
@@ -43,10 +44,10 @@ const EmpCheckinPage = {
             try {
                 const res = await Api.checkIn(course.id);
                 if (res.code === 0) {
-                    Utils.showToast('🎉 签到成功！', 'success');
+                    GlobalStore.addToast('success', '签到成功', '🎉 签到成功！');
                     loadData();
                 } else {
-                    Utils.showToast(res.message || '签到失败', 'error');
+                    GlobalStore.addToast('error', '签到失败', res.message || '签到失败');
                 }
             } finally {
                 checkingIn.value = false;
@@ -57,17 +58,10 @@ const EmpCheckinPage = {
             loadData();
         });
 
-        return { courses, loading, checkingIn, canCheckIn, getCheckInStatus, doCheckIn, Utils };
+        return { courses, loading, checkingIn, canCheckIn, getCheckInStatus, doCheckIn, toasts: GlobalStore.toasts, removeToast: GlobalStore.removeToast.bind(GlobalStore), formatDate: formatDate, formatDateTime: formatDateTime };
     },
     template: `
-        <div>
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">培训签到</h1>
-                    <p class="page-subtitle">在课程开始前后30分钟内点击签到</p>
-                </div>
-            </div>
-
+        <LayoutWrapper title="培训签到" active-menu="emp-checkin" role="employee">
             <div v-if="loading" class="empty-state">
                 <div class="empty-icon">⏳</div>
                 <p>加载中...</p>
@@ -82,14 +76,14 @@ const EmpCheckinPage = {
                 <div v-for="c in courses" :key="c.id" class="card" style="overflow:hidden;">
                     <div style="background:linear-gradient(135deg,#2c5282 0%,#3182ce 100%);color:white;padding:20px;text-align:center;"
                          :class="{ 'opacity-50': getCheckInStatus(c) === 'expired' }">
-                        <div style="font-size:14px;opacity:0.9;">{{ Utils.formatDate(c.datetime) }}</div>
+                        <div style="font-size:14px;opacity:0.9;">{{ formatDate(c.datetime) }}</div>
                         <div style="font-size:20px;font-weight:600;margin-top:8px;">{{ c.title }}</div>
                     </div>
                     <div class="checkin-section" style="padding:32px 20px;">
                         <template v-if="getCheckInStatus(c) === 'done'">
                             <div class="checkin-icon">✓</div>
                             <div style="font-size:18px;font-weight:600;color:#38a169;">已成功签到</div>
-                            <div style="color:#718096;margin-top:8px;font-size:13px;">签到时间：{{ c.check_in_time ? Utils.formatDate(c.check_in_time) : '-' }}</div>
+                            <div style="color:#718096;margin-top:8px;font-size:13px;">签到时间：{{ c.check_in_time ? formatDate(c.check_in_time) : '-' }}</div>
                         </template>
                         <template v-else-if="getCheckInStatus(c) === 'available'">
                             <div class="checkin-icon" style="background:#3182ce;animation:none;box-shadow:0 10px 40px rgba(49,130,206,0.3);">📍</div>
@@ -125,8 +119,24 @@ const EmpCheckinPage = {
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div class="toast-container">
+                <transition-group name="toast">
+                    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" @click="removeToast(t.id)">
+                        <div class="toast-icon">
+                            <span v-if="t.type === 'success'">✅</span>
+                            <span v-else-if="t.type === 'error'">❌</span>
+                            <span v-else-if="t.type === 'warning'">⚠️</span>
+                            <span v-else>ℹ️</span>
+                        </div>
+                        <div class="toast-content">
+                            <div class="toast-title">{{ t.title }}</div>
+                            <div v-if="t.message" class="toast-message">{{ t.message }}</div>
+                        </div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </transition-group>
+            </div>
+        </LayoutWrapper>
     `
 };
-
-window.EmpCheckinPage = EmpCheckinPage;

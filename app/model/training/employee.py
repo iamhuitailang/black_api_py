@@ -23,23 +23,31 @@ class EmployeeModel:
                 name TEXT NOT NULL,
                 department TEXT NOT NULL,
                 role TEXT DEFAULT 'employee',
+                password TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
         db.execute(sql)
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN password TEXT DEFAULT ''")
+        except Exception:
+            pass
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_department ON {cls.TABLE_NAME}(department)"
         db.execute(index_sql)
         index_sql2 = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_employee_id ON {cls.TABLE_NAME}(employee_id)"
         db.execute(index_sql2)
 
-    def create(self, employee_id: str, name: str, department: str, role: str = 'employee') -> int:
+    def create(self, employee_id: str, name: str, department: str, role: str = 'employee', password: str = None) -> int:
         now = datetime.now().isoformat()
+        if password is None:
+            password = employee_id
         data = {
             'employee_id': employee_id,
             'name': name,
             'department': department,
             'role': role,
+            'password': password,
             'created_at': now,
             'updated_at': now
         }
@@ -62,7 +70,7 @@ class EmployeeModel:
         results = self.db.fetch_all(sql)
         return [r['department'] for r in results]
 
-    def update(self, record_id: int, name: str = None, department: str = None, role: str = None) -> int:
+    def update(self, record_id: int, name: str = None, department: str = None, role: str = None, password: str = None) -> int:
         now = datetime.now().isoformat()
         data = {'updated_at': now}
         if name is not None:
@@ -71,6 +79,8 @@ class EmployeeModel:
             data['department'] = department
         if role is not None:
             data['role'] = role
+        if password is not None:
+            data['password'] = password
         return self.exec.update_by_id(record_id, data)
 
     def delete(self, record_id: int) -> int:
@@ -78,6 +88,18 @@ class EmployeeModel:
 
     def count(self) -> int:
         return self.query.count()
+
+    def login(self, employee_id: str, password: str) -> Optional[Dict[str, Any]]:
+        employee = self.get_by_employee_id(employee_id)
+        if not employee:
+            return None
+        stored_password = employee.get('password', '')
+        if not stored_password:
+            stored_password = employee_id
+        if password == stored_password:
+            result = {k: v for k, v in employee.items() if k != 'password'}
+            return result
+        return None
 
     def init_default_employees(self):
         default_employees = [

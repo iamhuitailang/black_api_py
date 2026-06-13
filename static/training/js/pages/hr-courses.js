@@ -1,6 +1,7 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
-const HrCoursesPage = {
+window.HrCoursesPage = {
     setup() {
+        requireRole('hr');
         const courses = ref([]);
         const departments = ref([]);
         const loading = ref(false);
@@ -67,11 +68,11 @@ const HrCoursesPage = {
 
         const saveCourse = async () => {
             if (!form.title || !form.datetime) {
-                Utils.showToast('请填写课程名称和时间', 'warning');
+                GlobalStore.addToast('warning', '提示', '请填写课程名称和时间');
                 return;
             }
             if (form.departments.length === 0) {
-                Utils.showToast('请至少选择一个适用部门', 'warning');
+                GlobalStore.addToast('warning', '提示', '请至少选择一个适用部门');
                 return;
             }
 
@@ -82,11 +83,11 @@ const HrCoursesPage = {
                     datetime: form.datetime
                 });
                 if (res.code === 0) {
-                    Utils.showToast('课程更新成功', 'success');
+                    GlobalStore.addToast('success', '更新成功', '课程已更新');
                     closeModal();
                     loadData();
                 } else {
-                    Utils.showToast(res.message || '更新失败', 'error');
+                    GlobalStore.addToast('error', '更新失败', res.message || '更新失败');
                 }
             } else {
                 const res = await Api.createCourse({
@@ -94,11 +95,11 @@ const HrCoursesPage = {
                     datetime: form.datetime
                 });
                 if (res.code === 0) {
-                    Utils.showToast('课程创建成功，已通知相关员工', 'success');
+                    GlobalStore.addToast('success', '创建成功', '课程已创建并通知相关员工');
                     closeModal();
                     loadData();
                 } else {
-                    Utils.showToast(res.message || '创建失败', 'error');
+                    GlobalStore.addToast('error', '创建失败', res.message || '创建失败');
                 }
             }
         };
@@ -107,10 +108,10 @@ const HrCoursesPage = {
             if (!confirm(`确定要删除课程"${course.title}"吗？`)) return;
             const res = await Api.deleteCourse(course.id);
             if (res.code === 0) {
-                Utils.showToast('删除成功', 'success');
+                GlobalStore.addToast('success', '删除成功', '课程已删除');
                 loadData();
             } else {
-                Utils.showToast(res.message || '删除失败', 'error');
+                GlobalStore.addToast('error', '删除失败', res.message || '删除失败');
             }
         };
 
@@ -161,21 +162,12 @@ const HrCoursesPage = {
         return {
             courses, departments, loading, showModal, editingCourse, form,
             openCreateModal, openEditModal, closeModal, saveCourse,
-            deleteCourse, viewCourse, Utils
+            deleteCourse, viewCourse, Utils,
+            toasts: GlobalStore.toasts, removeToast: GlobalStore.removeToast.bind(GlobalStore), formatDate: formatDate, formatDateTime: formatDateTime
         };
     },
     template: `
-        <div>
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">课程管理</h1>
-                    <p class="page-subtitle">创建和管理企业培训课程</p>
-                </div>
-                <button class="btn btn-primary" @click="openCreateModal">
-                    ＋ 新建课程
-                </button>
-            </div>
-
+        <LayoutWrapper title="课程管理" active-menu="hr-courses" role="hr">
             <div v-if="loading" class="empty-state">
                 <div class="empty-icon">⏳</div>
                 <p>加载中...</p>
@@ -286,8 +278,16 @@ const HrCoursesPage = {
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div class="toast-container">
+                <transition-group name="toast">
+                    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" @click="removeToast(t.id)">
+                        <div class="toast-icon"><span v-if="t.type==='success'">✅</span><span v-else-if="t.type==='error'">❌</span><span v-else-if="t.type==='warning'">⚠️</span><span v-else>ℹ️</span></div>
+                        <div class="toast-content"><div class="toast-title">{{ t.title }}</div><div v-if="t.message" class="toast-message">{{ t.message }}</div></div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </transition-group>
+            </div>
+        </LayoutWrapper>
     `
 };
-
-window.HrCoursesPage = HrCoursesPage;

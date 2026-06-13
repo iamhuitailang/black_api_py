@@ -1,6 +1,7 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
-const HrLeavesPage = {
+window.HrLeavesPage = {
     setup() {
+        requireRole('hr');
         const requests = ref([]);
         const loading = ref(false);
         const filterStatus = ref('pending');
@@ -21,10 +22,10 @@ const HrLeavesPage = {
             if (!confirm(`确定批准 ${req.employee_name} 的请假申请吗？`)) return;
             const res = await Api.approveLeave(req.id);
             if (res.code === 0) {
-                Utils.showToast('已批准请假', 'success');
+                GlobalStore.addToast('success', '操作成功', '已批准请假');
                 loadData();
             } else {
-                Utils.showToast(res.message || '操作失败', 'error');
+                GlobalStore.addToast('error', '操作失败', res.message || '操作失败');
             }
         };
 
@@ -32,10 +33,10 @@ const HrLeavesPage = {
             if (!confirm(`确定拒绝 ${req.employee_name} 的请假申请吗？`)) return;
             const res = await Api.rejectLeave(req.id);
             if (res.code === 0) {
-                Utils.showToast('已拒绝请假', 'success');
+                GlobalStore.addToast('success', '操作成功', '已拒绝请假');
                 loadData();
             } else {
-                Utils.showToast(res.message || '操作失败', 'error');
+                GlobalStore.addToast('error', '操作失败', res.message || '操作失败');
             }
         };
 
@@ -47,21 +48,18 @@ const HrLeavesPage = {
             loadData();
         });
 
-        return { requests, loading, filterStatus, approve, reject, Utils };
+        return {
+            requests, loading, filterStatus, approve, reject, Utils,
+            toasts: GlobalStore.toasts, removeToast: GlobalStore.removeToast.bind(GlobalStore), formatDate: formatDate, formatDateTime: formatDateTime
+        };
     },
     template: `
-        <div>
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">请假审批</h1>
-                    <p class="page-subtitle">审核员工的培训请假申请</p>
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn" :class="filterStatus === 'pending' ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = 'pending'">待审批</button>
-                    <button class="btn" :class="filterStatus === 'approved' ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = 'approved'">已批准</button>
-                    <button class="btn" :class="filterStatus === 'rejected' ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = 'rejected'">已拒绝</button>
-                    <button class="btn" :class="!filterStatus ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = ''">全部</button>
-                </div>
+        <LayoutWrapper title="请假审批" active-menu="hr-leaves" role="hr">
+            <div style="display:flex;gap:8px;margin-bottom:20px;">
+                <button class="btn" :class="filterStatus === 'pending' ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = 'pending'">待审批</button>
+                <button class="btn" :class="filterStatus === 'approved' ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = 'approved'">已批准</button>
+                <button class="btn" :class="filterStatus === 'rejected' ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = 'rejected'">已拒绝</button>
+                <button class="btn" :class="!filterStatus ? 'btn-primary' : 'btn-secondary'" @click="filterStatus = ''">全部</button>
             </div>
 
             <div v-if="loading" class="empty-state">
@@ -106,8 +104,16 @@ const HrLeavesPage = {
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div class="toast-container">
+                <transition-group name="toast">
+                    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" @click="removeToast(t.id)">
+                        <div class="toast-icon"><span v-if="t.type==='success'">✅</span><span v-else-if="t.type==='error'">❌</span><span v-else-if="t.type==='warning'">⚠️</span><span v-else>ℹ️</span></div>
+                        <div class="toast-content"><div class="toast-title">{{ t.title }}</div><div v-if="t.message" class="toast-message">{{ t.message }}</div></div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </transition-group>
+            </div>
+        </LayoutWrapper>
     `
 };
-
-window.HrLeavesPage = HrLeavesPage;

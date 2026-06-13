@@ -1,6 +1,7 @@
 var _v = VueApi; var ref = _v.ref, reactive = _v.reactive, computed = _v.computed, onMounted = _v.onMounted, watch = _v.watch;
-const ProfilePage = {
+window.ProfilePage = {
     setup() {
+        requireRole('employee');
         const profile = ref(null);
         const loading = ref(false);
         const hrViewMode = ref(false);
@@ -48,19 +49,10 @@ const ProfilePage = {
             loadData();
         });
 
-        return { profile, loading, hrViewMode, allEmployees, selectedEmployeeId, exportCertificate, viewCertificate, Utils };
+        return { profile, loading, hrViewMode, allEmployees, selectedEmployeeId, exportCertificate, viewCertificate, toasts: GlobalStore.toasts, removeToast: GlobalStore.removeToast.bind(GlobalStore), formatDate: formatDate };
     },
     template: `
-        <div>
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">培训档案</h1>
-                    <p class="page-subtitle">
-                        {{ hrViewMode ? '查看员工培训档案记录' : '查看您的个人培训档案' }}
-                    </p>
-                </div>
-            </div>
-
+        <LayoutWrapper title="培训档案" active-menu="profile" role="employee">
             <div v-if="hrViewMode && allEmployees.length > 0" class="card" style="padding:16px;margin-bottom:24px;">
                 <div style="display:flex;align-items:center;gap:12px;">
                     <label style="font-weight:500;white-space:nowrap;">选择员工：</label>
@@ -163,7 +155,7 @@ const ProfilePage = {
                                 <td>
                                     <span :class="r.score >= 60 ? 'score-pass' : 'score-low'">{{ r.score }}分</span>
                                 </td>
-                                <td>{{ Utils.formatDate(r.created_at) }}</td>
+                                <td>{{ formatDate(r.created_at) }}</td>
                                 <td>
                                     <button class="btn btn-sm btn-secondary" @click="viewCertificate(r.course_id)">查看证书</button>
                                     <button class="btn btn-sm btn-primary" style="margin-left:8px;" @click="exportCertificate(r.course_id)">导出PDF</button>
@@ -173,8 +165,24 @@ const ProfilePage = {
                     </table>
                 </div>
             </template>
-        </div>
+
+            <div class="toast-container">
+                <transition-group name="toast">
+                    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" @click="removeToast(t.id)">
+                        <div class="toast-icon">
+                            <span v-if="t.type === 'success'">✅</span>
+                            <span v-else-if="t.type === 'error'">❌</span>
+                            <span v-else-if="t.type === 'warning'">⚠️</span>
+                            <span v-else>ℹ️</span>
+                        </div>
+                        <div class="toast-content">
+                            <div class="toast-title">{{ t.title }}</div>
+                            <div v-if="t.message" class="toast-message">{{ t.message }}</div>
+                        </div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </transition-group>
+            </div>
+        </LayoutWrapper>
     `
 };
-
-window.ProfilePage = ProfilePage;
