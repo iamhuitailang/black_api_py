@@ -177,6 +177,15 @@
     background: linear-gradient(135deg, #ff5c4c, #e74c3c);
   }
   .start-btn:active { transform: translateY(0); }
+  .continue-btn {
+    background: linear-gradient(135deg, #27ae60, #1e8449);
+    box-shadow: 0 4px 20px rgba(39, 174, 96, 0.4);
+    margin-bottom: 12px;
+  }
+  .continue-btn:hover {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    box-shadow: 0 8px 30px rgba(39, 174, 96, 0.6);
+  }
 
   .countdown {
     font-family: 'Orbitron', sans-serif;
@@ -307,9 +316,6 @@
 </style>
 </head>
 <body>
-<div id="debug-indicator" style="position:fixed;top:8px;left:8px;z-index:10000;background:rgba(231,76,60,0.9);color:#fff;padding:4px 10px;font-size:12px;font-family:monospace;border-radius:4px;pointer-events:none;">
-  HTML OK
-</div>
 <noscript>
   <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;font-size:20px;">
     请启用 JavaScript 以运行游戏
@@ -364,6 +370,7 @@
           </div>
         </div>
 
+        <button v-if="hasSavedGame" class="start-btn continue-btn" @click="continueGame">CONTINUE</button>
         <button class="start-btn" @click="startGame">START RACE</button>
 
         <div class="controls-hint">
@@ -404,21 +411,6 @@
 </div>
 
 <script>
-var updateDebug;
-(function() {
-  updateDebug = function(msg, color) {
-    try {
-      const d = document.getElementById('debug-indicator');
-      if (d) {
-        d.innerHTML = msg;
-        if (color) d.style.background = color;
-      }
-    } catch(e) {}
-    console.log('[DEBUG]', msg);
-  };
-  updateDebug('JS Start', '#2980b9');
-})();
-
 window.onerror = function(msg, url, line, col, error) {
   console.error('Global error:', msg, url, line, col, error);
   try {
@@ -431,7 +423,6 @@ window.onerror = function(msg, url, line, col, error) {
       loading.style.maxWidth = '80%';
       loading.style.wordBreak = 'break-all';
     }
-    updateDebug('ERROR: ' + String(msg).substring(0, 30), '#e74c3c');
   } catch(e) {}
   return false;
 };
@@ -447,16 +438,11 @@ window.onunhandledrejection = function(e) {
   } catch(err) {}
 };
 
-updateDebug('Before Vue import check', '#2980b9');
 if (typeof Vue === 'undefined') {
-  updateDebug('Vue NOT loaded!', '#e74c3c');
   document.getElementById('app-loading').innerHTML = 'Vue 加载失败，请检查网络连接';
-} else {
-  updateDebug('Vue loaded v' + (Vue.version || '?'), '#27ae60');
 }
 
 const { createApp, ref, reactive, onMounted, nextTick } = Vue;
-updateDebug('Vue destructured OK', '#27ae60');
 
 const app = createApp({
   errorCaptured(err) {
@@ -470,7 +456,6 @@ const app = createApp({
     return false;
   },
   setup() {
-    updateDebug('Setup starting...', '#2980b9');
     const gameCanvas = ref(null);
     const view = ref('menu');
     const countdown = ref(3);
@@ -500,9 +485,11 @@ const app = createApp({
     const raceResults = ref([]);
 
     const STORAGE_KEY = 'racing_game_save_v1';
+    const GAME_STATE_KEY = 'racing_game_state_v1';
     let ctx = null;
     let gameLoop = null;
     let lastTime = 0;
+    const hasSavedGame = ref(false);
 
     function loadSave() {
       try {
@@ -525,6 +512,43 @@ const app = createApp({
       } catch (e) { console.warn('save failed', e); }
     }
 
+    function saveGameState() {
+      try {
+        const state = {
+          trackId: gameState.trackId,
+          frame: gameState.frame,
+          playerLapTimes: gameState.playerLapTimes,
+          finished: gameState.finished,
+          cars: gameState.cars.map(c => ({
+            x: c.x, y: c.y, angle: c.angle, speed: c.speed,
+            maxSpeed: c.maxSpeed, drift: c.drift, driftFrames: c.driftFrames,
+            boostFrames: c.boostFrames, lap: c.lap, lastCheckpoint: c.lastCheckpoint,
+            nextQuadrant: c.nextQuadrant, lapStartFrame: c.lapStartFrame,
+            bestLap: c.bestLap, color: c.color, isPlayer: c.isPlayer,
+            aiDifficulty: c.aiDifficulty, name: c.name, finished: c.finished, tilt: c.tilt
+          }))
+        };
+        localStorage.setItem(GAME_STATE_KEY, JSON.stringify(state));
+      } catch (e) { console.warn('save game state failed', e); }
+    }
+
+    function loadGameState() {
+      try {
+        const raw = localStorage.getItem(GAME_STATE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) { console.warn('load game state failed', e); return null; }
+    }
+
+    function clearGameState() {
+      try { localStorage.removeItem(GAME_STATE_KEY); } catch (e) {}
+      hasSavedGame.value = false;
+    }
+
+    function checkSavedGame() {
+      hasSavedGame.value = !!loadGameState();
+    }
+
     const TRACKS = {
       beginner: (() => {
         const points = [];
@@ -537,20 +561,20 @@ const app = createApp({
       })(),
       city: (() => {
         const waypoints = [
-          { x: 200, y: 650 }, { x: 900, y: 650 },
-          { x: 1000, y: 650 }, { x: 1000, y: 200 },
-          { x: 1000, y: 120 }, { x: 400, y: 120 },
-          { x: 200, y: 120 }, { x: 200, y: 350 },
-          { x: 200, y: 450 }, { x: 600, y: 450 },
-          { x: 750, y: 450 }, { x: 750, y: 300 },
-          { x: 750, y: 200 }, { x: 300, y: 200 },
-          { x: 200, y: 200 }
+          { x: 150, y: 680 },
+          { x: 1050, y: 680 },
+          { x: 1050, y: 400 },
+          { x: 750, y: 400 },
+          { x: 750, y: 540 },
+          { x: 500, y: 540 },
+          { x: 500, y: 120 },
+          { x: 150, y: 120 }
         ];
         const points = [];
         for (let i = 0; i < waypoints.length; i++) {
           const p1 = waypoints[i];
           const p2 = waypoints[(i + 1) % waypoints.length];
-          const steps = 20;
+          const steps = 30;
           for (let j = 0; j < steps; j++) {
             const t = j / steps;
             points.push({ x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t });
@@ -744,6 +768,7 @@ const app = createApp({
         boostFrames: 0,
         lap: 0,
         lastCheckpoint: -1,
+        nextQuadrant: 1,
         lapStartFrame: 0,
         bestLap: 0,
         currentLapTime: 0,
@@ -849,9 +874,13 @@ const app = createApp({
 
       if (car.boostFrames > 0) car.boostFrames--;
 
-      const speedFactor = 1 + 5 / Math.max(Math.abs(car.speed), 1);
+      const absSpeed = Math.abs(car.speed);
+      const speedFactor = 1 + 5 / Math.max(absSpeed, 1);
       let turnFactor = turnSpeed * speedFactor;
-      if (Math.abs(car.speed) < 0.5) turnFactor *= 0.3;
+      if (absSpeed < 1) {
+        turnFactor = turnSpeed * (1 + absSpeed * 5);
+      }
+      if (absSpeed < 0.1) turnFactor = 0;
 
       if (input.left) car.angle -= turnFactor;
       if (input.right) car.angle += turnFactor;
@@ -1025,34 +1054,44 @@ const app = createApp({
 
     function updateCheckpoints(car) {
       const track = gameState.track;
+      const n = track.points.length;
+
       let minDist = Infinity, nearestIdx = 0;
-      for (let i = 0; i < track.points.length; i++) {
+      for (let i = 0; i < n; i++) {
         const d = Math.hypot(car.x - track.points[i].x, car.y - track.points[i].y);
         if (d < minDist) { minDist = d; nearestIdx = i; }
       }
 
-      if (car.lastCheckpoint > track.points.length - 10 && nearestIdx < 10) {
-        const lapTime = gameState.frame - car.lapStartFrame;
-        const lapTimeMs = (lapTime / 60) * 1000;
-        if (car.lap > 0) {
-          if (car.bestLap === 0 || lapTimeMs < car.bestLap) car.bestLap = lapTimeMs;
-        }
-        car.lap++;
-        car.lapStartFrame = gameState.frame;
-        if (car.isPlayer) {
-          if (car.lap > 1) gameState.playerLapTimes.push(lapTimeMs);
-          if (car.lap > 3) {
-            endRace();
+      const quadrant = Math.min(3, Math.floor(nearestIdx * 4 / n));
+
+      if (quadrant === car.nextQuadrant) {
+        if (quadrant === 0) {
+          const lapTime = gameState.frame - car.lapStartFrame;
+          const lapTimeMs = (lapTime / 60) * 1000;
+          if (car.lap > 0) {
+            if (car.bestLap === 0 || lapTimeMs < car.bestLap) car.bestLap = lapTimeMs;
+          }
+          car.lap++;
+          car.lapStartFrame = gameState.frame;
+          car.nextQuadrant = 1;
+
+          if (car.isPlayer) {
+            if (car.lap > 1) gameState.playerLapTimes.push(lapTimeMs);
+            if (car.lap > 3) endRace();
+          } else {
+            if (car.lap > 3) car.finished = true;
           }
         } else {
-          if (car.lap > 3) car.finished = true;
+          car.nextQuadrant = (quadrant + 1) % 4;
         }
       }
+
       car.lastCheckpoint = nearestIdx;
     }
 
     function endRace() {
       gameState.finished = true;
+      clearGameState();
       soundManager.stopDrift();
       soundManager.playFinish();
 
@@ -1428,6 +1467,10 @@ const app = createApp({
 
       gameState.cars.forEach(c => updateCheckpoints(c));
 
+      if (gameState.frame % 120 === 0 && !gameState.finished) {
+        saveGameState();
+      }
+
       render();
     }
 
@@ -1449,6 +1492,7 @@ const app = createApp({
     }
 
     function startGame() {
+      clearGameState();
       soundManager.init();
       soundManager.startEngine();
       initGame();
@@ -1469,9 +1513,54 @@ const app = createApp({
       }, 800);
     }
 
+    function continueGame() {
+      const saved = loadGameState();
+      if (!saved) { startGame(); return; }
+
+      soundManager.init();
+      soundManager.startEngine();
+
+      const track = TRACKS[saved.trackId];
+      if (!track) { startGame(); return; }
+
+      gameState.track = track;
+      gameState.trackId = saved.trackId;
+      gameState.skidMarks = [];
+      gameState.particles = [];
+      gameState.speedLines = [];
+      gameState.sparks = [];
+      gameState.frame = saved.frame;
+      gameState.playerLapTimes = saved.playerLapTimes || [];
+      gameState.finished = saved.finished || false;
+
+      gameState.cars = saved.cars.map(c => {
+        const car = createCar({
+          x: c.x, y: c.y, angle: c.angle,
+          color: c.color, isPlayer: c.isPlayer,
+          aiDifficulty: c.aiDifficulty, name: c.name
+        });
+        car.speed = c.speed;
+        car.maxSpeed = c.maxSpeed;
+        car.drift = c.drift;
+        car.driftFrames = c.driftFrames;
+        car.boostFrames = c.boostFrames;
+        car.lap = c.lap;
+        car.lastCheckpoint = c.lastCheckpoint;
+        car.nextQuadrant = c.nextQuadrant;
+        car.lapStartFrame = c.lapStartFrame;
+        car.bestLap = c.bestLap;
+        car.finished = c.finished;
+        car.tilt = c.tilt;
+        return car;
+      });
+
+      view.value = 'game';
+    }
+
     function backToMenu() {
       soundManager.stopEngine();
       soundManager.stopDrift();
+      clearGameState();
       view.value = 'menu';
       nextTick(drawAllTrackPreviews);
     }
@@ -1538,26 +1627,17 @@ const app = createApp({
     }
 
     onMounted(() => {
-      updateDebug('onMounted start', '#2980b9');
       try {
         loadSave();
-        updateDebug('loadSave OK', '#2980b9');
+        checkSavedGame();
         try {
           ctx = gameCanvas.value.getContext('2d');
-          updateDebug('canvas ctx OK', '#2980b9');
         } catch(e) { console.warn('canvas context failed', e); }
         window.addEventListener('keydown', onKeyDown);
         window.addEventListener('keyup', onKeyUp);
         gameLoop = requestAnimationFrame(gameLoopFn);
         nextTick(() => {
-          updateDebug('nextTick running', '#2980b9');
-          try {
-            drawAllTrackPreviews();
-            updateDebug('READY ✓', '#27ae60');
-          } catch(e) {
-            console.warn('draw previews failed', e);
-            updateDebug('previews err', '#e67e22');
-          }
+          try { drawAllTrackPreviews(); } catch(e) { console.warn('draw previews failed', e); }
         });
         const loadingEl = document.getElementById('app-loading');
         if (loadingEl) loadingEl.style.display = 'none';
@@ -1570,11 +1650,9 @@ const app = createApp({
           loadingEl.style.color = '#e74c3c';
           loadingEl.style.fontSize = '16px';
         }
-        updateDebug('Mounted FAIL', '#e74c3c');
       }
     });
 
-    updateDebug('Setup complete, returning', '#27ae60');
     return {
       gameCanvas,
       view,
@@ -1587,10 +1665,12 @@ const app = createApp({
       isNewRecord,
       unlockMessage,
       raceResults,
+      hasSavedGame,
       formatTime,
       selectTrack,
       selectColor,
       startGame,
+      continueGame,
       backToMenu,
       restartRace
     };
@@ -1609,17 +1689,13 @@ app.config.errorHandler = function(err, instance, info) {
       loading.style.textAlign = 'center';
       loading.style.maxWidth = '80%';
     }
-    updateDebug('Vue ERR: ' + String(err.message).substring(0, 25), '#e74c3c');
   } catch(e) {}
 };
 
-updateDebug('About to mount app...', '#2980b9');
 try {
   app.mount('#app');
-  updateDebug('App mounted! Waiting...', '#27ae60');
 } catch(e) {
   console.error('Mount failed:', e);
-  updateDebug('Mount FAIL: ' + String(e.message).substring(0, 25), '#e74c3c');
   const loading = document.getElementById('app-loading');
   if (loading) {
     loading.innerHTML = '挂载失败: ' + e.message;
