@@ -299,11 +299,11 @@ const CROSSHAIR_UNLOCKS = [
 function loadGame() {
   try {
     const saved = localStorage.getItem(SAVE_KEY);
-    console.log('[存档] 读取原始数据:', saved);
+    console.log('[存档] 读取原始数据长度:', saved ? saved.length : 0);
 
     if (saved) {
       const data = JSON.parse(saved);
-      console.log('[存档] 解析后:', data);
+      console.log('[存档] 解析后 version:', data.version, '气球数:', data.balloons ? data.balloons.length : 0);
 
       if (data.version !== SAVE_VERSION) {
         console.log('[存档] 版本不匹配,迁移数据');
@@ -331,13 +331,34 @@ function loadGame() {
       gameState.score = typeof data.score === 'number' ? data.score : 0;
       gameState.lives = typeof data.lives === 'number' && data.lives > 0 ? data.lives : 3;
       gameState.wind = typeof data.wind === 'number' ? data.wind : 0;
+      gameState.windTimer = typeof data.windTimer === 'number' ? data.windTimer : 0;
+      gameState.combo = typeof data.combo === 'number' ? data.combo : 0;
+      gameState.comboTimer = typeof data.comboTimer === 'number' ? data.comboTimer : 0;
+
+      if (Array.isArray(data.balloons) && !gameState.gameOver) {
+        balloons = [];
+        for (const bd of data.balloons) {
+          if (bd && typeof bd.type === 'string' && BALLOON_TYPES[bd.type]) {
+            const b = new Balloon(bd.type, bd.x || 100);
+            if (typeof bd.y === 'number') b.y = bd.y;
+            if (typeof bd.wobble === 'number') b.wobble = bd.wobble;
+            if (typeof bd.wobbleSpeed === 'number') b.wobbleSpeed = bd.wobbleSpeed;
+            if (typeof bd.glowPhase === 'number') b.glowPhase = bd.glowPhase;
+            if (typeof bd.bombBlink === 'number') b.bombBlink = bd.bombBlink;
+            balloons.push(b);
+          }
+        }
+        console.log('[存档] 恢复了', balloons.length, '个气球');
+      }
 
       console.log('[存档] 恢复后 gameState:', {
         score: gameState.score,
         lives: gameState.lives,
         wind: gameState.wind,
+        windTimer: gameState.windTimer,
         gameOver: gameState.gameOver,
-        highScore: gameState.highScore
+        highScore: gameState.highScore,
+        balloonCount: balloons.length
       });
     } else {
       console.log('[存档] 无存档,使用默认值');
@@ -349,6 +370,16 @@ function loadGame() {
 
 function saveGame() {
   try {
+    const balloonData = balloons.map(b => ({
+      type: b.type,
+      x: b.x,
+      y: b.y,
+      wobble: b.wobble,
+      wobbleSpeed: b.wobbleSpeed,
+      glowPhase: b.glowPhase,
+      bombBlink: b.bombBlink
+    }));
+
     const payload = {
       version: SAVE_VERSION,
       highScore: gameState.highScore,
@@ -357,45 +388,22 @@ function saveGame() {
       score: gameState.score,
       lives: gameState.lives,
       wind: gameState.wind,
+      windTimer: gameState.windTimer,
+      combo: gameState.combo,
+      comboTimer: gameState.comboTimer,
       gameOver: !!gameState.gameOver,
+      balloons: balloonData,
       savedAt: Date.now()
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-    console.log('[存档] 已保存:', payload);
+    const jsonStr = JSON.stringify(payload);
+    localStorage.setItem(SAVE_KEY, jsonStr);
+    console.log('[存档] 已保存,气球数:', balloonData.length, '大小:', jsonStr.length, '字节');
   } catch(e) {
     console.error('[存档] 保存失败:', e);
   }
 }
 
-loadGame();
 
-(function migrateOldSave() {
-  try {
-    const oldSave = localStorage.getItem('balloon_game_save_v1');
-    if (oldSave) {
-      const data = JSON.parse(oldSave);
-      console.log('[迁移] 发现 v1 存档:', data);
-      if (typeof data.highScore === 'number' && data.highScore > gameState.highScore) {
-        gameState.highScore = data.highScore;
-      }
-      if (Array.isArray(data.unlockedCrosshairs)) {
-        for (const id of data.unlockedCrosshairs) {
-          if (!gameState.unlockedCrosshairs.includes(id)) {
-            gameState.unlockedCrosshairs.push(id);
-          }
-        }
-      }
-      if (typeof data.currentCrosshair === 'string' && gameState.unlockedCrosshairs.includes(data.currentCrosshair)) {
-        gameState.currentCrosshair = data.currentCrosshair;
-      }
-      localStorage.removeItem('balloon_game_save_v1');
-      saveGame();
-      console.log('[迁移] v1 数据已合并到 v2,旧存档已删除');
-    }
-  } catch(e) {
-    console.error('[迁移] 失败:', e);
-  }
-})();
 
 const BALLOON_TYPES = {
   red:    { radius: 25, speed: 1.5, score: 10,  prob: 0.45, color: '#FF4444', darkColor: '#CC0000' },
@@ -601,6 +609,35 @@ class Balloon {
     return this.y < -this.radius * 2;
   }
 }
+
+(function migrateOldSave() {
+  try {
+    const oldSave = localStorage.getItem('balloon_game_save_v1');
+    if (oldSave) {
+      const data = JSON.parse(oldSave);
+      console.log('[迁移] 发现 v1 存档:', data);
+      if (typeof data.highScore === 'number' && data.highScore > gameState.highScore) {
+        gameState.highScore = data.highScore;
+      }
+      if (Array.isArray(data.unlockedCrosshairs)) {
+        for (const id of data.unlockedCrosshairs) {
+          if (!gameState.unlockedCrosshairs.includes(id)) {
+            gameState.unlockedCrosshairs.push(id);
+          }
+        }
+      }
+      if (typeof data.currentCrosshair === 'string' && gameState.unlockedCrosshairs.includes(data.currentCrosshair)) {
+        gameState.currentCrosshair = data.currentCrosshair;
+      }
+      localStorage.removeItem('balloon_game_save_v1');
+      console.log('[迁移] v1 数据已合并,旧存档已删除');
+    }
+  } catch(e) {
+    console.error('[迁移] 失败:', e);
+  }
+})();
+
+loadGame();
 
 class Particle {
   constructor(x, y, color) {
