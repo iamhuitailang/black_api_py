@@ -15,8 +15,9 @@
     const CASTLE_X = W / 2;
     const CASTLE_WIDTH = 120;
     const CASTLE_HEIGHT = 180;
-    const CASTLE_TOP_Y = 100;
-    const ARCHER_Y = CASTLE_TOP_Y + 20;
+    const CASTLE_BOTTOM_Y = H - 60;
+    const CASTLE_TOP_Y = CASTLE_BOTTOM_Y - (CASTLE_HEIGHT - 40);
+    const ARCHER_Y = CASTLE_TOP_Y + 30;
     const GROUND_Y = H - 60;
 
     const ARROW_LEVELS = [
@@ -98,6 +99,7 @@
 
     let gameState = {
         running: false,
+        loopStarted: false,
         paused: false,
         wave: 0,
         maxWave: 20,
@@ -127,11 +129,19 @@
         victory: false
     };
 
-    const SAVE_KEY = 'archer_game_save_v1';
+    const SAVE_KEY = 'archer_game_save_v2';
+    const SAVE_VERSION = 2;
 
     function saveGame() {
         try {
+            const enemiesCopy = gameState.enemies.map(e => ({...e}));
+            const arrowsCopy = gameState.arrows.map(a => ({...a}));
+            const enemyArrowsCopy = gameState.enemyArrows.map(a => ({...a}));
+            const stuckArrowsCopy = gameState.stuckArrows.map(a => ({...a}));
+            const waveSpawnQueueCopy = [...gameState.waveSpawnQueue];
+
             const saveData = {
+                version: SAVE_VERSION,
                 wave: gameState.wave,
                 gold: gameState.gold,
                 score: gameState.score,
@@ -142,53 +152,131 @@
                 playerName: gameState.playerName,
                 resting: gameState.resting,
                 restTimer: gameState.restTimer,
-                skyProgress: gameState.skyProgress
+                skyProgress: gameState.skyProgress,
+                waveEnemiesLeft: gameState.waveEnemiesLeft,
+                waveSpawnTimer: gameState.waveSpawnTimer,
+                waveSpawnQueue: waveSpawnQueueCopy,
+                enemies: enemiesCopy,
+                arrows: arrowsCopy,
+                enemyArrows: enemyArrowsCopy,
+                stuckArrows: stuckArrowsCopy,
+                savedAt: Date.now()
             };
             localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            return true;
         } catch (e) {
+            console.warn('保存游戏失败:', e);
+            return false;
         }
     }
 
     function loadGame() {
         try {
             const data = localStorage.getItem(SAVE_KEY);
-            if (!data) return false;
+            if (!data) {
+                console.log('没有找到存档数据');
+                return false;
+            }
             const saveData = JSON.parse(data);
-            if (!saveData || saveData.wave === undefined || saveData.wave === null) return false;
+            
+            if (!saveData || saveData.version !== SAVE_VERSION) {
+                console.warn('存档版本不匹配或数据无效');
+                return false;
+            }
+            if (saveData.wave === undefined || saveData.wave === null || saveData.wave < 0) {
+                console.warn('存档波次数据无效');
+                return false;
+            }
+            if (saveData.castleHp === undefined || saveData.castleHp <= 0) {
+                console.warn('存档中城堡血量无效');
+                return false;
+            }
 
-            gameState.wave = saveData.wave !== undefined ? saveData.wave : 0;
+            gameState.wave = saveData.wave;
             gameState.gold = saveData.gold !== undefined ? saveData.gold : 0;
             gameState.score = saveData.score !== undefined ? saveData.score : 0;
-            gameState.castleHp = saveData.castleHp !== undefined ? saveData.castleHp : 100;
+            gameState.castleHp = saveData.castleHp;
             gameState.castleMaxHp = saveData.castleMaxHp !== undefined ? saveData.castleMaxHp : 100;
             gameState.arrowLevel = saveData.arrowLevel !== undefined ? saveData.arrowLevel : 0;
             gameState.wallLevel = saveData.wallLevel !== undefined ? saveData.wallLevel : 0;
             gameState.playerName = saveData.playerName || '弓箭手';
             gameState.skyProgress = saveData.skyProgress !== undefined ? saveData.skyProgress : 0;
             gameState.resting = saveData.resting === true;
+            gameState.restTimer = saveData.restTimer !== undefined ? saveData.restTimer : 0;
+            gameState.waveEnemiesLeft = saveData.waveEnemiesLeft !== undefined ? saveData.waveEnemiesLeft : 0;
+            gameState.waveSpawnTimer = saveData.waveSpawnTimer !== undefined ? saveData.waveSpawnTimer : 0;
+            gameState.waveSpawnQueue = Array.isArray(saveData.waveSpawnQueue) ? [...saveData.waveSpawnQueue] : [];
+
             gameState.enemies = [];
+            if (Array.isArray(saveData.enemies) && saveData.enemies.length > 0) {
+                for (const eData of saveData.enemies) {
+                    if (eData && eData.type && ENEMY_TYPES[eData.type] && !eData.dead && eData.hp > 0) {
+                        const enemy = {...eData};
+                        if (enemy.x === undefined || enemy.y === undefined) continue;
+                        if (enemy.width === undefined) enemy.width = ENEMY_TYPES[eData.type].size.w;
+                        if (enemy.height === undefined) enemy.height = ENEMY_TYPES[eData.type].size.h;
+                        if (enemy.side === undefined) enemy.side = enemy.x < CASTLE_X ? 'left' : 'right';
+                        if (enemy.state === undefined) enemy.state = 'walking';
+                        if (enemy.hitFlash === undefined) enemy.hitFlash = 0;
+                        if (enemy.hitKnockback === undefined) enemy.hitKnockback = 0;
+                        if (enemy.burnTimer === undefined) enemy.burnTimer = 0;
+                        if (enemy.slowTimer === undefined) enemy.slowTimer = 0;
+                        if (enemy.slowFactor === undefined) enemy.slowFactor = 1;
+                        gameState.enemies.push(enemy);
+                    }
+                }
+            }
+
             gameState.arrows = [];
-            gameState.particles = [];
+            if (Array.isArray(saveData.arrows)) {
+                for (const aData of saveData.arrows) {
+                    if (aData && aData.x !== undefined && aData.y !== undefined) {
+                        gameState.arrows.push({...aData});
+                    }
+                }
+            }
+
             gameState.enemyArrows = [];
+            if (Array.isArray(saveData.enemyArrows)) {
+                for (const aData of saveData.enemyArrows) {
+                    if (aData && aData.x !== undefined && aData.y !== undefined) {
+                        gameState.enemyArrows.push({...aData});
+                    }
+                }
+            }
+
             gameState.stuckArrows = [];
+            if (Array.isArray(saveData.stuckArrows)) {
+                for (const aData of saveData.stuckArrows) {
+                    if (aData && aData.x !== undefined && aData.y !== undefined) {
+                        gameState.stuckArrows.push({...aData});
+                    }
+                }
+            }
+
+            gameState.particles = [];
             gameState.gameOver = false;
             gameState.victory = false;
             gameState.running = true;
             gameState.charge = 0;
             gameState.charging = false;
-            gameState.waveEnemiesLeft = 0;
-            gameState.waveSpawnTimer = 0;
-            gameState.waveSpawnQueue = [];
-            gameState.restTimer = saveData.restTimer !== undefined ? saveData.restTimer : 0;
+
+            console.log('存档加载成功，第', saveData.wave, '波，敌人数量:', gameState.enemies.length);
             return true;
         } catch (e) {
+            console.error('加载存档失败:', e);
             return false;
         }
     }
 
     function hasSavedGame() {
         try {
-            return !!localStorage.getItem(SAVE_KEY);
+            const data = localStorage.getItem(SAVE_KEY);
+            if (!data) return false;
+            const saveData = JSON.parse(data);
+            return saveData && saveData.version === SAVE_VERSION && 
+                   saveData.wave !== undefined && saveData.wave > 0 &&
+                   saveData.castleHp > 0;
         } catch (e) {
             return false;
         }
@@ -289,6 +377,7 @@
     function startNewGame() {
         initGame();
         gameState.running = true;
+        gameState.loopStarted = true;
         document.getElementById('start-screen').classList.add('hidden');
         startNextWave();
         requestAnimationFrame(gameLoop);
@@ -296,6 +385,9 @@
     }
 
     function startGame() {
+        if (gameState.loopStarted) {
+            return;
+        }
         if (hasSavedGame()) {
             const loaded = loadGame();
             if (loaded && gameState.wave > 0) {
@@ -312,6 +404,7 @@
                     generateWaveEnemies(gameState.wave);
                     announceWave(gameState.wave);
                 }
+                gameState.loopStarted = true;
                 requestAnimationFrame(gameLoop);
                 return;
             }
@@ -928,43 +1021,59 @@
                     }
                 }
             } else if (enemy.state === 'attacking') {
-                enemy.actionCooldown -= dt;
-                if (enemy.actionCooldown <= 0) {
-                    if (enemy.behavior === 'shoot') {
-                        shootEnemyArrow(enemy);
-                        enemy.actionCooldown = enemy.shootInterval;
-                    } else if (enemy.behavior === 'smash' || enemy.behavior === 'boss_smash') {
-                        gameState.castleHp -= enemy.smashDamage;
-                        updateUI();
-                        saveGame();
-                        for (let p = 0; p < 12; p++) {
-                            gameState.particles.push({
-                                x: enemy.side === 'left' ?
-                                    CASTLE_X - CASTLE_WIDTH / 2 :
-                                    CASTLE_X + CASTLE_WIDTH / 2,
-                                y: GROUND_Y - 30 - Math.random() * 60,
-                                vx: (enemy.side === 'left' ? -1 : 1) * (1 + Math.random() * 3),
-                                vy: -2 - Math.random() * 4,
-                                life: 30,
-                                maxLife: 30,
-                                color: Math.random() < 0.5 ? '#888' : '#aaa',
-                                size: 3 + Math.random() * 4
-                            });
+                const castleLeftEdge = CASTLE_X - CASTLE_WIDTH / 2;
+                const castleRightEdge = CASTLE_X + CASTLE_WIDTH / 2;
+                const maxAttackDistance = 5;
+                let atCastle = false;
+
+                if (enemy.side === 'left') {
+                    atCastle = Math.abs((enemy.x + enemy.width) - castleLeftEdge) <= maxAttackDistance;
+                } else {
+                    atCastle = Math.abs(enemy.x - castleRightEdge) <= maxAttackDistance;
+                }
+
+                if (!atCastle) {
+                    enemy.state = 'walking';
+                    enemy.actionCooldown = 0;
+                } else {
+                    enemy.actionCooldown -= dt;
+                    if (enemy.actionCooldown <= 0) {
+                        if (enemy.behavior === 'shoot') {
+                            shootEnemyArrow(enemy);
+                            enemy.actionCooldown = enemy.shootInterval;
+                        } else if (enemy.behavior === 'smash' || enemy.behavior === 'boss_smash') {
+                            gameState.castleHp -= enemy.smashDamage;
+                            updateUI();
+                            saveGame();
+                            for (let p = 0; p < 12; p++) {
+                                gameState.particles.push({
+                                    x: enemy.side === 'left' ?
+                                        CASTLE_X - CASTLE_WIDTH / 2 :
+                                        CASTLE_X + CASTLE_WIDTH / 2,
+                                    y: GROUND_Y - 30 - Math.random() * 60,
+                                    vx: (enemy.side === 'left' ? -1 : 1) * (1 + Math.random() * 3),
+                                    vy: -2 - Math.random() * 4,
+                                    life: 30,
+                                    maxLife: 30,
+                                    color: Math.random() < 0.5 ? '#888' : '#aaa',
+                                    size: 3 + Math.random() * 4
+                                });
+                            }
+                            if (gameState.castleHp <= 0) {
+                                endGame(false);
+                                return;
+                            }
+                            enemy.actionCooldown = enemy.smashInterval;
+                        } else if (enemy.behavior === 'stealth') {
+                            gameState.castleHp -= 3;
+                            updateUI();
+                            saveGame();
+                            if (gameState.castleHp <= 0) {
+                                endGame(false);
+                                return;
+                            }
+                            enemy.actionCooldown = 2000;
                         }
-                        if (gameState.castleHp <= 0) {
-                            endGame(false);
-                            return;
-                        }
-                        enemy.actionCooldown = enemy.smashInterval;
-                    } else if (enemy.behavior === 'stealth') {
-                        gameState.castleHp -= 3;
-                        updateUI();
-                        saveGame();
-                        if (gameState.castleHp <= 0) {
-                            endGame(false);
-                            return;
-                        }
-                        enemy.actionCooldown = 2000;
                     }
                 }
             }
@@ -1898,6 +2007,7 @@
     function endGame(victory) {
         gameState.gameOver = true;
         gameState.running = false;
+        gameState.loopStarted = false;
         gameState.victory = victory;
 
         clearSave();
@@ -2127,6 +2237,12 @@
                 clearSave();
                 alert('存档已删除');
                 showStartScreen();
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (gameState.running && !gameState.gameOver) {
+                saveGame();
             }
         });
     }
