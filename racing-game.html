@@ -855,9 +855,9 @@ const app = createApp({
     }
 
     function updateCar(car, input, dt) {
-      const accel = 0.15;
-      const brakeDecel = 0.3;
-      const friction = car.drift ? 0.05 : 0.1;
+      const accel = 0.12;
+      const brakeDecel = 0.25;
+      const friction = car.drift ? 0.04 : 0.08;
 
       if (input.accel) {
         let max = car.maxSpeed;
@@ -877,44 +877,51 @@ const app = createApp({
 
       const absSpeed = Math.abs(car.speed);
       let turnRate;
-      if (absSpeed < 0.15) {
+      if (absSpeed < 0.2) {
         turnRate = 0;
-      } else if (absSpeed < 2) {
-        turnRate = 0.04 * absSpeed / 2;
+      } else if (absSpeed < 1.5) {
+        turnRate = 0.018 * (absSpeed / 1.5);
+      } else if (absSpeed < 4) {
+        turnRate = 0.018 + (0.03 - 0.018) * ((absSpeed - 1.5) / 2.5);
       } else {
-        turnRate = 0.04 * (1 + 2.5 / absSpeed);
+        turnRate = 0.03 + (0.038 - 0.03) * ((absSpeed - 4) / 4);
       }
-      if (car.drift) turnRate *= 1.4;
+      if (car.drift) turnRate *= 1.15;
 
       if (input.left) car.angle -= turnRate;
       if (input.right) car.angle += turnRate;
 
       if (car.moveAngle === undefined) car.moveAngle = car.angle;
-      const grip = car.drift ? 0.04 : 0.15;
+      let grip;
+      if (car.drift) {
+        grip = 0.03;
+      } else {
+        grip = 0.07 + 0.03 * Math.min(1, absSpeed / 4);
+      }
       let angleDiff = car.angle - car.moveAngle;
       while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
       while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
       car.moveAngle += angleDiff * grip;
 
       const wasDrifting = car.drift;
-      car.drift = input.brake && (input.left || input.right) && Math.abs(car.speed) > 2;
+      car.drift = input.brake && (input.left || input.right) && Math.abs(car.speed) > 2.5;
 
       if (car.drift) {
         car.driftFrames++;
-        car.tilt = Math.max(-0.3, Math.min(0.3, car.tilt + (input.left ? -0.05 : 0.05)));
-        if (car.driftFrames === 31) {
-          car.boostFrames = 120;
+        car.tilt = Math.max(-0.25, Math.min(0.25, car.tilt + (input.left ? -0.03 : 0.03)));
+        if (car.driftFrames === 45) {
+          car.boostFrames = 100;
           if (car.isPlayer) soundManager.playBoost();
         }
       } else {
         car.driftFrames = 0;
-        car.tilt *= 0.9;
+        car.tilt *= 0.85;
       }
 
       if (car.isPlayer) {
         if (car.drift && !wasDrifting) soundManager.startDrift();
         if (!car.drift && wasDrifting) soundManager.stopDrift();
-        if (input.accel && car.boostFrames > 110) soundManager.playTurbo();
+        if (input.accel && car.boostFrames > 90) soundManager.playTurbo();
       }
 
       const moveA = car.moveAngle;
