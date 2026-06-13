@@ -141,6 +141,7 @@
                 wallLevel: gameState.wallLevel,
                 playerName: gameState.playerName,
                 resting: gameState.resting,
+                restTimer: gameState.restTimer,
                 skyProgress: gameState.skyProgress
             };
             localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
@@ -155,23 +156,30 @@
             const saveData = JSON.parse(data);
             if (!saveData || saveData.wave === undefined || saveData.wave === null) return false;
 
-            gameState.wave = saveData.wave || 0;
-            gameState.gold = saveData.gold || 0;
-            gameState.score = saveData.score || 0;
-            gameState.castleHp = saveData.castleHp || 100;
-            gameState.castleMaxHp = saveData.castleMaxHp || 100;
-            gameState.arrowLevel = saveData.arrowLevel || 0;
-            gameState.wallLevel = saveData.wallLevel || 0;
+            gameState.wave = saveData.wave !== undefined ? saveData.wave : 0;
+            gameState.gold = saveData.gold !== undefined ? saveData.gold : 0;
+            gameState.score = saveData.score !== undefined ? saveData.score : 0;
+            gameState.castleHp = saveData.castleHp !== undefined ? saveData.castleHp : 100;
+            gameState.castleMaxHp = saveData.castleMaxHp !== undefined ? saveData.castleMaxHp : 100;
+            gameState.arrowLevel = saveData.arrowLevel !== undefined ? saveData.arrowLevel : 0;
+            gameState.wallLevel = saveData.wallLevel !== undefined ? saveData.wallLevel : 0;
             gameState.playerName = saveData.playerName || '弓箭手';
-            gameState.skyProgress = saveData.skyProgress || 0;
-            gameState.resting = false;
+            gameState.skyProgress = saveData.skyProgress !== undefined ? saveData.skyProgress : 0;
+            gameState.resting = saveData.resting === true;
             gameState.enemies = [];
             gameState.arrows = [];
             gameState.particles = [];
             gameState.enemyArrows = [];
+            gameState.stuckArrows = [];
             gameState.gameOver = false;
             gameState.victory = false;
             gameState.running = true;
+            gameState.charge = 0;
+            gameState.charging = false;
+            gameState.waveEnemiesLeft = 0;
+            gameState.waveSpawnTimer = 0;
+            gameState.waveSpawnQueue = [];
+            gameState.restTimer = saveData.restTimer !== undefined ? saveData.restTimer : 0;
             return true;
         } catch (e) {
             return false;
@@ -251,11 +259,8 @@
             }
 
             if (mainBtn) {
-                mainBtn.id = 'start-btn';
+                mainBtn.id = 'continue-btn';
                 mainBtn.textContent = '继续游戏';
-                mainBtn.onclick = null;
-                mainBtn.removeEventListener('click', startGame);
-                mainBtn.addEventListener('click', startGame);
             }
 
             const btnGroup = mainBtn.parentElement;
@@ -271,27 +276,12 @@
             deleteBtn.className = 'btn btn-secondary';
             deleteBtn.textContent = '删除存档';
             btnGroup.appendChild(deleteBtn);
-
-            newGameBtn.addEventListener('click', () => {
-                clearSave();
-                document.getElementById('player-name').value = '';
-                startNewGame();
-            });
-
-            deleteBtn.addEventListener('click', () => {
-                clearSave();
-                alert('存档已删除');
-                showStartScreen();
-            });
         } else {
             subtitle.textContent = '守卫你的城堡，击退敌人的进攻！';
 
             if (mainBtn) {
                 mainBtn.id = 'start-btn';
                 mainBtn.textContent = '开始游戏';
-                mainBtn.onclick = null;
-                mainBtn.removeEventListener('click', startGame);
-                mainBtn.addEventListener('click', startGame);
             }
         }
     }
@@ -312,9 +302,13 @@
                 document.getElementById('player-name').value = gameState.playerName;
                 document.getElementById('start-screen').classList.add('hidden');
                 updateUI();
-                if (gameState.wave % 5 === 0 && gameState.wave < gameState.maxWave) {
-                    startRestPeriod();
+                if (gameState.resting && gameState.wave % 5 === 0 && gameState.wave < gameState.maxWave) {
+                    document.getElementById('upgrade-screen').classList.remove('hidden');
+                    updateUpgradeUI();
+                    document.getElementById('rest-timer').textContent = Math.max(1, Math.ceil(gameState.restTimer));
+                    startRestCountdown();
                 } else {
+                    gameState.resting = false;
                     generateWaveEnemies(gameState.wave);
                     announceWave(gameState.wave);
                 }
@@ -787,6 +781,29 @@
                 enemy.hitKnockback--;
             }
 
+            if (enemy.state !== 'walking' && enemy.state !== 'dead') {
+                const castleLeftEdge = CASTLE_X - CASTLE_WIDTH / 2;
+                const castleRightEdge = CASTLE_X + CASTLE_WIDTH / 2;
+                const maxDistance = 20;
+                let tooFar = false;
+
+                if (enemy.side === 'left') {
+                    if (enemy.x + enemy.width < castleLeftEdge - maxDistance) {
+                        tooFar = true;
+                    }
+                } else {
+                    if (enemy.x > castleRightEdge + maxDistance) {
+                        tooFar = true;
+                    }
+                }
+
+                if (tooFar) {
+                    enemy.state = 'walking';
+                    enemy.climbProgress = 0;
+                    enemy.actionCooldown = 0;
+                }
+            }
+
             if (enemy.burnTimer > 0) {
                 enemy.burnTimer -= dt;
                 if (Math.random() < 0.1) {
@@ -840,20 +857,13 @@
             if (enemy.state === 'walking') {
                 const castleLeftEdge = CASTLE_X - CASTLE_WIDTH / 2;
                 const castleRightEdge = CASTLE_X + CASTLE_WIDTH / 2;
-                let targetX;
-
-                if (enemy.side === 'left') {
-                    targetX = castleLeftEdge;
-                } else {
-                    targetX = castleRightEdge - enemy.width;
-                }
 
                 let reachedCastle = false;
-                if (enemy.side === 'left' && enemy.x + enemy.width >= targetX) {
-                    enemy.x = targetX - enemy.width;
+                if (enemy.side === 'left' && enemy.x + enemy.width >= castleLeftEdge) {
+                    enemy.x = castleLeftEdge - enemy.width;
                     reachedCastle = true;
-                } else if (enemy.side === 'right' && enemy.x <= targetX) {
-                    enemy.x = targetX;
+                } else if (enemy.side === 'right' && enemy.x <= castleRightEdge) {
+                    enemy.x = castleRightEdge;
                     reachedCastle = true;
                 }
 
@@ -2109,6 +2119,14 @@
         document.addEventListener('click', (e) => {
             if (e.target.id === 'start-btn' || e.target.id === 'continue-btn') {
                 startGame();
+            } else if (e.target.id === 'new-game-btn') {
+                clearSave();
+                document.getElementById('player-name').value = '';
+                startNewGame();
+            } else if (e.target.id === 'delete-save-btn') {
+                clearSave();
+                alert('存档已删除');
+                showStartScreen();
             }
         });
     }
