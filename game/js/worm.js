@@ -1,14 +1,20 @@
 const Worm = {
   create(saveData) {
     const savedState = saveData || {};
+    const baseSpeed = savedState.baseSpeed || GameConfig.BASE_SPEED;
+    const direction = savedState.direction || { x: 1, y: 0 };
+    const startX = savedState.x || GameConfig.CANVAS_WIDTH / 2;
+    const startY = savedState.y || GameConfig.CANVAS_HEIGHT / 2;
+    const bodySegments = savedState.bodySegments || GameConfig.INITIAL_BODY_SEGMENTS;
+
     const worm = {
-      x: savedState.x || GameConfig.CANVAS_WIDTH / 2,
-      y: savedState.y || GameConfig.CANVAS_HEIGHT / 2,
-      direction: savedState.direction || { x: 1, y: 0 },
-      nextDirection: savedState.nextDirection || { x: 1, y: 0 },
-      bodySegments: savedState.bodySegments || GameConfig.INITIAL_BODY_SEGMENTS,
+      x: startX,
+      y: startY,
+      direction: { ...direction },
+      nextDirection: savedState.nextDirection ? { ...savedState.nextDirection } : { ...direction },
+      bodySegments: bodySegments,
       pathHistory: [],
-      baseSpeed: savedState.baseSpeed || GameConfig.BASE_SPEED,
+      baseSpeed: baseSpeed,
       speedBoostUntil: 0,
       slowUntil: 0,
       foodsEatenForSpeed: savedState.foodsEatenForSpeed || 0,
@@ -17,17 +23,41 @@ const Worm = {
     };
 
     const savedHistory = savedState.pathHistory || [];
+    const requiredLength = bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 50;
+
     if (savedHistory.length > 0) {
       worm.pathHistory = savedHistory.slice();
-      while (worm.pathHistory.length < worm.bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 20) {
-        const last = worm.pathHistory[worm.pathHistory.length - 1];
-        worm.pathHistory.push({ x: last.x, y: last.y });
+      if (worm.pathHistory.length < requiredLength) {
+        const deficit = requiredLength - worm.pathHistory.length;
+        const lastPos = worm.pathHistory[worm.pathHistory.length - 1];
+        const dir = worm.direction;
+        for (let i = 1; i <= deficit; i++) {
+          worm.pathHistory.push({
+            x: lastPos.x - dir.x * baseSpeed * i,
+            y: lastPos.y - dir.y * baseSpeed * i
+          });
+        }
       }
+      worm.x = worm.pathHistory[0].x;
+      worm.y = worm.pathHistory[0].y;
     } else {
-      for (let i = 0; i < worm.bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 20; i++) {
-        worm.pathHistory.push({ x: worm.x, y: worm.y });
+      for (let i = 0; i < requiredLength; i++) {
+        const offset = i * baseSpeed;
+        worm.pathHistory.push({
+          x: startX - direction.x * offset,
+          y: startY - direction.y * offset
+        });
       }
     }
+
+    console.log('[Worm.create] Created worm:', {
+      x: worm.x.toFixed(1),
+      y: worm.y.toFixed(1),
+      direction: worm.direction,
+      bodySegments: worm.bodySegments,
+      pathHistoryLen: worm.pathHistory.length,
+      fromSave: savedHistory.length > 0
+    });
 
     return worm;
   },
@@ -165,13 +195,17 @@ const Worm = {
   },
 
   serialize(worm) {
+    const saveCount = Math.max(
+      GameConfig.PATH_HISTORY_LENGTH,
+      worm.bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 100
+    );
     return {
       x: worm.x,
       y: worm.y,
-      direction: worm.direction,
-      nextDirection: worm.nextDirection,
+      direction: { ...worm.direction },
+      nextDirection: { ...worm.nextDirection },
       bodySegments: worm.bodySegments,
-      pathHistory: worm.pathHistory.slice(0, Math.min(worm.pathHistory.length, 150)),
+      pathHistory: worm.pathHistory.slice(0, Math.min(worm.pathHistory.length, saveCount)),
       baseSpeed: worm.baseSpeed,
       foodsEatenForSpeed: worm.foodsEatenForSpeed
     };

@@ -36,7 +36,8 @@ const GameEngine = {
       saveData: saveData,
       isPaused: false,
       isGameOver: false,
-      notifications: []
+      notifications: [],
+      invincibleUntil: 0
     };
 
     if (savedGameState?.food) {
@@ -85,12 +86,15 @@ const GameEngine = {
     AudioSystem.init();
     this.bindEvents();
 
+    this.state.invincibleUntil = performance.now() + 3000;
+
     console.log('[GameEngine.init] Initialization complete.');
     console.log('[GameEngine.init] Worm position:',
       this.state.worm.x.toFixed(1), this.state.worm.y.toFixed(1));
     console.log('[GameEngine.init] Worm direction:',
       this.state.worm.direction.x, this.state.worm.direction.y);
     console.log('[GameEngine.init] Base speed:', this.state.worm.baseSpeed);
+    console.log('[GameEngine.init] Invincible for 3 seconds');
   },
 
   bindEvents() {
@@ -234,11 +238,13 @@ const GameEngine = {
 
     this.state = this.createState();
     this.state.food = FoodSystem.spawn(this.state.worm, null);
+    this.state.invincibleUntil = performance.now() + 3000;
     Effects.clear();
     this.lastSaveTime = 0;
     this.debug.updateCount = 0;
     this.debug.saveCount = 0;
     this.start();
+    console.log('[GameEngine.restart] Restart complete, invincible for 3 seconds');
   },
 
   update(time) {
@@ -285,7 +291,8 @@ const GameEngine = {
         worm.x.toFixed(1), worm.y.toFixed(1));
     }
 
-    if (Worm.checkSelfCollision(worm)) {
+    const isInvincible = time < this.state.invincibleUntil;
+    if (!isInvincible && Worm.checkSelfCollision(worm)) {
       console.log('[GameEngine.update] Self collision detected!');
       this.handleDeath(time);
     }
@@ -424,6 +431,7 @@ const GameEngine = {
 
   getDebugInfo() {
     if (!this.state) return null;
+    const now = performance.now();
     return {
       ...this.debug,
       wormX: this.state.worm.x,
@@ -433,12 +441,14 @@ const GameEngine = {
       nextDirectionX: this.state.worm.nextDirection.x,
       nextDirectionY: this.state.worm.nextDirection.y,
       baseSpeed: this.state.worm.baseSpeed,
-      currentSpeed: Worm.getCurrentSpeed(this.state.worm, performance.now()),
+      currentSpeed: Worm.getCurrentSpeed(this.state.worm, now),
       bodySegments: this.state.worm.bodySegments,
       pathHistoryLen: this.state.worm.pathHistory.length,
       isDead: this.state.worm.isDead,
       isPaused: this.state.isPaused,
       isGameOver: this.state.isGameOver,
+      isInvincible: now < this.state.invincibleUntil,
+      invincibleTimeLeft: Math.max(0, Math.ceil((this.state.invincibleUntil - now) / 1000)),
       score: this.state.score,
       foodsEaten: this.state.foodsEaten,
       hasFood: !!this.state.food,

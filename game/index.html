@@ -683,6 +683,12 @@
                 {{ debugInfo.isGameOver ? '是' : '否' }}
               </span>
             </div>
+            <div class="debug-row">
+              <span class="debug-label">无敌状态</span>
+              <span class="debug-value" :class="debugInfo.isInvincible ? 'ok' : ''">
+                {{ debugInfo.isInvincible ? '✅ '+debugInfo.invincibleTimeLeft+'s' : '否' }}
+              </span>
+            </div>
           </div>
 
           <div class="debug-section">
