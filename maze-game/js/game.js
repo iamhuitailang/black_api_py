@@ -25,10 +25,15 @@ class GameController {
   }
 
   newGame() {
+    const saved = this.storage.load();
+    const prevMaxFloor = saved ? (saved.maxFloor || 1) : 1;
+    const prevBestTimes = saved ? (saved.floorBestTimes || {}) : {};
+    const prevTotalTime = saved ? (saved.totalTime || 0) : 0;
+
     this.currentFloor = 1;
-    this.maxFloor = 1;
-    this.totalTime = 0;
-    this.floorBestTimes = {};
+    this.maxFloor = prevMaxFloor;
+    this.totalTime = prevTotalTime;
+    this.floorBestTimes = { ...prevBestTimes };
     this.isGameOver = false;
     this.isVictory = false;
     this.gameStartTime = performance.now();
@@ -39,6 +44,7 @@ class GameController {
       this.player.lives = GameConstants.PLAYER_LIVES;
     }
 
+    this.saveProgress();
     this._notifyStateChange();
   }
 
@@ -111,12 +117,14 @@ class GameController {
     this.isRunning = false;
     this.totalTime = performance.now() - this.gameStartTime;
     this.soundManager.playVictory();
+    this.saveGame();
     this._notifyStateChange();
   }
 
   gameOver() {
     this.isGameOver = true;
     this.isRunning = false;
+    this.saveProgress();
     this._notifyStateChange();
   }
 
@@ -254,6 +262,7 @@ class GameController {
       guard.chaseTarget = null;
     });
 
+    this.saveProgress();
     this._notifyStateChange();
   }
 
@@ -326,6 +335,20 @@ class GameController {
     };
 
     return this.storage.save(gameState);
+  }
+
+  saveProgress() {
+    const existing = this.storage.load() || {};
+    const progressState = {
+      ...existing,
+      maxFloor: Math.max(this.maxFloor, existing.maxFloor || 1),
+      totalTime: Math.max(
+        this.totalTime + (this.isRunning ? (performance.now() - this.gameStartTime) : 0),
+        existing.totalTime || 0
+      ),
+      floorBestTimes: { ...existing.floorBestTimes, ...this.floorBestTimes },
+    };
+    return this.storage.save(progressState);
   }
 
   _requestSave() {

@@ -606,7 +606,15 @@ const App = {
       }
       saveTimer = setTimeout(() => {
         saveGame();
-      }, 500);
+      }, 200);
+    };
+
+    const handleBeforeUnload = () => {
+      if (game.value && game.value.maze) {
+        game.value.saveGame();
+      } else if (game.value) {
+        game.value.saveProgress();
+      }
     };
 
     const toggleSound = () => {
@@ -663,6 +671,7 @@ const App = {
     onMounted(() => {
       checkSave();
       document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('beforeunload', handleBeforeUnload);
       if (!animationFrameId) {
         gameLoop();
       }
@@ -670,12 +679,14 @@ const App = {
 
     onUnmounted(() => {
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
       if (saveTimer) {
         clearTimeout(saveTimer);
       }
+      handleBeforeUnload();
       if (game.value) {
         game.value.destroy();
       }

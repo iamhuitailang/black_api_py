@@ -23,6 +23,8 @@ class MazeGenerator {
 
     this._dfs(startX, startY);
 
+    this._addLoops(6);
+
     let maxDist = 0;
     let exitX = startX;
     let exitY = startY;
@@ -42,6 +44,29 @@ class MazeGenerator {
     this.grid[exitY][exitX] = CellType.EXIT;
 
     return this;
+  }
+
+  _addLoops(count) {
+    const candidates = [];
+    for (let y = 2; y < this.height - 2; y++) {
+      for (let x = 2; x < this.width - 2; x++) {
+        if (this.grid[y][x] === CellType.WALL) {
+          const horizontal =
+            this.isWalkable(x - 1, y) && this.isWalkable(x + 1, y);
+          const vertical =
+            this.isWalkable(x, y - 1) && this.isWalkable(x, y + 1);
+          if (horizontal || vertical) {
+            candidates.push({ x, y });
+          }
+        }
+      }
+    }
+
+    const shuffled = Utils.shuffle(candidates);
+    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+      const { x, y } = shuffled[i];
+      this.grid[y][x] = CellType.FLOOR;
+    }
   }
 
   _dfs(x, y) {
@@ -85,14 +110,35 @@ class MazeGenerator {
     return !this.isWall(x, y);
   }
 
-  getRandomFloorPosition(avoidPositions = []) {
+  getRandomFloorPosition(avoidPositions = [], minDistanceFromStart = 3, minDistanceFromExit = 3) {
     const floors = [];
     for (let y = 1; y < this.height - 1; y++) {
       for (let x = 1; x < this.width - 1; x++) {
         if (this.grid[y][x] === CellType.FLOOR) {
           const avoid = avoidPositions.some(p => p.x === x && p.y === y);
-          if (!avoid) {
-            floors.push({ x, y });
+          if (avoid) continue;
+
+          if (this.startPos) {
+            const distStart = Utils.chebyshevDistance(x, y, this.startPos.x, this.startPos.y);
+            if (distStart < minDistanceFromStart) continue;
+          }
+          if (this.exitPos) {
+            const distExit = Utils.chebyshevDistance(x, y, this.exitPos.x, this.exitPos.y);
+            if (distExit < minDistanceFromExit) continue;
+          }
+
+          floors.push({ x, y });
+        }
+      }
+    }
+    if (floors.length === 0) {
+      for (let y = 1; y < this.height - 1; y++) {
+        for (let x = 1; x < this.width - 1; x++) {
+          if (this.grid[y][x] === CellType.FLOOR) {
+            const avoid = avoidPositions.some(p => p.x === x && p.y === y);
+            if (!avoid) {
+              floors.push({ x, y });
+            }
           }
         }
       }
