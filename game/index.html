@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贪吃虫 - Greedy Worm</title>
+  <script src="js/vue.global.prod.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .game-container {
+      display: flex;
+      gap: 24px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .game-main {
+      flex-shrink: 0;
+    }
+
+    .game-title {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .game-title h1 {
+      font-size: 32px;
+      background: linear-gradient(90deg, #22c55e, #eab308, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+
+    .game-title p {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(34, 197, 94, 0.15),
+                  0 0 80px rgba(59, 130, 246, 0.1);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 12px;
+    }
+
+    .game-over-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .game-over-overlay h2 {
+      font-size: 42px;
+      color: #ef4444;
+      margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+    }
+
+    .game-over-overlay .final-score {
+      font-size: 24px;
+      color: #eab308;
+      margin-bottom: 8px;
+    }
+
+    .game-over-overlay .high-score {
+      font-size: 16px;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    .game-sidebar {
+      flex: 1;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(100, 116, 139, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .score-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .score-display:last-child {
+      margin-bottom: 0;
+    }
+
+    .score-label {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .score-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .score-value.current {
+      color: #eab308;
+    }
+
+    .score-value.high {
+      color: #22c55e;
+    }
+
+    .score-value.speed {
+      color: #3b82f6;
+      font-size: 18px;
+    }
+
+    .score-value.foods {
+      color: #8b5cf6;
+      font-size: 18px;
+    }
+
+    .status-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.speed {
+      background: rgba(234, 179, 8, 0.2);
+      color: #eab308;
+      border: 1px solid rgba(234, 179, 8, 0.4);
+    }
+
+    .badge.slow {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .skins-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .skin-item {
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .skin-item:hover:not(.locked) {
+      transform: translateY(-2px);
+      border-color: rgba(100, 116, 139, 0.4);
+    }
+
+    .skin-item.active {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+    }
+
+    .skin-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .skin-preview {
+      height: 24px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .skin-name {
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    .skin-unlock {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .controls-panel {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.8;
+    }
+
+    .controls-panel kbd {
+      background: rgba(100, 116, 139, 0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #e2e8f0;
+      font-size: 12px;
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(100, 116, 139, 0.2);
+      color: #e2e8f0;
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(100, 116, 139, 0.3);
+    }
+
+    .food-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .food-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .food-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .food-dot.normal {
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+    }
+
+    .food-dot.speed {
+      background: #eab308;
+      box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+      border-radius: 2px;
+    }
+
+    .food-dot.slow {
+      background: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    }
+
+    .food-info {
+      display: flex;
+      justify-content: space-between;
+      flex: 1;
+    }
+
+    .food-name {
+      color: #e2e8f0;
+    }
+
+    .food-score {
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="game-container">
+      <div class="game-main">
+        <div class="game-title">
+          <h1>🐛 贪吃虫</h1>
+          <p>传送门墙壁 · 多种食物 · 皮肤解锁</p>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas ref="gameCanvas"></canvas>
+          <div v-if="gameState && gameState.isGameOver" class="game-over-overlay">
+            <h2>游戏结束</h2>
+            <div class="final-score">得分: {{ gameState.score }}</div>
+            <div class="high-score">最高分: {{ saveData.highScore }}</div>
+            <button class="btn btn-primary" @click="restartGame">重新开始</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-sidebar">
+        <div class="panel">
+          <div class="panel-title">游戏数据</div>
+          <div class="score-display">
+            <span class="score-label">当前分数</span>
+            <span class="score-value current">{{ gameState ? gameState.score : 0 }}</span>
+          </div>
+          <div class="score-display">
+            <span class="score-label">最高分</span>
+            <span class="score-value high">{{ saveData.highScore }}</span>
+          </div>
+          <div class="score-display">
+            <span class="score-label">本局食物</span>
+            <span class="score-value foods">{{ gameState ? gameState.foodsEaten : 0 }}</span>
+          </div>
+          <div class="score-display">
+            <span class="score-label">累计食物</span>
+            <span class="score-value foods">{{ saveData.totalFoodsEaten }}</span>
+          </div>
+          <div class="score-display">
+            <span class="score-label">当前速度</span>
+            <span class="score-value speed">{{ currentSpeed.toFixed(1) }} px/帧</span>
+          </div>
+          <div class="status-badges" v-if="hasStatusEffects">
+            <span v-if="isSpeedBoosted" class="badge speed">⚡ 加速中</span>
+            <span v-if="isSlowed" class="badge slow">❄️ 减速中</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">皮肤选择</div>
+          <div class="skins-grid">
+            <div
+              v-for="skin in skins"
+              :key="skin.id"
+              class="skin-item"
+              :class="{ active: currentSkin === skin.id, locked: !isSkinUnlocked(skin) }"
+              @click="selectSkin(skin)"
+            >
+              <div class="skin-preview" :style="getSkinPreviewStyle(skin)"></div>
+              <div class="skin-name">{{ skin.name }}</div>
+              <div class="skin-unlock">
+                {{ isSkinUnlocked(skin) ? '已解锁' : `需${skin.unlockAt}个食物` }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">食物图鉴</div>
+          <div class="food-legend">
+            <div class="food-item">
+              <div class="food-dot normal"></div>
+              <div class="food-info">
+                <span class="food-name">普通食物</span>
+                <span class="food-score">+10 分 · 75%</span>
+              </div>
+            </div>
+            <div class="food-item">
+              <div class="food-dot speed"></div>
+              <div class="food-info">
+                <span class="food-name">加速食物</span>
+                <span class="food-score">+20 分 · 20%</span>
+              </div>
+            </div>
+            <div class="food-item">
+              <div class="food-dot slow"></div>
+              <div class="food-info">
+                <span class="food-name">减速食物</span>
+                <span class="food-score">+5 分 · 5%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">操作说明</div>
+          <div class="controls-panel">
+            <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 控制方向</div>
+            <div><kbd>空格</kbd> 或 <kbd>Esc</kbd> 暂停游戏</div>
+            <div>🌊 穿过墙壁会传送到对侧</div>
+            <div>🍽️ 每吃3个食物速度永久提升</div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" @click="restartGame">🔄 重新开始</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/worm.js"></script>
+  <script src="js/food.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/gameEngine.js"></script>
+
+  <script>
+    function initApp() {
+      if (typeof Vue === 'undefined') {
+        setTimeout(initApp, 50);
+        return;
+      }
+      const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
+
+      createApp({
+      setup() {
+        const gameCanvas = ref(null);
+        const gameState = ref(null);
+        const saveData = reactive(Storage.load());
+        const skins = GameConfig.WORM_SKINS;
+        const currentSkin = ref(saveData.currentSkin || 'default');
+        let uiUpdateInterval = null;
+
+        const isSkinUnlocked = (skin) => {
+          return saveData.unlockedSkins.includes(skin.id);
+        };
+
+        const selectSkin = (skin) => {
+          if (!isSkinUnlocked(skin)) return;
+          if (GameEngine.setSkin(skin.id)) {
+            currentSkin.value = skin.id;
+            saveData.currentSkin = skin.id;
+          }
+        };
+
+        const getSkinPreviewStyle = (skin) => {
+          if (skin.type === 'rainbow') {
+            return `background: linear-gradient(90deg, ${skin.colors.join(', ')})`;
+          }
+          const colorStops = skin.colors.map((c, i) => `${c} ${(i / (skin.colors.length - 1)) * 100}%`).join(', ');
+          return `background: linear-gradient(90deg, ${colorStops})`;
+        };
+
+        const currentSpeed = computed(() => {
+          if (!gameState.value || !gameState.value.worm) return GameConfig.BASE_SPEED;
+          const now = performance.now();
+          return Worm.getCurrentSpeed(gameState.value.worm, now);
+        });
+
+        const isSpeedBoosted = computed(() => {
+          if (!gameState.value || !gameState.value.worm) return false;
+          return Worm.isSpeedBoosted(gameState.value.worm, performance.now());
+        });
+
+        const isSlowed = computed(() => {
+          if (!gameState.value || !gameState.value.worm) return false;
+          return Worm.isSlowed(gameState.value.worm, performance.now());
+        });
+
+        const hasStatusEffects = computed(() => {
+          return isSpeedBoosted.value || isSlowed.value;
+        });
+
+        const restartGame = () => {
+          GameEngine.restart();
+          refreshSaveData();
+        };
+
+        const refreshSaveData = () => {
+          const fresh = Storage.load();
+          Object.assign(saveData, fresh);
+          currentSkin.value = fresh.currentSkin;
+        };
+
+        const updateUI = () => {
+          const state = GameEngine.getState();
+          if (state) {
+            gameState.value = {
+              score: state.score,
+              foodsEaten: state.foodsEaten,
+              isGameOver: state.isGameOver,
+              isPaused: state.isPaused,
+              worm: state.worm
+            };
+          }
+          if (gameState.value && gameState.value.isGameOver) {
+            refreshSaveData();
+          }
+        };
+
+        onMounted(() => {
+          GameEngine.init(gameCanvas.value);
+          GameEngine.start();
+          gameState.value = GameEngine.getState();
+          uiUpdateInterval = setInterval(updateUI, 100);
+        });
+
+        onUnmounted(() => {
+          GameEngine.stop();
+          if (uiUpdateInterval) {
+            clearInterval(uiUpdateInterval);
+          }
+        });
+
+        return {
+          gameCanvas,
+          gameState,
+          saveData,
+          skins,
+          currentSkin,
+          currentSpeed,
+          isSpeedBoosted,
+          isSlowed,
+          hasStatusEffects,
+          isSkinUnlocked,
+          selectSkin,
+          getSkinPreviewStyle,
+          restartGame
+        };
+      }
+      }).mount('#app');
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
