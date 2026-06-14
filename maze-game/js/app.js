@@ -1,4 +1,4 @@
-const { createApp, ref, reactive, computed, onMounted, onUnmounted, watch } = Vue;
+const { createApp, ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } = Vue;
 
 const GameHUD = {
   props: ['lives', 'floor', 'keys', 'totalFloors', 'time', 'soundEnabled', 'doorOpen'],
@@ -299,7 +299,7 @@ const App = {
     VictoryScreen,
   },
   template: `
-    <div class="game-container" ref="gameContainer" @keydown="handleKeyDown" tabindex="0">
+    <div class="game-container" ref="gameContainer">
       <div class="game-header" v-if="gameState !== 'start'">
         <GameHUD
           :lives="lives"
@@ -505,19 +505,22 @@ const App = {
       };
 
       game.value.newGame();
-      initRenderer();
       gameState.value = 'playing';
-      game.value.start();
 
-      if (!animationFrameId) {
-        gameLoop();
-      }
+      nextTick(() => {
+        initRenderer();
+        game.value.start();
 
-      if (gameContainer.value) {
-        gameContainer.value.focus();
-      }
+        if (!animationFrameId) {
+          gameLoop();
+        }
 
-      scheduleSave();
+        if (gameContainer.value) {
+          gameContainer.value.focus();
+        }
+
+        scheduleSave();
+      });
     };
 
     const continueGame = () => {
@@ -535,19 +538,22 @@ const App = {
 
       const loaded = game.value.loadGame();
       if (loaded) {
-        initRenderer();
         gameState.value = 'playing';
-        game.value.start();
 
-        if (!animationFrameId) {
-          gameLoop();
-        }
+        nextTick(() => {
+          initRenderer();
+          game.value.start();
 
-        if (gameContainer.value) {
-          gameContainer.value.focus();
-        }
+          if (!animationFrameId) {
+            gameLoop();
+          }
 
-        scheduleSave();
+          if (gameContainer.value) {
+            gameContainer.value.focus();
+          }
+
+          scheduleSave();
+        });
       }
     };
 
@@ -656,15 +662,14 @@ const App = {
 
     onMounted(() => {
       checkSave();
-      if (gameContainer.value) {
-        gameContainer.value.focus();
-      }
+      document.addEventListener('keydown', handleKeyDown);
       if (!animationFrameId) {
         gameLoop();
       }
     });
 
     onUnmounted(() => {
+      document.removeEventListener('keydown', handleKeyDown);
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
