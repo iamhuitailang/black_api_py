@@ -53,17 +53,80 @@ class Game {
         }
         
         try {
+            const enemiesData = this.enemies.map(enemy => {
+                let type = 'spider';
+                if (enemy instanceof Drone) type = 'drone';
+                else if (enemy instanceof Mech) type = 'mech';
+                
+                const base = {
+                    type: type,
+                    x: enemy.x,
+                    y: enemy.y,
+                    health: enemy.health,
+                    isDead: enemy.isDead,
+                    deathTimer: enemy.deathTimer,
+                    facingRight: enemy.facingRight
+                };
+                
+                if (type === 'drone') {
+                    base.patrolDirection = enemy.patrolDirection;
+                    base.patrolStartX = enemy.patrolStartX;
+                    base.shootCooldown = enemy.shootCooldown;
+                    base.hoverOffset = enemy.hoverOffset;
+                    base.bullets = enemy.bullets || [];
+                } else if (type === 'mech') {
+                    base.attackCooldown = enemy.attackCooldown;
+                    base.isAttacking = enemy.isAttacking;
+                    base.attackTimer = enemy.attackTimer;
+                } else if (type === 'spider') {
+                    base.isExploding = enemy.isExploding;
+                    base.explodeWarningTimer = enemy.explodeWarningTimer;
+                    base.hasExploded = enemy.hasExploded;
+                }
+                
+                return base;
+            });
+            
+            const itemsData = this.items.map(item => ({
+                type: item.type,
+                x: item.x,
+                y: item.y,
+                active: item.active
+            }));
+            
+            let bossData = null;
+            if (this.boss) {
+                bossData = {
+                    x: this.boss.x,
+                    y: this.boss.y,
+                    health: this.boss.health,
+                    isDead: this.boss.isDead,
+                    deathTimer: this.boss.deathTimer,
+                    facingRight: this.boss.facingRight,
+                    currentAttack: this.boss.currentAttack,
+                    attackTimer: this.boss.attackTimer,
+                    cooldownTimer: this.boss.cooldownTimer
+                };
+            }
+            
             const data = {
                 score: this.score,
                 currentAreaIndex: this.currentAreaIndex,
                 currentLevelIndex: this.currentLevelIndex,
                 playerHealth: this.player.health,
                 playerMaxHealth: this.player.maxHealth,
+                playerX: this.player.x,
+                playerY: this.player.y,
                 playerBuffs: {
                     attackSpeed: { active: this.player.buffs.attackSpeed.active, timer: this.player.buffs.attackSpeed.timer },
                     moveSpeed: { active: this.player.buffs.moveSpeed.active, timer: this.player.buffs.moveSpeed.timer },
                     invincible: { active: this.player.buffs.invincible.active, timer: this.player.buffs.invincible.timer }
                 },
+                enemies: enemiesData,
+                items: itemsData,
+                boss: bossData,
+                levelTotalEnemies: this.currentLevel ? this.currentLevel.totalEnemyCount : 0,
+                levelCompleted: this.currentLevel ? this.currentLevel.completed : false,
                 savedAt: Date.now()
             };
             localStorage.setItem(this.saveKey, JSON.stringify(data));
@@ -81,6 +144,12 @@ class Game {
         this.player.reset();
         this.player.health = Math.min(data.playerHealth || this.player.maxHealth, this.player.maxHealth);
         this.player.maxHealth = data.playerMaxHealth || GameConfig.PLAYER.MAX_HEALTH;
+        if (data.playerX !== undefined) {
+            this.player.x = data.playerX;
+        }
+        if (data.playerY !== undefined) {
+            this.player.y = data.playerY;
+        }
         
         if (data.playerBuffs) {
             for (const key in data.playerBuffs) {
@@ -94,23 +163,100 @@ class Game {
             }
         }
         
-        this.enemies = [];
-        this.items = [];
+        if (typeof particleSystem !== 'undefined') {
+            particleSystem.clear();
+        }
+        
         this.floatingTexts = [];
-        this.boss = null;
         this.scoreSubmitted = false;
         this.pendingBuff = false;
         this.autoSaveTimer = 0;
         
-        if (typeof particleSystem !== 'undefined') {
-            particleSystem.clear();
+        this.currentLevel = new Level(this.currentAreaIndex, this.currentLevelIndex % 3);
+        this.currentLevel.enemiesSpawned = true;
+        if (data.levelCompleted !== undefined) {
+            this.currentLevel.completed = data.levelCompleted;
+        }
+        if (data.levelTotalEnemies !== undefined && data.levelTotalEnemies > 0) {
+            this.currentLevel.totalEnemyCount = data.levelTotalEnemies;
+        }
+        
+        this.enemies = [];
+        if (data.enemies && data.enemies.length > 0) {
+            data.enemies.forEach(enemyData => {
+                if (enemyData.isDead && enemyData.deathTimer <= 0) return;
+                
+                let enemy = null;
+                switch (enemyData.type) {
+                    case 'drone':
+                        enemy = new Drone(enemyData.x, enemyData.y);
+                        enemy.patrolDirection = enemyData.patrolDirection || 1;
+                        enemy.patrolStartX = enemyData.patrolStartX || enemyData.x;
+                        enemy.shootCooldown = enemyData.shootCooldown || 0;
+                        enemy.hoverOffset = enemyData.hoverOffset || 0;
+                        if (enemyData.bullets) {
+                            enemy.bullets = enemyData.bullets;
+                        }
+                        break;
+                    case 'mech':
+                        enemy = new Mech(enemyData.x, enemyData.y);
+                        enemy.attackCooldown = enemyData.attackCooldown || 0;
+                        enemy.isAttacking = enemyData.isAttacking || false;
+                        enemy.attackTimer = enemyData.attackTimer || 0;
+                        break;
+                    case 'spider':
+                    default:
+                        enemy = new Spider(enemyData.x, enemyData.y);
+                        enemy.isExploding = enemyData.isExploding || false;
+                        enemy.explodeWarningTimer = enemyData.explodeWarningTimer || 0;
+                        enemy.hasExploded = enemyData.hasExploded || false;
+                        break;
+                }
+                
+                if (enemy) {
+                    enemy.health = enemyData.health || enemy.maxHealth;
+                    enemy.isDead = enemyData.isDead || false;
+                    enemy.deathTimer = enemyData.deathTimer || 0;
+                    enemy.facingRight = enemyData.facingRight !== undefined ? enemyData.facingRight : true;
+                    this.enemies.push(enemy);
+                }
+            });
+        }
+        
+        this.items = [];
+        if (data.items && data.items.length > 0) {
+            data.items.forEach(itemData => {
+                if (!itemData.active) return;
+                const item = new Item(itemData.x, itemData.y, itemData.type);
+                this.items.push(item);
+            });
+        }
+        
+        this.boss = null;
+        if (data.boss && this.currentLevel.isBossLevel) {
+            this.boss = new Boss(data.boss.x, data.boss.y);
+            this.boss.health = data.boss.health || this.boss.maxHealth;
+            this.boss.isDead = data.boss.isDead || false;
+            this.boss.deathTimer = data.boss.deathTimer || 0;
+            this.boss.facingRight = data.boss.facingRight !== undefined ? data.boss.facingRight : false;
+            if (data.boss.currentAttack !== undefined) {
+                this.boss.currentAttack = data.boss.currentAttack;
+            }
+            if (data.boss.attackTimer !== undefined) {
+                this.boss.attackTimer = data.boss.attackTimer;
+            }
+            if (data.boss.cooldownTimer !== undefined) {
+                this.boss.cooldownTimer = data.boss.cooldownTimer;
+            }
+        } else if (this.currentLevel.isBossLevel && !data.boss) {
+            this.boss = this.currentLevel.spawnBoss();
         }
         
         this.gameState = 'playing';
         this.ui.hideAllMenus();
         this.ui.hideBuffSelection();
         this.ui.showHUD();
-        this.loadLevel();
+        this.ui.updateHUD(this);
     }
     
     clearSave() {
