@@ -26,21 +26,25 @@ class Game {
         this.autoSaveTimer = 0;
         
         this.setupGameLoop();
-        this.checkSavedGame();
+        
+        this._initSaveCheck();
     }
     
-    checkSavedGame() {
-        try {
-            const saveData = localStorage.getItem(this.saveKey);
-            if (saveData) {
-                const data = JSON.parse(saveData);
-                if (data && data.score > 0) {
-                    this.ui.showContinueDialog(data);
+    _initSaveCheck() {
+        setTimeout(() => {
+            try {
+                const saveData = localStorage.getItem(this.saveKey);
+                if (saveData) {
+                    const data = JSON.parse(saveData);
+                    if (data && data.score > 0) {
+                        this.ui.showContinueDialog(data);
+                        return;
+                    }
                 }
+            } catch (e) {
+                console.warn('读取存档失败:', e);
             }
-        } catch (e) {
-            console.warn('读取存档失败:', e);
-        }
+        }, 100);
     }
     
     saveGame() {
@@ -74,8 +78,9 @@ class Game {
         this.currentLevelIndex = data.currentLevelIndex || 0;
         this.currentAreaConfig = GameConfig.AREAS[this.currentAreaIndex];
         
+        this.player.reset();
         this.player.health = Math.min(data.playerHealth || this.player.maxHealth, this.player.maxHealth);
-        this.player.maxHealth = data.playerMaxHealth || this.player.maxHealth;
+        this.player.maxHealth = data.playerMaxHealth || GameConfig.PLAYER.MAX_HEALTH;
         
         if (data.playerBuffs) {
             for (const key in data.playerBuffs) {
@@ -93,9 +98,13 @@ class Game {
         this.items = [];
         this.floatingTexts = [];
         this.boss = null;
-        particleSystem.clear();
         this.scoreSubmitted = false;
         this.pendingBuff = false;
+        this.autoSaveTimer = 0;
+        
+        if (typeof particleSystem !== 'undefined') {
+            particleSystem.clear();
+        }
         
         this.gameState = 'playing';
         this.ui.hideAllMenus();
@@ -142,6 +151,22 @@ class Game {
         audioManager.playLevelComplete();
     }
 
+    continueGame() {
+        try {
+            const saveData = localStorage.getItem(this.saveKey);
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                if (data && data.score > 0) {
+                    this.loadGame(data);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('读取存档失败:', e);
+        }
+        this.startGame();
+    }
+
     resetGame() {
         this.score = 0;
         this.currentAreaIndex = 0;
@@ -155,10 +180,17 @@ class Game {
         this.items = [];
         this.floatingTexts = [];
         this.boss = null;
-        particleSystem.clear();
+        if (typeof particleSystem !== 'undefined') {
+            particleSystem.clear();
+        }
         
         this.currentAreaConfig = GameConfig.AREAS[0];
         this.ui.hideBuffSelection();
+        
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+            continueBtn.classList.add('hidden');
+        }
     }
 
     loadLevel() {
@@ -346,6 +378,8 @@ class Game {
             await api.submitScore(playerName, this.score, this.currentLevelIndex + 1);
             this.scoreSubmitted = true;
         }
+        
+        this._initSaveCheck();
     }
 
     async gameOver(isVictory) {

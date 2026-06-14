@@ -6,6 +6,8 @@ class Level {
         this.isBossLevel = levelIndex === 2;
         this.completed = false;
         this.enemiesSpawned = false;
+        this.totalEnemyCount = 0;
+        this.enemiesKilledCount = 0;
         this.steamZones = [];
         this.laserTraps = [];
         this.neonSigns = [];
@@ -197,6 +199,9 @@ class Level {
             enemies.push(this.createEnemy(type, x, y));
         }
         
+        this.totalEnemyCount = enemies.length;
+        this.enemiesKilledCount = 0;
+        
         return enemies;
     }
 
@@ -329,8 +334,8 @@ class Level {
                 return true;
             }
         } else {
-            const allEnemiesDead = game.enemies.every(e => e.isDead && e.deathTimer <= 0);
-            if (allEnemiesDead && game.enemies.length > 0) {
+            const livingEnemies = game.enemies.filter(e => !e.isDead).length;
+            if (this.totalEnemyCount > 0 && livingEnemies === 0) {
                 this.completed = true;
                 return true;
             }
