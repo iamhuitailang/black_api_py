@@ -1,20 +1,35 @@
 const Worm = {
   create(saveData) {
     const savedState = saveData || {};
-    return {
+    const worm = {
       x: savedState.x || GameConfig.CANVAS_WIDTH / 2,
       y: savedState.y || GameConfig.CANVAS_HEIGHT / 2,
       direction: savedState.direction || { x: 1, y: 0 },
       nextDirection: savedState.nextDirection || { x: 1, y: 0 },
       bodySegments: savedState.bodySegments || GameConfig.INITIAL_BODY_SEGMENTS,
-      pathHistory: savedState.pathHistory || [],
+      pathHistory: [],
       baseSpeed: savedState.baseSpeed || GameConfig.BASE_SPEED,
-      speedBoostUntil: savedState.speedBoostUntil || 0,
-      slowUntil: savedState.slowUntil || 0,
+      speedBoostUntil: 0,
+      slowUntil: 0,
       foodsEatenForSpeed: savedState.foodsEatenForSpeed || 0,
       isDead: false,
       deathAnimation: null
     };
+
+    const savedHistory = savedState.pathHistory || [];
+    if (savedHistory.length > 0) {
+      worm.pathHistory = savedHistory.slice();
+      while (worm.pathHistory.length < worm.bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 20) {
+        const last = worm.pathHistory[worm.pathHistory.length - 1];
+        worm.pathHistory.push({ x: last.x, y: last.y });
+      }
+    } else {
+      for (let i = 0; i < worm.bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 20; i++) {
+        worm.pathHistory.push({ x: worm.x, y: worm.y });
+      }
+    }
+
+    return worm;
   },
 
   getCurrentSpeed(worm, now) {
@@ -37,16 +52,17 @@ const Worm = {
   },
 
   setDirection(worm, dir) {
+    if (!worm || !dir) return;
     if (dir.x === -worm.direction.x && dir.y === -worm.direction.y) {
       return;
     }
-    worm.nextDirection = dir;
+    worm.nextDirection = { x: dir.x, y: dir.y };
   },
 
   update(worm, now) {
-    if (worm.isDead) return false;
+    if (!worm || worm.isDead) return false;
 
-    worm.direction = worm.nextDirection;
+    worm.direction = { x: worm.nextDirection.x, y: worm.nextDirection.y };
     const speed = this.getCurrentSpeed(worm, now);
 
     worm.x += worm.direction.x * speed;
@@ -69,7 +85,11 @@ const Worm = {
     }
 
     worm.pathHistory.unshift({ x: worm.x, y: worm.y });
-    if (worm.pathHistory.length > GameConfig.PATH_HISTORY_LENGTH) {
+    const maxHistory = Math.max(
+      GameConfig.PATH_HISTORY_LENGTH,
+      worm.bodySegments * GameConfig.BODY_SEGMENT_INTERVAL + 50
+    );
+    while (worm.pathHistory.length > maxHistory) {
       worm.pathHistory.pop();
     }
 
@@ -92,7 +112,7 @@ const Worm = {
   },
 
   checkSelfCollision(worm) {
-    if (worm.bodySegments <= GameConfig.COLLISION_SAFE_SEGMENTS + 1) return false;
+    if (!worm || worm.bodySegments <= GameConfig.COLLISION_SAFE_SEGMENTS + 1) return false;
     const headRadius = 8;
     for (let i = GameConfig.COLLISION_SAFE_SEGMENTS; i < worm.bodySegments; i++) {
       const pos = this.getSegmentPosition(worm, i);
@@ -126,10 +146,10 @@ const Worm = {
     return permanentSpeedUp;
   },
 
-  die(worm) {
+  die(worm, now) {
     worm.isDead = true;
     worm.deathAnimation = {
-      startTime: Date.now(),
+      startTime: now,
       segments: []
     };
     for (let i = 0; i < worm.bodySegments; i++) {
@@ -151,7 +171,7 @@ const Worm = {
       direction: worm.direction,
       nextDirection: worm.nextDirection,
       bodySegments: worm.bodySegments,
-      pathHistory: worm.pathHistory.slice(0, 100),
+      pathHistory: worm.pathHistory.slice(0, Math.min(worm.pathHistory.length, 150)),
       baseSpeed: worm.baseSpeed,
       foodsEatenForSpeed: worm.foodsEatenForSpeed
     };

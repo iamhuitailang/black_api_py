@@ -64,6 +64,34 @@
     canvas {
       display: block;
       border-radius: 12px;
+      outline: none;
+    }
+
+    canvas:focus {
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.5),
+                  0 0 40px rgba(34, 197, 94, 0.15),
+                  0 0 80px rgba(59, 130, 246, 0.1);
+    }
+
+    .canvas-hint {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(34, 197, 94, 0.9);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+      animation: fadeOut 3s ease forwards;
+      animation-delay: 2s;
+      z-index: 10;
+    }
+
+    @keyframes fadeOut {
+      to { opacity: 0; }
     }
 
     .game-over-overlay {
@@ -352,6 +380,7 @@
         </div>
         <div class="canvas-wrapper">
           <canvas ref="gameCanvas"></canvas>
+          <div v-if="showHint" class="canvas-hint">👆 点击画布或按任意方向键开始</div>
           <div v-if="gameState && gameState.isGameOver" class="game-over-overlay">
             <h2>游戏结束</h2>
             <div class="final-score">得分: {{ gameState.score }}</div>
@@ -466,7 +495,7 @@
         setTimeout(initApp, 50);
         return;
       }
-      const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
+      const { createApp, ref, computed, onMounted, onUnmounted, reactive, onBeforeUnmount } = Vue;
 
       createApp({
       setup() {
@@ -475,7 +504,16 @@
         const saveData = reactive(Storage.load());
         const skins = GameConfig.WORM_SKINS;
         const currentSkin = ref(saveData.currentSkin || 'default');
+        const showHint = ref(true);
         let uiUpdateInterval = null;
+        let firstInteraction = false;
+
+        const markInteraction = () => {
+          if (!firstInteraction) {
+            firstInteraction = true;
+            showHint.value = false;
+          }
+        };
 
         const isSkinUnlocked = (skin) => {
           return saveData.unlockedSkins.includes(skin.id);
@@ -544,17 +582,41 @@
           }
         };
 
+        const saveBeforeUnload = () => {
+          if (GameEngine && typeof GameEngine.saveProgress === 'function') {
+            GameEngine.saveProgress();
+          }
+        };
+
         onMounted(() => {
           GameEngine.init(gameCanvas.value);
           GameEngine.start();
           gameState.value = GameEngine.getState();
           uiUpdateInterval = setInterval(updateUI, 100);
+          window.addEventListener('beforeunload', saveBeforeUnload);
+
+          const origHandler = document.onkeydown;
+          const origClick = gameCanvas.value.onclick;
+          document.addEventListener('keydown', function onFirstKey(e) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', ' ', 'Escape'].includes(e.key)) {
+              markInteraction();
+            }
+          });
+          gameCanvas.value.addEventListener('click', markInteraction);
+        });
+
+        onBeforeUnmount(() => {
+          saveBeforeUnload();
         });
 
         onUnmounted(() => {
-          GameEngine.stop();
+          saveBeforeUnload();
+          GameEngine.destroy();
+          window.removeEventListener('beforeunload', saveBeforeUnload);
           if (uiUpdateInterval) {
             clearInterval(uiUpdateInterval);
+            uiUpdateInterval = null;
           }
         });
 
@@ -571,7 +633,8 @@
           isSkinUnlocked,
           selectSkin,
           getSkinPreviewStyle,
-          restartGame
+          restartGame,
+          showHint
         };
       }
       }).mount('#app');

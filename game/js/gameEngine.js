@@ -4,12 +4,16 @@ const GameEngine = {
   ctx: null,
   animationId: null,
   lastSaveTime: 0,
+  _eventBound: false,
+  _keyHandler: null,
 
   createState() {
     const saveData = Storage.load();
     const savedGameState = Storage.loadGameState();
 
-    return {
+    console.log('[GameEngine] Loading save:', savedGameState);
+
+    const state = {
       worm: Worm.create(savedGameState?.worm),
       food: null,
       score: savedGameState?.score || 0,
@@ -20,6 +24,15 @@ const GameEngine = {
       isGameOver: false,
       notifications: []
     };
+
+    if (savedGameState?.food) {
+      state.food = savedGameState.food;
+      state.food.pulsePhase = Math.random() * Math.PI * 2;
+      state.food.spawnTime = Date.now();
+      console.log('[GameEngine] Restored food at:', state.food.x, state.food.y);
+    }
+
+    return state;
   },
 
   init(canvas) {
@@ -27,14 +40,24 @@ const GameEngine = {
     this.ctx = canvas.getContext('2d');
     this.canvas.width = GameConfig.CANVAS_WIDTH;
     this.canvas.height = GameConfig.CANVAS_HEIGHT;
+    this.canvas.tabIndex = 0;
+
     this.state = this.createState();
-    this.state.food = FoodSystem.spawn(this.state.worm, null);
+    if (!this.state.food) {
+      this.state.food = FoodSystem.spawn(this.state.worm, null);
+    }
     Effects.clear();
     AudioSystem.init();
     this.bindEvents();
+
+    console.log('[GameEngine] Initialized. Worm position:', this.state.worm.x, this.state.worm.y,
+      'Direction:', this.state.worm.direction);
   },
 
   bindEvents() {
+    if (this._eventBound) return;
+    this._eventBound = true;
+
     const keyMap = {
       'ArrowUp': { x: 0, y: -1 },
       'ArrowDown': { x: 0, y: 1 },
@@ -50,21 +73,49 @@ const GameEngine = {
       'D': { x: 1, y: 0 }
     };
 
-    document.addEventListener('keydown', (e) => {
+    this._keyHandler = (e) => {
+      if (!this.state) return;
       AudioSystem.resume();
+
       if (keyMap[e.key]) {
         e.preventDefault();
-        Worm.setDirection(this.state.worm, keyMap[e.key]);
+        const dir = keyMap[e.key];
+        Worm.setDirection(this.state.worm, dir);
+        if (this.canvas) this.canvas.focus();
+        return;
       }
+
       if (e.key === ' ' || e.key === 'Escape') {
         e.preventDefault();
         this.togglePause();
       }
-    });
+    };
+
+    document.addEventListener('keydown', this._keyHandler);
+
+    if (this.canvas) {
+      this.canvas.addEventListener('click', () => {
+        this.canvas.focus();
+        AudioSystem.resume();
+      });
+    }
+
+    setTimeout(() => {
+      if (this.canvas) this.canvas.focus();
+    }, 100);
+  },
+
+  unbindEvents() {
+    if (this._keyHandler) {
+      document.removeEventListener('keydown', this._keyHandler);
+      this._keyHandler = null;
+    }
+    this._eventBound = false;
   },
 
   start() {
     if (this.animationId) return;
+    console.log('[GameEngine] Starting game loop');
     const loop = (time) => {
       this.update(time);
       this.render(time);
@@ -81,8 +132,9 @@ const GameEngine = {
   },
 
   togglePause() {
-    if (this.state.isGameOver) return;
+    if (!this.state || this.state.isGameOver) return;
     this.state.isPaused = !this.state.isPaused;
+    console.log('[GameEngine] Paused:', this.state.isPaused);
   },
 
   restart() {
@@ -91,10 +143,14 @@ const GameEngine = {
     this.state = this.createState();
     this.state.food = FoodSystem.spawn(this.state.worm, null);
     Effects.clear();
+    this.lastSaveTime = 0;
     this.start();
+    console.log('[GameEngine] Restarted');
   },
 
   update(time) {
+    if (!this.state) return;
+
     if (this.state.isPaused || this.state.isGameOver) {
       Effects.update();
       return;
@@ -107,6 +163,7 @@ const GameEngine = {
         this.state.isGameOver = true;
         Storage.updateHighScore(this.state.score);
         Storage.clearGameState();
+        console.log('[GameEngine] Game over. Score:', this.state.score);
       }
       Effects.update();
       return;
@@ -120,7 +177,7 @@ const GameEngine = {
     }
 
     if (Worm.checkSelfCollision(worm)) {
-      this.handleDeath();
+      this.handleDeath(time);
     }
 
     if (FoodSystem.checkCollision(worm, this.state.food)) {
@@ -147,7 +204,6 @@ const GameEngine = {
 
     const updatedData = Storage.addFoodsEaten(1);
     this.state.saveData = updatedData;
-
     this.checkSkinUnlocks(updatedData);
 
     Effects.addParticle(food.x, food.y, food.type.color, 'spark');
@@ -167,6 +223,7 @@ const GameEngine = {
     }
 
     this.state.food = FoodSystem.spawn(worm, null);
+    this.saveProgress();
   },
 
   checkSkinUnlocks(saveData) {
@@ -189,19 +246,27 @@ const GameEngine = {
     });
   },
 
-  handleDeath() {
-    Worm.die(this.state.worm);
+  handleDeath(time) {
+    Worm.die(this.state.worm, time);
     AudioSystem.playDeath();
     Storage.updateHighScore(this.state.score);
     Storage.clearGameState();
+    console.log('[GameEngine] Worm died');
   },
 
   saveProgress() {
-    if (this.state.worm.isDead) return;
+    if (!this.state || this.state.worm.isDead) return;
     const gameState = {
       worm: Worm.serialize(this.state.worm),
+      food: this.state.food ? {
+        x: this.state.food.x,
+        y: this.state.food.y,
+        radius: this.state.food.radius,
+        type: this.state.food.type
+      } : null,
       score: this.state.score,
-      foodsEaten: this.state.foodsEaten
+      foodsEaten: this.state.foodsEaten,
+      savedAt: Date.now()
     };
     Storage.saveGameState(gameState);
   },
@@ -216,6 +281,7 @@ const GameEngine = {
   },
 
   render(time) {
+    if (!this.ctx || !this.state) return;
     const ctx = this.ctx;
     Renderer.clear(ctx);
     Effects.drawGrid(ctx, time);
@@ -269,5 +335,11 @@ const GameEngine = {
 
   getState() {
     return this.state;
+  },
+
+  destroy() {
+    this.stop();
+    this.unbindEvents();
+    this.state = null;
   }
 };
