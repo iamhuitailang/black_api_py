@@ -61,7 +61,14 @@
         } catch (e) { return null; }
     }
     function clearFormData() {
-        localStorage.removeItem(FORM_KEY);
+        try { localStorage.removeItem(FORM_KEY); } catch (e) {}
+        if (State && State.reviewForm) {
+            State.reviewForm = {
+                semester: '', teacher: '', course_name: '',
+                content_quality: 0, clarity: 0, homework: 0, grading: 0,
+                tags: [], comment: ''
+            };
+        }
     }
 
     function _getHeaders(auth) {
@@ -286,6 +293,25 @@
         return String(rank);
     }
 
+    function _loadFormOrDefault() {
+        try {
+            const raw = localStorage.getItem(FORM_KEY);
+            if (raw) {
+                const saved = JSON.parse(raw);
+                return Object.assign({
+                    semester: '', teacher: '', course_name: '',
+                    content_quality: 0, clarity: 0, homework: 0, grading: 0,
+                    tags: [], comment: ''
+                }, saved);
+            }
+        } catch (e) {}
+        return {
+            semester: '', teacher: '', course_name: '',
+            content_quality: 0, clarity: 0, homework: 0, grading: 0,
+            tags: [], comment: ''
+        };
+    }
+
     const State = {
         semesters: [],
         currentPage: 'home',
@@ -296,11 +322,7 @@
         searchKeyword: '',
         rankingSemester: '',
         rankingData: { good: [], bad: [] },
-        reviewForm: {
-            semester: '', teacher: '', course_name: '',
-            content_quality: 0, clarity: 0, homework: 0, grading: 0,
-            tags: [], comment: ''
-        },
+        reviewForm: _loadFormOrDefault(),
         submitTeachers: [],
         submitCourses: [],
         submitMsg: null,
@@ -328,6 +350,9 @@
         document.querySelectorAll('[data-page]').forEach(a => {
             a.classList.toggle('active', a.getAttribute('data-page') === name);
         });
+        if (window.location.hash.slice(1) !== name) {
+            window.location.hash = name;
+        }
         window.scrollTo(0, 0);
         if (name === 'detail' && params && params.courseId) {
             State.courseDetail = null;
@@ -353,7 +378,7 @@
                     content_quality: 0, clarity: 0, homework: 0, grading: 0,
                     tags: [], comment: ''
                 }, saved);
-                if (State.reviewForm.semester) {
+                if (State.reviewForm.semester && State.semesters.length) {
                     loadSubmitTeachers().then(function () {
                         if (State.reviewForm.teacher) loadSubmitCourses();
                         else render();
@@ -1129,6 +1154,8 @@
 
         State.currentUser = getCurrentUser();
 
+        const initialHash = window.location.hash.slice(1);
+
         apiGet('/course/filter/options/get').then(function (res) {
             if (res.code === 0 && res.data) {
                 State.semesters = res.data.semesters || [];
@@ -1136,21 +1163,29 @@
                     State.rankingSemester = State.semesters[0];
                 }
             }
-            State.courses = null;
-            render();
-            loadCourses();
+
+            if (initialHash && initialHash !== 'home') {
+                setPage(initialHash);
+            } else {
+                State.courses = null;
+                render();
+                loadCourses();
+            }
         }).catch(function () {
             State.courses = [];
-            render();
+            if (initialHash && initialHash !== 'home') {
+                setPage(initialHash);
+            } else {
+                render();
+            }
         });
 
         window.addEventListener('hashchange', function () {
             const hash = window.location.hash.slice(1);
-            if (hash) setPage(hash);
+            if (hash && hash !== State.currentPage) {
+                setPage(hash);
+            }
         });
-        if (window.location.hash.slice(1)) {
-            State.currentPage = window.location.hash.slice(1);
-        }
     }
 
     document.addEventListener('DOMContentLoaded', init);
