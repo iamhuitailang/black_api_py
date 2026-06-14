@@ -215,7 +215,7 @@ const PauseScreen = {
 
 const GameOverScreen = {
   props: ['floor', 'time'],
-  emits: ['restart', 'quit'],
+  emits: ['restart-floor', 'restart-game', 'quit'],
   template: `
     <div class="overlay gameover-screen">
       <div class="overlay-content">
@@ -232,8 +232,9 @@ const GameOverScreen = {
           </div>
         </div>
         <div class="button-group">
-          <button class="game-btn primary" @click="$emit('restart')">🔄 再试一次</button>
-          <button class="game-btn secondary" @click="$emit('quit')">🚪 返回主菜单</button>
+          <button class="game-btn primary" @click="$emit('restart-floor')">🔄 从本层重试</button>
+          <button class="game-btn secondary" @click="$emit('restart-game')">🎮 新游戏</button>
+          <button class="game-btn ghost" @click="$emit('quit')">🏠 返回主菜单</button>
         </div>
       </div>
     </div>
@@ -352,7 +353,8 @@ const App = {
         v-if="gameState === 'gameover'"
         :floor="currentFloor"
         :time="elapsedTime"
-        @restart="restartGame"
+        @restart-floor="restartCurrentFloor"
+        @restart-game="restartGame"
         @quit="quitToMenu"
       />
 
@@ -579,6 +581,28 @@ const App = {
       startNewGame();
     };
 
+    const restartCurrentFloor = () => {
+      if (!game.value) return;
+
+      game.value.restartFloor();
+      gameState.value = 'playing';
+
+      nextTick(() => {
+        initRenderer();
+        game.value.start();
+
+        if (!animationFrameId) {
+          gameLoop();
+        }
+
+        if (gameContainer.value) {
+          gameContainer.value.focus();
+        }
+
+        scheduleSave();
+      });
+    };
+
     const quitToMenu = () => {
       if (game.value) {
         saveGame();
@@ -717,6 +741,7 @@ const App = {
       pauseGame,
       resumeGame,
       restartGame,
+      restartCurrentFloor,
       quitToMenu,
       toggleSound,
     };

@@ -44,7 +44,7 @@ class GameController {
       this.player.lives = GameConstants.PLAYER_LIVES;
     }
 
-    this.saveProgress();
+    this.saveGame();
     this._notifyStateChange();
   }
 
@@ -124,6 +124,28 @@ class GameController {
   gameOver() {
     this.isGameOver = true;
     this.isRunning = false;
+    this.saveGame();
+    this._notifyStateChange();
+  }
+
+  restartFloor() {
+    this.isGameOver = false;
+    this.isVictory = false;
+    this.isRunning = false;
+
+    const savedFloor = this.currentFloor;
+    const savedMaxFloor = this.maxFloor;
+    const savedBestTimes = { ...this.floorBestTimes };
+    const savedTotalTime = this.totalTime;
+
+    this._generateFloor(savedFloor);
+
+    this.currentFloor = savedFloor;
+    this.maxFloor = savedMaxFloor;
+    this.floorBestTimes = savedBestTimes;
+    this.totalTime = savedTotalTime;
+    this.gameStartTime = performance.now() - savedTotalTime;
+
     this.saveGame();
     this._notifyStateChange();
   }
