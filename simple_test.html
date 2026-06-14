@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Vue测试</title>
+<style>body { background: #87CEEB; padding: 20px; font-family: sans-serif; }</style>
+</head>
+<body>
+<h1>测试页面</h1>
+<div id="app">
+  <h2 style="color:green;">✅ Vue如果正常工作会显示这里的内容</h2>
+  <p>消息: {{ message }}</p>
+  <p>计数: {{ count }}</p>
+  <button @click="count++">点击增加</button>
+</div>
+<script src="./vue.global.js"></script>
+<script>
+console.log('开始测试...');
+console.log('Vue:', typeof Vue);
+if (typeof Vue !== 'undefined') {
+  const { createApp, ref, onMounted } = Vue;
+  const app = createApp({
+    setup() {
+      const message = ref('Hello Vue 3!');
+      const count = ref(0);
+      onMounted(() => {
+        console.log('✅ onMounted执行成功!');
+        message.value = 'Vue 3 完全正常!';
+      });
+      return { message, count };
+    }
+  });
+  app.mount('#app');
+  console.log('✅ 应用挂载成功');
+}
+</script>
+</body>
+</html>

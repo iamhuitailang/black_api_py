@@ -10,6 +10,17 @@
 html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Microsoft YaHei', sans-serif; }
 #app { width: 100vw; height: 100vh; position: relative; }
 .game-canvas { display: block; cursor: none; }
+.error-display {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  background: #ff4444; color: white; padding: 10px 20px; border-radius: 8px;
+  z-index: 10000; font-family: monospace; white-space: pre-wrap;
+  max-width: 90%; font-size: 13px;
+}
+.debug-info {
+  position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7);
+  color: #0f0; padding: 8px 12px; border-radius: 6px; font-family: monospace;
+  font-size: 12px; z-index: 10000;
+}
 .overlay {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
@@ -100,7 +111,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font
 </head>
 <body>
 <div id="app">
+  <div style="position:fixed;top:5px;right:5px;background:#0f0;color:#000;padding:5px 10px;border-radius:5px;z-index:99999;font-family:monospace;font-size:12px;">
+    ✅ Vue挂载成功 | 状态: {{ gameState }}
+  </div>
   <canvas ref="canvasRef" class="game-canvas"></canvas>
+  <div class="error-display" v-if="errorMsg" @click="errorMsg=''">
+    ⚠️ 错误: {{ errorMsg }} (点击关闭)
+  </div>
+  <div class="debug-info" v-if="debugInfo">
+    {{ debugInfo }}
+  </div>
 
   <div class="hud" v-if="gameState === 'playing' || gameState === 'paused'">
     <div class="hud-left">
@@ -143,7 +163,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font
         <div v-for="p in allPlanes" :key="p.id"
              :class="['plane-card', {selected: selectedPlane===p.id, locked: !unlockedPlanes.includes(p.id)}]"
              @click="selectPlane(p)">
-          <canvas :ref="el => { if(el) drawPlanePreview(el, p.id) }" width="200" height="70"></canvas>
+          <canvas :id="'plane-canvas-' + p.id" width="200" height="70"></canvas>
           <div class="plane-name">{{ p.name }}</div>
           <div class="plane-req">{{ unlockedPlanes.includes(p.id) ? '✓ 已解锁' : '🔒 存活 '+p.req+'s 解锁' }}</div>
         </div>
@@ -214,7 +234,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font
 <script>
 const { createApp, ref, reactive, onMounted, onUnmounted, computed, watch } = Vue;
 
-createApp({
+const app = createApp({
   setup() {
     const canvasRef = ref(null);
     let ctx = null;
@@ -227,6 +247,8 @@ createApp({
     const gameOverReason = ref('');
     const isNewRecord = ref(false);
     const newUnlocked = ref([]);
+    const errorMsg = ref('');
+    const debugInfo = ref('Vue加载成功');
 
     const lives = ref(3);
     const fuel = ref(100);
@@ -448,9 +470,15 @@ createApp({
     }
 
     function drawPlanePreview(c, id) {
-      const pc = c.getContext('2d');
-      pc.clearRect(0, 0, c.width, c.height);
-      drawPlaneShape(pc, c.width / 2, c.height / 2 + 5, 0.8, id, 0);
+      try {
+        if (!c || !c.getContext) return;
+        const pc = c.getContext('2d');
+        if (!pc) return;
+        pc.clearRect(0, 0, c.width, c.height);
+        drawPlaneShape(pc, c.width / 2, c.height / 2 + 5, 0.8, id, 0);
+      } catch(e) {
+        console.error('drawPlanePreview error:', e);
+      }
     }
 
     function drawPlaneShape(c, x, y, scale, id, flash) {
@@ -671,158 +699,162 @@ createApp({
     }
 
     function update(dt) {
-      if (gameState.value !== 'playing') return;
-      frameCount++;
-      survivalTime.value += dt;
-      timeOfDay = Math.min(1, survivalTime.value / 120000);
+      try {
+        if (gameState.value !== 'playing') return;
+        frameCount++;
+        survivalTime.value += dt;
+        timeOfDay = Math.min(1, survivalTime.value / 120000);
 
-      const dx = mouse.x - plane.targetX;
-      const dy = mouse.y - plane.targetY;
-      plane.targetX += dx * 0.15;
-      plane.targetY += dy * 0.15;
-      plane.targetX = Math.max(50, Math.min(W - 50, plane.targetX));
-      plane.targetY = Math.max(50, Math.min(H - 50, plane.targetY));
+        const dx = mouse.x - plane.targetX;
+        const dy = mouse.y - plane.targetY;
+        plane.targetX += dx * 0.15;
+        plane.targetY += dy * 0.15;
+        plane.targetX = Math.max(50, Math.min(W - 50, plane.targetX));
+        plane.targetY = Math.max(50, Math.min(H - 50, plane.targetY));
 
-      const historyFrames = 3;
-      plane.trail.unshift({ x: plane.targetX, y: plane.targetY });
-      if (plane.trail.length > historyFrames) plane.trail.pop();
-      plane.x = plane.trail.reduce((s, p) => s + p.x, 0) / plane.trail.length;
-      plane.y = plane.trail.reduce((s, p) => s + p.y, 0) / plane.trail.length;
-
-      if (frameCount % 2 === 0) {
-        spawnParticles(plane.x - 20, plane.y + 15 + (Math.random() - 0.5) * 5, '#ff8800', 1, 1);
-        spawnParticles(plane.x - 22, plane.y + 15 + (Math.random() - 0.5) * 5, '#ffcc44', 1, 0.8);
-      }
-
-      fuel.value -= dt / 1000 * 2;
-      if (fuel.value <= 0) {
-        fuel.value = 0;
-        endGame('⛽ 燃料耗尽！');
-        return;
-      }
-      if (fuel.value < 20) {
-        lowFuelTimer += dt;
-        if (lowFuelTimer >= 1000) {
-          lowFuelTimer = 0;
-          playLowFuel();
-        }
-      }
-
-      if (shieldTime.value > 0) {
-        shieldTime.value = Math.max(0, shieldTime.value - dt);
-        if (shieldTime.value === 0) playShieldFade();
-      }
-      if (invincibleTime.value > 0) invincibleTime.value = Math.max(0, invincibleTime.value - dt);
-
-      const seconds = Math.floor(survivalTime.value / 1000);
-      spawnInterval = Math.max(30, 120 - Math.floor(seconds / 30) * 10);
-      if (frameCount % spawnInterval === 0) spawnObstacle();
-
-      itemSpawnTimer += dt;
-      if (itemSpawnTimer >= 4000 + Math.random() * 3000) {
-        itemSpawnTimer = 0;
-        spawnItem();
-      }
-
-      score.value = Math.floor(survivalTime.value / 100);
-
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const o = obstacles[i];
-        if (o.type === 'bird') {
-          o.x += o.vx;
-          o.phase += 0.08;
-          o.y = o.baseY + Math.sin(o.phase) * 30;
-          o.wingPhase += 0.3;
-        } else if (o.type === 'cloud') {
-          o.x += o.vx;
-        }
-        if (o.x < -100) { obstacles.splice(i, 1); continue; }
-
-        let cw = o.w, ch = o.h;
-        if (o.type === 'cloud') { cw = o.w * 0.7; ch = o.h * 0.7; }
-        if (rectCollide(
-          { x: plane.x, y: plane.y, w: plane.w * 0.7, h: plane.h * 0.7 },
-          { x: o.x, y: o.y, w: cw, h: ch }
-        )) {
-          handleHit();
-          if (o.type === 'bird') spawnParticles(o.x, o.y, '#ffffff', 15, 4);
-          obstacles.splice(i, 1);
-        }
-      }
-
-      for (let i = missiles.length - 1; i >= 0; i--) {
-        const m = missiles[i];
-        const age = Date.now() - m.spawned;
-        const speed = 2;
-        const dxm = plane.x - m.x, dym = plane.y - m.y;
-        const dist = Math.sqrt(dxm * dxm + dym * dym) || 1;
-        m.vx = (dxm / dist) * speed;
-        m.vy = (dym / dist) * speed;
-        m.x += m.vx;
-        m.y += m.vy;
-        m.trail.unshift({ x: m.x, y: m.y });
-        if (m.trail.length > 12) m.trail.pop();
+        const historyFrames = 3;
+        plane.trail.unshift({ x: plane.targetX, y: plane.targetY });
+        if (plane.trail.length > historyFrames) plane.trail.pop();
+        plane.x = plane.trail.reduce((s, p) => s + p.x, 0) / plane.trail.length;
+        plane.y = plane.trail.reduce((s, p) => s + p.y, 0) / plane.trail.length;
 
         if (frameCount % 2 === 0) {
-          spawnParticles(m.x - 15, m.y, '#ff4422', 1, 0.5);
+          spawnParticles(plane.x - 20, plane.y + 15 + (Math.random() - 0.5) * 5, '#ff8800', 1, 1);
+          spawnParticles(plane.x - 22, plane.y + 15 + (Math.random() - 0.5) * 5, '#ffcc44', 1, 0.8);
         }
 
-        if (age >= m.life || m.x < -50 || m.y < -50 || m.y > H + 50) {
-          spawnParticles(m.x, m.y, '#ff6644', 20, 5);
-          missiles.splice(i, 1);
-          continue;
+        fuel.value -= dt / 1000 * 2;
+        if (fuel.value <= 0) {
+          fuel.value = 0;
+          endGame('⛽ 燃料耗尽！');
+          return;
         }
-
-        if (rectCollide(
-          { x: plane.x, y: plane.y, w: plane.w * 0.7, h: plane.h * 0.7 },
-          { x: m.x, y: m.y, w: m.w * 0.8, h: m.h * 0.8 }
-        )) {
-          handleHit();
-          spawnParticles(m.x, m.y, '#ff4422', 25, 6);
-          missiles.splice(i, 1);
-        }
-      }
-
-      for (let i = items.length - 1; i >= 0; i--) {
-        const it = items[i];
-        it.x += it.vx;
-        it.bob += 0.08;
-        if (it.x < -50) { items.splice(i, 1); continue; }
-
-        if (rectCollide(
-          { x: plane.x, y: plane.y, w: plane.w, h: plane.h },
-          { x: it.x, y: it.y + Math.sin(it.bob) * 5, w: it.w, h: it.h }
-        )) {
-          if (it.type === 'fuel') {
-            fuel.value = Math.min(100, fuel.value + 30);
-            playFuelPickup();
-            spawnParticles(it.x, it.y, '#4a9dff', 15, 4);
-          } else {
-            shieldTime.value = 5000;
-            playShieldPickup();
-            spawnParticles(it.x, it.y, '#7ec8ff', 25, 5);
+        if (fuel.value < 20) {
+          lowFuelTimer += dt;
+          if (lowFuelTimer >= 1000) {
+            lowFuelTimer = 0;
+            playLowFuel();
           }
-          items.splice(i, 1);
         }
+
+        if (shieldTime.value > 0) {
+          shieldTime.value = Math.max(0, shieldTime.value - dt);
+          if (shieldTime.value === 0) playShieldFade();
+        }
+        if (invincibleTime.value > 0) invincibleTime.value = Math.max(0, invincibleTime.value - dt);
+
+        const seconds = Math.floor(survivalTime.value / 1000);
+        spawnInterval = Math.max(30, 120 - Math.floor(seconds / 30) * 10);
+        if (frameCount % spawnInterval === 0) spawnObstacle();
+
+        itemSpawnTimer += dt;
+        if (itemSpawnTimer >= 4000 + Math.random() * 3000) {
+          itemSpawnTimer = 0;
+          spawnItem();
+        }
+
+        score.value = Math.floor(survivalTime.value / 100);
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const o = obstacles[i];
+          if (o.type === 'bird') {
+            o.x += o.vx;
+            o.phase += 0.08;
+            o.y = o.baseY + Math.sin(o.phase) * 30;
+            o.wingPhase += 0.3;
+          } else if (o.type === 'cloud') {
+            o.x += o.vx;
+          }
+          if (o.x < -100) { obstacles.splice(i, 1); continue; }
+
+          let cw = o.w, ch = o.h;
+          if (o.type === 'cloud') { cw = o.w * 0.7; ch = o.h * 0.7; }
+          if (rectCollide(
+            { x: plane.x, y: plane.y, w: plane.w * 0.7, h: plane.h * 0.7 },
+            { x: o.x, y: o.y, w: cw, h: ch }
+          )) {
+            handleHit();
+            if (o.type === 'bird') spawnParticles(o.x, o.y, '#ffffff', 15, 4);
+            obstacles.splice(i, 1);
+          }
+        }
+
+        for (let i = missiles.length - 1; i >= 0; i--) {
+          const m = missiles[i];
+          const age = Date.now() - m.spawned;
+          const speed = 2;
+          const dxm = plane.x - m.x, dym = plane.y - m.y;
+          const dist = Math.sqrt(dxm * dxm + dym * dym) || 1;
+          m.vx = (dxm / dist) * speed;
+          m.vy = (dym / dist) * speed;
+          m.x += m.vx;
+          m.y += m.vy;
+          m.trail.unshift({ x: m.x, y: m.y });
+          if (m.trail.length > 12) m.trail.pop();
+
+          if (frameCount % 2 === 0) {
+            spawnParticles(m.x - 15, m.y, '#ff4422', 1, 0.5);
+          }
+
+          if (age >= m.life || m.x < -50 || m.y < -50 || m.y > H + 50) {
+            spawnParticles(m.x, m.y, '#ff6644', 20, 5);
+            missiles.splice(i, 1);
+            continue;
+          }
+
+          if (rectCollide(
+            { x: plane.x, y: plane.y, w: plane.w * 0.7, h: plane.h * 0.7 },
+            { x: m.x, y: m.y, w: m.w * 0.8, h: m.h * 0.8 }
+          )) {
+            handleHit();
+            spawnParticles(m.x, m.y, '#ff4422', 25, 6);
+            missiles.splice(i, 1);
+          }
+        }
+
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          it.x += it.vx;
+          it.bob += 0.08;
+          if (it.x < -50) { items.splice(i, 1); continue; }
+
+          if (rectCollide(
+            { x: plane.x, y: plane.y, w: plane.w, h: plane.h },
+            { x: it.x, y: it.y + Math.sin(it.bob) * 5, w: it.w, h: it.h }
+          )) {
+            if (it.type === 'fuel') {
+              fuel.value = Math.min(100, fuel.value + 30);
+              playFuelPickup();
+              spawnParticles(it.x, it.y, '#4a9dff', 15, 4);
+            } else {
+              shieldTime.value = 5000;
+              playShieldPickup();
+              spawnParticles(it.x, it.y, '#7ec8ff', 25, 5);
+            }
+            items.splice(i, 1);
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+          p.life -= p.decay;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        mountains.forEach(m => {
+          m.offset += m.speed;
+          if (m.offset > W * 0.3) m.offset = 0;
+        });
+
+        if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
+        if (flashRed > 0) flashRed = Math.max(0, flashRed - dt / 300);
+      } catch(e) {
+        console.error('update error:', e);
       }
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.96;
-        p.vy *= 0.96;
-        p.life -= p.decay;
-        if (p.life <= 0) particles.splice(i, 1);
-      }
-
-      mountains.forEach(m => {
-        m.offset += m.speed;
-        if (m.offset > W * 0.3) m.offset = 0;
-      });
-
-      if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
-      if (flashRed > 0) flashRed = Math.max(0, flashRed - dt / 300);
     }
 
     function drawBackground() {
@@ -1112,33 +1144,42 @@ createApp({
 
     function render() {
       if (!ctx) return;
-      ctx.save();
-      if (shakeTime > 0) {
-        const s = shakeTime / 500 * 8;
-        ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+      try {
+        ctx.save();
+        if (shakeTime > 0) {
+          const s = shakeTime / 500 * 8;
+          ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+        }
+        drawBackground();
+        obstacles.forEach(o => {
+          if (o.type === 'bird') drawBird(o);
+          else if (o.type === 'cloud') drawCloud(o);
+        });
+        items.forEach(drawItem);
+        missiles.forEach(drawMissile);
+        drawParticles();
+        drawPlane();
+        drawLowFuelOverlay();
+        if (flashRed > 0) {
+          ctx.fillStyle = `rgba(255,0,0,${flashRed * 0.3})`;
+          ctx.fillRect(0, 0, W, H);
+        }
+        ctx.restore();
+      } catch(e) {
+        console.error('render error:', e);
+        ctx.restore();
       }
-      drawBackground();
-      obstacles.forEach(o => {
-        if (o.type === 'bird') drawBird(o);
-        else if (o.type === 'cloud') drawCloud(o);
-      });
-      items.forEach(drawItem);
-      missiles.forEach(drawMissile);
-      drawParticles();
-      drawPlane();
-      drawLowFuelOverlay();
-      if (flashRed > 0) {
-        ctx.fillStyle = `rgba(255,0,0,${flashRed * 0.3})`;
-        ctx.fillRect(0, 0, W, H);
-      }
-      ctx.restore();
     }
 
     function loop(t) {
-      const dt = Math.min(50, t - lastTime);
-      lastTime = t;
-      update(dt);
-      render();
+      try {
+        const dt = Math.min(50, t - lastTime);
+        lastTime = t;
+        update(dt);
+        render();
+      } catch(e) {
+        console.error('loop error:', e);
+      }
       rafId = requestAnimationFrame(loop);
     }
 
@@ -1157,16 +1198,44 @@ createApp({
     }
 
     onMounted(() => {
-      ctx = canvasRef.value.getContext('2d');
-      resize();
-      loadSave();
-      window.addEventListener('resize', resize);
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('keydown', onKeyDown);
-      mouse.x = W * 0.25;
-      mouse.y = H / 2;
-      lastTime = performance.now();
-      rafId = requestAnimationFrame(loop);
+      try {
+        console.log('onMounted 开始执行');
+        if (!canvasRef.value) {
+          console.error('canvasRef.value is null!');
+          return;
+        }
+        ctx = canvasRef.value.getContext('2d');
+        if (!ctx) {
+          console.error('无法获取2D上下文!');
+          return;
+        }
+        console.log('Canvas上下文获取成功, W=', W, 'H=', H);
+        resize();
+        console.log('resize完成, W=', W, 'H=', H);
+        loadSave();
+        console.log('loadSave完成');
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('keydown', onKeyDown);
+        mouse.x = W * 0.25;
+        mouse.y = H / 2;
+        lastTime = performance.now();
+        console.log('启动动画循环');
+        rafId = requestAnimationFrame(loop);
+        console.log('onMounted 执行完成');
+        debugInfo.value = '✅ 游戏初始化完成 | 帧: ' + frameCount;
+
+        setTimeout(() => {
+          allPlanes.forEach(p => {
+            const c = document.getElementById('plane-canvas-' + p.id);
+            if (c) drawPlanePreview(c, p.id);
+          });
+        }, 100);
+      } catch(e) {
+        console.error('onMounted error:', e);
+        errorMsg.value = e.message;
+        alert('游戏初始化失败: ' + e.message);
+      }
     });
 
     onUnmounted(() => {
@@ -1182,10 +1251,50 @@ createApp({
       lives, fuel, score, survivalTime, shieldTime, bestTime, selectedPlane,
       unlockedPlanes, allPlanes,
       selectPlane, drawPlanePreview, startGame, togglePause, quitToMenu, backToMenu,
-      resetSave, formatTime
+      resetSave, formatTime, errorMsg, debugInfo
     };
   }
-}).mount('#app');
+});
+app.config.errorHandler = function(err, vm, info) {
+  console.error('Vue错误:', err, info);
+  const msg = document.getElementById('vue-error');
+  if (msg) {
+    msg.style.display = 'block';
+    msg.textContent = 'Vue错误: ' + err.message;
+  }
+};
+app.mount('#app');
+</script>
+<div id="vue-error" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#ff4444;color:#fff;padding:15px 25px;border-radius:10px;z-index:99999;font-family:monospace;font-size:14px;display:none;"></div>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  console.error('全局错误:', msg, '行:', line, '列:', col, error);
+  const errDiv = document.getElementById('vue-error');
+  if (errDiv) {
+    errDiv.style.display = 'block';
+    errDiv.textContent = '❌ 错误: ' + msg + ' (行' + line + ')';
+  }
+  return false;
+};
+window.onunhandledrejection = function(e) {
+  console.error('未处理的Promise:', e.reason);
+  const errDiv = document.getElementById('vue-error');
+  if (errDiv) {
+    errDiv.style.display = 'block';
+    errDiv.textContent = '❌ Promise错误: ' + e.reason;
+  }
+};
+console.log('页面脚本加载完成');
+if (typeof Vue !== 'undefined') {
+  console.log('✅ Vue已成功加载, 版本:', Vue.version || '未知');
+} else {
+  console.error('❌ Vue未加载!');
+  const errDiv = document.getElementById('vue-error');
+  if (errDiv) {
+    errDiv.style.display = 'block';
+    errDiv.textContent = '❌ Vue库加载失败, 请检查网络或刷新页面';
+  }
+}
 </script>
 </body>
 </html>

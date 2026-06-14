@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>测试</title>
+<script src="./vue.global.js"></script>
+<style>body { background: #fff; color: #000; padding: 20px; }</style>
+</head>
+<body>
+<div id="app">
+  <h1>Vue测试: {{ message }}</h1>
+  <p v-if="mounted">✅ onMounted已执行</p>
+  <p>ref测试: {{ count }}</p>
+  <button @click="count++">点击增加</button>
+</div>
+<script>
+console.log('开始加载Vue...');
+console.log('Vue是否定义:', typeof Vue);
+if (typeof Vue !== 'undefined') {
+  console.log('Vue对象:', Vue);
+  const { createApp, ref, onMounted } = Vue;
+  createApp({
+    setup() {
+      const message = ref('Hello Vue 3!');
+      const count = ref(0);
+      const mounted = ref(false);
+      onMounted(() => {
+        console.log('onMounted执行成功!');
+        mounted.value = true;
+      });
+      return { message, count, mounted };
+    }
+  }).mount('#app');
+  console.log('Vue app挂载完成');
+} else {
+  document.body.innerHTML = '<h1 style="color:red">❌ Vue未加载!</h1>';
+}
+</script>
+</body>
+</html>
