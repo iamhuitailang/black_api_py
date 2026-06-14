@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞机大作战 - 躲避障碍物</title>
+<script src="./vue.global.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Microsoft YaHei', sans-serif; }
+#app { width: 100vw; height: 100vh; position: relative; }
+.game-canvas { display: block; cursor: none; }
+.overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 10, 30, 0.85); backdrop-filter: blur(6px); z-index: 100;
+}
+.panel {
+  background: linear-gradient(135deg, #1a2952, #0d1430);
+  border: 2px solid #4a7fd8; border-radius: 20px;
+  padding: 40px 50px; text-align: center; color: #fff;
+  box-shadow: 0 0 40px rgba(74, 127, 216, 0.5), inset 0 0 20px rgba(74, 127, 216, 0.1);
+  max-width: 600px;
+}
+.panel h1 {
+  font-size: 42px; margin-bottom: 10px;
+  background: linear-gradient(90deg, #7ec8ff, #4a7fd8, #7ec8ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(126, 200, 255, 0.3);
+}
+.panel h2 { font-size: 28px; margin-bottom: 20px; color: #7ec8ff; }
+.panel .subtitle { color: #a0b8e0; margin-bottom: 25px; font-size: 14px; }
+.stats-row { display: flex; justify-content: space-around; margin: 20px 0; }
+.stat-box { background: rgba(74, 127, 216, 0.15); padding: 15px 20px; border-radius: 12px; border: 1px solid #4a7fd8; }
+.stat-label { font-size: 12px; color: #a0b8e0; }
+.stat-value { font-size: 24px; font-weight: bold; color: #7ec8ff; margin-top: 5px; }
+.btn {
+  background: linear-gradient(135deg, #4a7fd8, #2c5aa8);
+  border: none; color: #fff; padding: 14px 40px; font-size: 18px;
+  border-radius: 30px; cursor: pointer; margin: 8px;
+  transition: all 0.3s; font-weight: bold;
+  box-shadow: 0 4px 15px rgba(74, 127, 216, 0.4);
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 127, 216, 0.6); }
+.btn:active { transform: translateY(0); }
+.btn.secondary { background: linear-gradient(135deg, #556688, #3a4660); box-shadow: 0 4px 15px rgba(85, 102, 136, 0.4); }
+.btn.danger { background: linear-gradient(135deg, #d8544a, #a83a2c); box-shadow: 0 4px 15px rgba(216, 84, 74, 0.4); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+.plane-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+.plane-card {
+  background: rgba(74, 127, 216, 0.1); border: 2px solid #2c5aa8;
+  border-radius: 12px; padding: 15px; cursor: pointer; transition: all 0.3s;
+  position: relative;
+}
+.plane-card:hover:not(.locked) { border-color: #7ec8ff; background: rgba(126, 200, 255, 0.15); transform: scale(1.03); }
+.plane-card.selected { border-color: #7ec8ff; box-shadow: 0 0 20px rgba(126, 200, 255, 0.5); background: rgba(126, 200, 255, 0.2); }
+.plane-card.locked { opacity: 0.5; cursor: not-allowed; }
+.plane-card canvas { width: 100%; height: 70px; display: block; }
+.plane-name { color: #7ec8ff; margin-top: 8px; font-weight: bold; }
+.plane-req { color: #8a98b8; font-size: 12px; margin-top: 3px; }
+.lock-icon { position: absolute; top: 10px; right: 10px; font-size: 20px; }
+.hud {
+  position: absolute; top: 0; left: 0; width: 100%; padding: 15px 20px;
+  color: #fff; z-index: 50; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.hud-left, .hud-right { display: flex; flex-direction: column; gap: 8px; }
+.hud-right { align-items: flex-end; }
+.hud-item {
+  background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+  padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(126, 200, 255, 0.3);
+  font-size: 14px; font-weight: bold;
+}
+.bar-container { width: 180px; height: 14px; background: rgba(0,0,0,0.5); border-radius: 7px; overflow: hidden; border: 1px solid rgba(126,200,255,0.3); margin-top: 3px; }
+.bar-fill { height: 100%; border-radius: 7px; transition: width 0.1s; }
+.life-bar { background: linear-gradient(90deg, #ff5555, #ff8888); }
+.fuel-bar { background: linear-gradient(90deg, #4a9dff, #7ec8ff); }
+.fuel-bar.low { background: linear-gradient(90deg, #ff8800, #ffcc00); animation: pulse 0.5s infinite alternate; }
+@keyframes pulse { from { opacity: 0.7; } to { opacity: 1; } }
+.shield-indicator {
+  background: linear-gradient(135deg, rgba(126, 200, 255, 0.3), rgba(74, 127, 216, 0.3));
+  border: 2px solid #7ec8ff; color: #7ec8ff; padding: 8px 16px;
+  border-radius: 10px; font-size: 14px; font-weight: bold;
+  box-shadow: 0 0 15px rgba(126, 200, 255, 0.4);
+  animation: shieldPulse 1s infinite alternate;
+}
+@keyframes shieldPulse { from { box-shadow: 0 0 10px rgba(126,200,255,0.3); } to { box-shadow: 0 0 25px rgba(126,200,255,0.7); } }
+.pause-btn {
+  position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+  z-index: 60; background: rgba(0,0,0,0.6); border: 1px solid #4a7fd8;
+  color: #fff; padding: 8px 20px; border-radius: 20px; cursor: pointer;
+  font-size: 14px; pointer-events: auto;
+}
+.pause-btn:hover { background: rgba(74, 127, 216, 0.4); }
+.game-over-score { font-size: 56px; color: #ffcc44; font-weight: bold; margin: 20px 0; text-shadow: 0 0 30px rgba(255, 204, 68, 0.5); }
+.new-record { color: #ffcc44; font-size: 18px; animation: pulse 0.8s infinite alternate; margin: 10px 0; }
+.instructions { text-align: left; color: #a0b8e0; font-size: 13px; line-height: 1.8; margin: 15px 0; padding: 15px; background: rgba(74, 127, 216, 0.1); border-radius: 10px; }
+.instructions b { color: #7ec8ff; }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas ref="canvasRef" class="game-canvas"></canvas>
+
+  <div class="hud" v-if="gameState === 'playing' || gameState === 'paused'">
+    <div class="hud-left">
+      <div class="hud-item">
+        ❤️ 生命
+        <div class="bar-container"><div class="bar-fill life-bar" :style="{width: (lives/3*100)+'%'}"></div></div>
+      </div>
+      <div class="hud-item">
+        ⛽ 燃料
+        <div class="bar-container"><div class="bar-fill fuel-bar" :class="{low: fuel < 20}" :style="{width: fuel+'%'}"></div></div>
+      </div>
+      <div class="hud-item">⏱️ 生存: <span style="color:#7ec8ff">{{ formatTime(survivalTime) }}</span></div>
+      <div class="hud-item">📊 分数: <span style="color:#ffcc44">{{ score }}</span></div>
+    </div>
+    <div class="hud-right">
+      <div class="shield-indicator" v-if="shieldTime > 0">
+        🛡️ 护盾 {{ (shieldTime / 1000).toFixed(1) }}s
+      </div>
+      <div class="hud-item">🏆 最佳: <span style="color:#ffcc44">{{ formatTime(bestTime) }}</span></div>
+    </div>
+    <button class="pause-btn" @click="togglePause">{{ gameState === 'paused' ? '▶ 继续' : '⏸ 暂停' }}</button>
+  </div>
+
+  <div class="overlay" v-if="gameState === 'menu'">
+    <div class="panel">
+      <h1>✈️ 飞机大作战</h1>
+      <div class="subtitle">躲避障碍物 · 收集道具 · 挑战最长生存时间</div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">🏆 最长生存</div>
+          <div class="stat-value">{{ formatTime(bestTime) }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🛩️ 已解锁</div>
+          <div class="stat-value">{{ unlockedPlanes.length }}/{{ allPlanes.length }}</div>
+        </div>
+      </div>
+      <h2 style="font-size:18px; margin-top:25px;">选择战机</h2>
+      <div class="plane-grid">
+        <div v-for="p in allPlanes" :key="p.id"
+             :class="['plane-card', {selected: selectedPlane===p.id, locked: !unlockedPlanes.includes(p.id)}]"
+             @click="selectPlane(p)">
+          <canvas :ref="el => { if(el) drawPlanePreview(el, p.id) }" width="200" height="70"></canvas>
+          <div class="plane-name">{{ p.name }}</div>
+          <div class="plane-req">{{ unlockedPlanes.includes(p.id) ? '✓ 已解锁' : '🔒 存活 '+p.req+'s 解锁' }}</div>
+        </div>
+      </div>
+      <button class="btn" @click="startGame">🚀 开始游戏</button>
+      <button class="btn secondary" @click="showInstructions = true">📖 游戏说明</button>
+      <button class="btn danger" @click="resetSave" v-if="bestTime > 0">🗑️ 重置存档</button>
+      <div class="instructions" v-if="showInstructions">
+        <b>🎮 操作说明：</b><br>
+        • 移动鼠标控制飞机位置（平滑跟随）<br>
+        • 按 P 或空格键暂停游戏<br><br>
+        <b>⚠️ 障碍物：</b><br>
+        • 🐦 <b>飞鸟</b> - 上下波动飞行，碰到扣1命<br>
+        • ☁️ <b>云团</b> - 体积大但碰撞范围小，碰到扣1命<br>
+        • 🚀 <b>导弹</b> - 追踪玩家，5秒后自毁，碰到扣1命<br><br>
+        <b>💎 道具：</b><br>
+        • ⛽ <b>燃料罐</b> - 恢复30点燃料<br>
+        • 🛡️ <b>护盾</b> - 5秒内免疫伤害（10%概率出现）<br><br>
+        <b>🎯 目标：</b>尽可能长时间生存，解锁全部战机！
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" v-if="gameState === 'paused'">
+    <div class="panel">
+      <h2>⏸ 游戏暂停</h2>
+      <div class="subtitle">休息一下，准备好再继续</div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">⏱️ 当前</div>
+          <div class="stat-value">{{ formatTime(survivalTime) }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">📊 分数</div>
+          <div class="stat-value">{{ score }}</div>
+        </div>
+      </div>
+      <button class="btn" @click="togglePause">▶ 继续游戏</button>
+      <button class="btn danger" @click="quitToMenu">🏠 返回主菜单</button>
+    </div>
+  </div>
+
+  <div class="overlay" v-if="gameState === 'gameover'">
+    <div class="panel">
+      <h2>💥 游戏结束</h2>
+      <div class="subtitle" v-if="gameOverReason">{{ gameOverReason }}</div>
+      <div class="game-over-score">{{ score }}</div>
+      <div class="new-record" v-if="isNewRecord">🎉 新纪录！恭喜你！</div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">⏱️ 生存时间</div>
+          <div class="stat-value">{{ formatTime(survivalTime) }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🏆 历史最佳</div>
+          <div class="stat-value">{{ formatTime(bestTime) }}</div>
+        </div>
+      </div>
+      <div v-if="newUnlocked.length > 0" style="margin:15px 0; color:#ffcc44;">
+        🎊 解锁新战机: <b>{{ newUnlocked.map(p => p.name).join('、') }}</b>
+      </div>
+      <button class="btn" @click="startGame">🔄 再来一局</button>
+      <button class="btn secondary" @click="backToMenu">🏠 返回主菜单</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, onMounted, onUnmounted, computed, watch } = Vue;
+
+createApp({
+  setup() {
+    const canvasRef = ref(null);
+    let ctx = null;
+    let W = 0, H = 0;
+    let rafId = null;
+    let lastTime = 0;
+
+    const gameState = ref('menu');
+    const showInstructions = ref(false);
+    const gameOverReason = ref('');
+    const isNewRecord = ref(false);
+    const newUnlocked = ref([]);
+
+    const lives = ref(3);
+    const fuel = ref(100);
+    const score = ref(0);
+    const survivalTime = ref(0);
+    const shieldTime = ref(0);
+    const invincibleTime = ref(0);
+
+    const bestTime = ref(0);
+    const selectedPlane = ref('silver');
+    const unlockedPlanes = ref(['silver']);
+    const allPlanes = [
+      { id: 'silver', name: '银色战机', req: 0 },
+      { id: 'red', name: '红色战斗机', req: 60 },
+      { id: 'stealth', name: '隐形轰炸机', req: 120 },
+      { id: 'gold', name: '金色战机', req: 180 }
+    ];
+
+    let plane = { x: 0, y: 0, targetX: 0, targetY: 0, w: 60, h: 45, trail: [] };
+    let mouse = { x: 0, y: 0 };
+    let obstacles = [];
+    let items = [];
+    let particles = [];
+    let missiles = [];
+    let frameCount = 0;
+    let spawnInterval = 120;
+    let itemSpawnTimer = 0;
+    let audioCtx = null;
+    let engineOsc = null;
+    let engineGain = null;
+    let lowFuelTimer = 0;
+    let warningTimer = 0;
+    let mountains = [];
+    let bgOffset = 0;
+    let shakeTime = 0;
+    let flashRed = 0;
+    let timeOfDay = 0;
+
+    function initAudio() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playEngineSound() {
+      if (!audioCtx || engineOsc) return;
+      engineOsc = audioCtx.createOscillator();
+      engineGain = audioCtx.createGain();
+      engineOsc.type = 'sawtooth';
+      engineOsc.frequency.value = 200;
+      engineGain.gain.value = 0.015;
+      engineOsc.connect(engineGain);
+      engineGain.connect(audioCtx.destination);
+      engineOsc.start();
+    }
+
+    function stopEngineSound() {
+      if (engineOsc) {
+        engineOsc.stop();
+        engineOsc.disconnect();
+        engineGain.disconnect();
+        engineOsc = null;
+        engineGain = null;
+      }
+    }
+
+    function playExplosion() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const bufferSize = audioCtx.sampleRate * 0.4;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      const noiseGain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      noiseGain.gain.setValueAtTime(0.25, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      noise.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.4); noise.start(now); noise.stop(now + 0.4);
+    }
+
+    function playFuelPickup() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.12);
+    }
+
+    function playShieldPickup() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      [880, 1320].forEach(f => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.2);
+      });
+    }
+
+    function playShieldFade() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.15);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.15);
+    }
+
+    function playWarning() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < 2; i++) {
+        const t = now + i * 0.12;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.setValueAtTime(0, t + 0.08);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.08);
+      }
+    }
+
+    function playLowFuel() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 440;
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.setValueAtTime(0, now + 0.15);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.15);
+    }
+
+    function resize() {
+      if (!canvasRef.value) return;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvasRef.value.width = W;
+      canvasRef.value.height = H;
+      initMountains();
+    }
+
+    function initMountains() {
+      mountains = [];
+      for (let layer = 0; layer < 3; layer++) {
+        const peaks = [];
+        const count = 8 + layer * 3;
+        for (let i = 0; i <= count; i++) {
+          peaks.push({
+            x: (i / count) * (W + 200) - 100,
+            y: H * (0.55 + layer * 0.08) + Math.random() * 60 - 30,
+            h: 80 + layer * 30 + Math.random() * 50
+          });
+        }
+        mountains.push({ peaks, speed: 0.15 + layer * 0.1, offset: 0 });
+      }
+    }
+
+    function loadSave() {
+      try {
+        const data = JSON.parse(localStorage.getItem('planeGameSave') || '{}');
+        bestTime.value = data.bestTime || 0;
+        unlockedPlanes.value = data.unlockedPlanes || ['silver'];
+        selectedPlane.value = data.selectedPlane || 'silver';
+        if (!unlockedPlanes.value.includes(selectedPlane.value)) selectedPlane.value = 'silver';
+      } catch(e) {}
+    }
+
+    function saveGame() {
+      localStorage.setItem('planeGameSave', JSON.stringify({
+        bestTime: bestTime.value,
+        unlockedPlanes: unlockedPlanes.value,
+        selectedPlane: selectedPlane.value
+      }));
+    }
+
+    function resetSave() {
+      if (!confirm('确定要重置所有存档吗？')) return;
+      localStorage.removeItem('planeGameSave');
+      bestTime.value = 0;
+      unlockedPlanes.value = ['silver'];
+      selectedPlane.value = 'silver';
+    }
+
+    function selectPlane(p) {
+      if (!unlockedPlanes.value.includes(p.id)) return;
+      selectedPlane.value = p.id;
+      saveGame();
+    }
+
+    function drawPlanePreview(c, id) {
+      const pc = c.getContext('2d');
+      pc.clearRect(0, 0, c.width, c.height);
+      drawPlaneShape(pc, c.width / 2, c.height / 2 + 5, 0.8, id, 0);
+    }
+
+    function drawPlaneShape(c, x, y, scale, id, flash) {
+      c.save();
+      c.translate(x, y);
+      c.scale(scale, scale);
+      const colors = {
+        silver: { body: '#c0c8d4', body2: '#8a95a8', accent: '#4a7fd8', wing: '#a0aab8', glass: '#7ec8ff' },
+        red: { body: '#e84545', body2: '#a82a2a', accent: '#ffcc44', wing: '#c43535', glass: '#ff8866' },
+        stealth: { body: '#2a3040', body2: '#181c28', accent: '#00e5ff', wing: '#384050', glass: '#00b8cc' },
+        gold: { body: '#ffcc44', body2: '#c89820', accent: '#ff8800', wing: '#e8b030', glass: '#ffee88' }
+      };
+      const col = colors[id] || colors.silver;
+      if (flash > 0) {
+        c.globalAlpha = flash;
+        col.body = col.body2 = col.wing = '#ff2222';
+        c.globalAlpha = 1;
+      }
+
+      c.beginPath();
+      c.moveTo(-25, 5);
+      c.lineTo(0, -25);
+      c.lineTo(25, 5);
+      c.lineTo(15, 20);
+      c.lineTo(-15, 20);
+      c.closePath();
+      const grad = c.createLinearGradient(0, -25, 0, 20);
+      grad.addColorStop(0, col.body);
+      grad.addColorStop(1, col.body2);
+      c.fillStyle = grad;
+      c.fill();
+      c.strokeStyle = col.accent;
+      c.lineWidth = 1.5;
+      c.stroke();
+
+      c.beginPath();
+      c.moveTo(-40, 10);
+      c.lineTo(-15, 0);
+      c.lineTo(-15, 15);
+      c.lineTo(-35, 18);
+      c.closePath();
+      c.fillStyle = col.wing;
+      c.fill();
+      c.strokeStyle = col.accent;
+      c.stroke();
+
+      c.beginPath();
+      c.moveTo(40, 10);
+      c.lineTo(15, 0);
+      c.lineTo(15, 15);
+      c.lineTo(35, 18);
+      c.closePath();
+      c.fillStyle = col.wing;
+      c.fill();
+      c.stroke();
+
+      c.beginPath();
+      c.ellipse(0, -8, 7, 10, 0, 0, Math.PI * 2);
+      c.fillStyle = col.glass;
+      c.globalAlpha = 0.8;
+      c.fill();
+      c.globalAlpha = 1;
+      c.strokeStyle = col.accent;
+      c.lineWidth = 1;
+      c.stroke();
+
+      c.fillStyle = col.accent;
+      c.fillRect(-3, 15, 6, 8);
+      c.fillRect(-3, 3, 2, 5);
+      c.fillRect(1, 3, 2, 5);
+
+      c.restore();
+    }
+
+    function spawnObstacle() {
+      const types = ['bird', 'cloud', 'missile'];
+      const weights = [0.5, 0.35, 0.15];
+      let r = Math.random(), t = types[0], acc = 0;
+      for (let i = 0; i < types.length; i++) {
+        acc += weights[i];
+        if (r <= acc) { t = types[i]; break; }
+      }
+      if (t === 'bird') {
+        obstacles.push({
+          type: 'bird', x: W + 50, y: 100 + Math.random() * (H - 250),
+          vx: -3, vy: 0, w: 40, h: 30, wingPhase: Math.random() * Math.PI * 2,
+          baseY: 0, phase: Math.random() * Math.PI * 2
+        });
+        obstacles[obstacles.length-1].baseY = obstacles[obstacles.length-1].y;
+      } else if (t === 'cloud') {
+        const size = 80 + Math.random() * 60;
+        obstacles.push({
+          type: 'cloud', x: W + size, y: 50 + Math.random() * (H - 200),
+          vx: -1.5, w: size, h: size * 0.6
+        });
+      } else if (t === 'missile') {
+        missiles.push({
+          x: W + 30, y: 50 + Math.random() * (H - 150),
+          vx: 0, vy: 0, w: 35, h: 12, life: 5000, spawned: Date.now(),
+          trail: []
+        });
+        playWarning();
+      }
+    }
+
+    function spawnItem() {
+      const isShield = Math.random() < 0.1;
+      items.push({
+        type: isShield ? 'shield' : 'fuel',
+        x: W + 30,
+        y: 80 + Math.random() * (H - 200),
+        vx: -2,
+        w: 30,
+        h: 30,
+        bob: Math.random() * Math.PI * 2
+      });
+    }
+
+    function spawnParticles(x, y, color, count, speed) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = Math.random() * speed + 1;
+        particles.push({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.03,
+          size: 2 + Math.random() * 4,
+          color
+        });
+      }
+    }
+
+    function rectCollide(a, b) {
+      return a.x - a.w/2 < b.x + b.w/2 && a.x + a.w/2 > b.x - b.w/2 &&
+             a.y - a.h/2 < b.y + b.h/2 && a.y + a.h/2 > b.y - b.h/2;
+    }
+
+    function handleHit() {
+      if (shieldTime.value > 0 || invincibleTime.value > 0) return;
+      lives.value--;
+      flashRed = 1;
+      shakeTime = 500;
+      playExplosion();
+      spawnParticles(plane.x, plane.y, '#ff6644', 30, 8);
+      spawnParticles(plane.x, plane.y, '#ffcc44', 20, 5);
+      invincibleTime.value = 1500;
+      if (lives.value <= 0) {
+        endGame('💥 生命耗尽！');
+      }
+    }
+
+    function endGame(reason) {
+      gameState.value = 'gameover';
+      gameOverReason.value = reason;
+      stopEngineSound();
+      isNewRecord.value = survivalTime.value > bestTime.value;
+      if (isNewRecord.value) bestTime.value = survivalTime.value;
+      newUnlocked.value = [];
+      allPlanes.forEach(p => {
+        if (survivalTime.value >= p.req && !unlockedPlanes.value.includes(p.id)) {
+          unlockedPlanes.value.push(p.id);
+          newUnlocked.value.push(p);
+        }
+      });
+      saveGame();
+    }
+
+    function togglePause() {
+      if (gameState.value === 'playing') gameState.value = 'paused';
+      else if (gameState.value === 'paused') gameState.value = 'playing';
+    }
+
+    function startGame() {
+      initAudio();
+      lives.value = 3;
+      fuel.value = 100;
+      score.value = 0;
+      survivalTime.value = 0;
+      shieldTime.value = 0;
+      invincibleTime.value = 0;
+      frameCount = 0;
+      spawnInterval = 120;
+      itemSpawnTimer = 0;
+      timeOfDay = 0;
+      obstacles = [];
+      items = [];
+      particles = [];
+      missiles = [];
+      lowFuelTimer = 0;
+      shakeTime = 0;
+      flashRed = 0;
+      plane.x = W * 0.25;
+      plane.y = H / 2;
+      plane.targetX = plane.x;
+      plane.targetY = plane.y;
+      plane.trail = [];
+      gameState.value = 'playing';
+      lastTime = performance.now();
+      playEngineSound();
+    }
+
+    function quitToMenu() {
+      gameState.value = 'menu';
+      stopEngineSound();
+    }
+
+    function backToMenu() {
+      gameState.value = 'menu';
+    }
+
+    function formatTime(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const ss = s % 60;
+      return `${m}:${ss.toString().padStart(2,'0')}`;
+    }
+
+    function update(dt) {
+      if (gameState.value !== 'playing') return;
+      frameCount++;
+      survivalTime.value += dt;
+      timeOfDay = Math.min(1, survivalTime.value / 120000);
+
+      const dx = mouse.x - plane.targetX;
+      const dy = mouse.y - plane.targetY;
+      plane.targetX += dx * 0.15;
+      plane.targetY += dy * 0.15;
+      plane.targetX = Math.max(50, Math.min(W - 50, plane.targetX));
+      plane.targetY = Math.max(50, Math.min(H - 50, plane.targetY));
+
+      const historyFrames = 3;
+      plane.trail.unshift({ x: plane.targetX, y: plane.targetY });
+      if (plane.trail.length > historyFrames) plane.trail.pop();
+      plane.x = plane.trail.reduce((s, p) => s + p.x, 0) / plane.trail.length;
+      plane.y = plane.trail.reduce((s, p) => s + p.y, 0) / plane.trail.length;
+
+      if (frameCount % 2 === 0) {
+        spawnParticles(plane.x - 20, plane.y + 15 + (Math.random() - 0.5) * 5, '#ff8800', 1, 1);
+        spawnParticles(plane.x - 22, plane.y + 15 + (Math.random() - 0.5) * 5, '#ffcc44', 1, 0.8);
+      }
+
+      fuel.value -= dt / 1000 * 2;
+      if (fuel.value <= 0) {
+        fuel.value = 0;
+        endGame('⛽ 燃料耗尽！');
+        return;
+      }
+      if (fuel.value < 20) {
+        lowFuelTimer += dt;
+        if (lowFuelTimer >= 1000) {
+          lowFuelTimer = 0;
+          playLowFuel();
+        }
+      }
+
+      if (shieldTime.value > 0) {
+        shieldTime.value = Math.max(0, shieldTime.value - dt);
+        if (shieldTime.value === 0) playShieldFade();
+      }
+      if (invincibleTime.value > 0) invincibleTime.value = Math.max(0, invincibleTime.value - dt);
+
+      const seconds = Math.floor(survivalTime.value / 1000);
+      spawnInterval = Math.max(30, 120 - Math.floor(seconds / 30) * 10);
+      if (frameCount % spawnInterval === 0) spawnObstacle();
+
+      itemSpawnTimer += dt;
+      if (itemSpawnTimer >= 4000 + Math.random() * 3000) {
+        itemSpawnTimer = 0;
+        spawnItem();
+      }
+
+      score.value = Math.floor(survivalTime.value / 100);
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i];
+        if (o.type === 'bird') {
+          o.x += o.vx;
+          o.phase += 0.08;
+          o.y = o.baseY + Math.sin(o.phase) * 30;
+          o.wingPhase += 0.3;
+        } else if (o.type === 'cloud') {
+          o.x += o.vx;
+        }
+        if (o.x < -100) { obstacles.splice(i, 1); continue; }
+
+        let cw = o.w, ch = o.h;
+        if (o.type === 'cloud') { cw = o.w * 0.7; ch = o.h * 0.7; }
+        if (rectCollide(
+          { x: plane.x, y: plane.y, w: plane.w * 0.7, h: plane.h * 0.7 },
+          { x: o.x, y: o.y, w: cw, h: ch }
+        )) {
+          handleHit();
+          if (o.type === 'bird') spawnParticles(o.x, o.y, '#ffffff', 15, 4);
+          obstacles.splice(i, 1);
+        }
+      }
+
+      for (let i = missiles.length - 1; i >= 0; i--) {
+        const m = missiles[i];
+        const age = Date.now() - m.spawned;
+        const speed = 2;
+        const dxm = plane.x - m.x, dym = plane.y - m.y;
+        const dist = Math.sqrt(dxm * dxm + dym * dym) || 1;
+        m.vx = (dxm / dist) * speed;
+        m.vy = (dym / dist) * speed;
+        m.x += m.vx;
+        m.y += m.vy;
+        m.trail.unshift({ x: m.x, y: m.y });
+        if (m.trail.length > 12) m.trail.pop();
+
+        if (frameCount % 2 === 0) {
+          spawnParticles(m.x - 15, m.y, '#ff4422', 1, 0.5);
+        }
+
+        if (age >= m.life || m.x < -50 || m.y < -50 || m.y > H + 50) {
+          spawnParticles(m.x, m.y, '#ff6644', 20, 5);
+          missiles.splice(i, 1);
+          continue;
+        }
+
+        if (rectCollide(
+          { x: plane.x, y: plane.y, w: plane.w * 0.7, h: plane.h * 0.7 },
+          { x: m.x, y: m.y, w: m.w * 0.8, h: m.h * 0.8 }
+        )) {
+          handleHit();
+          spawnParticles(m.x, m.y, '#ff4422', 25, 6);
+          missiles.splice(i, 1);
+        }
+      }
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.x += it.vx;
+        it.bob += 0.08;
+        if (it.x < -50) { items.splice(i, 1); continue; }
+
+        if (rectCollide(
+          { x: plane.x, y: plane.y, w: plane.w, h: plane.h },
+          { x: it.x, y: it.y + Math.sin(it.bob) * 5, w: it.w, h: it.h }
+        )) {
+          if (it.type === 'fuel') {
+            fuel.value = Math.min(100, fuel.value + 30);
+            playFuelPickup();
+            spawnParticles(it.x, it.y, '#4a9dff', 15, 4);
+          } else {
+            shieldTime.value = 5000;
+            playShieldPickup();
+            spawnParticles(it.x, it.y, '#7ec8ff', 25, 5);
+          }
+          items.splice(i, 1);
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.96;
+        p.vy *= 0.96;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      mountains.forEach(m => {
+        m.offset += m.speed;
+        if (m.offset > W * 0.3) m.offset = 0;
+      });
+
+      if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
+      if (flashRed > 0) flashRed = Math.max(0, flashRed - dt / 300);
+    }
+
+    function drawBackground() {
+      const topR = Math.floor(135 - timeOfDay * 80);
+      const topG = Math.floor(206 - timeOfDay * 130);
+      const topB = Math.floor(250 - timeOfDay * 100);
+      const botR = Math.floor(70 - timeOfDay * 40);
+      const botG = Math.floor(130 - timeOfDay * 90);
+      const botB = Math.floor(220 - timeOfDay * 150);
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, `rgb(${topR},${topG},${topB})`);
+      grad.addColorStop(1, `rgb(${botR},${botG},${botB})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      const starAlpha = timeOfDay * 0.7;
+      if (starAlpha > 0.1) {
+        ctx.fillStyle = `rgba(255,255,255,${starAlpha})`;
+        for (let i = 0; i < 50; i++) {
+          const sx = (i * 137 + frameCount * 0.1) % W;
+          const sy = (i * 89) % (H * 0.4);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 1 + (i % 2), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      mountains.forEach((m, li) => {
+        const alpha = 0.4 + li * 0.2;
+        const r = 50 + li * 20;
+        const g = 60 + li * 25;
+        const b = 100 + li * 30;
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.beginPath();
+        const first = m.peaks[0];
+        ctx.moveTo(first.x - m.offset, H);
+        m.peaks.forEach(p => {
+          ctx.lineTo(p.x - m.offset, p.y);
+          ctx.lineTo(p.x - m.offset + 30, p.y - p.h * 0.5);
+        });
+        const last = m.peaks[m.peaks.length - 1];
+        ctx.lineTo(last.x - m.offset + W * 0.3, H);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+
+    function drawBird(o) {
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      const flap = Math.sin(o.wingPhase) * 0.6;
+      ctx.fillStyle = '#2a2a2a';
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 8, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      ctx.save();
+      ctx.rotate(-0.3 + flap);
+      ctx.beginPath();
+      ctx.moveTo(-5, 0);
+      ctx.quadraticCurveTo(-20, -18, -28, -5);
+      ctx.quadraticCurveTo(-15, 2, -5, 0);
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.rotate(0.3 - flap);
+      ctx.beginPath();
+      ctx.moveTo(5, 0);
+      ctx.quadraticCurveTo(20, -18, 28, -5);
+      ctx.quadraticCurveTo(15, 2, 5, 0);
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#ff8844';
+      ctx.beginPath();
+      ctx.moveTo(13, -1);
+      ctx.lineTo(20, 0);
+      ctx.lineTo(13, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(8, -2, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(9, -2, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawCloud(o) {
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      ctx.globalAlpha = 0.85;
+      const puffs = [
+        { x: -o.w*0.35, y: 0, r: o.h*0.35 },
+        { x: -o.w*0.1, y: -o.h*0.15, r: o.h*0.4 },
+        { x: o.w*0.15, y: 0, r: o.h*0.38 },
+        { x: o.w*0.3, y: o.h*0.05, r: o.h*0.32 },
+        { x: -o.w*0.2, y: o.h*0.1, r: o.h*0.3 }
+      ];
+      const grad = ctx.createRadialGradient(0, 0, o.h*0.1, 0, 0, o.h*0.5);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(1, 'rgba(220,230,255,0.5)');
+      puffs.forEach(p => {
+        const pg = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r);
+        pg.addColorStop(0, 'rgba(255,255,255,0.95)');
+        pg.addColorStop(0.7, 'rgba(240,245,255,0.85)');
+        pg.addColorStop(1, 'rgba(210,220,245,0)');
+        ctx.fillStyle = pg;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawMissile(m) {
+      ctx.save();
+      if (m.trail.length > 1) {
+        for (let i = 0; i < m.trail.length - 1; i++) {
+          const t = m.trail[i], t2 = m.trail[i+1];
+          const a = 1 - i / m.trail.length;
+          ctx.strokeStyle = `rgba(255,${60 + i*15},30,${a*0.7})`;
+          ctx.lineWidth = (m.trail.length - i) * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(t.x, t.y);
+          ctx.lineTo(t2.x, t2.y);
+          ctx.stroke();
+        }
+      }
+      const ang = Math.atan2(m.vy, m.vx);
+      ctx.translate(m.x, m.y);
+      ctx.rotate(ang);
+      ctx.fillStyle = '#555';
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-18, -5);
+      ctx.lineTo(10, -5);
+      ctx.lineTo(18, 0);
+      ctx.lineTo(10, 5);
+      ctx.lineTo(-18, 5);
+      ctx.closePath();
+      const mg = ctx.createLinearGradient(0, -5, 0, 5);
+      mg.addColorStop(0, '#888');
+      mg.addColorStop(0.5, '#555');
+      mg.addColorStop(1, '#333');
+      ctx.fillStyle = mg;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#aa2222';
+      ctx.beginPath();
+      ctx.moveTo(10, -5);
+      ctx.lineTo(18, 0);
+      ctx.lineTo(10, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#aa2222';
+      ctx.beginPath();
+      ctx.moveTo(-18, -5);
+      ctx.lineTo(-25, -10);
+      ctx.lineTo(-18, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-18, 5);
+      ctx.lineTo(-25, 10);
+      ctx.lineTo(-18, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawItem(it) {
+      ctx.save();
+      const yy = it.y + Math.sin(it.bob) * 5;
+      ctx.translate(it.x, yy);
+      ctx.rotate(Math.sin(it.bob * 0.5) * 0.1);
+      ctx.shadowColor = it.type === 'shield' ? 'rgba(126,200,255,0.8)' : 'rgba(74,157,255,0.8)';
+      ctx.shadowBlur = 15;
+      if (it.type === 'fuel') {
+        const grad = ctx.createLinearGradient(-10, -15, 10, 15);
+        grad.addColorStop(0, '#6ab8ff');
+        grad.addColorStop(0.5, '#4a9dff');
+        grad.addColorStop(1, '#2a7dd8');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#1a5aaa';
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, -10, -12, 20, 26, 3);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#1a5aaa';
+        ctx.fillRect(-6, -16, 12, 5);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('F', 0, 5);
+      } else {
+        for (let i = 3; i > 0; i--) {
+          ctx.beginPath();
+          ctx.arc(0, 0, 10 + i * 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(126,200,255,${0.1 * i})`;
+          ctx.fill();
+        }
+        const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 10);
+        grad.addColorStop(0, '#bfe4ff');
+        grad.addColorStop(1, '#4a9dff');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7ec8ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🛡', 0, 0);
+      }
+      ctx.restore();
+    }
+
+    function roundRect(c, x, y, w, h, r) {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.arcTo(x + w, y, x + w, y + h, r);
+      c.arcTo(x + w, y + h, x, y + h, r);
+      c.arcTo(x, y + h, x, y, r);
+      c.arcTo(x, y, x + w, y, r);
+      c.closePath();
+    }
+
+    function drawPlane() {
+      ctx.save();
+      if (invincibleTime.value > 0 && Math.floor(invincibleTime.value / 80) % 2 === 0) {
+        ctx.globalAlpha = 0.5;
+      }
+      if (shieldTime.value > 0) {
+        const shieldAlpha = 0.3 + Math.sin(frameCount * 0.1) * 0.1;
+        const rg = ctx.createRadialGradient(plane.x, plane.y, 20, plane.x, plane.y, 50);
+        rg.addColorStop(0, `rgba(126,200,255,0)`);
+        rg.addColorStop(0.6, `rgba(126,200,255,${shieldAlpha})`);
+        rg.addColorStop(0.8, `rgba(180,220,255,${shieldAlpha*0.8})`);
+        rg.addColorStop(1, `rgba(126,200,255,0)`);
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.arc(plane.x, plane.y, 50, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(180,230,255,${0.5 + Math.sin(frameCount*0.15)*0.2})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const facets = 8;
+        for (let i = 0; i <= facets; i++) {
+          const a = (i / facets) * Math.PI * 2 + frameCount * 0.02;
+          const r = 45 + Math.sin(a * 3 + frameCount * 0.1) * 3;
+          const px = plane.x + Math.cos(a) * r;
+          const py = plane.y + Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+      drawPlaneShape(ctx, plane.x, plane.y, 1, selectedPlane.value, flashRed);
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawLowFuelOverlay() {
+      if (fuel.value < 20) {
+        const a = 0.1 + Math.sin(frameCount * 0.3) * 0.08;
+        ctx.fillStyle = `rgba(255,100,0,${a})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    function render() {
+      if (!ctx) return;
+      ctx.save();
+      if (shakeTime > 0) {
+        const s = shakeTime / 500 * 8;
+        ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+      }
+      drawBackground();
+      obstacles.forEach(o => {
+        if (o.type === 'bird') drawBird(o);
+        else if (o.type === 'cloud') drawCloud(o);
+      });
+      items.forEach(drawItem);
+      missiles.forEach(drawMissile);
+      drawParticles();
+      drawPlane();
+      drawLowFuelOverlay();
+      if (flashRed > 0) {
+        ctx.fillStyle = `rgba(255,0,0,${flashRed * 0.3})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.restore();
+    }
+
+    function loop(t) {
+      const dt = Math.min(50, t - lastTime);
+      lastTime = t;
+      update(dt);
+      render();
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function onMouseMove(e) {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'p' || e.key === 'P' || e.key === ' ') {
+        if (gameState.value === 'playing' || gameState.value === 'paused') {
+          e.preventDefault();
+          togglePause();
+        }
+      }
+    }
+
+    onMounted(() => {
+      ctx = canvasRef.value.getContext('2d');
+      resize();
+      loadSave();
+      window.addEventListener('resize', resize);
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('keydown', onKeyDown);
+      mouse.x = W * 0.25;
+      mouse.y = H / 2;
+      lastTime = performance.now();
+      rafId = requestAnimationFrame(loop);
+    });
+
+    onUnmounted(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('keydown', onKeyDown);
+      stopEngineSound();
+    });
+
+    return {
+      canvasRef, gameState, showInstructions, gameOverReason, isNewRecord, newUnlocked,
+      lives, fuel, score, survivalTime, shieldTime, bestTime, selectedPlane,
+      unlockedPlanes, allPlanes,
+      selectPlane, drawPlanePreview, startGame, togglePause, quitToMenu, backToMenu,
+      resetSave, formatTime
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
