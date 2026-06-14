@@ -617,3 +617,33 @@ body {
 .leaderboard-list::-webkit-scrollbar-thumb:hover {
     background: #ff00ff;
 }
+
+.save-info {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+}
+
+.save-info .result-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.save-info .result-item:last-child {
+    border-bottom: none;
+}
+
+.save-info .label {
+    color: #00ffff;
+    font-size: 14px;
+}
+
+.save-info .value {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 18px;
+}

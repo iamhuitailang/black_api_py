@@ -22,7 +22,94 @@ class Game {
         this.scoreSubmitted = false;
         this.pendingBuff = false;
         
+        this.saveKey = 'cyber_ninja_save';
+        this.autoSaveTimer = 0;
+        
         this.setupGameLoop();
+        this.checkSavedGame();
+    }
+    
+    checkSavedGame() {
+        try {
+            const saveData = localStorage.getItem(this.saveKey);
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                if (data && data.score > 0) {
+                    this.ui.showContinueDialog(data);
+                }
+            }
+        } catch (e) {
+            console.warn('读取存档失败:', e);
+        }
+    }
+    
+    saveGame() {
+        if (this.gameState !== 'playing' && this.gameState !== 'paused' && this.gameState !== 'buff_selection' && this.gameState !== 'transition') {
+            return;
+        }
+        
+        try {
+            const data = {
+                score: this.score,
+                currentAreaIndex: this.currentAreaIndex,
+                currentLevelIndex: this.currentLevelIndex,
+                playerHealth: this.player.health,
+                playerMaxHealth: this.player.maxHealth,
+                playerBuffs: {
+                    attackSpeed: { active: this.player.buffs.attackSpeed.active, timer: this.player.buffs.attackSpeed.timer },
+                    moveSpeed: { active: this.player.buffs.moveSpeed.active, timer: this.player.buffs.moveSpeed.timer },
+                    invincible: { active: this.player.buffs.invincible.active, timer: this.player.buffs.invincible.timer }
+                },
+                savedAt: Date.now()
+            };
+            localStorage.setItem(this.saveKey, JSON.stringify(data));
+        } catch (e) {
+            console.warn('保存游戏失败:', e);
+        }
+    }
+    
+    loadGame(data) {
+        this.score = data.score || 0;
+        this.currentAreaIndex = data.currentAreaIndex || 0;
+        this.currentLevelIndex = data.currentLevelIndex || 0;
+        this.currentAreaConfig = GameConfig.AREAS[this.currentAreaIndex];
+        
+        this.player.health = Math.min(data.playerHealth || this.player.maxHealth, this.player.maxHealth);
+        this.player.maxHealth = data.playerMaxHealth || this.player.maxHealth;
+        
+        if (data.playerBuffs) {
+            for (const key in data.playerBuffs) {
+                if (this.player.buffs[key]) {
+                    this.player.buffs[key].active = data.playerBuffs[key].active || false;
+                    this.player.buffs[key].timer = data.playerBuffs[key].timer || 0;
+                }
+            }
+            if (this.player.buffs.invincible.active) {
+                this.player.isInvincible = true;
+            }
+        }
+        
+        this.enemies = [];
+        this.items = [];
+        this.floatingTexts = [];
+        this.boss = null;
+        particleSystem.clear();
+        this.scoreSubmitted = false;
+        this.pendingBuff = false;
+        
+        this.gameState = 'playing';
+        this.ui.hideAllMenus();
+        this.ui.hideBuffSelection();
+        this.ui.showHUD();
+        this.loadLevel();
+    }
+    
+    clearSave() {
+        try {
+            localStorage.removeItem(this.saveKey);
+        } catch (e) {
+            console.warn('清除存档失败:', e);
+        }
     }
 
     setupGameLoop() {
@@ -45,6 +132,7 @@ class Game {
     }
 
     startGame() {
+        this.clearSave();
         this.resetGame();
         this.gameState = 'playing';
         this.ui.hideAllMenus();
@@ -60,6 +148,7 @@ class Game {
         this.currentLevelIndex = 0;
         this.scoreSubmitted = false;
         this.pendingBuff = false;
+        this.autoSaveTimer = 0;
         
         this.player.reset();
         this.enemies = [];
@@ -129,6 +218,12 @@ class Game {
         particleSystem.update(deltaTime);
         
         this.checkEnemyCollisions();
+        
+        this.autoSaveTimer += deltaTime;
+        if (this.autoSaveTimer >= 2000) {
+            this.autoSaveTimer = 0;
+            this.saveGame();
+        }
         
         if (this.player.isDead && this.player.deathTimer <= 0) {
             this.gameOver(false);
@@ -255,6 +350,7 @@ class Game {
 
     async gameOver(isVictory) {
         this.gameState = 'game_over';
+        this.clearSave();
         
         if (!this.scoreSubmitted) {
             const playerName = this.ui.getPlayerName();

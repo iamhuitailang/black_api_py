@@ -10,6 +10,42 @@ class UIManager {
             this.game.startGame();
         });
 
+        document.getElementById('continue-btn').addEventListener('click', () => {
+            audioManager.init();
+            const saveData = localStorage.getItem('cyber_ninja_save');
+            if (saveData) {
+                try {
+                    const data = JSON.parse(saveData);
+                    this.game.loadGame(data);
+                } catch (e) {
+                    this.game.startGame();
+                }
+            } else {
+                this.game.startGame();
+            }
+        });
+
+        document.getElementById('load-game-btn').addEventListener('click', () => {
+            audioManager.init();
+            const saveData = localStorage.getItem('cyber_ninja_save');
+            if (saveData) {
+                try {
+                    const data = JSON.parse(saveData);
+                    this.hideMenu('continue-dialog');
+                    this.game.loadGame(data);
+                } catch (e) {
+                    this.hideMenu('continue-dialog');
+                    this.game.startGame();
+                }
+            }
+        });
+
+        document.getElementById('new-game-btn').addEventListener('click', () => {
+            audioManager.init();
+            this.hideMenu('continue-dialog');
+            this.game.startGame();
+        });
+
         document.getElementById('leaderboard-btn').addEventListener('click', () => {
             this.showLeaderboard();
         });
@@ -173,5 +209,22 @@ class UIManager {
     getPlayerName() {
         const input = document.getElementById('player-name');
         return input.value.trim() || '匿名忍者';
+    }
+
+    showContinueDialog(data) {
+        const areaNames = ['霓虹街道', '工厂车间', '核心机房'];
+        const areaName = areaNames[data.currentAreaIndex] || '霓虹街道';
+        const levelNum = data.currentAreaIndex * 3 + data.currentLevelIndex + 1;
+        
+        document.getElementById('save-score').textContent = data.score;
+        document.getElementById('save-level').textContent = `${areaName} 第 ${(data.currentLevelIndex % 3) + 1} 关 (总第${levelNum}关)`;
+        document.getElementById('save-health').textContent = `${data.playerHealth}/${data.playerMaxHealth || 100}`;
+        
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+            continueBtn.classList.remove('hidden');
+        }
+        
+        this.showMenu('continue-dialog');
     }
 }

@@ -13,7 +13,7 @@ const GameConfig = {
         JUMP_FORCE: -15,
         MAX_JUMPS: 2,
         ATTACK_DAMAGE: 20,
-        ATTACK_RANGE: 60,
+        ATTACK_RANGE: 100,
         ATTACK_COOLDOWN: 300,
         SHURIKEN_DAMAGE: 20,
         SHURIKEN_SPEED: 12,

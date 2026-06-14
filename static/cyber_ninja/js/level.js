@@ -187,7 +187,7 @@ class Level {
         
         for (let i = 0; i < baseEnemyCount; i++) {
             const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-            const x = 400 + Math.random() * (GameConfig.CANVAS_WIDTH - 500);
+            const x = 200 + (i / baseEnemyCount) * (GameConfig.CANVAS_WIDTH - 300) + Math.random() * 100;
             let y = GameConfig.GROUND_Y;
             
             if (type === 'drone') {

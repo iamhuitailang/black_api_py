@@ -78,10 +78,11 @@ class Drone extends Enemy {
         this.bullets = [];
         this.patrolDirection = 1;
         this.patrolStartX = x;
-        this.patrolRange = 200;
+        this.patrolRange = 300;
         this.hoverOffset = 0;
         this.hoverTimer = 0;
         this.scoreValue = 20;
+        this.targetY = y;
     }
 
     update(deltaTime, game) {
@@ -95,10 +96,27 @@ class Drone extends Enemy {
         this.hoverTimer += deltaTime;
         this.hoverOffset = Math.sin(this.hoverTimer / 200) * 10;
         
-        this.x += this.speed * this.patrolDirection;
-        if (this.x > this.patrolStartX + this.patrolRange || this.x < this.patrolStartX - this.patrolRange) {
-            this.patrolDirection *= -1;
+        const player = game.player;
+        const dx = player.x - this.x;
+        const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 500 && distance > 100) {
+            this.x += Math.sign(dx) * this.speed * 0.8;
+            if (Math.abs(dy) > 30) {
+                this.y += Math.sign(dy) * this.speed * 0.5;
+            }
+        } else {
+            this.x += this.speed * this.patrolDirection * 0.5;
+            if (this.x > this.patrolStartX + this.patrolRange || this.x < this.patrolStartX - this.patrolRange) {
+                this.patrolDirection *= -1;
+            }
         }
+        
+        if (this.x < 20) this.x = 20;
+        if (this.x + this.width > GameConfig.CANVAS_WIDTH - 20) this.x = GameConfig.CANVAS_WIDTH - 20 - this.width;
+        if (this.y < 50) this.y = 50;
+        if (this.y > GameConfig.GROUND_Y - 100) this.y = GameConfig.GROUND_Y - 100;
         
         this.facingRight = game.player.x > this.x;
         
@@ -118,7 +136,7 @@ class Drone extends Enemy {
         const dx = player.x - this.x;
         const dy = player.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < 400;
+        return distance < 500;
     }
 
     shoot(player) {
@@ -282,13 +300,13 @@ class Mech extends Enemy {
                     }
                 }
             }
-        } else if (distance < this.attackRange && this.attackCooldown <= 0) {
+        } else if (distance < this.attackRange + 20 && this.attackCooldown <= 0) {
             this.isAttacking = true;
             this.attackTimer = 300;
             this.attackCooldown = GameConfig.ENEMIES.MECH.ATTACK_COOLDOWN;
             audioManager.playBossAttack();
         } else if (distance > this.attackRange) {
-            this.x += this.facingRight ? this.speed : -this.speed;
+            this.x += this.facingRight ? this.speed * 1.2 : -this.speed * 1.2;
             
             this.walkTimer += deltaTime;
             if (this.walkTimer >= 200) {
@@ -320,8 +338,8 @@ class Mech extends Enemy {
             this.y = GameConfig.GROUND_Y - this.height;
         }
         
-        if (this.x < 0) this.x = 0;
-        if (this.x + this.width > GameConfig.CANVAS_WIDTH) this.x = GameConfig.CANVAS_WIDTH - this.width;
+        if (this.x < 10) this.x = 10;
+        if (this.x + this.width > GameConfig.CANVAS_WIDTH - 10) this.x = GameConfig.CANVAS_WIDTH - 10 - this.width;
     }
 
     draw(ctx) {
@@ -442,8 +460,8 @@ class Spider extends Enemy {
             this.y = GameConfig.GROUND_Y - this.height;
         }
         
-        if (this.x < 0) this.x = 0;
-        if (this.x + this.width > GameConfig.CANVAS_WIDTH) this.x = GameConfig.CANVAS_WIDTH - this.width;
+        if (this.x < 5) this.x = 5;
+        if (this.x + this.width > GameConfig.CANVAS_WIDTH - 5) this.x = GameConfig.CANVAS_WIDTH - 5 - this.width;
     }
 
     explode(game) {

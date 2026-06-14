@@ -78,7 +78,7 @@ class Boss extends Entity {
             this.y = GameConfig.GROUND_Y - this.height;
         }
         
-        if (this.x < 600) this.x = 600;
+        if (this.x < 200) this.x = 200;
         if (this.x + this.width > GameConfig.CANVAS_WIDTH) this.x = GameConfig.CANVAS_WIDTH - this.width;
     }
 
