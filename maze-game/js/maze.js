@@ -23,7 +23,7 @@ class MazeGenerator {
 
     this._dfs(startX, startY);
 
-    this._addLoops(6);
+    this._addLoops(10);
 
     let maxDist = 0;
     let exitX = startX;
@@ -42,6 +42,8 @@ class MazeGenerator {
     }
     this.exitPos = { x: exitX, y: exitY };
     this.grid[exitY][exitX] = CellType.EXIT;
+
+    this._mainPath = this._findShortestPath(startX, startY, exitX, exitY);
 
     return this;
   }
@@ -67,6 +69,48 @@ class MazeGenerator {
       const { x, y } = shuffled[i];
       this.grid[y][x] = CellType.FLOOR;
     }
+  }
+
+  _findShortestPath(sx, sy, tx, ty) {
+    if (sx === tx && sy === ty) return [{ x: sx, y: sy }];
+
+    const visited = new Set();
+    const queue = [{ x: sx, y: sy, path: [{ x: sx, y: sy }] }];
+    visited.add(`${sx},${sy}`);
+
+    while (queue.length > 0) {
+      const cur = queue.shift();
+
+      const dirs = [
+        { dx: 0, dy: -1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 },
+        { dx: 1, dy: 0 },
+      ];
+
+      for (const { dx, dy } of dirs) {
+        const nx = cur.x + dx;
+        const ny = cur.y + dy;
+        const key = `${nx},${ny}`;
+
+        if (!this.isWalkable(nx, ny) || visited.has(key)) continue;
+
+        const newPath = [...cur.path, { x: nx, y: ny }];
+        if (nx === tx && ny === ty) {
+          return newPath;
+        }
+
+        visited.add(key);
+        queue.push({ x: nx, y: ny, path: newPath });
+      }
+    }
+
+    return [];
+  }
+
+  isOnMainPath(x, y) {
+    if (!this._mainPath) return false;
+    return this._mainPath.some(p => p.x === x && p.y === y);
   }
 
   _dfs(x, y) {
@@ -147,6 +191,45 @@ class MazeGenerator {
     return floors[Utils.randInt(0, floors.length - 1)];
   }
 
+  getGuardPosition(avoidPositions = []) {
+    const candidates = [];
+    const fallback = [];
+
+    for (let y = 1; y < this.height - 1; y++) {
+      for (let x = 1; x < this.width - 1; x++) {
+        if (this.grid[y][x] !== CellType.FLOOR) continue;
+        const avoid = avoidPositions.some(p => p.x === x && p.y === y);
+        if (avoid) continue;
+
+        if (this.startPos) {
+          const distStart = Utils.chebyshevDistance(x, y, this.startPos.x, this.startPos.y);
+          if (distStart < 4) continue;
+        }
+        if (this.exitPos) {
+          const distExit = Utils.chebyshevDistance(x, y, this.exitPos.x, this.exitPos.y);
+          if (distExit < 4) continue;
+        }
+
+        const neighbors = [
+          { x: x - 1, y }, { x: x + 1, y },
+          { x, y: y - 1 }, { x, y: y + 1 },
+        ];
+        const walkableNeighbors = neighbors.filter(n => this.isWalkable(n.x, n.y)).length;
+        if (walkableNeighbors < 2) continue;
+
+        if (!this.isOnMainPath(x, y)) {
+          candidates.push({ x, y });
+        } else {
+          fallback.push({ x, y });
+        }
+      }
+    }
+
+    const pool = candidates.length > 0 ? candidates : fallback;
+    if (pool.length === 0) return this.getRandomFloorPosition(avoidPositions);
+    return pool[Utils.randInt(0, pool.length - 1)];
+  }
+
   generateKeys(count) {
     const keys = [];
     const avoid = [this.startPos, this.exitPos];
@@ -203,6 +286,7 @@ class MazeGenerator {
       grid: this.grid,
       startPos: this.startPos,
       exitPos: this.exitPos,
+      _mainPath: this._mainPath,
     };
   }
 
@@ -211,6 +295,13 @@ class MazeGenerator {
     maze.grid = data.grid;
     maze.startPos = data.startPos;
     maze.exitPos = data.exitPos;
+    maze._mainPath = data._mainPath || null;
+    if (!maze._mainPath && maze.startPos && maze.exitPos) {
+      maze._mainPath = maze._findShortestPath(
+        maze.startPos.x, maze.startPos.y,
+        maze.exitPos.x, maze.exitPos.y
+      );
+    }
     return maze;
   }
 }

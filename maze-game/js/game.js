@@ -68,7 +68,7 @@ class GameController {
     this.guards = [];
 
     for (let i = 0; i < guardCount; i++) {
-      const guardPos = this.maze.getRandomFloorPosition([
+      const guardPos = this.maze.getGuardPosition([
         this.maze.startPos,
         this.maze.exitPos,
         ...this.keys,
@@ -124,7 +124,7 @@ class GameController {
   gameOver() {
     this.isGameOver = true;
     this.isRunning = false;
-    this.saveProgress();
+    this.saveGame();
     this._notifyStateChange();
   }
 
@@ -281,33 +281,56 @@ class GameController {
       this.floorBestTimes = data.floorBestTimes || {};
       this.floorStartTime = data.floorStartTime || performance.now();
 
-      if (data.maze) {
+      if (data.maze && data.player && data.fog) {
         this.maze = MazeGenerator.fromJSON(data.maze);
-      }
-
-      if (data.player) {
         this.player = Player.fromJSON(data.player);
-      }
-
-      if (data.keys) {
-        this.keys = data.keys.map(k => ({ ...k }));
-      }
-
-      if (data.guards) {
-        this.guards = data.guards.map(g => Guard.fromJSON(g));
-        const now = performance.now();
-        this.guards.forEach(g => {
-          g.lastMoveTime = now;
-          g.prevX = g.x;
-          g.prevY = g.y;
-        });
-      }
-
-      if (data.fog) {
+        if (data.keys) {
+          this.keys = data.keys.map(k => ({ ...k }));
+        }
+        if (data.guards) {
+          this.guards = data.guards.map(g => Guard.fromJSON(g));
+          const now = performance.now();
+          this.guards.forEach(g => {
+            g.lastMoveTime = now;
+            g.prevX = g.x;
+            g.prevY = g.y;
+          });
+        }
         this.fog = FogOfWar.fromJSON(data.fog);
+      } else {
+        this._generateFloor(this.currentFloor);
       }
 
       this.doorOpen = this.player && this.player.hasAllKeys();
+
+      if (data.isGameOver) {
+        this.player.lives = GameConstants.PLAYER_LIVES;
+        this.player.setStartPosition(this.maze.startPos.x, this.maze.startPos.y);
+        this.player.resetFloor();
+        this.keys.forEach(k => k.collected = false);
+        const guardCount = Math.min(this.currentFloor, GameConstants.MAX_GUARDS);
+        this.guards = [];
+        for (let i = 0; i < guardCount; i++) {
+          const guardPos = this.maze.getGuardPosition([
+            this.maze.startPos,
+            this.maze.exitPos,
+            ...this.keys,
+            ...this.guards.map(g => ({ x: g.x, y: g.y })),
+          ]);
+          if (guardPos) {
+            const path = this.maze.generatePatrolPath(guardPos.x, guardPos.y, 6 + this.currentFloor);
+            const guard = new Guard(guardPos.x, guardPos.y, path);
+            guard.lastMoveTime = performance.now();
+            guard.prevX = guardPos.x;
+            guard.prevY = guardPos.y;
+            this.guards.push(guard);
+          }
+        }
+        this.fog = new FogOfWar(GameConstants.MAZE_WIDTH, GameConstants.MAZE_HEIGHT);
+        this.fog.update(this.player.x, this.player.y, this.maze);
+        this.doorOpen = false;
+      }
+
       this.isGameOver = false;
       this.isVictory = false;
       this.gameStartTime = performance.now() - this.totalTime;
@@ -324,7 +347,7 @@ class GameController {
     const gameState = {
       currentFloor: this.currentFloor,
       maxFloor: this.maxFloor,
-      totalTime: this.totalTime + (performance.now() - this.gameStartTime),
+      totalTime: this.totalTime + (this.isRunning ? (performance.now() - this.gameStartTime) : 0),
       floorBestTimes: this.floorBestTimes,
       player: this.player,
       maze: this.maze,
@@ -332,6 +355,8 @@ class GameController {
       guards: this.guards,
       fog: this.fog,
       floorStartTime: this.floorStartTime,
+      isGameOver: this.isGameOver,
+      isVictory: this.isVictory,
     };
 
     return this.storage.save(gameState);
