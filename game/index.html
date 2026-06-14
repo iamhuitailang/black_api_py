@@ -368,6 +368,115 @@
     .food-score {
       color: #94a3b8;
     }
+
+    .debug-panel {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .debug-panel .panel-title {
+      color: #ef4444;
+      margin-bottom: 8px;
+    }
+
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    .debug-label {
+      color: #64748b;
+    }
+
+    .debug-value {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .debug-value.ok {
+      color: #22c55e;
+    }
+
+    .debug-value.warn {
+      color: #eab308;
+    }
+
+    .debug-value.err {
+      color: #ef4444;
+    }
+
+    .debug-section {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(100, 116, 139, 0.3);
+    }
+
+    .debug-section-title {
+      font-size: 10px;
+      color: #8b5cf6;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .storage-raw {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
+      border-radius: 4px;
+      word-break: break-all;
+      font-size: 10px;
+      color: #94a3b8;
+      max-height: 80px;
+      overflow: auto;
+    }
+
+    .test-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .test-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px solid rgba(100, 116, 139, 0.4);
+      background: rgba(100, 116, 139, 0.1);
+      color: #e2e8f0;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .test-btn:hover {
+      background: rgba(100, 116, 139, 0.2);
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+
+    .status-indicator.on {
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   </style>
 </head>
 <body>
@@ -475,6 +584,134 @@
           </div>
         </div>
 
+        <div class="panel debug-panel">
+          <div class="panel-title">🔧 调试面板 (实时状态)</div>
+
+          <div class="debug-section">
+            <div class="debug-section-title">🎮 输入状态</div>
+            <div class="debug-row">
+              <span class="debug-label">最后按键</span>
+              <span class="debug-value" :class="debugInfo.lastKeyPressed ? 'ok' : 'warn'">
+                {{ debugInfo.lastKeyPressed || '(无)' }}
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">按键次数</span>
+              <span class="debug-value">{{ debugInfo.keyPressCount || 0 }}</span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">方向变更</span>
+              <span class="debug-value">{{ debugInfo.directionChanges || 0 }}</span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">事件绑定</span>
+              <span class="debug-value ok">
+                <span v-if="gameEngineBound" class="status-indicator on"></span>
+                已绑定
+              </span>
+            </div>
+          </div>
+
+          <div class="debug-section">
+            <div class="debug-section-title">🐛 虫子状态</div>
+            <div class="debug-row">
+              <span class="debug-label">位置 X,Y</span>
+              <span class="debug-value">
+                {{ formatNum(debugInfo.wormX) }}, {{ formatNum(debugInfo.wormY) }}
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">当前方向</span>
+              <span class="debug-value">
+                ({{ debugInfo.directionX }}, {{ debugInfo.directionY }})
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">下一方向</span>
+              <span class="debug-value" :class="dirChanged ? 'warn' : ''">
+                ({{ debugInfo.nextDirectionX }}, {{ debugInfo.nextDirectionY }})
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">基础速度</span>
+              <span class="debug-value">{{ formatNum(debugInfo.baseSpeed) }} px/f</span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">当前速度</span>
+              <span class="debug-value warn">{{ formatNum(debugInfo.currentSpeed) }} px/f</span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">身体节数</span>
+              <span class="debug-value">{{ debugInfo.bodySegments || 0 }}</span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">路径历史</span>
+              <span class="debug-value">{{ debugInfo.pathHistoryLen || 0 }} 帧</span>
+            </div>
+          </div>
+
+          <div class="debug-section">
+            <div class="debug-section-title">🍎 食物 & 游戏</div>
+            <div class="debug-row">
+              <span class="debug-label">食物位置</span>
+              <span class="debug-value" :class="debugInfo.hasFood ? 'ok' : 'err'">
+                {{ debugInfo.hasFood ? formatNum(debugInfo.foodX)+','+formatNum(debugInfo.foodY) : 'NONE!' }}
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">游戏循环</span>
+              <span class="debug-value ok">
+                <span v-if="gameLoopRunning" class="status-indicator on"></span>
+                {{ debugInfo.updateCount || 0 }} 帧
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">暂停中</span>
+              <span class="debug-value" :class="debugInfo.isPaused ? 'warn' : 'ok'">
+                {{ debugInfo.isPaused ? '是' : '否' }}
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">已死亡</span>
+              <span class="debug-value" :class="debugInfo.isDead ? 'err' : 'ok'">
+                {{ debugInfo.isDead ? '是' : '否' }}
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">游戏结束</span>
+              <span class="debug-value" :class="debugInfo.isGameOver ? 'err' : 'ok'">
+                {{ debugInfo.isGameOver ? '是' : '否' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="debug-section">
+            <div class="debug-section-title">💾 存档状态</div>
+            <div class="debug-row">
+              <span class="debug-label">存档次数</span>
+              <span class="debug-value">{{ debugInfo.saveCount || 0 }}</span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">localStorage</span>
+              <span class="debug-value" :class="storageStatus.ok ? 'ok' : 'err'">
+                {{ storageStatus.ok ? '正常' : '错误' }}
+              </span>
+            </div>
+            <div class="debug-row">
+              <span class="debug-label">存档大小</span>
+              <span class="debug-value">{{ storageSize }}</span>
+            </div>
+            <div class="storage-raw" v-if="storagePreview">
+              {{ storagePreview }}
+            </div>
+            <div class="test-buttons">
+              <button class="test-btn" @click="forceSave">📌 立即存档</button>
+              <button class="test-btn" @click="forceReload">🔄 检查存档</button>
+              <button class="test-btn" @click="testMove">▶️ 测试移动</button>
+            </div>
+          </div>
+        </div>
+
         <button class="btn btn-secondary" @click="restartGame">🔄 重新开始</button>
       </div>
     </div>
@@ -492,10 +729,12 @@
   <script>
     function initApp() {
       if (typeof Vue === 'undefined') {
+        console.log('[Vue] Waiting for Vue to load...');
         setTimeout(initApp, 50);
         return;
       }
-      const { createApp, ref, computed, onMounted, onUnmounted, reactive, onBeforeUnmount } = Vue;
+      console.log('[Vue] Vue loaded, initializing app...');
+      const { createApp, ref, computed, onMounted, onUnmounted, reactive, onBeforeUnmount, watch } = Vue;
 
       createApp({
       setup() {
@@ -508,10 +747,99 @@
         let uiUpdateInterval = null;
         let firstInteraction = false;
 
+        const debugInfo = reactive({});
+        const gameEngineBound = ref(false);
+        const gameLoopRunning = ref(false);
+        const storageStatus = reactive({ ok: true, error: null });
+        const storageData = ref(null);
+
+        console.log('[Vue.setup] Initial data loaded:', {
+          highScore: saveData.highScore,
+          totalFoodsEaten: saveData.totalFoodsEaten,
+          currentSkin: saveData.currentSkin
+        });
+
+        const formatNum = (n) => {
+          if (n === undefined || n === null) return '?';
+          return Number(n).toFixed(1);
+        };
+
+        const dirChanged = computed(() => {
+          return debugInfo.directionX !== debugInfo.nextDirectionX ||
+                 debugInfo.directionY !== debugInfo.nextDirectionY;
+        });
+
+        const storageSize = computed(() => {
+          if (!storageData.value) return '0 B';
+          const json = JSON.stringify(storageData.value);
+          const bytes = new Blob([json]).size;
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+        });
+
+        const storagePreview = computed(() => {
+          if (!storageData.value || !storageData.value.lastGameState) return '';
+          const gs = storageData.value.lastGameState;
+          return `savedAt: ${gs.savedAt ? new Date(gs.savedAt).toLocaleString() : 'none'} | score: ${gs.score} | foods: ${gs.foodsEaten} | worm: ${gs.worm?.x?.toFixed?.(1) || gs.worm?.x},${gs.worm?.y?.toFixed?.(1) || gs.worm?.y} | food: ${gs.food?.x?.toFixed?.(1) || gs.food?.x},${gs.food?.y?.toFixed?.(1) || gs.food?.y}`;
+        });
+
+        const checkStorage = () => {
+          try {
+            const raw = localStorage.getItem(GameConfig.STORAGE_KEY);
+            if (raw) {
+              storageData.value = JSON.parse(raw);
+            } else {
+              storageData.value = null;
+            }
+            storageStatus.ok = true;
+            storageStatus.error = null;
+          } catch (e) {
+            storageStatus.ok = false;
+            storageStatus.error = e.message;
+            storageData.value = null;
+            console.error('[Vue] localStorage error:', e);
+          }
+        };
+
+        const forceSave = () => {
+          console.log('[Vue] Manual save triggered');
+          if (GameEngine && GameEngine.saveProgress) {
+            GameEngine.saveProgress();
+            checkStorage();
+          }
+        };
+
+        const forceReload = () => {
+          console.log('[Vue] Manual reload triggered');
+          checkStorage();
+          const fresh = Storage.load();
+          Object.assign(saveData, fresh);
+          console.log('[Vue] Reloaded saveData:', {
+            highScore: fresh.highScore,
+            totalFoodsEaten: fresh.totalFoodsEaten,
+            hasGameState: !!fresh.lastGameState
+          });
+        };
+
+        const testMove = () => {
+          console.log('[Vue] Manual move test triggered');
+          const state = GameEngine.getState();
+          if (state && state.worm) {
+            const oldPos = { x: state.worm.x, y: state.worm.y };
+            Worm.setDirection(state.worm, { x: 1, y: 0 });
+            Worm.update(state.worm, performance.now());
+            console.log('[Vue] Test move result:',
+              'old:', oldPos.x.toFixed(1), oldPos.y.toFixed(1),
+              'new:', state.worm.x.toFixed(1), state.worm.y.toFixed(1));
+          }
+        };
+
         const markInteraction = () => {
           if (!firstInteraction) {
             firstInteraction = true;
             showHint.value = false;
+            console.log('[Vue] First interaction detected');
           }
         };
 
@@ -524,6 +852,7 @@
           if (GameEngine.setSkin(skin.id)) {
             currentSkin.value = skin.id;
             saveData.currentSkin = skin.id;
+            console.log('[Vue] Skin selected:', skin.id);
           }
         };
 
@@ -556,6 +885,7 @@
         });
 
         const restartGame = () => {
+          console.log('[Vue] Restart game requested');
           GameEngine.restart();
           refreshSaveData();
         };
@@ -564,6 +894,7 @@
           const fresh = Storage.load();
           Object.assign(saveData, fresh);
           currentSkin.value = fresh.currentSkin;
+          checkStorage();
         };
 
         const updateUI = () => {
@@ -577,43 +908,69 @@
               worm: state.worm
             };
           }
+
+          const debug = GameEngine.getDebugInfo();
+          if (debug) {
+            Object.assign(debugInfo, debug);
+            gameEngineBound.value = GameEngine._eventBound;
+            gameLoopRunning.value = !!GameEngine.animationId && !state?.isPaused && !state?.isGameOver;
+          }
+
+          checkStorage();
+
           if (gameState.value && gameState.value.isGameOver) {
             refreshSaveData();
           }
         };
 
         const saveBeforeUnload = () => {
+          console.log('[Vue] Before unload - saving progress...');
           if (GameEngine && typeof GameEngine.saveProgress === 'function') {
             GameEngine.saveProgress();
           }
+          checkStorage();
         };
 
         onMounted(() => {
+          console.log('[Vue] Component mounted, initializing game engine...');
+          console.log('[Vue] canvas ref exists:', !!gameCanvas.value);
+
           GameEngine.init(gameCanvas.value);
           GameEngine.start();
           gameState.value = GameEngine.getState();
-          uiUpdateInterval = setInterval(updateUI, 100);
-          window.addEventListener('beforeunload', saveBeforeUnload);
 
-          const origHandler = document.onkeydown;
-          const origClick = gameCanvas.value.onclick;
+          uiUpdateInterval = setInterval(updateUI, 50);
+          window.addEventListener('beforeunload', saveBeforeUnload);
+          window.addEventListener('unload', saveBeforeUnload);
+          window.addEventListener('pagehide', saveBeforeUnload);
+
           document.addEventListener('keydown', function onFirstKey(e) {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
                  'w', 'W', 'a', 'A', 's', 'S', 'd', 'D', ' ', 'Escape'].includes(e.key)) {
               markInteraction();
+              console.log('[Vue] Key detected in Vue listener:', e.key);
             }
           });
           gameCanvas.value.addEventListener('click', markInteraction);
+
+          checkStorage();
+
+          console.log('[Vue] Game engine initialized successfully');
+          console.log('[Vue] Game state:', gameState.value);
         });
 
         onBeforeUnmount(() => {
+          console.log('[Vue] onBeforeUnmount');
           saveBeforeUnload();
         });
 
         onUnmounted(() => {
+          console.log('[Vue] onUnmounted - cleaning up');
           saveBeforeUnload();
           GameEngine.destroy();
           window.removeEventListener('beforeunload', saveBeforeUnload);
+          window.removeEventListener('unload', saveBeforeUnload);
+          window.removeEventListener('pagehide', saveBeforeUnload);
           if (uiUpdateInterval) {
             clearInterval(uiUpdateInterval);
             uiUpdateInterval = null;
@@ -634,10 +991,22 @@
           selectSkin,
           getSkinPreviewStyle,
           restartGame,
-          showHint
+          showHint,
+          debugInfo,
+          gameEngineBound,
+          gameLoopRunning,
+          storageStatus,
+          storageSize,
+          storagePreview,
+          formatNum,
+          dirChanged,
+          forceSave,
+          forceReload,
+          testMove
         };
       }
       }).mount('#app');
+      console.log('[Vue] App mounted to #app');
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initApp);
