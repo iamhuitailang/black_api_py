@@ -442,21 +442,42 @@ const app = createApp({
       }
     }
 
+    const SAVE_VERSION = 2;
+
     function loadSave() {
       try {
         const data = JSON.parse(localStorage.getItem('planeGameSave') || '{}');
         bestTime.value = data.bestTime || 0;
-        unlockedPlanes.value = data.unlockedPlanes || ['silver'];
         selectedPlane.value = data.selectedPlane || 'silver';
+        if (data.version !== SAVE_VERSION) {
+          const validated = ['silver'];
+          allPlanes.forEach(p => {
+            if (p.id !== 'silver' && bestTime.value >= p.req) {
+              validated.push(p.id);
+            }
+          });
+          unlockedPlanes.value = validated;
+          localStorage.setItem('planeGameSave', JSON.stringify({
+            bestTime: bestTime.value,
+            unlockedPlanes: validated,
+            selectedPlane: selectedPlane.value,
+            version: SAVE_VERSION
+          }));
+        } else {
+          unlockedPlanes.value = data.unlockedPlanes || ['silver'];
+        }
         if (!unlockedPlanes.value.includes(selectedPlane.value)) selectedPlane.value = 'silver';
-      } catch(e) {}
+      } catch(e) {
+        unlockedPlanes.value = ['silver'];
+      }
     }
 
     function saveGame() {
       localStorage.setItem('planeGameSave', JSON.stringify({
         bestTime: bestTime.value,
         unlockedPlanes: unlockedPlanes.value,
-        selectedPlane: selectedPlane.value
+        selectedPlane: selectedPlane.value,
+        version: SAVE_VERSION
       }));
     }
 
@@ -471,7 +492,7 @@ const app = createApp({
     }
 
     function saveGameState() {
-      if (gameState.value !== 'playing') return;
+      if (gameState.value !== 'playing' && gameState.value !== 'paused') return;
       const state = {
         lives: lives.value,
         fuel: fuel.value,
@@ -484,9 +505,12 @@ const app = createApp({
         frameCount: frameCount,
         spawnInterval: spawnInterval,
         selectedPlane: selectedPlane.value,
-        savedAt: Date.now()
+        savedAt: Date.now(),
+        isPaused: gameState.value === 'paused'
       };
-      localStorage.setItem('planeGameState', JSON.stringify(state));
+      try {
+        localStorage.setItem('planeGameState', JSON.stringify(state));
+      } catch(e) {}
     }
 
     function loadGameState() {
@@ -512,10 +536,10 @@ const app = createApp({
       score.value = data.score;
       survivalTime.value = data.survivalTime;
       shieldTime.value = data.shieldTime;
-      invincibleTime.value = data.invincibleTime;
+      invincibleTime.value = data.invincibleTime || 0;
       frameCount = data.frameCount;
       spawnInterval = data.spawnInterval;
-      selectedPlane.value = data.selectedPlane;
+      selectedPlane.value = data.selectedPlane || 'silver';
       timeOfDay = Math.min(1, survivalTime.value / 120000);
       obstacles = [];
       items = [];
@@ -539,6 +563,9 @@ const app = createApp({
       lastTime = performance.now();
       playEngineSound();
       hasSavedGame.value = false;
+      if (data.isPaused) {
+        setTimeout(() => { gameState.value = 'paused'; }, 100);
+      }
     }
 
     function clearGameState() {
@@ -668,24 +695,12 @@ const app = createApp({
           vx: -1.5, w: size, h: size * 0.6
         });
       } else if (t === 'missile') {
-        let mx, my;
-        if (plane.x < W * 0.35) {
-          const side = Math.random();
-          if (side < 0.5) {
-            mx = 50 + Math.random() * (W * 0.3);
-            my = -30;
-          } else {
-            mx = 50 + Math.random() * (W * 0.3);
-            my = H + 30;
-          }
-        } else {
-          mx = W + 30;
-          my = 50 + Math.random() * (H - 150);
-        }
         missiles.push({
-          x: mx, y: my,
-          vx: 0, vy: 0, w: 35, h: 12, life: 8000, spawned: Date.now(),
-          trail: []
+          x: W + 30, y: 50 + Math.random() * (H - 150),
+          vx: 0, vy: 0, w: 35, h: 12, life: 5000, spawned: Date.now(),
+          trail: [],
+          turnRate: 0.03 + Math.random() * 0.02,
+          heading: Math.PI + (Math.random() - 0.5) * 0.8
         });
         playWarning();
       }
@@ -757,8 +772,12 @@ const app = createApp({
     }
 
     function togglePause() {
-      if (gameState.value === 'playing') gameState.value = 'paused';
-      else if (gameState.value === 'paused') gameState.value = 'playing';
+      if (gameState.value === 'playing') {
+        gameState.value = 'paused';
+        saveGameState();
+      } else if (gameState.value === 'paused') {
+        gameState.value = 'playing';
+      }
     }
 
     function startGame() {
@@ -895,13 +914,15 @@ const app = createApp({
         for (let i = missiles.length - 1; i >= 0; i--) {
           const m = missiles[i];
           const age = Date.now() - m.spawned;
+          const speed = 2;
           const dxm = plane.x - m.x, dym = plane.y - m.y;
-          const dist = Math.sqrt(dxm * dxm + dym * dym) || 1;
-          let speed = 2.5;
-          if (dist > 300) speed = 3.5;
-          if (dist > 500) speed = 4.5;
-          m.vx = (dxm / dist) * speed;
-          m.vy = (dym / dist) * speed;
+          const targetAngle = Math.atan2(dym, dxm);
+          let diff = targetAngle - m.heading;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          m.heading += diff * m.turnRate;
+          m.vx = Math.cos(m.heading) * speed;
+          m.vy = Math.sin(m.heading) * speed;
           m.x += m.vx;
           m.y += m.vy;
           m.trail.unshift({ x: m.x, y: m.y });
@@ -1266,18 +1287,20 @@ const app = createApp({
           ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
         }
         drawBackground();
-        obstacles.forEach(o => {
-          if (o.type === 'bird') drawBird(o);
-          else if (o.type === 'cloud') drawCloud(o);
-        });
-        items.forEach(drawItem);
-        missiles.forEach(drawMissile);
-        drawParticles();
-        drawPlane();
-        drawLowFuelOverlay();
-        if (flashRed > 0) {
-          ctx.fillStyle = `rgba(255,0,0,${flashRed * 0.3})`;
-          ctx.fillRect(0, 0, W, H);
+        if (gameState.value === 'playing' || gameState.value === 'paused') {
+          obstacles.forEach(o => {
+            if (o.type === 'bird') drawBird(o);
+            else if (o.type === 'cloud') drawCloud(o);
+          });
+          items.forEach(drawItem);
+          missiles.forEach(drawMissile);
+          drawParticles();
+          drawPlane();
+          drawLowFuelOverlay();
+          if (flashRed > 0) {
+            ctx.fillStyle = `rgba(255,0,0,${flashRed * 0.3})`;
+            ctx.fillRect(0, 0, W, H);
+          }
         }
         ctx.restore();
       } catch(e) {
@@ -1333,6 +1356,11 @@ const app = createApp({
         window.addEventListener('resize', resize);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('beforeunload', saveGameState);
+        window.addEventListener('pagehide', saveGameState);
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) saveGameState();
+        });
         mouse.x = W * 0.25;
         mouse.y = H / 2;
         lastTime = performance.now();
@@ -1359,6 +1387,8 @@ const app = createApp({
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('beforeunload', saveGameState);
+      window.removeEventListener('pagehide', saveGameState);
       stopEngineSound();
     });
 
