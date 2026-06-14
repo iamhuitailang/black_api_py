@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赛博忍者 - Cyber Ninja</title>
+    <link rel="stylesheet" href="/static/cyber_ninja/css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1200" height="600"></canvas>
+        
+        <div id="start-menu" class="menu-overlay">
+            <div class="menu-content">
+                <h1 class="game-title">赛博忍者</h1>
+                <p class="game-subtitle">CYBER NINJA</p>
+                <div class="menu-buttons">
+                    <button id="start-btn" class="cyber-btn primary">开始游戏</button>
+                    <button id="leaderboard-btn" class="cyber-btn">排行榜</button>
+                    <button id="help-btn" class="cyber-btn">操作说明</button>
+                </div>
+                <div class="player-name-input">
+                    <label for="player-name">玩家名称:</label>
+                    <input type="text" id="player-name" maxlength="20" placeholder="匿名忍者">
+                </div>
+            </div>
+        </div>
+
+        <div id="help-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>操作说明</h2>
+                <div class="help-content">
+                    <div class="key-binding">
+                        <span class="key">A / D</span>
+                        <span class="desc">左右移动</span>
+                    </div>
+                    <div class="key-binding">
+                        <span class="key">W</span>
+                        <span class="desc">跳跃（可二段跳）</span>
+                    </div>
+                    <div class="key-binding">
+                        <span class="key">J</span>
+                        <span class="desc">拔刀斩击（冷却0.3秒）</span>
+                    </div>
+                    <div class="key-binding">
+                        <span class="key">K</span>
+                        <span class="desc">扔手里剑（冷却1秒）</span>
+                    </div>
+                    <div class="key-binding">
+                        <span class="key">ESC</span>
+                        <span class="desc">暂停游戏</span>
+                    </div>
+                </div>
+                <div class="game-tips">
+                    <h3>游戏提示</h3>
+                    <ul>
+                        <li>• 击杀敌人有20%概率掉落道具</li>
+                        <li>• 蓝色数据碎片：+10分</li>
+                        <li>• 红色能量核心：回复20血</li>
+                        <li>• 金色模块：随机增益效果</li>
+                        <li>• 击败Boss进入下一区域</li>
+                    </ul>
+                </div>
+                <button id="help-back-btn" class="cyber-btn">返回</button>
+            </div>
+        </div>
+
+        <div id="leaderboard-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>排行榜</h2>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <div class="loading">加载中...</div>
+                </div>
+                <button id="leaderboard-back-btn" class="cyber-btn">返回</button>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2>游戏暂停</h2>
+                <div class="menu-buttons">
+                    <button id="resume-btn" class="cyber-btn primary">继续游戏</button>
+                    <button id="restart-btn" class="cyber-btn">重新开始</button>
+                    <button id="quit-btn" class="cyber-btn">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-over-menu" class="menu-overlay hidden">
+            <div class="menu-content">
+                <h2 id="game-over-title">游戏结束</h2>
+                <div class="game-result">
+                    <div class="result-item">
+                        <span class="label">最终得分:</span>
+                        <span id="final-score" class="value">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">到达关卡:</span>
+                        <span id="final-level" class="value">1</span>
+                    </div>
+                </div>
+                <div id="buff-selection" class="buff-selection hidden">
+                    <h3>选择增益效果</h3>
+                    <div class="buff-options">
+                        <button class="buff-option" data-buff="attack_speed">
+                            <div class="buff-icon">⚡</div>
+                            <div class="buff-name">攻速提升</div>
+                            <div class="buff-desc">攻击速度×2 持续10秒</div>
+                        </button>
+                        <button class="buff-option" data-buff="move_speed">
+                            <div class="buff-icon">💨</div>
+                            <div class="buff-name">移速提升</div>
+                            <div class="buff-desc">移动速度×1.5 持续10秒</div>
+                        </button>
+                        <button class="buff-option" data-buff="invincible">
+                            <div class="buff-icon">🛡️</div>
+                            <div class="buff-name">无敌状态</div>
+                            <div class="buff-desc">无敌3秒</div>
+                        </button>
+                    </div>
+                </div>
+                <div class="menu-buttons">
+                    <button id="game-over-restart-btn" class="cyber-btn primary">再来一局</button>
+                    <button id="game-over-quit-btn" class="cyber-btn">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="level-transition" class="level-transition hidden">
+            <div class="transition-content">
+                <h2 id="transition-title">关卡完成!</h2>
+                <p id="transition-subtitle">准备进入下一关</p>
+            </div>
+        </div>
+
+        <div id="hud" class="hud hidden">
+            <div class="hud-left">
+                <div class="health-bar-container">
+                    <div class="health-label">HP</div>
+                    <div class="health-bar">
+                        <div id="health-fill" class="health-fill"></div>
+                    </div>
+                    <div id="health-text" class="health-text">100/100</div>
+                </div>
+                <div class="buff-indicators" id="buff-indicators"></div>
+            </div>
+            <div class="hud-center">
+                <div id="area-name" class="area-name">霓虹街道</div>
+                <div id="level-info" class="level-info">第 1 关</div>
+            </div>
+            <div class="hud-right">
+                <div class="score-display">
+                    <span class="score-label">得分:</span>
+                    <span id="score-value" class="score-value">0</span>
+                </div>
+                <div id="boss-health-container" class="boss-health-container hidden">
+                    <div class="boss-name" id="boss-name">大型机甲</div>
+                    <div class="boss-health-bar">
+                        <div id="boss-health-fill" class="boss-health-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/cyber_ninja/js/config.js"></script>
+    <script src="/static/cyber_ninja/js/audio.js"></script>
+    <script src="/static/cyber_ninja/js/input.js"></script>
+    <script src="/static/cyber_ninja/js/entity.js"></script>
+    <script src="/static/cyber_ninja/js/player.js"></script>
+    <script src="/static/cyber_ninja/js/enemies.js"></script>
+    <script src="/static/cyber_ninja/js/boss.js"></script>
+    <script src="/static/cyber_ninja/js/items.js"></script>
+    <script src="/static/cyber_ninja/js/level.js"></script>
+    <script src="/static/cyber_ninja/js/renderer.js"></script>
+    <script src="/static/cyber_ninja/js/ui.js"></script>
+    <script src="/static/cyber_ninja/js/api.js"></script>
+    <script src="/static/cyber_ninja/js/game.js"></script>
+</body>
+</html>

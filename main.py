@@ -1,8 +1,9 @@
 from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from pydantic import BaseModel, Field
 import sys
 import os
 
@@ -12,7 +13,19 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.cyber_ninja import ScoreModel
+from app.business.cyber_ninja import CyberNinjaBusiness
 from app.common.sqlite.db import get_db
+from fastapi.responses import FileResponse
+
+
+class SubmitScoreRequest(BaseModel):
+    player_name: str = Field(default="匿名忍者", max_length=20, description="玩家名称")
+    score: int = Field(ge=0, description="游戏得分")
+    level: int = Field(ge=1, default=1, description="到达的关卡")
+
+
+cyber_ninja_business = CyberNinjaBusiness()
 
 
 def migrate_database():
@@ -34,6 +47,7 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    ScoreModel.create_table()
     
     migrate_database()
     
@@ -83,6 +97,45 @@ api_router = router_registry.register_all(prefix="/api")
 app.include_router(api_router)
 
 
+@app.post("/api/cyber_ninja/submit_score", tags=["cyber_ninja"])
+async def api_cyber_ninja_submit_score(body: SubmitScoreRequest):
+    """
+    提交游戏成绩
+    POST /api/cyber_ninja/submit_score
+    """
+    return cyber_ninja_business.submit_score(body.player_name, body.score, body.level)
+
+
+@app.get("/api/cyber_ninja/leaderboard", tags=["cyber_ninja"])
+async def api_cyber_ninja_get_leaderboard(limit: int = Query(10, ge=1, le=100)):
+    """
+    获取排行榜
+    GET /api/cyber_ninja/leaderboard
+    """
+    return cyber_ninja_business.get_leaderboard(limit)
+
+
+@app.get("/api/cyber_ninja/player_best", tags=["cyber_ninja"])
+async def api_cyber_ninja_get_player_best(player_name: str = Query(..., max_length=20)):
+    """
+    获取玩家最佳成绩
+    GET /api/cyber_ninja/player_best
+    """
+    return cyber_ninja_business.get_player_best(player_name)
+
+
+@app.get("/api/cyber_ninja/scores", tags=["cyber_ninja"])
+async def api_cyber_ninja_get_all_scores(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100)
+):
+    """
+    获取所有成绩（分页）
+    GET /api/cyber_ninja/scores
+    """
+    return cyber_ninja_business.get_all_scores(page, page_size)
+
+
 @app.get("/")
 async def root():
     return {
@@ -105,6 +158,18 @@ async def health_check():
         "data": {
             "status": "healthy"
         }
+    }
+
+
+@app.get("/cyber_ninja")
+async def cyber_ninja_game():
+    game_html_path = os.path.join(os.path.dirname(__file__), "static", "cyber_ninja", "index.html")
+    if os.path.exists(game_html_path):
+        return FileResponse(game_html_path)
+    return {
+        "code": 404,
+        "message": "Game not found",
+        "data": None
     }
 
 
