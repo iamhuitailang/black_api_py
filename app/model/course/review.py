@@ -31,6 +31,7 @@ class ReviewModel:
                 hidden INTEGER DEFAULT 0,
                 hidden_reason TEXT DEFAULT '',
                 client_id TEXT DEFAULT '',
+                user_id INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
@@ -40,10 +41,24 @@ class ReviewModel:
         db.execute(index_sql)
         index_sql2 = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_upvotes ON {cls.TABLE_NAME}(upvotes)"
         db.execute(index_sql2)
+        index_sql3 = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_user_id ON {cls.TABLE_NAME}(user_id)"
+        db.execute(index_sql3)
+
+    @classmethod
+    def migrate_add_user_id(cls):
+        db = get_db()
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN user_id INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            db.execute(f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_user_id ON {cls.TABLE_NAME}(user_id)")
+        except Exception:
+            pass
 
     def create(self, course_id: int, content_quality: int, clarity: int,
                homework: int, grading: int, comment: str, tags: List[str],
-               client_id: str = '') -> int:
+               client_id: str = '', user_id: int = 0) -> int:
         now = datetime.now().isoformat()
         data = {
             'course_id': course_id,
@@ -57,6 +72,7 @@ class ReviewModel:
             'hidden': 0,
             'hidden_reason': '',
             'client_id': client_id,
+            'user_id': user_id,
             'created_at': now
         }
         return self.exec.insert(data)
@@ -103,10 +119,12 @@ class ReviewModel:
     def restore_review(self, record_id: int) -> int:
         return self.exec.update_by_id(record_id, {'hidden': 0, 'hidden_reason': ''})
 
-    def has_reviewed(self, course_id: int, client_id: str) -> bool:
-        if not client_id:
-            return False
-        return self.query.exists({'course_id': course_id, 'client_id': client_id})
+    def has_reviewed(self, course_id: int, client_id: str = '', user_id: int = 0) -> bool:
+        if user_id and user_id > 0:
+            return self.query.exists({'course_id': course_id, 'user_id': user_id})
+        if client_id:
+            return self.query.exists({'course_id': course_id, 'client_id': client_id, 'user_id': 0})
+        return False
 
     def get_avg_scores_by_course(self, course_id: int) -> Optional[Dict[str, Any]]:
         sql = f"""

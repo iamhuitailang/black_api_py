@@ -1057,7 +1057,7 @@
             grading: f.grading,
             comment: f.comment,
             tags: f.tags
-        }).then(function (res) {
+        }, true).then(function (res) {
             if (res.code === 0) {
                 clearFormData();
                 State.submitMsg = { type: 'success', text: '评价提交成功！感谢您的分享。' };

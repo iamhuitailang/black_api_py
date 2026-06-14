@@ -96,11 +96,19 @@ class CourseController:
         return self.course_business.get_course_detail(id)
 
     def ActionReviewSubmitPost(self, request: Request, body: SubmitReviewRequest,
-                               x_client_id: Optional[str] = Header(default=None)):
+                               x_client_id: Optional[str] = Header(default=None),
+                               authorization: Optional[str] = Header(None)):
         """
         提交课程评价
         POST /api/review/submit
         """
+        user_id = 0
+        token = self._get_token_from_header(request, authorization)
+        if token:
+            user = self.auth_business.verify_token(token)
+            if user:
+                user_id = user.get('id', 0)
+
         return self.review_business.submit_review(
             semester=body.semester,
             course_name=body.course_name,
@@ -111,7 +119,8 @@ class CourseController:
             grading=body.grading,
             comment=body.comment,
             tags=body.tags,
-            client_id=x_client_id or ''
+            client_id=x_client_id or '',
+            user_id=user_id
         )
 
     def ActionReviewUpvotePost(self, request: Request, body: UpvoteRequest,

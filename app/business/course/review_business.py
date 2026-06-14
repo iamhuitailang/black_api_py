@@ -11,7 +11,7 @@ class ReviewBusiness:
     def submit_review(self, semester: str, course_name: str, teacher: str,
                       content_quality: int, clarity: int, homework: int,
                       grading: int, comment: str, tags: List[str],
-                      client_id: str = '') -> Dict[str, Any]:
+                      client_id: str = '', user_id: int = 0) -> Dict[str, Any]:
         for score in [content_quality, clarity, homework, grading]:
             if score < 1 or score > 5:
                 return {
@@ -46,10 +46,14 @@ class ReviewBusiness:
 
         course_id = course.get('id')
 
-        if client_id and self.review_model.has_reviewed(course_id, client_id):
+        if self.review_model.has_reviewed(course_id, client_id, user_id):
+            if user_id and user_id > 0:
+                message = '您已经对这门课程发表过评价了，每门课只能评价一次'
+            else:
+                message = '您已经对这门课程发表过评价了，每门课只能评价一次'
             return {
                 'code': 1,
-                'message': '您已经对这门课程发表过评价了，每门课只能评价一次',
+                'message': message,
                 'data': None
             }
 
@@ -62,7 +66,8 @@ class ReviewBusiness:
                 grading=grading,
                 comment=comment,
                 tags=tags,
-                client_id=client_id
+                client_id=client_id,
+                user_id=user_id
             )
 
             scores = self.review_model.get_avg_scores_by_course(course_id)

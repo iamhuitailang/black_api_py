@@ -23,6 +23,9 @@ def migrate_database():
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
 
+    ReviewModel.migrate_add_user_id()
+    print("  - Migrated tb_course_reviews: added user_id column")
+
 
 def init_database():
     db = get_db()
@@ -35,12 +38,13 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    
+    migrate_database()
+    
     CourseModel.create_table()
     ReviewModel.create_table()
     ReviewModel.create_vote_table()
     CourseStatsModel.create_table()
-    
-    migrate_database()
     
     seeded = CourseModel.seed_initial_data()
     if seeded:
