@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>迷宫逃脱 - 10层挑战</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="error-display" style="position:fixed;top:0;left:0;right:0;background:#ff4757;color:white;padding:10px;z-index:9999;display:none;font-family:monospace;font-size:12px;white-space:pre-wrap;"></div>
+  <div id="app"></div>
+
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      var display = document.getElementById('error-display');
+      if (display) {
+        display.style.display = 'block';
+        var errMsg = 'Error: ' + msg + '\nURL: ' + url + '\nLine: ' + line + ':' + col;
+        if (error && error.stack) {
+          errMsg += '\nStack:\n' + error.stack;
+        }
+        display.textContent = errMsg;
+      }
+      console.error(msg, url, line, col, error);
+    };
+    window.onunhandledrejection = function(event) {
+      var display = document.getElementById('error-display');
+      if (display) {
+        display.style.display = 'block';
+        display.textContent += '\nUnhandled Promise Rejection: ' + event.reason;
+      }
+      console.error('Unhandled rejection:', event.reason);
+    };
+  </script>
+
+  <script src="js/constants.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/maze.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/guard.js"></script>
+  <script src="js/fog.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+
+  <script src="js/vue.global.js"></script>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
