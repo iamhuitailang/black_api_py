@@ -168,7 +168,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font
           <div class="plane-req">{{ unlockedPlanes.includes(p.id) ? '✓ 已解锁' : '🔒 存活 '+p.req+'s 解锁' }}</div>
         </div>
       </div>
-      <button class="btn" @click="startGame">🚀 开始游戏</button>
+      <button class="btn" @click="resumeGame" v-if="hasSavedGame">
+        ⏯️ 继续游戏 (已生存 {{ formatTime(savedGameTime) }})
+      </button>
+      <button class="btn" @click="startGame">🚀 {{ hasSavedGame ? '开始新游戏' : '开始游戏' }}</button>
       <button class="btn secondary" @click="showInstructions = true">📖 游戏说明</button>
       <button class="btn danger" @click="resetSave" v-if="bestTime > 0">🗑️ 重置存档</button>
       <div class="instructions" v-if="showInstructions">
@@ -260,11 +263,13 @@ const app = createApp({
     const bestTime = ref(0);
     const selectedPlane = ref('silver');
     const unlockedPlanes = ref(['silver']);
+    const hasSavedGame = ref(false);
+    const savedGameTime = ref(0);
     const allPlanes = [
       { id: 'silver', name: '银色战机', req: 0 },
-      { id: 'red', name: '红色战斗机', req: 60 },
-      { id: 'stealth', name: '隐形轰炸机', req: 120 },
-      { id: 'gold', name: '金色战机', req: 180 }
+      { id: 'red', name: '红色战斗机', req: 120 },
+      { id: 'stealth', name: '隐形轰炸机', req: 300 },
+      { id: 'gold', name: '金色战机', req: 600 }
     ];
 
     let plane = { x: 0, y: 0, targetX: 0, targetY: 0, w: 60, h: 45, trail: [] };
@@ -458,9 +463,97 @@ const app = createApp({
     function resetSave() {
       if (!confirm('确定要重置所有存档吗？')) return;
       localStorage.removeItem('planeGameSave');
+      localStorage.removeItem('planeGameState');
       bestTime.value = 0;
       unlockedPlanes.value = ['silver'];
       selectedPlane.value = 'silver';
+      hasSavedGame.value = false;
+    }
+
+    function saveGameState() {
+      if (gameState.value !== 'playing') return;
+      const state = {
+        lives: lives.value,
+        fuel: fuel.value,
+        score: score.value,
+        survivalTime: survivalTime.value,
+        shieldTime: shieldTime.value,
+        invincibleTime: invincibleTime.value,
+        planeX: plane.x,
+        planeY: plane.y,
+        frameCount: frameCount,
+        spawnInterval: spawnInterval,
+        selectedPlane: selectedPlane.value,
+        savedAt: Date.now()
+      };
+      localStorage.setItem('planeGameState', JSON.stringify(state));
+    }
+
+    function loadGameState() {
+      try {
+        const data = JSON.parse(localStorage.getItem('planeGameState') || 'null');
+        if (!data) return false;
+        if (Date.now() - data.savedAt > 24 * 60 * 60 * 1000) {
+          localStorage.removeItem('planeGameState');
+          return false;
+        }
+        return data;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    function resumeGame() {
+      const data = loadGameState();
+      if (!data) return;
+      initAudio();
+      lives.value = data.lives;
+      fuel.value = data.fuel;
+      score.value = data.score;
+      survivalTime.value = data.survivalTime;
+      shieldTime.value = data.shieldTime;
+      invincibleTime.value = data.invincibleTime;
+      frameCount = data.frameCount;
+      spawnInterval = data.spawnInterval;
+      selectedPlane.value = data.selectedPlane;
+      timeOfDay = Math.min(1, survivalTime.value / 120000);
+      obstacles = [];
+      items = [];
+      particles = [];
+      missiles = [];
+      itemSpawnTimer = 0;
+      lowFuelTimer = 0;
+      shakeTime = 0;
+      flashRed = 0;
+      plane.x = data.planeX;
+      plane.y = data.planeY;
+      plane.targetX = data.planeX;
+      plane.targetY = data.planeY;
+      plane.trail = [];
+      for (let i = 0; i < 3; i++) {
+        plane.trail.push({ x: plane.x, y: plane.y });
+      }
+      mouse.x = plane.x;
+      mouse.y = plane.y;
+      gameState.value = 'playing';
+      lastTime = performance.now();
+      playEngineSound();
+      hasSavedGame.value = false;
+    }
+
+    function clearGameState() {
+      localStorage.removeItem('planeGameState');
+      hasSavedGame.value = false;
+    }
+
+    function checkSavedGame() {
+      const data = loadGameState();
+      if (data) {
+        hasSavedGame.value = true;
+        savedGameTime.value = data.survivalTime;
+      } else {
+        hasSavedGame.value = false;
+      }
     }
 
     function selectPlane(p) {
@@ -499,15 +592,15 @@ const app = createApp({
       }
 
       c.beginPath();
-      c.moveTo(-25, 5);
-      c.lineTo(0, -25);
-      c.lineTo(25, 5);
-      c.lineTo(15, 20);
-      c.lineTo(-15, 20);
+      c.moveTo(5, -25);
+      c.lineTo(30, 0);
+      c.lineTo(5, 25);
+      c.lineTo(-20, 15);
+      c.lineTo(-20, -15);
       c.closePath();
-      const grad = c.createLinearGradient(0, -25, 0, 20);
-      grad.addColorStop(0, col.body);
-      grad.addColorStop(1, col.body2);
+      const grad = c.createLinearGradient(-25, 0, 30, 0);
+      grad.addColorStop(0, col.body2);
+      grad.addColorStop(1, col.body);
       c.fillStyle = grad;
       c.fill();
       c.strokeStyle = col.accent;
@@ -515,10 +608,10 @@ const app = createApp({
       c.stroke();
 
       c.beginPath();
-      c.moveTo(-40, 10);
-      c.lineTo(-15, 0);
-      c.lineTo(-15, 15);
-      c.lineTo(-35, 18);
+      c.moveTo(10, -40);
+      c.lineTo(0, -15);
+      c.lineTo(-15, -15);
+      c.lineTo(-18, -35);
       c.closePath();
       c.fillStyle = col.wing;
       c.fill();
@@ -526,17 +619,17 @@ const app = createApp({
       c.stroke();
 
       c.beginPath();
-      c.moveTo(40, 10);
-      c.lineTo(15, 0);
-      c.lineTo(15, 15);
-      c.lineTo(35, 18);
+      c.moveTo(10, 40);
+      c.lineTo(0, 15);
+      c.lineTo(-15, 15);
+      c.lineTo(-18, 35);
       c.closePath();
       c.fillStyle = col.wing;
       c.fill();
       c.stroke();
 
       c.beginPath();
-      c.ellipse(0, -8, 7, 10, 0, 0, Math.PI * 2);
+      c.ellipse(10, 0, 10, 7, 0, 0, Math.PI * 2);
       c.fillStyle = col.glass;
       c.globalAlpha = 0.8;
       c.fill();
@@ -546,9 +639,9 @@ const app = createApp({
       c.stroke();
 
       c.fillStyle = col.accent;
-      c.fillRect(-3, 15, 6, 8);
-      c.fillRect(-3, 3, 2, 5);
-      c.fillRect(1, 3, 2, 5);
+      c.fillRect(-20, -3, 8, 6);
+      c.fillRect(3, -3, 5, 2);
+      c.fillRect(3, 1, 5, 2);
 
       c.restore();
     }
@@ -575,9 +668,23 @@ const app = createApp({
           vx: -1.5, w: size, h: size * 0.6
         });
       } else if (t === 'missile') {
+        let mx, my;
+        if (plane.x < W * 0.35) {
+          const side = Math.random();
+          if (side < 0.5) {
+            mx = 50 + Math.random() * (W * 0.3);
+            my = -30;
+          } else {
+            mx = 50 + Math.random() * (W * 0.3);
+            my = H + 30;
+          }
+        } else {
+          mx = W + 30;
+          my = 50 + Math.random() * (H - 150);
+        }
         missiles.push({
-          x: W + 30, y: 50 + Math.random() * (H - 150),
-          vx: 0, vy: 0, w: 35, h: 12, life: 5000, spawned: Date.now(),
+          x: mx, y: my,
+          vx: 0, vy: 0, w: 35, h: 12, life: 8000, spawned: Date.now(),
           trail: []
         });
         playWarning();
@@ -646,6 +753,7 @@ const app = createApp({
         }
       });
       saveGame();
+      clearGameState();
     }
 
     function togglePause() {
@@ -655,6 +763,7 @@ const app = createApp({
 
     function startGame() {
       initAudio();
+      clearGameState();
       lives.value = 3;
       fuel.value = 100;
       score.value = 0;
@@ -719,8 +828,8 @@ const app = createApp({
         plane.y = plane.trail.reduce((s, p) => s + p.y, 0) / plane.trail.length;
 
         if (frameCount % 2 === 0) {
-          spawnParticles(plane.x - 20, plane.y + 15 + (Math.random() - 0.5) * 5, '#ff8800', 1, 1);
-          spawnParticles(plane.x - 22, plane.y + 15 + (Math.random() - 0.5) * 5, '#ffcc44', 1, 0.8);
+          spawnParticles(plane.x - 25, plane.y + (Math.random() - 0.5) * 6, '#ff8800', 1, 1);
+          spawnParticles(plane.x - 28, plane.y + (Math.random() - 0.5) * 6, '#ffcc44', 1, 0.8);
         }
 
         fuel.value -= dt / 1000 * 2;
@@ -755,6 +864,10 @@ const app = createApp({
 
         score.value = Math.floor(survivalTime.value / 100);
 
+        if (frameCount % 60 === 0) {
+          saveGameState();
+        }
+
         for (let i = obstacles.length - 1; i >= 0; i--) {
           const o = obstacles[i];
           if (o.type === 'bird') {
@@ -782,9 +895,11 @@ const app = createApp({
         for (let i = missiles.length - 1; i >= 0; i--) {
           const m = missiles[i];
           const age = Date.now() - m.spawned;
-          const speed = 2;
           const dxm = plane.x - m.x, dym = plane.y - m.y;
           const dist = Math.sqrt(dxm * dxm + dym * dym) || 1;
+          let speed = 2.5;
+          if (dist > 300) speed = 3.5;
+          if (dist > 500) speed = 4.5;
           m.vx = (dxm / dist) * speed;
           m.vy = (dym / dist) * speed;
           m.x += m.vx;
@@ -1213,6 +1328,7 @@ const app = createApp({
         resize();
         console.log('resize完成, W=', W, 'H=', H);
         loadSave();
+        checkSavedGame();
         console.log('loadSave完成');
         window.addEventListener('resize', resize);
         window.addEventListener('mousemove', onMouseMove);
@@ -1249,9 +1365,9 @@ const app = createApp({
     return {
       canvasRef, gameState, showInstructions, gameOverReason, isNewRecord, newUnlocked,
       lives, fuel, score, survivalTime, shieldTime, bestTime, selectedPlane,
-      unlockedPlanes, allPlanes,
+      unlockedPlanes, allPlanes, hasSavedGame, savedGameTime,
       selectPlane, drawPlanePreview, startGame, togglePause, quitToMenu, backToMenu,
-      resetSave, formatTime, errorMsg, debugInfo
+      resetSave, formatTime, errorMsg, debugInfo, resumeGame, clearGameState, checkSavedGame
     };
   }
 });
