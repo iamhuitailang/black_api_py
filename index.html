@@ -493,6 +493,18 @@ const app = createApp({
 
     function saveGameState() {
       if (gameState.value !== 'playing' && gameState.value !== 'paused') return;
+      const savedObstacles = obstacles.map(o => ({
+        type: o.type, x: o.x, y: o.y, vx: o.vx, vy: o.vy,
+        w: o.w, h: o.h, wingPhase: o.wingPhase, baseY: o.baseY, phase: o.phase
+      }));
+      const savedMissiles = missiles.map(m => ({
+        x: m.x, y: m.y, vx: m.vx, vy: m.vy, w: m.w, h: m.h,
+        heading: m.heading, turnRate: m.turnRate,
+        lifeLeft: m.life - (Date.now() - m.spawned)
+      }));
+      const savedItems = items.map(it => ({
+        type: it.type, x: it.x, y: it.y, vx: it.vx, w: it.w, h: it.h, bob: it.bob
+      }));
       const state = {
         lives: lives.value,
         fuel: fuel.value,
@@ -506,7 +518,13 @@ const app = createApp({
         spawnInterval: spawnInterval,
         selectedPlane: selectedPlane.value,
         savedAt: Date.now(),
-        isPaused: gameState.value === 'paused'
+        isPaused: gameState.value === 'paused',
+        obstacles: savedObstacles,
+        missiles: savedMissiles,
+        items: savedItems,
+        timeOfDay: timeOfDay,
+        itemSpawnTimer: itemSpawnTimer,
+        lowFuelTimer: lowFuelTimer
       };
       try {
         localStorage.setItem('planeGameState', JSON.stringify(state));
@@ -540,13 +558,30 @@ const app = createApp({
       frameCount = data.frameCount;
       spawnInterval = data.spawnInterval;
       selectedPlane.value = data.selectedPlane || 'silver';
-      timeOfDay = Math.min(1, survivalTime.value / 120000);
-      obstacles = [];
-      items = [];
+      timeOfDay = data.timeOfDay || Math.min(1, survivalTime.value / 120000);
+      itemSpawnTimer = data.itemSpawnTimer || 0;
+      lowFuelTimer = data.lowFuelTimer || 0;
+
+      obstacles = (data.obstacles || []).map(o => ({
+        type: o.type, x: o.x, y: o.y, vx: o.vx, vy: o.vy || 0,
+        w: o.w, h: o.h,
+        wingPhase: o.wingPhase || 0, baseY: o.baseY || o.y, phase: o.phase || 0
+      }));
+
+      missiles = (data.missiles || []).map(m => ({
+        x: m.x, y: m.y, vx: m.vx || 0, vy: m.vy || 0,
+        w: m.w, h: m.h,
+        heading: m.heading || Math.PI, turnRate: m.turnRate || 0.04,
+        life: m.lifeLeft || 5000, spawned: Date.now(),
+        trail: [{ x: m.x, y: m.y }]
+      }));
+
+      items = (data.items || []).map(it => ({
+        type: it.type, x: it.x, y: it.y, vx: it.vx,
+        w: it.w, h: it.h, bob: it.bob || 0
+      }));
+
       particles = [];
-      missiles = [];
-      itemSpawnTimer = 0;
-      lowFuelTimer = 0;
       shakeTime = 0;
       flashRed = 0;
       plane.x = data.planeX;
