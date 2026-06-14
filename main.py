@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.course import CourseModel, ReviewModel, CourseStatsModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,8 +35,19 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    CourseModel.create_table()
+    ReviewModel.create_table()
+    ReviewModel.create_vote_table()
+    CourseStatsModel.create_table()
     
     migrate_database()
+    
+    seeded = CourseModel.seed_initial_data()
+    if seeded:
+        print("Seeded initial course data")
+    
+    stats_model = CourseStatsModel()
+    stats_model.recalculate_all()
     
     print("Database initialized successfully")
 
