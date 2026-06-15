@@ -179,24 +179,45 @@
   }
 
   function saveGameState() {
-    const data = {
-      sceneId: game.scene.id,
-      gameState: game.state,
-      score: game.score,
-      fishCount: game.fishCount,
-      biggestFish: game.biggestFish,
-      basket: game.basket,
-      timeLeft: game.timeLeft,
-      hookX: game.hookPos.x,
-      hookY: game.hookPos.y,
-      playerName: localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '',
-      ts: Date.now(),
-      version: 2
-    };
     try {
+      const m = getStageMetrics();
+      const fishes = game.fishes.map(f => ({
+        id: f.id,
+        typeId: f.typeId,
+        weight: f.weight,
+        width: f.width,
+        height: f.height,
+        ratioX: m.w > 0 ? f.x / m.w : 0,
+        ratioY: m.h > 0 ? f.y / m.h : 0,
+        dir: f.dir,
+        speed: f.speed,
+        sizeK: f.sizeK,
+        biteInited: f.biteInited,
+        color: f.color,
+        colorLight: f.colorLight
+      }));
+      const data = {
+        sceneId: game.scene.id,
+        gameState: game.state,
+        score: game.score,
+        fishCount: game.fishCount,
+        biggestFish: game.biggestFish,
+        basket: game.basket,
+        timeLeft: game.timeLeft,
+        hookRatioX: m.w > 0 ? (game.hookPos.x / m.w) : 0,
+        hookRatioY: m.h > 0 ? (game.hookPos.y / m.h) : 0,
+        stageW: m.w,
+        stageH: m.h,
+        fishes,
+        playerName: localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '',
+        ts: Date.now(),
+        version: 4
+      };
       localStorage.setItem(STORAGE_KEYS.GAME_STATE, JSON.stringify(data));
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
   function loadGameState() {
@@ -707,6 +728,38 @@
     game.fishes = [];
   }
 
+  function restoreFishes(savedFishes) {
+    if (!savedFishes || !Array.isArray(savedFishes) || savedFishes.length === 0) return;
+    const m = getStageMetrics();
+    savedFishes.forEach(sf => {
+      const type = FISH_TYPES[sf.typeId];
+      if (!type) return;
+      const x = clamp(sf.ratioX, 0, 1) * m.w;
+      const y = clamp(sf.ratioY, 0, 1) * m.h;
+      const f = {
+        id: sf.id || Math.random().toString(36).slice(2),
+        typeId: sf.typeId,
+        type,
+        weight: sf.weight,
+        color: sf.color || type.color,
+        colorLight: sf.colorLight || type.colorLight,
+        width: sf.width,
+        height: sf.height,
+        x, y,
+        dir: sf.dir,
+        speed: sf.speed,
+        sizeK: sf.sizeK,
+        biteInited: sf.biteInited || false,
+        el: null
+      };
+      f.el = createFishSVG(f);
+      f.el.style.left = f.x + 'px';
+      f.el.style.top = f.y + 'px';
+      dom.game.fishLayer.appendChild(f.el);
+      game.fishes.push(f);
+    });
+  }
+
   // ===============================
   // 抛竿
   // ===============================
@@ -1158,21 +1211,22 @@
   // 开始/结束游戏
   // ===============================
   function startGame(savedData) {
-    game.state = State.IDLE;
-    game.score = 0;
-    game.fishCount = 0;
-    game.biggestFish = 0;
-    game.basket = [];
-    game.timeLeft = GAME_DURATION;
+    // ===== 基础变量重置 =====
     game.fishes = [];
     game.hookedFish = null;
     game.tension = 0;
     game.reelingProgress = 0;
     game.fishSpawnAcc = 0;
+    game._lastSaveTs = 0;
+    game._resumeNeedRetrieve = false;
 
     const isResume = !!savedData;
-    let resumeHookPos = null;
+    let targetState = State.IDLE;
+    let resumeHookRatioX = 0;
+    let resumeHookRatioY = 0;
+    let hookUnderWater = false;
 
+    // ===== 从存档恢复 =====
     if (savedData) {
       game.scene = SCENES[savedData.sceneId] || SCENES.pond;
       game.score = savedData.score || 0;
@@ -1180,61 +1234,122 @@
       game.biggestFish = savedData.biggestFish || 0;
       game.basket = savedData.basket || [];
       game.timeLeft = savedData.timeLeft || GAME_DURATION;
-      // 如果之前鱼钩已抛出，恢复鱼钩位置
-      if (savedData.gameState && savedData.gameState !== 'idle' && savedData.hookX && savedData.hookY) {
-        resumeHookPos = { x: savedData.hookX, y: savedData.hookY };
+
+      // 判断鱼钩是否在水下
+      if (savedData.gameState && savedData.gameState !== 'idle') {
+        targetState = savedData.gameState;
+        if (savedData.hookRatioX !== undefined && savedData.hookRatioY !== undefined) {
+          resumeHookRatioX = clamp(savedData.hookRatioX, 0.05, 0.98);
+          resumeHookRatioY = clamp(savedData.hookRatioY, 0.05, 0.98);
+          hookUnderWater = true;
+        }
+      } else {
+        targetState = State.IDLE;
+        hookUnderWater = false;
       }
+    } else {
+      // 新游戏
+      game.scene = game.scene || SCENES.pond;
+      game.score = 0;
+      game.fishCount = 0;
+      game.biggestFish = 0;
+      game.basket = [];
+      game.timeLeft = GAME_DURATION;
     }
 
+    // ===== DOM 清理 =====
     clearAllFishes();
     dom.game.fishLayer.innerHTML = '';
     dom.game.fishDisplay.innerHTML = '';
     dom.game.tensionWrap.classList.remove('active');
+    dom.game.float.classList.remove('shaking', 'settling');
+    dom.game.btnReel.classList.remove('urgent');
     dom.game.hud.timer.style.color = 'var(--primary-dark)';
 
-    // 恢复游戏时：鱼钩在水下则收竿按钮可用，抛竿禁用
-    if (isResume && resumeHookPos) {
+    // ===== 按钮状态 =====
+    if (isResume && hookUnderWater) {
+      // 鱼钩在水下：抛竿禁用，收竿=收回鱼钩
       dom.game.btnCast.disabled = true;
       dom.game.btnReel.disabled = false;
       dom.game.btnReel.textContent = '🪝 收回鱼钩';
       game._resumeNeedRetrieve = true;
+      // 状态设为 IDLE，但鱼钩在水下（等待玩家收回）
+      game.state = State.IDLE;
     } else {
       dom.game.btnCast.disabled = false;
       dom.game.btnReel.disabled = true;
       dom.game.btnReel.textContent = '🪝 收竿';
       game._resumeNeedRetrieve = false;
+      game.state = State.IDLE;
     }
 
+    // ===== UI 初始化 =====
     updateFishermanHat();
     applyScene();
     updateHUD();
 
-    // 新游戏清存档，恢复游戏不清（继续保存）
+    // 新游戏才清存档
     if (!isResume) {
       clearGameState();
-      resetHookToRod();
     }
 
+    // ===== 切换到游戏界面 =====
     showScreen('game');
 
-    requestAnimationFrame(() => {
-      if (isResume && resumeHookPos) {
-        // 恢复鱼钩位置（水下状态）
-        updateRodAndHook(resumeHookPos.x, resumeHookPos.y);
-        // 给玩家恢复提示
+    // ===== 等待布局完成后恢复鱼钩位置和鱼群 =====
+    const doResume = () => {
+      // 强制回流一次，确保尺寸正确
+      void dom.game.stage.offsetWidth;
+      const m = getStageMetrics();
+      if (m.w < 10 || m.h < 10) {
+        setTimeout(doResume, 50);
+        return;
+      }
+
+      // 恢复鱼群（从存档数据重建，位置数量都和刷新前一致）
+      if (isResume && savedData.fishes && savedData.fishes.length > 0) {
+        restoreFishes(savedData.fishes);
+      }
+
+      if (isResume && hookUnderWater) {
+        // 用相对坐标计算实际像素位置
+        const hookX = resumeHookRatioX * m.w;
+        const hookY = resumeHookRatioY * m.h;
+        updateRodAndHook(hookX, hookY);
+
+        // 没有存档鱼群时，生成几条填充水层
+        if (!savedData.fishes || savedData.fishes.length === 0) {
+          const fishNum = Math.min(game.scene.maxFish, 4);
+          for (let i = 0; i < fishNum; i++) {
+            setTimeout(() => spawnFish(), i * 120);
+          }
+        }
+
+        // 恢复后立即保存，防止二次刷新丢失
         setTimeout(() => {
-          const stateText = savedData.gameState === 'waiting' ? '等待鱼上钩中' : '准备抛竿';
-          showToast(`✅ 已恢复进度：${game.score}分 · ${stateText}`, 'caught', 2500);
-          saveGameState(); // 恢复后立即保存
-        }, 500);
+          saveGameState();
+          const fishCount = game.fishes.length;
+          showToast(`✅ 已恢复：${game.score}分 · ${fmtTime(game.timeLeft)} · ${fishCount}条鱼`, 'caught', 3000);
+        }, 300);
       } else {
         resetHookToRod();
+        // 新游戏或鱼钩在岸边时，生成初始鱼群
+        if (!isResume || !savedData.fishes || savedData.fishes.length === 0) {
+          const fishNum = Math.min(game.scene.maxFish, 4);
+          for (let i = 0; i < fishNum; i++) {
+            setTimeout(() => spawnFish(), i * 120);
+          }
+        }
       }
+
+      // 启动计时器和主循环
       startGameTimer();
       game.lastFrameTs = 0;
       if (game.rafId) cancelAnimationFrame(game.rafId);
       game.rafId = requestAnimationFrame(mainLoop);
-    });
+    };
+
+    requestAnimationFrame(doResume);
   }
 
   function endGame() {
