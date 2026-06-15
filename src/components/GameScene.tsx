@@ -12,7 +12,7 @@ import DamageNumbers from '@/components/DamageNumbers';
 import MuzzleFlash from '@/components/MuzzleFlash';
 import WaveNotice from '@/components/WaveNotice';
 import ReloadOverlay from '@/components/ReloadOverlay';
-import { loadSaveData } from '@/utils/saveSystem';
+import { loadSaveData, hasGameState, saveGameState } from '@/utils/saveSystem';
 import { MAX_LIVES } from '@/constants/gameConfig';
 
 export default function GameScene() {
@@ -21,7 +21,7 @@ export default function GameScene() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
-  const mouseCoords = useRef({ x: 0, y: 0 });
+  const lastSaveTimeRef = useRef<number>(0);
 
   const {
     status,
@@ -40,8 +40,18 @@ export default function GameScene() {
     shoot,
     reload,
     update,
-    autoSave,
+    resumeFromSave,
+    currentWave,
+    score,
+    lives,
+    magazine,
+    totalShots,
+    headshots,
+    waveZombieQueue,
+    waveSpawnTimer,
   } = useGameStore();
+
+  const lastMousePos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -59,21 +69,33 @@ export default function GameScene() {
   }, []);
 
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      autoSave();
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (status === 'playing') {
+        const gameState = {
+          currentWave,
+          lives,
+          score,
+          magazine,
+          totalShots,
+          headshots,
+          zombies,
+          waveZombieQueue,
+          waveSpawnTimer,
+          savedAt: Date.now(),
+        };
+        try {
+          saveGameState(gameState);
+        } catch {
+          // localStorage 写入失败静默处理
+        }
+        e.preventDefault();
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [autoSave]);
-
-  useEffect(() => {
-    const resumed = useGameStore.getState().resumeFromSave();
-    if (resumed) {
-      console.log('Game state restored from auto-save');
-    }
-  }, []);
+  }, [status, currentWave, lives, score, magazine, totalShots, headshots, zombies, waveZombieQueue, waveSpawnTimer]);
 
   useEffect(() => {
     if (status === 'playing') {
@@ -98,10 +120,33 @@ export default function GameScene() {
 
       update(Math.min(deltaTime, 0.1));
 
+      const now = Date.now();
+      if (now - lastSaveTimeRef.current > 1000) {
+        lastSaveTimeRef.current = now;
+        try {
+          const state = useGameStore.getState();
+          saveGameState({
+            currentWave: state.currentWave,
+            lives: state.lives,
+            score: state.score,
+            magazine: state.magazine,
+            totalShots: state.totalShots,
+            headshots: state.headshots,
+            zombies: state.zombies,
+            waveZombieQueue: state.waveZombieQueue,
+            waveSpawnTimer: state.waveSpawnTimer,
+            savedAt: Date.now(),
+          });
+        } catch {
+          // localStorage 写入失败静默处理
+        }
+      }
+
       animationRef.current = requestAnimationFrame(gameLoop);
     };
 
     lastTimeRef.current = 0;
+    lastSaveTimeRef.current = Date.now();
     animationRef.current = requestAnimationFrame(gameLoop);
 
     return () => {
@@ -111,33 +156,57 @@ export default function GameScene() {
     };
   }, [status, update]);
 
+  const getMousePos = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }, []);
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (status !== 'playing') return;
       if (isReloading) return;
 
+      const pos = getMousePos(e);
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
 
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      lastMousePos.current = pos;
+      crosshairRef.current?.setPosition(pos.x, pos.y);
 
-      shoot(x, y, rect.width, rect.height);
-      autoSave();
+      shoot(pos.x, pos.y, rect.width, rect.height);
+
+      try {
+        const state = useGameStore.getState();
+        saveGameState({
+          currentWave: state.currentWave,
+          lives: state.lives,
+          score: state.score,
+          magazine: state.magazine,
+          totalShots: state.totalShots,
+          headshots: state.headshots,
+          zombies: state.zombies,
+          waveZombieQueue: state.waveZombieQueue,
+          waveSpawnTimer: state.waveSpawnTimer,
+          savedAt: Date.now(),
+        });
+      } catch {
+        // localStorage 写入失败静默处理
+      }
     },
-    [status, isReloading, shoot, autoSave]
+    [status, isReloading, shoot, getMousePos]
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      mouseCoords.current = { x, y };
-      crosshairRef.current?.setPosition(x, y);
+      const pos = getMousePos(e);
+      lastMousePos.current = pos;
+      crosshairRef.current?.setPosition(pos.x, pos.y);
     },
-    []
+    [getMousePos]
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -147,6 +216,7 @@ export default function GameScene() {
   const handleMouseEnter = useCallback(() => {
     if (status === 'playing') {
       crosshairRef.current?.show();
+      crosshairRef.current?.setPosition(lastMousePos.current.x, lastMousePos.current.y);
     }
   }, [status]);
 
@@ -155,7 +225,7 @@ export default function GameScene() {
   };
 
   const handleContinue = () => {
-    const resumed = useGameStore.getState().resumeFromSave();
+    const resumed = resumeFromSave();
     if (!resumed) {
       const saveData = loadSaveData();
       if (saveData) {
@@ -171,7 +241,23 @@ export default function GameScene() {
   };
 
   const handleMainMenu = () => {
-    autoSave();
+    try {
+      const state = useGameStore.getState();
+      saveGameState({
+        currentWave: state.currentWave,
+        lives: state.lives,
+        score: state.score,
+        magazine: state.magazine,
+        totalShots: state.totalShots,
+        headshots: state.headshots,
+        zombies: state.zombies,
+        waveZombieQueue: state.waveZombieQueue,
+        waveSpawnTimer: state.waveSpawnTimer,
+        savedAt: Date.now(),
+      });
+    } catch {
+      // localStorage 写入失败静默处理
+    }
     useGameStore.setState({ status: 'menu' });
   };
 
@@ -188,22 +274,22 @@ export default function GameScene() {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={handleMouseEnter}
-      style={{
-        transform: `translate(${shakeX}px, ${shakeY}px)`,
-        background: '#0a0a12',
-      }}
+      style={{ background: '#0a0a12' }}
     >
-      <Background />
-
-      <Ground />
+      <div
+        className="absolute inset-0"
+        style={{ transform: `translate(${shakeX}px, ${shakeY}px)` }}
+      >
+        <Background />
+        <Ground />
+        <MuzzleFlash intensity={muzzleFlash} />
+      </div>
 
       {sortedZombies.map((zombie) => (
         <ZombieSprite key={zombie.id} zombie={zombie} sceneHeight={dimensions.height} />
       ))}
 
       <DamageNumbers numbers={damageNumbers} />
-
-      <MuzzleFlash intensity={muzzleFlash} />
 
       <Crosshair ref={crosshairRef} />
 
@@ -233,6 +319,22 @@ export default function GameScene() {
 
       {status === 'playing' && isReloading && (
         <ReloadOverlay progress={reloadProgress} />
+      )}
+
+      {status === 'playing' && hasGameState() && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div
+            className="px-2 py-1 rounded text-xs"
+            style={{
+              background: 'rgba(0,0,0,0.7)',
+              color: '#4ade80',
+              border: '1px solid rgba(74,222,128,0.4)',
+              boxShadow: '0 0 8px rgba(74,222,128,0.2)',
+            }}
+          >
+            ✓ 已自动存档
+          </div>
+        </div>
       )}
     </div>
   );
