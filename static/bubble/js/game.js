@@ -293,6 +293,118 @@
         return neighbors;
     }
 
+    // ============ 本地存储 ============
+    const SAVE_KEY = 'bubble_shooter_save';
+
+    function saveGameState() {
+        try {
+            const gridData = [];
+            for (let row = 0; row < game.grid.length; row++) {
+                if (!game.grid[row]) {
+                    gridData.push(null);
+                    continue;
+                }
+                const rowData = [];
+                for (let col = 0; col < game.grid[row].length; col++) {
+                    const b = game.grid[row][col];
+                    if (b) {
+                        rowData.push({
+                            row: b.row,
+                            col: b.col,
+                            color: b.color,
+                            type: b.type
+                        });
+                    } else {
+                        rowData.push(null);
+                    }
+                }
+                gridData.push(rowData);
+            }
+
+            const saveData = {
+                level: game.level,
+                score: game.score,
+                totalScore: game.totalScore,
+                shots: game.shots,
+                shotsWithoutPop: game.shotsWithoutPop,
+                shooterAngle: game.shooterAngle,
+                grid: gridData,
+                currentBubble: game.currentBubble ? {
+                    color: game.currentBubble.color,
+                    type: game.currentBubble.type
+                } : null,
+                nextBubble: game.nextBubble ? {
+                    color: game.nextBubble.color,
+                    type: game.nextBubble.type
+                } : null,
+                state: game.state,
+                savedAt: Date.now()
+            };
+
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        } catch (e) {
+            console.warn('保存游戏状态失败:', e);
+        }
+    }
+
+    function loadGameState() {
+        try {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if (!saved) return false;
+
+            const data = JSON.parse(saved);
+            if (!data || !data.grid) return false;
+
+            game.level = data.level || 1;
+            game.score = data.score || 0;
+            game.totalScore = data.totalScore || 0;
+            game.shots = data.shots || 0;
+            game.shotsWithoutPop = data.shotsWithoutPop || 0;
+            game.shooterAngle = data.shooterAngle || Math.PI / 2;
+            game.state = GameState.IDLE;
+            game.poppingBubbles = [];
+            game.fallingBubbles = [];
+            game.flyingBubble = null;
+
+            game.grid = [];
+            for (let row = 0; row < data.grid.length; row++) {
+                if (!data.grid[row]) {
+                    game.grid.push([]);
+                    continue;
+                }
+                game.grid[row] = [];
+                for (let col = 0; col < data.grid[row].length; col++) {
+                    const bd = data.grid[row][col];
+                    if (bd) {
+                        const b = new Bubble(bd.row, bd.col, bd.color, bd.type);
+                        game.grid[row][col] = b;
+                    } else {
+                        game.grid[row][col] = null;
+                    }
+                }
+            }
+
+            if (data.currentBubble) {
+                game.currentBubble = new Bubble(-1, -1, data.currentBubble.color, data.currentBubble.type);
+            }
+            if (data.nextBubble) {
+                game.nextBubble = new Bubble(-1, -1, data.nextBubble.color, data.nextBubble.type);
+            }
+
+            updateHUD();
+            return true;
+        } catch (e) {
+            console.warn('加载游戏状态失败:', e);
+            return false;
+        }
+    }
+
+    function clearGameSave() {
+        try {
+            localStorage.removeItem(SAVE_KEY);
+        } catch (e) {}
+    }
+
     // ============ 关卡初始化 ============
     function initLevel(levelNum) {
         const level = LEVELS[Math.min(levelNum - 1, LEVELS.length - 1)];
@@ -1025,72 +1137,89 @@
 
     function drawAimLine() {
         const angle = game.shooterAngle;
-        const startX = SHOOTER_X;
-        const startY = SHOOTER_Y - 30;
+        const startX = SHOOTER_X + Math.cos(angle) * 20;
+        const startY = SHOOTER_Y - Math.sin(angle) * 20;
 
         let x = startX;
         let y = startY;
-        let vx = Math.cos(angle) * 5;
-        let vy = -Math.sin(angle) * 5;
+        const speed = 6;
+        let vx = Math.cos(angle) * speed;
+        let vy = -Math.sin(angle) * speed;
 
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 8]);
-        ctx.lineDashOffset = -Date.now() / 50;
+
+        const gradient = ctx.createLinearGradient(startX, startY, startX + vx * 50, startY + vy * 50);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.15)');
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 8]);
+        ctx.lineDashOffset = -Date.now() / 30;
+        ctx.lineCap = 'round';
 
         ctx.beginPath();
         ctx.moveTo(x, y);
 
-        let segments = 0;
-        let bounces = 0;
+        let steps = 0;
         let hit = false;
+        let hitX = 0;
+        let hitY = 0;
+        const maxSteps = 200;
 
-        while (segments < 150 && !hit) {
+        while (steps < maxSteps && !hit) {
             x += vx;
             y += vy;
 
             if (x - BUBBLE_RADIUS <= 0) {
                 x = BUBBLE_RADIUS;
                 vx = Math.abs(vx);
-                bounces++;
             } else if (x + BUBBLE_RADIUS >= CANVAS_WIDTH) {
                 x = CANVAS_WIDTH - BUBBLE_RADIUS;
                 vx = -Math.abs(vx);
-                bounces++;
             }
 
             if (y - BUBBLE_RADIUS <= TOP_PADDING) {
                 hit = true;
+                hitX = x;
+                hitY = TOP_PADDING + BUBBLE_RADIUS;
             }
 
-            for (let row = 0; row < game.grid.length && !hit; row++) {
-                if (!game.grid[row]) continue;
-                for (let col = 0; col < game.grid[row].length && !hit; col++) {
-                    const b = game.grid[row][col];
-                    if (!b) continue;
-                    const dx = x - b.x;
-                    const dy = y - b.y;
-                    if (dx * dx + dy * dy < (BUBBLE_DIAMETER - 2) * (BUBBLE_DIAMETER - 2)) {
-                        hit = true;
+            if (!hit) {
+                for (let row = 0; row < game.grid.length && !hit; row++) {
+                    if (!game.grid[row]) continue;
+                    for (let col = 0; col < game.grid[row].length && !hit; col++) {
+                        const b = game.grid[row][col];
+                        if (!b) continue;
+                        const dx = x - b.x;
+                        const dy = y - b.y;
+                        if (dx * dx + dy * dy < BUBBLE_DIAMETER * BUBBLE_DIAMETER - 10) {
+                            hit = true;
+                            hitX = x;
+                            hitY = y;
+                        }
                     }
                 }
             }
 
-            if (segments % 3 === 0) {
+            if (!hit || steps > 5) {
                 ctx.lineTo(x, y);
             }
-            segments++;
+            steps++;
         }
 
-        ctx.lineTo(x, y);
         ctx.stroke();
 
         if (hit) {
             ctx.setLineDash([]);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.arc(hitX, hitY, BUBBLE_RADIUS, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(hitX, hitY, BUBBLE_RADIUS, 0, Math.PI * 2);
             ctx.fill();
         }
 
