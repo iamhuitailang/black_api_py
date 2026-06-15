@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>科室排班系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f3f4f6;
+            color: #1f2937;
+            font-size: 14px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .header .sub {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 60px;
+            z-index: 99;
+            overflow-x: auto;
+        }
+        .nav-tab {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            font-size: 14px;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+        .nav-tab:hover { color: #3b82f6; }
+        .nav-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+            font-weight: 500;
+        }
+        
+        .container {
+            padding: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-gray { background: #6b7280; color: white; }
+        .btn-gray:hover { background: #4b5563; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .form-item {
+            flex: 1;
+            min-width: 120px;
+        }
+        .form-item label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .form-item input, .form-item select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        .form-item input:focus, .form-item select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 500;
+            color: #4b5563;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover { background: #f9fafb; }
+        
+        .shift-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .color-picker {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e5e7eb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .calendar-header {
+            background: #f3f4f6;
+            padding: 8px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .calendar-cell {
+            background: white;
+            min-height: 60px;
+            padding: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        .calendar-cell:hover { background: #eff6ff; }
+        .calendar-cell.other-month { background: #f9fafb; color: #d1d5db; }
+        .calendar-cell.today { background: #eff6ff; }
+        .cell-date {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .cell-shift {
+            font-size: 11px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: white;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        
+        .dept-table {
+            overflow-x: auto;
+        }
+        .dept-table table {
+            font-size: 12px;
+            min-width: 600px;
+        }
+        .dept-table th, .dept-table td {
+            padding: 6px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .dept-table th.staff-col, .dept-table td.staff-col {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 1;
+            text-align: left;
+            min-width: 80px;
+        }
+        .dept-table th.staff-col {
+            background: #f9fafb;
+            z-index: 2;
+        }
+        .shift-cell {
+            padding: 4px 6px;
+            border-radius: 4px;
+            color: white;
+            font-size: 11px;
+            cursor: pointer;
+            display: inline-block;
+            width: 100%;
+        }
+        .shift-cell:hover { opacity: 0.85; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #f3f4f6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-body { padding: 16px; }
+        .modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .request-item {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .request-item .info { flex: 1; }
+        .request-item .name { font-weight: 500; }
+        .request-item .detail {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .request-item .actions {
+            display: flex;
+            gap: 6px;
+        }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-approved { background: #d1fae5; color: #059669; }
+        .status-rejected { background: #fee2e2; color: #dc2626; }
+        .status-cancelled { background: #e5e7eb; color: #6b7280; }
+        
+        .stat-card {
+            text-align: center;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .violation {
+            color: #dc2626;
+            font-weight: 500;
+        }
+        
+        .user-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .user-chip {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .user-chip:hover { background: #e5e7eb; }
+        .user-chip.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        
+        .month-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .month-nav button {
+            padding: 4px 12px;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .month-nav button:hover { background: #f9fafb; }
+        .month-nav .month-title {
+            font-size: 16px;
+            font-weight: 600;
+            min-width: 140px;
+            text-align: center;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .card { padding: 12px; }
+            .calendar-cell { min-height: 50px; }
+            .form-row { flex-direction: column; }
+            .form-item { min-width: 100%; }
+            .nav-tab { padding: 10px 12px; font-size: 13px; }
+            .dept-table th, .dept-table td { padding: 4px 6px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🏥 科室排班系统</h1>
+    <div class="sub" id="currentUser">未登录</div>
+</div>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" data-page="calendar">个人日历</div>
+    <div class="nav-tab" data-page="department">科室视图</div>
+    <div class="nav-tab" data-page="swap">换班请求</div>
+    <div class="nav-tab" data-page="statistics">统计报表</div>
+    <div class="nav-tab" data-page="admin" id="adminTab" style="display:none;">管理设置</div>
+</div>
+
+<div class="container">
+    
+    <div class="page active" id="page-calendar">
+        <div class="card">
+            <div class="card-title">
+                <div>我的排班</div>
+                <div class="user-selector" id="userSelector"></div>
+            </div>
+            
+            <div class="month-nav">
+                <button onclick="changeMonth(-1)">◀</button>
+                <div class="month-title" id="calendarMonth"></div>
+                <button onclick="changeMonth(1)">▶</button>
+            </div>
+            
+            <div class="legend" id="legend"></div>
+            
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+    </div>
+    
+    <div class="page" id="page-department">
+        <div class="card">
+            <div class="card-title">科室排班表</div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>开始日期</label>
+                    <input type="date" id="deptStartDate">
+                </div>
+                <div class="form-item">
+                    <label>结束日期</label>
+                    <input type="date" id="deptEndDate">
+                </div>
+                <div class="form-item">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="loadDeptSchedule()">查询</button>
+                </div>
+            </div>
+            
+            <div class="legend" id="deptLegend"></div>
+            
+            <div class="dept-table" id="deptTable"></div>
+        </div>
+    </div>
+    
+    <div class="page" id="page-swap">
+        <div class="card">
+            <div class="card-title">
+                <div>换班请求</div>
+                <button class="btn btn-primary" onclick="openSwapModal()">发起换班</button>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-item">
+                    <label>状态筛选</label>
+                    <select id="swapStatusFilter" onchange="loadSwapRequests()">
+                        <option value="">全部</option>
+                        <option value="pending">待处理</option>
+                        <option value="approved">已同意</option>
+                        <option value="rejected">已拒绝</option>
+                        <option value="cancelled">已取消</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="swapList"></div>
+        </div>
+    </div>
+    
+    <div class="page" id="page-statistics">
+        <div class="card">
+            <div class="card-title">月度统计</div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>年份</label>
+                    <select id="statYear" onchange="loadStatistics()"></select>
+                </div>
+                <div class="form-item">
+                    <label>月份</label>
+                    <select id="statMonth" onchange="loadStatistics()">
+                        <option value="1">1月</option>
+                        <option value="2">2月</option>
+                        <option value="3">3月</option>
+                        <option value="4">4月</option>
+                        <option value="5">5月</option>
+                        <option value="6">6月</option>
+                        <option value="7">7月</option>
+                        <option value="8">8月</option>
+                        <option value="9">9月</option>
+                        <option value="10">10月</option>
+                        <option value="11">11月</option>
+                        <option value="12">12月</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="statsContainer"></div>
+        </div>
+    </div>
+    
+    <div class="page" id="page-admin">
+        <div class="card">
+            <div class="card-title">
+                <div>班次管理</div>
+                <button class="btn btn-primary" onclick="openShiftModal()">+ 新增班次</button>
+            </div>
+            <table id="shiftTable">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>开始时间</th>
+                        <th>结束时间</th>
+                        <th>颜色</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">
+                <div>员工管理</div>
+                <button class="btn btn-primary" onclick="openStaffModal()">+ 新增员工</button>
+            </div>
+            <table id="staffTable">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>角色</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">自动排班</div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>开始日期</label>
+                    <input type="date" id="genStartDate">
+                </div>
+                <div class="form-item">
+                    <label>周数</label>
+                    <select id="genWeeks">
+                        <option value="1">1周</option>
+                        <option value="2">2周</option>
+                        <option value="3">3周</option>
+                        <option value="4" selected>4周</option>
+                        <option value="8">8周</option>
+                    </select>
+                </div>
+                <div class="form-item">
+                    <label>每周最多夜班</label>
+                    <select id="genMaxNight">
+                        <option value="1">1个</option>
+                        <option value="2" selected>2个</option>
+                        <option value="3">3个</option>
+                    </select>
+                </div>
+                <div class="form-item">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-success" onclick="generateSchedule()">生成排班</button>
+                </div>
+            </div>
+            <p style="font-size:12px;color:#6b7280;">
+                规则说明：每人每周夜班不超过2个，保证连休至少1天，自动均衡分配各班次。
+            </p>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">换班历史</div>
+            <div id="swapHistoryList"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="shiftModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="shiftModalTitle">新增班次</h3>
+            <button class="modal-close" onclick="closeModal('shiftModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="shiftId">
+            <div class="form-row">
+                <div class="form-item">
+                    <label>班次名称</label>
+                    <input type="text" id="shiftName" placeholder="如：早班">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>开始时间</label>
+                    <input type="time" id="shiftStartTime">
+                </div>
+                <div class="form-item">
+                    <label>结束时间</label>
+                    <input type="time" id="shiftEndTime">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>显示颜色</label>
+                    <input type="color" id="shiftColor" class="color-picker" value="#3b82f6">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-gray" onclick="closeModal('shiftModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveShift()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="staffModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="staffModalTitle">新增员工</h3>
+            <button class="modal-close" onclick="closeModal('staffModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="staffId">
+            <div class="form-row">
+                <div class="form-item">
+                    <label>姓名</label>
+                    <input type="text" id="staffName" placeholder="员工姓名">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>角色</label>
+                    <select id="staffRole">
+                        <option value="staff">员工</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-gray" onclick="closeModal('staffModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveStaff()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="swapModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>发起换班请求</h3>
+            <button class="modal-close" onclick="closeModal('swapModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-item">
+                    <label>我的班次</label>
+                    <input type="date" id="swapMyDate">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>想换的同事</label>
+                    <select id="swapTargetStaff"></select>
+                </div>
+                <div class="form-item">
+                    <label>对方日期</label>
+                    <input type="date" id="swapTargetDate">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-gray" onclick="closeModal('swapModal')">取消</button>
+            <button class="btn btn-primary" onclick="submitSwapRequest()">提交申请</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="detailModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="detailTitle">班次详情</h3>
+            <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer" id="detailFooter"></div>
+    </div>
+</div>
+
+<script>
+const API_BASE = '/api';
+let currentUser = null;
+let currentMonth = new Date();
+let shifts = [];
+let staffList = [];
+let currentSchedule = null;
+let deptSchedule = null;
+
+function api(url, options = {}) {
+    return fetch(API_BASE + url, {
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options
+    }).then(r => r.json()).then(r => {
+        if (r.code !== 0) throw new Error(r.message || '请求失败');
+        return r.data;
+    });
+}
+
+function apiGet(url, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return api(url + (query ? '?' + query : ''));
+}
+
+function apiPost(url, data = {}) {
+    return api(url, { method: 'POST', body: JSON.stringify(data) });
+}
+
+function init() {
+    const saved = localStorage.getItem('currentUser');
+    if (saved) {
+        currentUser = JSON.parse(saved);
+    }
+    
+    Promise.all([
+        apiGet('/shift/getlist'),
+        apiGet('/staff/getlist')
+    ]).then(([shiftData, staffData]) => {
+        shifts = shiftData;
+        staffList = staffData;
+        
+        if (!currentUser && staffList.length > 0) {
+            currentUser = staffList[0];
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        }
+        
+        updateUserDisplay();
+        initUserSelector();
+        renderLegend();
+        renderCalendar();
+        loadSwapRequests();
+        initYearMonth();
+        loadAdminData();
+        loadStatistics();
+        
+        const admin = staffList.find(s => s.role === 'admin');
+        if (admin && currentUser && currentUser.role === 'admin') {
+            document.getElementById('adminTab').style.display = 'block';
+        }
+        
+        initDateDefaults();
+    }).catch(err => {
+        console.error('初始化失败:', err);
+    });
+}
+
+function updateUserDisplay() {
+    if (currentUser) {
+        document.getElementById('currentUser').textContent = 
+            `当前用户：${currentUser.name}${currentUser.role === 'admin' ? ' (管理员)' : ''}`;
+    }
+}
+
+function initUserSelector() {
+    const container = document.getElementById('userSelector');
+    container.innerHTML = staffList.map(s => `
+        <div class="user-chip ${currentUser && s.id === currentUser.id ? 'active' : ''}" 
+             onclick="selectUser(${s.id})">${s.name}</div>
+    `).join('');
+}
+
+function selectUser(id) {
+    const user = staffList.find(s => s.id === id);
+    if (user) {
+        currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        updateUserDisplay();
+        initUserSelector();
+        renderCalendar();
+        loadSwapRequests();
+        
+        const adminTab = document.getElementById('adminTab');
+        if (user.role === 'admin') {
+            adminTab.style.display = 'block';
+        } else {
+            adminTab.style.display = 'none';
+            if (document.querySelector('.nav-tab.active')?.dataset.page === 'admin') {
+                switchPage('calendar');
+            }
+        }
+    }
+}
+
+function renderLegend() {
+    const html = shifts.map(s => `
+        <div class="legend-item">
+            <div class="legend-color" style="background:${s.color}"></div>
+            <span>${s.name} (${s.start_time}-${s.end_time})</span>
+        </div>
+    `).join('');
+    
+    document.getElementById('legend').innerHTML = html;
+    document.getElementById('deptLegend').innerHTML = html;
+}
+
+function renderCalendar() {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    document.getElementById('calendarMonth').textContent = `${year}年${month + 1}月`;
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+    const totalDays = lastDay.getDate();
+    
+    const calendarStart = new Date(year, month, 1 - startDay);
+    const calendarEnd = new Date(year, month, 1 - startDay + 41);
+    
+    const startStr = formatDate(calendarStart);
+    const endStr = formatDate(calendarEnd);
+    
+    const gridDays = ['日', '一', '二', '三', '四', '五', '六'];
+    let html = gridDays.map(d => `<div class="calendar-header">${d}</div>`).join('');
+    
+    if (currentUser) {
+        apiGet('/schedule/getpersonal', {
+            staff_id: currentUser.id,
+            start_date: startStr,
+            end_date: endStr
+        }).then(schedules => {
+            currentSchedule = schedules;
+            
+            const scheduleMap = {};
+            schedules.forEach(s => {
+                scheduleMap[s.date] = s;
+            });
+            
+            const today = formatDate(new Date());
+            
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(year, month, 1 - startDay + i);
+                const dateStr = formatDate(date);
+                const isOtherMonth = date.getMonth() !== month;
+                const isToday = dateStr === today;
+                
+                const schedule = scheduleMap[dateStr];
+                let shiftHtml = '';
+                if (schedule) {
+                    shiftHtml = `<div class="cell-shift" style="background:${schedule.color}">${schedule.shift_name}</div>`;
+                }
+                
+                html += `
+                    <div class="calendar-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}"
+                         onclick="showDayDetail('${dateStr}', ${schedule ? schedule.shift_id : 'null'})">
+                        <div class="cell-date">${date.getDate()}</div>
+                        ${shiftHtml}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = html;
+        }).catch(err => {
+            console.error('加载排班失败:', err);
+        });
+    }
+}
+
+function changeMonth(delta) {
+    currentMonth.setMonth(currentMonth.getMonth() + delta);
+    renderCalendar();
+}
+
+function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function showDayDetail(dateStr, shiftId) {
+    const shift = shifts.find(s => s.id === shiftId);
+    
+    let bodyHtml = `<p><strong>日期：</strong>${dateStr}</p>`;
+    if (shift) {
+        bodyHtml += `
+            <p style="margin-top:8px;"><strong>班次：</strong>
+                <span class="shift-tag" style="background:${shift.color}">${shift.name}</span>
+            </p>
+            <p style="margin-top:8px;"><strong>时间：</strong>${shift.start_time} - ${shift.end_time}</p>
+        `;
+    } else {
+        bodyHtml += `<p style="margin-top:8px;color:#9ca3af;">暂无排班</p>`;
+    }
+    
+    let footerHtml = '';
+    if (currentUser && shift) {
+        footerHtml = `
+            <button class="btn btn-primary" onclick="closeModal('detailModal'); openSwapModal('${dateStr}')">申请换班</button>
+        `;
+    }
+    
+    document.getElementById('detailTitle').textContent = '班次详情';
+    document.getElementById('detailBody').innerHTML = bodyHtml;
+    document.getElementById('detailFooter').innerHTML = footerHtml;
+    showModal('detailModal');
+}
+
+function openSwapModal(myDate = '') {
+    if (!currentUser) return;
+    
+    if (myDate) {
+        document.getElementById('swapMyDate').value = myDate;
+    }
+    
+    const select = document.getElementById('swapTargetStaff');
+    select.innerHTML = staffList
+        .filter(s => s.id !== currentUser.id)
+        .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    
+    showModal('swapModal');
+}
+
+function submitSwapRequest() {
+    const myDate = document.getElementById('swapMyDate').value;
+    const targetId = parseInt(document.getElementById('swapTargetStaff').value);
+    const targetDate = document.getElementById('swapTargetDate').value;
+    
+    if (!myDate || !targetDate) {
+        alert('请选择日期');
+        return;
+    }
+    
+    apiPost('/swap/set', {
+        requester_id: currentUser.id,
+        target_id: targetId,
+        date: myDate,
+        target_date: targetDate
+    }).then(() => {
+        closeModal('swapModal');
+        loadSwapRequests();
+        alert('换班申请已提交');
+    }).catch(err => {
+        alert(err.message);
+    });
+}
+
+function loadSwapRequests() {
+    if (!currentUser) return;
+    
+    const status = document.getElementById('swapStatusFilter').value;
+    
+    apiGet('/swap/getlist', {
+        staff_id: currentUser.id,
+        status: status,
+        role: currentUser.role
+    }).then(requests => {
+        const container = document.getElementById('swapList');
+        
+        if (requests.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div>暂无换班请求</div></div>';
+            return;
+        }
+        
+        const statusMap = {
+            'pending': { text: '待处理', class: 'status-pending' },
+            'approved': { text: '已同意', class: 'status-approved' },
+            'rejected': { text: '已拒绝', class: 'status-rejected' },
+            'cancelled': { text: '已取消', class: 'status-cancelled' }
+        };
+        
+        container.innerHTML = requests.map(r => {
+            const isTarget = r.target_id === currentUser.id;
+            const isRequester = r.requester_id === currentUser.id;
+            const s = statusMap[r.status] || {};
+            
+            let actions = '';
+            if (r.status === 'pending') {
+                if (isTarget) {
+                    actions = `
+                        <button class="btn btn-success btn-sm" onclick="approveSwap(${r.id})">同意</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectSwap(${r.id})">拒绝</button>
+                    `;
+                } else if (isRequester) {
+                    actions = `<button class="btn btn-gray btn-sm" onclick="cancelSwap(${r.id})">取消</button>`;
+                }
+            }
+            
+            const reqShiftName = r.requester_shift?.name || '未知';
+            const tarShiftName = r.target_shift?.name || '未知';
+            
+            return `
+                <div class="request-item">
+                    <div class="info">
+                        <div class="name">
+                            ${isRequester ? '我' : r.requester_name} → ${isTarget ? '我' : r.target_name}
+                            <span class="status-badge ${s.class}">${s.text}</span>
+                        </div>
+                        <div class="detail">
+                            我的：${r.date} ${reqShiftName} 
+                            ↔ 
+                            对方：${r.target_date} ${tarShiftName}
+                        </div>
+                    </div>
+                    <div class="actions">${actions}</div>
+                </div>
+            `;
+        }).join('');
+    }).catch(err => {
+        console.error('加载换班请求失败:', err);
+    });
+}
+
+function approveSwap(id) {
+    if (!currentUser) return;
+    apiPost('/swap/approve', { request_id: id, staff_id: currentUser.id })
+        .then(() => {
+            loadSwapRequests();
+            renderCalendar();
+            alert('已同意换班');
+        }).catch(err => alert(err.message));
+}
+
+function rejectSwap(id) {
+    if (!currentUser) return;
+    apiPost('/swap/reject', { request_id: id, staff_id: currentUser.id })
+        .then(() => {
+            loadSwapRequests();
+            alert('已拒绝');
+        }).catch(err => alert(err.message));
+}
+
+function cancelSwap(id) {
+    if (!currentUser) return;
+    if (!confirm('确定要取消换班申请吗？')) return;
+    apiPost('/swap/cancel', { request_id: id, staff_id: currentUser.id })
+        .then(() => {
+            loadSwapRequests();
+            alert('已取消');
+        }).catch(err => alert(err.message));
+}
+
+function loadDeptSchedule() {
+    const start = document.getElementById('deptStartDate').value;
+    const end = document.getElementById('deptEndDate').value;
+    
+    if (!start || !end) {
+        alert('请选择日期范围');
+        return;
+    }
+    
+    apiGet('/schedule/getdepartment', {
+        start_date: start,
+        end_date: end
+    }).then(data => {
+        deptSchedule = data;
+        renderDeptTable(data);
+    }).catch(err => alert(err.message));
+}
+
+function renderDeptTable(data) {
+    const { staff_list, schedule_map } = data;
+    
+    const start = new Date(document.getElementById('deptStartDate').value);
+    const end = new Date(document.getElementById('deptEndDate').value);
+    
+    const dates = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        dates.push(formatDate(new Date(d)));
+    }
+    
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    
+    let html = '<table>';
+    html += '<thead><tr><th class="staff-col">员工</th>';
+    dates.forEach(d => {
+        const date = new Date(d);
+        const day = dayNames[date.getDay()];
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        html += `<th style="${isWeekend ? 'color:#ef4444;' : ''}">${date.getMonth() + 1}/${date.getDate()} ${day}</th>`;
+    });
+    html += '</tr></thead>';
+    
+    html += '<tbody>';
+    staff_list.forEach(staff => {
+        html += `<tr><td class="staff-col">${staff.name}</td>`;
+        dates.forEach(d => {
+            const key = `${staff.id}_${d}`;
+            const sched = schedule_map[key];
+            if (sched) {
+                html += `<td><div class="shift-cell" style="background:${sched.color}" 
+                    onclick="editCellSchedule(${staff.id}, '${d}', ${sched.shift_id})">${sched.shift_name}</div></td>`;
+            } else {
+                html += `<td style="color:#d1d5db;">-</td>`;
+            }
+        });
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    
+    document.getElementById('deptTable').innerHTML = html;
+}
+
+function editCellSchedule(staffId, date, currentShiftId) {
+    if (!currentUser || currentUser.role !== 'admin') {
+        return;
+    }
+    
+    const options = shifts.map(s => 
+        `<option value="${s.id}" ${s.id === currentShiftId ? 'selected' : ''}>${s.name}</option>`
+    ).join('');
+    
+    const bodyHtml = `
+        <p><strong>员工：</strong>${staffList.find(s => s.id === staffId)?.name || ''}</p>
+        <p style="margin-top:8px;"><strong>日期：</strong>${date}</p>
+        <div class="form-row" style="margin-top:12px;">
+            <div class="form-item">
+                <label>调整为</label>
+                <select id="editShiftSelect">${options}</select>
+            </div>
+        </div>
+    `;
+    
+    const footerHtml = `
+        <button class="btn btn-gray" onclick="closeModal('detailModal')">取消</button>
+        <button class="btn btn-primary" onclick="saveCellSchedule(${staffId}, '${date}')">保存</button>
+    `;
+    
+    document.getElementById('detailTitle').textContent = '调整排班';
+    document.getElementById('detailBody').innerHTML = bodyHtml;
+    document.getElementById('detailFooter').innerHTML = footerHtml;
+    showModal('detailModal');
+}
+
+function saveCellSchedule(staffId, date) {
+    const shiftId = parseInt(document.getElementById('editShiftSelect').value);
+    
+    apiPost('/schedule/update', {
+        staff_id: staffId,
+        date: date,
+        shift_id: shiftId
+    }).then(() => {
+        closeModal('detailModal');
+        loadDeptSchedule();
+        renderCalendar();
+        alert('调整成功');
+    }).catch(err => alert(err.message));
+}
+
+function loadStatistics() {
+    const year = parseInt(document.getElementById('statYear').value);
+    const month = parseInt(document.getElementById('statMonth').value);
+    
+    apiGet('/statistics/get', { year, month }).then(data => {
+        renderStatistics(data);
+    }).catch(err => {
+        console.error('加载统计失败:', err);
+    });
+}
+
+function renderStatistics(data) {
+    const { stats } = data;
+    
+    let html = '';
+    
+    stats.forEach(stat => {
+        const shiftCountsHtml = Object.values(stat.shift_counts).map(c => `
+            <div class="stat-card" style="flex:1; min-width:80px;">
+                <div class="stat-value" style="color:${c.color}">${c.count}</div>
+                <div class="stat-label">${c.name}</div>
+            </div>
+        `).join('');
+        
+        let violationsHtml = '';
+        if (stat.violations && stat.violations.length > 0) {
+            violationsHtml = `
+                <div style="margin-top:8px;" class="violation">
+                    ⚠ ${stat.violations.map(v => v.message).join('，')}
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="card" style="margin-bottom:12px;">
+                <div class="card-title" style="margin-bottom:10px;">
+                    <div>${stat.staff_name}</div>
+                    <div style="font-size:12px;font-weight:normal;color:#6b7280;">
+                        夜班 <span style="color:#8b5cf6;font-weight:600;">${stat.night_count}</span> 次
+                        &nbsp;|&nbsp;
+                        连班 <span style="color:#f97316;font-weight:600;">${stat.max_consecutive_days}</span> 天
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    ${shiftCountsHtml}
+                </div>
+                ${violationsHtml}
+            </div>
+        `;
+    });
+    
+    document.getElementById('statsContainer').innerHTML = html;
+}
+
+function initYearMonth() {
+    const yearSelect = document.getElementById('statYear');
+    const monthSelect = document.getElementById('statMonth');
+    const now = new Date();
+    
+    yearSelect.innerHTML = '';
+    for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y + '年';
+        if (y === now.getFullYear()) opt.selected = true;
+        yearSelect.appendChild(opt);
+    }
+    
+    monthSelect.value = now.getMonth() + 1;
+}
+
+function loadAdminData() {
+    renderShiftTable();
+    renderStaffTable();
+    loadSwapHistory();
+}
+
+function renderShiftTable() {
+    const tbody = document.querySelector('#shiftTable tbody');
+    tbody.innerHTML = shifts.map(s => `
+        <tr>
+            <td>${s.name}</td>
+            <td>${s.start_time}</td>
+            <td>${s.end_time}</td>
+            <td><span class="shift-tag" style="background:${s.color}">${s.color}</span></td>
+            <td>
+                <button class="btn btn-gray btn-sm" onclick="editShift(${s.id})">编辑</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteShift(${s.id})">删除</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openShiftModal() {
+    document.getElementById('shiftModalTitle').textContent = '新增班次';
+    document.getElementById('shiftId').value = '';
+    document.getElementById('shiftName').value = '';
+    document.getElementById('shiftStartTime').value = '08:00';
+    document.getElementById('shiftEndTime').value = '16:00';
+    document.getElementById('shiftColor').value = '#3b82f6';
+    showModal('shiftModal');
+}
+
+function editShift(id) {
+    const shift = shifts.find(s => s.id === id);
+    if (!shift) return;
+    
+    document.getElementById('shiftModalTitle').textContent = '编辑班次';
+    document.getElementById('shiftId').value = shift.id;
+    document.getElementById('shiftName').value = shift.name;
+    document.getElementById('shiftStartTime').value = shift.start_time;
+    document.getElementById('shiftEndTime').value = shift.end_time;
+    document.getElementById('shiftColor').value = shift.color;
+    showModal('shiftModal');
+}
+
+function saveShift() {
+    const id = document.getElementById('shiftId').value;
+    const name = document.getElementById('shiftName').value.trim();
+    const startTime = document.getElementById('shiftStartTime').value;
+    const endTime = document.getElementById('shiftEndTime').value;
+    const color = document.getElementById('shiftColor').value;
+    
+    if (!name) {
+        alert('请输入班次名称');
+        return;
+    }
+    
+    const request = id 
+        ? apiPost('/shift/update', { id: parseInt(id), name, start_time: startTime, end_time: endTime, color })
+        : apiPost('/shift/set', { name, start_time: startTime, end_time: endTime, color });
+    
+    request.then(() => {
+        closeModal('shiftModal');
+        return apiGet('/shift/getlist');
+    }).then(data => {
+        shifts = data;
+        renderShiftTable();
+        renderLegend();
+    }).catch(err => alert(err.message));
+}
+
+function deleteShift(id) {
+    if (!confirm('确定要删除这个班次吗？')) return;
+    
+    api(`/shift/delete?id=${id}`, { method: 'DELETE' }).then(() => {
+        return apiGet('/shift/getlist');
+    }).then(data => {
+        shifts = data;
+        renderShiftTable();
+        renderLegend();
+    }).catch(err => alert(err.message));
+}
+
+function renderStaffTable() {
+    const tbody = document.querySelector('#staffTable tbody');
+    const roleMap = { 'admin': '管理员', 'staff': '员工' };
+    tbody.innerHTML = staffList.map(s => `
+        <tr>
+            <td>${s.name}</td>
+            <td>${roleMap[s.role] || s.role}</td>
+            <td>
+                <button class="btn btn-gray btn-sm" onclick="editStaff(${s.id})">编辑</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteStaff(${s.id})">删除</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openStaffModal() {
+    document.getElementById('staffModalTitle').textContent = '新增员工';
+    document.getElementById('staffId').value = '';
+    document.getElementById('staffName').value = '';
+    document.getElementById('staffRole').value = 'staff';
+    showModal('staffModal');
+}
+
+function editStaff(id) {
+    const staff = staffList.find(s => s.id === id);
+    if (!staff) return;
+    
+    document.getElementById('staffModalTitle').textContent = '编辑员工';
+    document.getElementById('staffId').value = staff.id;
+    document.getElementById('staffName').value = staff.name;
+    document.getElementById('staffRole').value = staff.role;
+    showModal('staffModal');
+}
+
+function saveStaff() {
+    const id = document.getElementById('staffId').value;
+    const name = document.getElementById('staffName').value.trim();
+    const role = document.getElementById('staffRole').value;
+    
+    if (!name) {
+        alert('请输入员工姓名');
+        return;
+    }
+    
+    const request = id 
+        ? apiPost('/staff/update', { id: parseInt(id), name, role })
+        : apiPost('/staff/set', { name, role });
+    
+    request.then(() => {
+        closeModal('staffModal');
+        return apiGet('/staff/getlist');
+    }).then(data => {
+        staffList = data;
+        renderStaffTable();
+        initUserSelector();
+        const targetSelect = document.getElementById('swapTargetStaff');
+        if (targetSelect) {
+            targetSelect.innerHTML = staffList
+                .filter(s => s.id !== currentUser?.id)
+                .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+    }).catch(err => alert(err.message));
+}
+
+function deleteStaff(id) {
+    if (!confirm('确定要删除这个员工吗？')) return;
+    
+    api(`/staff/delete?id=${id}`, { method: 'DELETE' }).then(() => {
+        return apiGet('/staff/getlist');
+    }).then(data => {
+        staffList = data;
+        renderStaffTable();
+        initUserSelector();
+    }).catch(err => alert(err.message));
+}
+
+function generateSchedule() {
+    const startDate = document.getElementById('genStartDate').value;
+    const weeks = parseInt(document.getElementById('genWeeks').value);
+    const maxNight = parseInt(document.getElementById('genMaxNight').value);
+    
+    if (!startDate) {
+        alert('请选择开始日期');
+        return;
+    }
+    
+    if (!confirm(`确定要生成从 ${startDate} 开始的 ${weeks} 周排班吗？这将覆盖现有排班。`)) {
+        return;
+    }
+    
+    apiPost('/schedule/generate', {
+        start_date: startDate,
+        weeks: weeks,
+        max_night_per_week: maxNight,
+        min_rest_days: 1
+    }).then(data => {
+        alert(data.message || '生成成功');
+        renderCalendar();
+        if (document.getElementById('deptStartDate').value) {
+            loadDeptSchedule();
+        }
+    }).catch(err => alert(err.message));
+}
+
+function loadSwapHistory() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    
+    apiGet('/swap/getlist', { role: 'admin' }).then(requests => {
+        const container = document.getElementById('swapHistoryList');
+        
+        if (requests.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div>暂无换班记录</div></div>';
+            return;
+        }
+        
+        const statusMap = {
+            'pending': { text: '待处理', class: 'status-pending' },
+            'approved': { text: '已同意', class: 'status-approved' },
+            'rejected': { text: '已拒绝', class: 'status-rejected' },
+            'cancelled': { text: '已取消', class: 'status-cancelled' }
+        };
+        
+        container.innerHTML = requests.map(r => {
+            const s = statusMap[r.status] || {};
+            const reqShiftName = r.requester_shift?.name || '未知';
+            const tarShiftName = r.target_shift?.name || '未知';
+            
+            return `
+                <div class="request-item">
+                    <div class="info">
+                        <div class="name">
+                            ${r.requester_name} ↔ ${r.target_name}
+                            <span class="status-badge ${s.class}">${s.text}</span>
+                        </div>
+                        <div class="detail">
+                            ${r.date} ${reqShiftName} 
+                            ↔ 
+                            ${r.target_date} ${tarShiftName}
+                        </div>
+                    </div>
+                    <div class="detail" style="font-size:11px;color:#9ca3af;">
+                        ${r.created_at}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }).catch(err => {
+        console.error('加载换班历史失败:', err);
+    });
+}
+
+function switchPage(pageName) {
+    document.querySelectorAll('.nav-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.page === pageName);
+    });
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.toggle('active', p.id === 'page-' + pageName);
+    });
+    
+    if (pageName === 'department' && !document.getElementById('deptStartDate').value) {
+        initDateDefaults();
+        loadDeptSchedule();
+    }
+}
+
+function initDateDefaults() {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    document.getElementById('deptStartDate').value = formatDate(monthStart);
+    document.getElementById('deptEndDate').value = formatDate(monthEnd);
+    
+    const genStart = new Date(now);
+    genStart.setDate(now.getDate() - now.getDay());
+    document.getElementById('genStartDate').value = formatDate(genStart);
+}
+
+function showModal(id) {
+    document.getElementById(id).classList.add('show');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchPage(tab.dataset.page));
+});
+
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+        }
+    });
+});
+
+init();
+</script>
+
+</body>
+</html>

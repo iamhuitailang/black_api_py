@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.schedule import ShiftModel, StaffModel, ScheduleModel, SwapRequestModel
 from app.common.sqlite.db import get_db
 
 
@@ -21,6 +22,39 @@ def migrate_database():
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
+
+
+def seed_schedule_data():
+    print("Seeding schedule data...")
+    
+    shift_model = ShiftModel()
+    staff_model = StaffModel()
+    
+    if shift_model.count() == 0:
+        default_shifts = [
+            ('早班', '08:00', '16:00', '#3b82f6'),
+            ('中班', '16:00', '24:00', '#f97316'),
+            ('夜班', '00:00', '08:00', '#8b5cf6'),
+            ('休息', '00:00', '00:00', '#9ca3af'),
+        ]
+        for name, start, end, color in default_shifts:
+            shift_model.create(name, start, end, color)
+        print("  - Created default shifts")
+    
+    if staff_model.count() == 0:
+        default_staff = [
+            ('张护士长', 'admin'),
+            ('李护士', 'staff'),
+            ('王护士', 'staff'),
+            ('刘护士', 'staff'),
+            ('陈护士', 'staff'),
+            ('杨护士', 'staff'),
+            ('赵护士', 'staff'),
+            ('黄护士', 'staff'),
+        ]
+        for name, role in default_staff:
+            staff_model.create(name, role)
+        print("  - Created default staff")
 
 
 def init_database():
@@ -34,8 +68,13 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    ShiftModel.create_table()
+    StaffModel.create_table()
+    ScheduleModel.create_table()
+    SwapRequestModel.create_table()
     
     migrate_database()
+    seed_schedule_data()
     
     print("Database initialized successfully")
 
@@ -113,6 +152,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8804,
         reload=True
     )
