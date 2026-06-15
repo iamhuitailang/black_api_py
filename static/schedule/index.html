@@ -874,6 +874,7 @@ const API_BASE = '/api';
 const TOKEN_KEY = 'schedule_token';
 const USER_KEY = 'schedule_user';
 const SWAP_DRAFT_KEY = 'schedule_swap_draft';
+const ACTIVE_TAB_KEY = 'schedule_active_tab';
 
 let currentUser = null;
 let currentToken = '';
@@ -882,6 +883,14 @@ let shifts = [];
 let staffList = [];
 let currentSchedule = null;
 let deptSchedule = null;
+
+function saveActiveTab(pageName) {
+    localStorage.setItem(ACTIVE_TAB_KEY, pageName);
+}
+
+function loadActiveTab() {
+    return localStorage.getItem(ACTIVE_TAB_KEY) || 'calendar';
+}
 
 function saveSwapDraft() {
     const draft = {
@@ -1065,6 +1074,18 @@ function initApp() {
         }
 
         const draft = loadSwapDraft();
+        let tabToOpen = loadActiveTab();
+
+        if (draft && (draft.myDate || draft.targetStaffId || draft.targetDate)) {
+            tabToOpen = 'swap';
+        }
+
+        if (tabToOpen === 'admin' && currentUser.role !== 'admin') {
+            tabToOpen = 'calendar';
+        }
+
+        switchPage(tabToOpen);
+
         if (draft && (draft.myDate || draft.targetStaffId || draft.targetDate)) {
             openSwapModal();
         }
@@ -1786,6 +1807,8 @@ function switchPage(pageName) {
     document.querySelectorAll('.page').forEach(p => {
         p.classList.toggle('active', p.id === 'page-' + pageName);
     });
+    
+    saveActiveTab(pageName);
     
     if (pageName === 'department' && !document.getElementById('deptStartDate').value) {
         initDateDefaults();
