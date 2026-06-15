@@ -5,7 +5,7 @@ import HUD from '@/components/HUD';
 import StartMenu from '@/components/StartMenu';
 import GameOverScreen from '@/components/GameOverScreen';
 import PauseMenu from '@/components/PauseMenu';
-import Crosshair from '@/components/Crosshair';
+import Crosshair, { CrosshairRef } from '@/components/Crosshair';
 import Background from '@/components/Background';
 import Ground from '@/components/Ground';
 import DamageNumbers from '@/components/DamageNumbers';
@@ -17,10 +17,11 @@ import { MAX_LIVES } from '@/constants/gameConfig';
 
 export default function GameScene() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const crosshairRef = useRef<CrosshairRef>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
+  const mouseCoords = useRef({ x: 0, y: 0 });
 
   const {
     status,
@@ -39,6 +40,7 @@ export default function GameScene() {
     shoot,
     reload,
     update,
+    autoSave,
   } = useGameStore();
 
   useEffect(() => {
@@ -55,6 +57,31 @@ export default function GameScene() {
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      autoSave();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [autoSave]);
+
+  useEffect(() => {
+    const resumed = useGameStore.getState().resumeFromSave();
+    if (resumed) {
+      console.log('Game state restored from auto-save');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status === 'playing') {
+      crosshairRef.current?.show();
+    } else {
+      crosshairRef.current?.hide();
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status !== 'playing') {
@@ -96,21 +123,32 @@ export default function GameScene() {
       const y = e.clientY - rect.top;
 
       shoot(x, y, rect.width, rect.height);
+      autoSave();
     },
-    [status, isReloading, shoot]
+    [status, isReloading, shoot, autoSave]
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      mouseCoords.current = { x, y };
+      crosshairRef.current?.setPosition(x, y);
     },
     []
   );
+
+  const handleMouseLeave = useCallback(() => {
+    crosshairRef.current?.hide();
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    if (status === 'playing') {
+      crosshairRef.current?.show();
+    }
+  }, [status]);
 
   const handleStartGame = () => {
     startGame(1);
@@ -133,6 +171,7 @@ export default function GameScene() {
   };
 
   const handleMainMenu = () => {
+    autoSave();
     useGameStore.setState({ status: 'menu' });
   };
 
@@ -147,6 +186,8 @@ export default function GameScene() {
       className="relative w-full h-screen overflow-hidden cursor-none select-none"
       onClick={handleClick}
       onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onMouseEnter={handleMouseEnter}
       style={{
         transform: `translate(${shakeX}px, ${shakeY}px)`,
         background: '#0a0a12',
@@ -164,7 +205,7 @@ export default function GameScene() {
 
       <MuzzleFlash intensity={muzzleFlash} />
 
-      {status === 'playing' && <Crosshair x={mousePos.x} y={mousePos.y} />}
+      <Crosshair ref={crosshairRef} />
 
       {showWaveNotice && <WaveNotice text={waveNoticeText} />}
 

@@ -81,7 +81,7 @@ function showWaveNotice(wave: number) {
 }
 
 let saveTimer = 0;
-const SAVE_INTERVAL = 5;
+const SAVE_INTERVAL = 1;
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
@@ -203,11 +203,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       if (killed) playZombieGroan();
 
-      return {
+      const result = {
         zombies: newZombies,
         score: newScore,
         damageNumbers: [...s.damageNumbers, dmgNum],
       };
+
+      setTimeout(() => get().autoSave(), 0);
+
+      return result;
     });
   },
 
@@ -278,6 +282,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const aliveZombies = updatedZombies.filter(
         (z) => z.distance > DANGER_DISTANCE || z.deathAnimation > 0
       );
+
+      if (newLives !== s.lives) {
+        setTimeout(() => get().autoSave(), 0);
+      }
 
       return {
         zombies: aliveZombies,

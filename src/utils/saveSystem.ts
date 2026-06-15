@@ -1,5 +1,5 @@
-import { SaveData, GameSaveState, Zombie, ZombieType } from '@/types/game';
-import { SAVE_KEY, MAX_LIVES, MAX_MAGAZINE } from '@/constants/gameConfig';
+import { SaveData, GameSaveState, Zombie } from '@/types/game';
+import { SAVE_KEY, MAX_LIVES } from '@/constants/gameConfig';
 
 const DEFAULT_SAVE: SaveData = {
   highestWave: 0,
@@ -65,7 +65,8 @@ export function saveGameState(gameState: GameSaveState): void {
       lastPlayedLives: gameState.lives,
       gameState,
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+    const serialized = JSON.stringify(saveData);
+    localStorage.setItem(SAVE_KEY, serialized);
   } catch (e) {
     console.warn('Failed to save game state:', e);
   }
@@ -88,9 +89,9 @@ export function clearGameState(): void {
   try {
     const existing = loadSaveData();
     if (existing) {
-      const { gameState, ...rest } = existing;
       localStorage.setItem(SAVE_KEY, JSON.stringify({
-        ...rest,
+        ...existing,
+        gameState: undefined,
         lastPlayedWave: 1,
         lastPlayedScore: 0,
         lastPlayedLives: MAX_LIVES,
