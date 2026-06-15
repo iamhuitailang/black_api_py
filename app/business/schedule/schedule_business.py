@@ -107,12 +107,12 @@ class ScheduleBusiness:
             'data': staff_list
         }
 
-    def create_staff(self, name: str, role: str = 'staff') -> Dict[str, Any]:
+    def create_staff(self, name: str, role: str = 'staff', password: str = '123456') -> Dict[str, Any]:
         if not name or not name.strip():
             return {'code': 1, 'message': '员工姓名不能为空', 'data': None}
 
         name = name.strip()
-        staff_id = self.staff_model.create(name, role)
+        staff_id = self.staff_model.create(name, role, password)
         staff = self.staff_model.get_by_id(staff_id)
         return {
             'code': 0,
@@ -120,12 +120,12 @@ class ScheduleBusiness:
             'data': staff
         }
 
-    def update_staff(self, staff_id: int, name: str = None, role: str = None) -> Dict[str, Any]:
+    def update_staff(self, staff_id: int, name: str = None, role: str = None, password: str = None) -> Dict[str, Any]:
         existing = self.staff_model.get_by_id(staff_id)
         if not existing:
             return {'code': 1, 'message': '员工不存在', 'data': None}
 
-        affected = self.staff_model.update(staff_id, name, role)
+        affected = self.staff_model.update(staff_id, name, role, password)
         if affected > 0:
             staff = self.staff_model.get_by_id(staff_id)
             return {'code': 0, 'message': '更新成功', 'data': staff}

@@ -12,7 +12,100 @@
             color: #1f2937;
             font-size: 14px;
         }
-        
+
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        .login-card h2 {
+            text-align: center;
+            margin-bottom: 8px;
+            color: #1f2937;
+            font-size: 22px;
+        }
+        .login-card .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+        .login-card .form-item {
+            margin-bottom: 16px;
+        }
+        .login-card .form-item label {
+            display: block;
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .login-card .form-item input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        .login-card .form-item input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .login-card .btn-login {
+            width: 100%;
+            padding: 11px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .login-card .btn-login:hover {
+            background: #2563eb;
+        }
+        .login-card .btn-login:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        .login-card .login-tip {
+            margin-top: 16px;
+            padding: 10px 12px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #0369a1;
+        }
+        .login-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .login-error.show { display: block; }
+
+        .app-wrapper { display: none; }
+        .app-wrapper.show { display: block; }
+
         .header {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
@@ -21,23 +114,43 @@
             top: 0;
             z-index: 100;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .header h1 {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
         }
-        .header .sub {
-            font-size: 12px;
-            opacity: 0.9;
-            margin-top: 2px;
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
         }
+        .header-user {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .header-logout {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .header-logout:hover { background: rgba(255,255,255,0.25); }
         
         .nav-tabs {
             display: flex;
             background: white;
             border-bottom: 1px solid #e5e7eb;
             position: sticky;
-            top: 60px;
+            top: 48px;
             z-index: 99;
             overflow-x: auto;
         }
@@ -356,26 +469,6 @@
             font-weight: 500;
         }
         
-        .user-selector {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-        .user-chip {
-            padding: 6px 12px;
-            background: #f3f4f6;
-            border-radius: 16px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-        .user-chip:hover { background: #e5e7eb; }
-        .user-chip.active {
-            background: #3b82f6;
-            color: white;
-        }
-        
         .legend {
             display: flex;
             gap: 12px;
@@ -421,6 +514,12 @@
             color: #9ca3af;
         }
         .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+        }
         
         @media (max-width: 640px) {
             .container { padding: 12px; }
@@ -430,199 +529,225 @@
             .form-item { min-width: 100%; }
             .nav-tab { padding: 10px 12px; font-size: 13px; }
             .dept-table th, .dept-table td { padding: 4px 6px; font-size: 11px; }
+            .header h1 { font-size: 15px; }
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>🏥 科室排班系统</h1>
-    <div class="sub" id="currentUser">未登录</div>
+<div class="login-wrapper" id="loginWrapper">
+    <div class="login-card">
+        <h2>🏥 科室排班系统</h2>
+        <div class="subtitle">请登录后查看排班信息</div>
+        <div class="login-error" id="loginError"></div>
+        <div class="form-item">
+            <label>姓名</label>
+            <input type="text" id="loginName" placeholder="请输入您的姓名">
+        </div>
+        <div class="form-item">
+            <label>密码</label>
+            <input type="password" id="loginPassword" placeholder="请输入密码">
+        </div>
+        <button class="btn-login" id="loginBtn" onclick="doLogin()">登 录</button>
+        <div class="login-tip">
+            💡 默认密码：<strong>123456</strong><br>
+            请登录后及时修改您的密码
+        </div>
+    </div>
 </div>
 
-<div class="nav-tabs">
-    <div class="nav-tab active" data-page="calendar">个人日历</div>
-    <div class="nav-tab" data-page="department">科室视图</div>
-    <div class="nav-tab" data-page="swap">换班请求</div>
-    <div class="nav-tab" data-page="statistics">统计报表</div>
-    <div class="nav-tab" data-page="admin" id="adminTab" style="display:none;">管理设置</div>
-</div>
+<div class="app-wrapper" id="appWrapper">
+    <div class="header">
+        <h1>🏥 科室排班系统</h1>
+        <div class="header-right">
+            <span class="header-user" id="headerUser"></span>
+            <button class="header-logout" onclick="doLogout()">退出</button>
+        </div>
+    </div>
 
-<div class="container">
-    
-    <div class="page active" id="page-calendar">
-        <div class="card">
-            <div class="card-title">
-                <div>我的排班</div>
-                <div class="user-selector" id="userSelector"></div>
-            </div>
-            
-            <div class="month-nav">
-                <button onclick="changeMonth(-1)">◀</button>
-                <div class="month-title" id="calendarMonth"></div>
-                <button onclick="changeMonth(1)">▶</button>
-            </div>
-            
-            <div class="legend" id="legend"></div>
-            
-            <div class="calendar-grid" id="calendarGrid"></div>
-        </div>
+    <div class="nav-tabs">
+        <div class="nav-tab active" data-page="calendar">我的日历</div>
+        <div class="nav-tab" data-page="department">科室视图</div>
+        <div class="nav-tab" data-page="swap">换班请求</div>
+        <div class="nav-tab" data-page="statistics">统计报表</div>
+        <div class="nav-tab" data-page="admin" id="adminTab" style="display:none;">管理设置</div>
     </div>
-    
-    <div class="page" id="page-department">
-        <div class="card">
-            <div class="card-title">科室排班表</div>
-            <div class="form-row">
-                <div class="form-item">
-                    <label>开始日期</label>
-                    <input type="date" id="deptStartDate">
+
+    <div class="container">
+        
+        <div class="page active" id="page-calendar">
+            <div class="card">
+                <div class="card-title">
+                    <div>我的排班</div>
                 </div>
-                <div class="form-item">
-                    <label>结束日期</label>
-                    <input type="date" id="deptEndDate">
+                
+                <div class="month-nav">
+                    <button onclick="changeMonth(-1)">◀</button>
+                    <div class="month-title" id="calendarMonth"></div>
+                    <button onclick="changeMonth(1)">▶</button>
                 </div>
-                <div class="form-item">
-                    <label>&nbsp;</label>
-                    <button class="btn btn-primary" onclick="loadDeptSchedule()">查询</button>
-                </div>
+                
+                <div class="legend" id="legend"></div>
+                
+                <div class="calendar-grid" id="calendarGrid"></div>
             </div>
-            
-            <div class="legend" id="deptLegend"></div>
-            
-            <div class="dept-table" id="deptTable"></div>
-        </div>
-    </div>
-    
-    <div class="page" id="page-swap">
-        <div class="card">
-            <div class="card-title">
-                <div>换班请求</div>
-                <button class="btn btn-primary" onclick="openSwapModal()">发起换班</button>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-item">
-                    <label>状态筛选</label>
-                    <select id="swapStatusFilter" onchange="loadSwapRequests()">
-                        <option value="">全部</option>
-                        <option value="pending">待处理</option>
-                        <option value="approved">已同意</option>
-                        <option value="rejected">已拒绝</option>
-                        <option value="cancelled">已取消</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div id="swapList"></div>
-        </div>
-    </div>
-    
-    <div class="page" id="page-statistics">
-        <div class="card">
-            <div class="card-title">月度统计</div>
-            <div class="form-row">
-                <div class="form-item">
-                    <label>年份</label>
-                    <select id="statYear" onchange="loadStatistics()"></select>
-                </div>
-                <div class="form-item">
-                    <label>月份</label>
-                    <select id="statMonth" onchange="loadStatistics()">
-                        <option value="1">1月</option>
-                        <option value="2">2月</option>
-                        <option value="3">3月</option>
-                        <option value="4">4月</option>
-                        <option value="5">5月</option>
-                        <option value="6">6月</option>
-                        <option value="7">7月</option>
-                        <option value="8">8月</option>
-                        <option value="9">9月</option>
-                        <option value="10">10月</option>
-                        <option value="11">11月</option>
-                        <option value="12">12月</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div id="statsContainer"></div>
-        </div>
-    </div>
-    
-    <div class="page" id="page-admin">
-        <div class="card">
-            <div class="card-title">
-                <div>班次管理</div>
-                <button class="btn btn-primary" onclick="openShiftModal()">+ 新增班次</button>
-            </div>
-            <table id="shiftTable">
-                <thead>
-                    <tr>
-                        <th>名称</th>
-                        <th>开始时间</th>
-                        <th>结束时间</th>
-                        <th>颜色</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
         </div>
         
-        <div class="card">
-            <div class="card-title">
-                <div>员工管理</div>
-                <button class="btn btn-primary" onclick="openStaffModal()">+ 新增员工</button>
+        <div class="page" id="page-department">
+            <div class="card">
+                <div class="card-title">科室排班表</div>
+                <div class="form-row">
+                    <div class="form-item">
+                        <label>开始日期</label>
+                        <input type="date" id="deptStartDate">
+                    </div>
+                    <div class="form-item">
+                        <label>结束日期</label>
+                        <input type="date" id="deptEndDate">
+                    </div>
+                    <div class="form-item">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="loadDeptSchedule()">查询</button>
+                    </div>
+                </div>
+                
+                <div class="legend" id="deptLegend"></div>
+                
+                <div class="dept-table" id="deptTable"></div>
             </div>
-            <table id="staffTable">
-                <thead>
-                    <tr>
-                        <th>姓名</th>
-                        <th>角色</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
         </div>
         
-        <div class="card">
-            <div class="card-title">自动排班</div>
-            <div class="form-row">
-                <div class="form-item">
-                    <label>开始日期</label>
-                    <input type="date" id="genStartDate">
+        <div class="page" id="page-swap">
+            <div class="card">
+                <div class="card-title">
+                    <div>换班请求</div>
+                    <button class="btn btn-primary" onclick="openSwapModal()">发起换班</button>
                 </div>
-                <div class="form-item">
-                    <label>周数</label>
-                    <select id="genWeeks">
-                        <option value="1">1周</option>
-                        <option value="2">2周</option>
-                        <option value="3">3周</option>
-                        <option value="4" selected>4周</option>
-                        <option value="8">8周</option>
-                    </select>
+                
+                <div class="form-row">
+                    <div class="form-item">
+                        <label>状态筛选</label>
+                        <select id="swapStatusFilter" onchange="loadSwapRequests()">
+                            <option value="">全部</option>
+                            <option value="pending">待处理</option>
+                            <option value="approved">已同意</option>
+                            <option value="rejected">已拒绝</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-item">
-                    <label>每周最多夜班</label>
-                    <select id="genMaxNight">
-                        <option value="1">1个</option>
-                        <option value="2" selected>2个</option>
-                        <option value="3">3个</option>
-                    </select>
-                </div>
-                <div class="form-item">
-                    <label>&nbsp;</label>
-                    <button class="btn btn-success" onclick="generateSchedule()">生成排班</button>
-                </div>
+                
+                <div id="swapList"></div>
             </div>
-            <p style="font-size:12px;color:#6b7280;">
-                规则说明：每人每周夜班不超过2个，保证连休至少1天，自动均衡分配各班次。
-            </p>
         </div>
         
-        <div class="card">
-            <div class="card-title">换班历史</div>
-            <div id="swapHistoryList"></div>
+        <div class="page" id="page-statistics">
+            <div class="card">
+                <div class="card-title">月度统计</div>
+                <div class="form-row">
+                    <div class="form-item">
+                        <label>年份</label>
+                        <select id="statYear" onchange="loadStatistics()"></select>
+                    </div>
+                    <div class="form-item">
+                        <label>月份</label>
+                        <select id="statMonth" onchange="loadStatistics()">
+                            <option value="1">1月</option>
+                            <option value="2">2月</option>
+                            <option value="3">3月</option>
+                            <option value="4">4月</option>
+                            <option value="5">5月</option>
+                            <option value="6">6月</option>
+                            <option value="7">7月</option>
+                            <option value="8">8月</option>
+                            <option value="9">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="statsContainer"></div>
+            </div>
+        </div>
+        
+        <div class="page" id="page-admin">
+            <div class="card">
+                <div class="card-title">
+                    <div>班次管理</div>
+                    <button class="btn btn-primary" onclick="openShiftModal()">+ 新增班次</button>
+                </div>
+                <table id="shiftTable">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>颜色</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <div>员工管理</div>
+                    <button class="btn btn-primary" onclick="openStaffModal()">+ 新增员工</button>
+                </div>
+                <table id="staffTable">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>角色</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">自动排班</div>
+                <div class="form-row">
+                    <div class="form-item">
+                        <label>开始日期</label>
+                        <input type="date" id="genStartDate">
+                    </div>
+                    <div class="form-item">
+                        <label>周数</label>
+                        <select id="genWeeks">
+                            <option value="1">1周</option>
+                            <option value="2">2周</option>
+                            <option value="3">3周</option>
+                            <option value="4" selected>4周</option>
+                            <option value="8">8周</option>
+                        </select>
+                    </div>
+                    <div class="form-item">
+                        <label>每周最多夜班</label>
+                        <select id="genMaxNight">
+                            <option value="1">1个</option>
+                            <option value="2" selected>2个</option>
+                            <option value="3">3个</option>
+                        </select>
+                    </div>
+                    <div class="form-item">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-success" onclick="generateSchedule()">生成排班</button>
+                    </div>
+                </div>
+                <p style="font-size:12px;color:#6b7280;">
+                    规则说明：每人每周夜班不超过2个，保证连休至少1天，自动均衡分配各班次。
+                </p>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">换班历史</div>
+                <div id="swapHistoryList"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -688,6 +813,12 @@
                     </select>
                 </div>
             </div>
+            <div class="form-row" id="staffPasswordRow" style="display:none;">
+                <div class="form-item">
+                    <label>密码</label>
+                    <input type="text" id="staffPassword" placeholder="留空则不修改">
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-gray" onclick="closeModal('staffModal')">取消</button>
@@ -740,19 +871,60 @@
 
 <script>
 const API_BASE = '/api';
+const TOKEN_KEY = 'schedule_token';
+const USER_KEY = 'schedule_user';
+
 let currentUser = null;
+let currentToken = '';
 let currentMonth = new Date();
 let shifts = [];
 let staffList = [];
 let currentSchedule = null;
 let deptSchedule = null;
 
+function getToken() {
+    return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+function setToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+function clearToken() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+}
+
+function getSavedUser() {
+    const s = localStorage.getItem(USER_KEY);
+    return s ? JSON.parse(s) : null;
+}
+
+function setSavedUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 function api(url, options = {}) {
+    const token = getToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+    }
+    
     return fetch(API_BASE + url, {
-        headers: { 'Content-Type': 'application/json', ...options.headers },
+        headers,
         ...options
     }).then(r => r.json()).then(r => {
-        if (r.code !== 0) throw new Error(r.message || '请求失败');
+        if (r.code !== 0) {
+            if (r.message === '请先登录' || r.message === '未登录或登录已过期') {
+                clearToken();
+                showLoginPage();
+            }
+            throw new Error(r.message || '请求失败');
+        }
         return r.data;
     });
 }
@@ -766,11 +938,87 @@ function apiPost(url, data = {}) {
     return api(url, { method: 'POST', body: JSON.stringify(data) });
 }
 
-function init() {
-    const saved = localStorage.getItem('currentUser');
-    if (saved) {
-        currentUser = JSON.parse(saved);
+function showLoginPage() {
+    document.getElementById('loginWrapper').style.display = 'flex';
+    document.getElementById('appWrapper').classList.remove('show');
+    document.getElementById('loginError').classList.remove('show');
+    document.getElementById('loginName').value = '';
+    document.getElementById('loginPassword').value = '';
+}
+
+function showAppPage() {
+    document.getElementById('loginWrapper').style.display = 'none';
+    document.getElementById('appWrapper').classList.add('show');
+}
+
+function doLogin() {
+    const name = document.getElementById('loginName').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+    
+    if (!name) {
+        errorDiv.textContent = '请输入姓名';
+        errorDiv.classList.add('show');
+        return;
     }
+    if (!password) {
+        errorDiv.textContent = '请输入密码';
+        errorDiv.classList.add('show');
+        return;
+    }
+    
+    errorDiv.classList.remove('show');
+    btn.disabled = true;
+    btn.textContent = '登录中...';
+    
+    apiPost('/schedule/login', { name, password })
+        .then(data => {
+            currentUser = data.staff;
+            currentToken = data.token;
+            setToken(currentToken);
+            setSavedUser(currentUser);
+            
+            btn.disabled = false;
+            btn.textContent = '登 录';
+            
+            initApp();
+        })
+        .catch(err => {
+            errorDiv.textContent = err.message;
+            errorDiv.classList.add('show');
+            btn.disabled = false;
+            btn.textContent = '登 录';
+        });
+}
+
+function doLogout() {
+    if (!confirm('确定要退出登录吗？')) return;
+    
+    apiPost('/schedule/logout', {})
+        .catch(() => {})
+        .finally(() => {
+            clearToken();
+            currentUser = null;
+            currentToken = '';
+            showLoginPage();
+        });
+}
+
+function initApp() {
+    showAppPage();
+    updateHeaderUser();
+    
+    if (currentUser.role === 'admin') {
+        document.getElementById('adminTab').style.display = 'block';
+    } else {
+        document.getElementById('adminTab').style.display = 'none';
+        if (document.querySelector('.nav-tab.active')?.dataset.page === 'admin') {
+            switchPage('calendar');
+        }
+    }
+    
+    initYearMonth();
     
     Promise.all([
         apiGet('/shift/getlist'),
@@ -779,66 +1027,53 @@ function init() {
         shifts = shiftData;
         staffList = staffData;
         
-        if (!currentUser && staffList.length > 0) {
-            currentUser = staffList[0];
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        }
-        
-        updateUserDisplay();
-        initUserSelector();
         renderLegend();
         renderCalendar();
         loadSwapRequests();
-        initYearMonth();
-        loadAdminData();
         loadStatistics();
-        
-        const admin = staffList.find(s => s.role === 'admin');
-        if (admin && currentUser && currentUser.role === 'admin') {
-            document.getElementById('adminTab').style.display = 'block';
-        }
-        
+        loadAdminData();
         initDateDefaults();
+        
+        const targetSelect = document.getElementById('swapTargetStaff');
+        if (targetSelect) {
+            targetSelect.innerHTML = staffList
+                .filter(s => s.id !== currentUser.id)
+                .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
     }).catch(err => {
         console.error('初始化失败:', err);
     });
 }
 
-function updateUserDisplay() {
+function updateHeaderUser() {
     if (currentUser) {
-        document.getElementById('currentUser').textContent = 
-            `当前用户：${currentUser.name}${currentUser.role === 'admin' ? ' (管理员)' : ''}`;
+        const roleText = currentUser.role === 'admin' ? ' (管理员)' : '';
+        document.getElementById('headerUser').textContent = currentUser.name + roleText;
     }
 }
 
-function initUserSelector() {
-    const container = document.getElementById('userSelector');
-    container.innerHTML = staffList.map(s => `
-        <div class="user-chip ${currentUser && s.id === currentUser.id ? 'active' : ''}" 
-             onclick="selectUser(${s.id})">${s.name}</div>
-    `).join('');
-}
-
-function selectUser(id) {
-    const user = staffList.find(s => s.id === id);
-    if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        updateUserDisplay();
-        initUserSelector();
-        renderCalendar();
-        loadSwapRequests();
-        
-        const adminTab = document.getElementById('adminTab');
-        if (user.role === 'admin') {
-            adminTab.style.display = 'block';
-        } else {
-            adminTab.style.display = 'none';
-            if (document.querySelector('.nav-tab.active')?.dataset.page === 'admin') {
-                switchPage('calendar');
-            }
-        }
+function checkAuth() {
+    const token = getToken();
+    const savedUser = getSavedUser();
+    
+    if (!token || !savedUser) {
+        showLoginPage();
+        return;
     }
+    
+    currentUser = savedUser;
+    currentToken = token;
+    
+    apiGet('/schedule/current/user/get')
+        .then(user => {
+            currentUser = user;
+            setSavedUser(user);
+            initApp();
+        })
+        .catch(() => {
+            clearToken();
+            showLoginPage();
+        });
 }
 
 function renderLegend() {
@@ -944,7 +1179,7 @@ function showDayDetail(dateStr, shiftId) {
     }
     
     let footerHtml = '';
-    if (currentUser && shift) {
+    if (currentUser && shift && shift.name !== '休息') {
         footerHtml = `
             <button class="btn btn-primary" onclick="closeModal('detailModal'); openSwapModal('${dateStr}')">申请换班</button>
         `;
@@ -964,9 +1199,11 @@ function openSwapModal(myDate = '') {
     }
     
     const select = document.getElementById('swapTargetStaff');
-    select.innerHTML = staffList
-        .filter(s => s.id !== currentUser.id)
-        .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    if (select.options.length === 0) {
+        select.innerHTML = staffList
+            .filter(s => s.id !== currentUser.id)
+            .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
     
     showModal('swapModal');
 }
@@ -999,12 +1236,13 @@ function loadSwapRequests() {
     if (!currentUser) return;
     
     const status = document.getElementById('swapStatusFilter').value;
+    const params = { status };
     
-    apiGet('/swap/getlist', {
-        staff_id: currentUser.id,
-        status: status,
-        role: currentUser.role
-    }).then(requests => {
+    if (currentUser.role !== 'admin') {
+        params.staff_id = currentUser.id;
+    }
+    
+    apiGet('/swap/getlist', params).then(requests => {
         const container = document.getElementById('swapList');
         
         if (requests.length === 0) {
@@ -1153,6 +1391,7 @@ function renderDeptTable(data) {
 
 function editCellSchedule(staffId, date, currentShiftId) {
     if (!currentUser || currentUser.role !== 'admin') {
+        showDayDetail(date, currentShiftId);
         return;
     }
     
@@ -1195,6 +1434,23 @@ function saveCellSchedule(staffId, date) {
         renderCalendar();
         alert('调整成功');
     }).catch(err => alert(err.message));
+}
+
+function initYearMonth() {
+    const yearSelect = document.getElementById('statYear');
+    const monthSelect = document.getElementById('statMonth');
+    const now = new Date();
+    
+    yearSelect.innerHTML = '';
+    for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y + '年';
+        if (y === now.getFullYear()) opt.selected = true;
+        yearSelect.appendChild(opt);
+    }
+    
+    monthSelect.value = now.getMonth() + 1;
 }
 
 function loadStatistics() {
@@ -1251,24 +1507,9 @@ function renderStatistics(data) {
     document.getElementById('statsContainer').innerHTML = html;
 }
 
-function initYearMonth() {
-    const yearSelect = document.getElementById('statYear');
-    const monthSelect = document.getElementById('statMonth');
-    const now = new Date();
-    
-    yearSelect.innerHTML = '';
-    for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y + '年';
-        if (y === now.getFullYear()) opt.selected = true;
-        yearSelect.appendChild(opt);
-    }
-    
-    monthSelect.value = now.getMonth() + 1;
-}
-
 function loadAdminData() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    
     renderShiftTable();
     renderStaffTable();
     loadSwapHistory();
@@ -1371,6 +1612,8 @@ function openStaffModal() {
     document.getElementById('staffId').value = '';
     document.getElementById('staffName').value = '';
     document.getElementById('staffRole').value = 'staff';
+    document.getElementById('staffPassword').value = '';
+    document.getElementById('staffPasswordRow').style.display = 'none';
     showModal('staffModal');
 }
 
@@ -1382,6 +1625,8 @@ function editStaff(id) {
     document.getElementById('staffId').value = staff.id;
     document.getElementById('staffName').value = staff.name;
     document.getElementById('staffRole').value = staff.role;
+    document.getElementById('staffPassword').value = '';
+    document.getElementById('staffPasswordRow').style.display = 'flex';
     showModal('staffModal');
 }
 
@@ -1389,15 +1634,21 @@ function saveStaff() {
     const id = document.getElementById('staffId').value;
     const name = document.getElementById('staffName').value.trim();
     const role = document.getElementById('staffRole').value;
+    const password = document.getElementById('staffPassword').value;
     
     if (!name) {
         alert('请输入员工姓名');
         return;
     }
     
+    const body = { name, role };
+    if (password) {
+        body.password = password;
+    }
+    
     const request = id 
-        ? apiPost('/staff/update', { id: parseInt(id), name, role })
-        : apiPost('/staff/set', { name, role });
+        ? apiPost('/staff/update', { id: parseInt(id), ...body })
+        : apiPost('/staff/set', { name, role, password: password || '123456' });
     
     request.then(() => {
         closeModal('staffModal');
@@ -1405,13 +1656,6 @@ function saveStaff() {
     }).then(data => {
         staffList = data;
         renderStaffTable();
-        initUserSelector();
-        const targetSelect = document.getElementById('swapTargetStaff');
-        if (targetSelect) {
-            targetSelect.innerHTML = staffList
-                .filter(s => s.id !== currentUser?.id)
-                .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        }
     }).catch(err => alert(err.message));
 }
 
@@ -1423,7 +1667,6 @@ function deleteStaff(id) {
     }).then(data => {
         staffList = data;
         renderStaffTable();
-        initUserSelector();
     }).catch(err => alert(err.message));
 }
 
@@ -1549,7 +1792,19 @@ document.querySelectorAll('.modal').forEach(modal => {
     });
 });
 
-init();
+document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        doLogin();
+    }
+});
+
+document.getElementById('loginName').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('loginPassword').focus();
+    }
+});
+
+checkAuth();
 </script>
 
 </body>
