@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState } from '@/types/game';
+import { GameState, GameSaveState } from '@/types/game';
 import {
   MAX_MAGAZINE,
   MAX_LIVES,
@@ -22,8 +22,11 @@ import {
 } from '@/utils/soundEffects';
 import {
   saveGameData,
+  saveGameState,
+  clearGameState,
   updateHighestWave,
   updateBestScore,
+  loadGameState,
 } from '@/utils/saveSystem';
 import { createZombie } from '@/game/zombieFactory';
 import { buildWaveQueue, getSpawnInterval } from '@/game/waveSystem';
@@ -59,6 +62,7 @@ const initialState: GameState = {
 
 interface GameStore extends GameState {
   startGame: (fromWave?: number, savedScore?: number, savedLives?: number) => void;
+  resumeFromSave: () => boolean;
   pauseGame: () => void;
   resumeGame: () => void;
   restartGame: () => void;
@@ -66,6 +70,7 @@ interface GameStore extends GameState {
   reload: () => void;
   update: (deltaTime: number) => void;
   getRemainingZombies: () => number;
+  autoSave: () => void;
 }
 
 function showWaveNotice(wave: number) {
@@ -75,11 +80,15 @@ function showWaveNotice(wave: number) {
   };
 }
 
+let saveTimer = 0;
+const SAVE_INTERVAL = 5;
+
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
   startGame: (fromWave = 1, savedScore = 0, savedLives = MAX_LIVES) => {
     const queue = buildWaveQueue(fromWave);
+    clearGameState();
     set({
       status: 'playing',
       currentWave: fromWave,
@@ -98,12 +107,48 @@ export const useGameStore = create<GameStore>((set, get) => ({
       muzzleFlash: 0,
       damageNumbers: [],
     });
+    saveTimer = 0;
     playWaveStart();
     setTimeout(() => set({ showWaveNotice: false }), 2000);
   },
 
+  resumeFromSave: () => {
+    const savedState = loadGameState();
+    if (!savedState) return false;
+
+    if (savedState.lives <= 0) return false;
+
+    const aliveZombies = savedState.zombies.filter((z) => !z.isDead || z.deathAnimation > 0);
+
+    set({
+      status: 'playing',
+      currentWave: savedState.currentWave,
+      lives: savedState.lives,
+      score: savedState.score,
+      magazine: savedState.magazine,
+      isReloading: false,
+      reloadProgress: 0,
+      totalShots: savedState.totalShots,
+      headshots: savedState.headshots,
+      zombies: aliveZombies.map((z) => ({ ...z, hitFlash: 0 })),
+      waveZombieQueue: savedState.waveZombieQueue,
+      waveSpawnTimer: savedState.waveSpawnTimer,
+      showWaveNotice: false,
+      waveNoticeText: '',
+      screenShake: 0,
+      muzzleFlash: 0,
+      damageNumbers: [],
+    });
+
+    saveTimer = 0;
+    return true;
+  },
+
   pauseGame: () => {
-    if (get().status === 'playing') set({ status: 'paused' });
+    if (get().status === 'playing') {
+      set({ status: 'paused' });
+      get().autoSave();
+    }
   },
 
   resumeGame: () => {
@@ -185,6 +230,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (state.status !== 'playing') return;
 
+    saveTimer += deltaTime;
+    if (saveTimer >= SAVE_INTERVAL) {
+      saveTimer = 0;
+      get().autoSave();
+    }
+
     set((s) => ({
       screenShake: Math.max(0, s.screenShake - deltaTime * 2),
       muzzleFlash: Math.max(0, s.muzzleFlash - deltaTime * 5),
@@ -243,6 +294,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         totalShots: currentState.totalShots,
         totalHeadshots: currentState.headshots,
       });
+      clearGameState();
       return;
     }
 
@@ -278,15 +330,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           totalShots: afterSpawnState.totalShots,
           totalHeadshots: afterSpawnState.headshots,
         });
+        clearGameState();
       } else {
         const nextWave = currentWave + 1;
         const nextQueue = buildWaveQueue(nextWave);
         updateHighestWave(currentWave);
-        saveGameData({
-          lastPlayedWave: nextWave,
-          lastPlayedScore: afterSpawnState.score,
-          lastPlayedLives: afterSpawnState.lives,
-        });
 
         set({
           currentWave: nextWave,
@@ -298,6 +346,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
         setTimeout(() => set({ showWaveNotice: false }), 2000);
       }
     }
+  },
+
+  autoSave: () => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    const saveState: GameSaveState = {
+      currentWave: state.currentWave,
+      lives: state.lives,
+      score: state.score,
+      magazine: state.magazine,
+      totalShots: state.totalShots,
+      headshots: state.headshots,
+      zombies: state.zombies,
+      waveZombieQueue: state.waveZombieQueue,
+      waveSpawnTimer: state.waveSpawnTimer,
+      savedAt: Date.now(),
+    };
+
+    saveGameState(saveState);
   },
 
   getRemainingZombies: () => {

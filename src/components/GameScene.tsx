@@ -18,6 +18,7 @@ import { MAX_LIVES } from '@/constants/gameConfig';
 export default function GameScene() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
 
@@ -99,20 +100,35 @@ export default function GameScene() {
     [status, isReloading, shoot]
   );
 
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMousePos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    },
+    []
+  );
+
   const handleStartGame = () => {
     startGame(1);
   };
 
   const handleContinue = () => {
-    const saveData = loadSaveData();
-    if (saveData) {
-      startGame(
-        saveData.lastPlayedWave,
-        saveData.lastPlayedScore,
-        saveData.lastPlayedLives > 0 ? saveData.lastPlayedLives : MAX_LIVES
-      );
-    } else {
-      startGame(1);
+    const resumed = useGameStore.getState().resumeFromSave();
+    if (!resumed) {
+      const saveData = loadSaveData();
+      if (saveData) {
+        startGame(
+          saveData.lastPlayedWave,
+          saveData.lastPlayedScore,
+          saveData.lastPlayedLives > 0 ? saveData.lastPlayedLives : MAX_LIVES
+        );
+      } else {
+        startGame(1);
+      }
     }
   };
 
@@ -128,8 +144,9 @@ export default function GameScene() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen overflow-hidden cursor-crosshair select-none"
+      className="relative w-full h-screen overflow-hidden cursor-none select-none"
       onClick={handleClick}
+      onMouseMove={handleMouseMove}
       style={{
         transform: `translate(${shakeX}px, ${shakeY}px)`,
         background: '#0a0a12',
@@ -147,7 +164,7 @@ export default function GameScene() {
 
       <MuzzleFlash intensity={muzzleFlash} />
 
-      {status === 'playing' && <Crosshair />}
+      {status === 'playing' && <Crosshair x={mousePos.x} y={mousePos.y} />}
 
       {showWaveNotice && <WaveNotice text={waveNoticeText} />}
 

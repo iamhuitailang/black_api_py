@@ -1,6 +1,18 @@
-export default function Crosshair() {
+interface CrosshairProps {
+  x: number;
+  y: number;
+}
+
+export default function Crosshair({ x, y }: CrosshairProps) {
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30">
+    <div
+      className="absolute pointer-events-none z-50"
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
       <div className="relative" style={{ width: '48px', height: '48px' }}>
         <div
           className="absolute top-1/2 left-0 w-full h-[2px] -translate-y-1/2"

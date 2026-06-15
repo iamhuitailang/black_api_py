@@ -51,6 +51,19 @@ export interface DamageNumber {
   life: number;
 }
 
+export interface GameSaveState {
+  currentWave: number;
+  lives: number;
+  score: number;
+  magazine: number;
+  totalShots: number;
+  headshots: number;
+  zombies: Zombie[];
+  waveZombieQueue: ZombieType[];
+  waveSpawnTimer: number;
+  savedAt: number;
+}
+
 export interface SaveData {
   highestWave: number;
   bestScore: number;
@@ -61,6 +74,7 @@ export interface SaveData {
   lastPlayedScore: number;
   lastPlayedLives: number;
   savedAt: number;
+  gameState?: GameSaveState;
 }
 
 export interface WaveConfig {

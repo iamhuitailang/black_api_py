@@ -16,7 +16,8 @@ export default function StartMenu({ onStartGame, onContinue }: StartMenuProps) {
     setSaveData(data);
   }, []);
 
-  const hasContinue = saveData && saveData.lastPlayedWave > 1;
+  const hasContinue = saveData && (saveData.lastPlayedWave > 1 || !!saveData.gameState);
+  const continueWave = saveData?.gameState?.currentWave || saveData?.lastPlayedWave || 1;
 
   return (
     <div
@@ -102,7 +103,7 @@ export default function StartMenu({ onStartGame, onContinue }: StartMenuProps) {
               }}
             >
               <RotateCcw size={18} />
-              继续第 {saveData!.lastPlayedWave} 波
+              继续第 {continueWave} 波
             </button>
           )}
         </div>
