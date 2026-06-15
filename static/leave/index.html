@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司请假管理系统</title>
+    <link rel="stylesheet" href="/static/leave/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <div class="app-title">🏢 公司请假管理系统</div>
+            <div class="user-bar">
+                <select id="userSelect" class="user-select"></select>
+                <select id="roleSelect" class="role-select">
+                    <option value="employee">普通员工</option>
+                    <option value="manager">部门经理</option>
+                    <option value="hr">HR管理员</option>
+                    <option value="admin">超级管理员</option>
+                </select>
+                <button id="initDataBtn" class="init-btn">初始化演示数据</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab-item active" data-tab="employee">👤 我的请假</div>
+            <div class="tab-item" data-tab="approval">✅ 审批中心</div>
+            <div class="tab-item" data-tab="hr">📊 HR统计</div>
+        </div>
+
+        <div class="tab-panel active" id="panel-employee">
+            <div class="card">
+                <div class="card-title">📝 提交请假申请</div>
+                <div class="balance-cards">
+                    <div class="balance-card annual">
+                        <div class="balance-label">本年年假剩余</div>
+                        <div class="balance-value"><span id="balanceAnnual">0</span><span class="balance-unit">天</span></div>
+                    </div>
+                    <div class="balance-card compensation">
+                        <div class="balance-label">调休余额</div>
+                        <div class="balance-value"><span id="balanceComp">0</span><span class="balance-unit">天</span></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">假期类型</label>
+                        <select id="leaveType" class="form-select">
+                            <option value="annual">年假</option>
+                            <option value="personal">事假</option>
+                            <option value="sick">病假</option>
+                            <option value="compensation">调休</option>
+                            <option value="marriage">婚假</option>
+                            <option value="maternity">产假</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">开始日期</label>
+                        <input type="date" id="startDate" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">结束日期</label>
+                        <input type="date" id="endDate" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">工作日天数</label>
+                        <div class="form-input" style="background:#f5f7fa;"><strong id="workDays" style="color:#409eff;">0 个工作日</strong></div>
+                        <div class="form-hint">自动计算（不含周末）</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="min-width:100%;">
+                        <label class="form-label">请假事由</label>
+                        <textarea id="leaveReason" class="form-textarea" placeholder="请详细说明请假原因..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button id="submitLeaveBtn" class="btn btn-primary">提交请假申请</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 我的请假记录</div>
+                <table class="leave-table">
+                    <thead>
+                        <tr>
+                            <th>类型</th>
+                            <th>开始日期</th>
+                            <th>结束日期</th>
+                            <th>天数</th>
+                            <th>事由</th>
+                            <th>状态</th>
+                            <th>审批备注</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myLeavesTable"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📅 请假日历</div>
+                <div class="calendar-wrap">
+                    <div class="calendar-header">
+                        <div class="calendar-nav">
+                            <button id="prevMonthBtn" class="btn btn-default btn-sm">◀ 上月</button>
+                            <button id="nextMonthBtn" class="btn btn-default btn-sm">下月 ▶</button>
+                        </div>
+                        <div class="calendar-title" id="calendarTitle"></div>
+                        <div style="width:100px;"></div>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="panel-approval">
+            <div class="card">
+                <div class="card-title">✅ 待我审批</div>
+                <table class="leave-table">
+                    <thead>
+                        <tr>
+                            <th>员工</th>
+                            <th>部门</th>
+                            <th>类型</th>
+                            <th>日期</th>
+                            <th>天数</th>
+                            <th>事由</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approvalTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="panel-hr">
+            <div class="card">
+                <div class="card-title">📊 HR统计中心</div>
+                <div class="filter-bar">
+                    <select id="statsYear" class="form-select" style="width:120px;">
+                        <option value="2024">2024年</option>
+                        <option value="2025">2025年</option>
+                        <option value="2026">2026年</option>
+                    </select>
+                    <select id="statsMonth" class="form-select" style="width:100px;">
+                        <option value="1">1月</option><option value="2">2月</option>
+                        <option value="3">3月</option><option value="4">4月</option>
+                        <option value="5">5月</option><option value="6">6月</option>
+                        <option value="7">7月</option><option value="8">8月</option>
+                        <option value="9">9月</option><option value="10">10月</option>
+                        <option value="11">11月</option><option value="12">12月</option>
+                    </select>
+                    <select id="statsDept" class="form-select" style="width:160px;">
+                        <option value="">全部部门</option>
+                    </select>
+                    <button id="exportCsvBtn" class="btn btn-success">📥 导出月度报表CSV</button>
+                </div>
+                <div class="stat-summary" id="statsSummary"></div>
+                <div class="chart-container">
+                    <div class="chart-card">
+                        <div class="card-title" style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ebeef5;">📈 按假期类型统计</div>
+                        <div id="typeChart"></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="card-title" style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ebeef5;">🏢 按部门统计</div>
+                        <div id="deptChart"></div>
+                    </div>
+                </div>
+                <div class="chart-card" style="margin-bottom:20px;">
+                    <div class="card-title" style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ebeef5;">⚠️ 异常提醒（请假超过5天）</div>
+                    <div id="abnormalList"></div>
+                </div>
+                <table class="leave-table">
+                    <thead>
+                        <tr>
+                            <th>员工</th>
+                            <th>部门</th>
+                            <th>类型</th>
+                            <th>开始</th>
+                            <th>结束</th>
+                            <th>天数</th>
+                            <th>状态</th>
+                            <th>事由</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="approveModal" onclick="if(event.target===this)closeApproveModal()">
+        <div class="modal-box">
+            <div class="modal-title" id="modalTitle">批准请假申请</div>
+            <div class="modal-body">
+                <div class="modal-info" id="modalInfo"></div>
+                <div class="form-group">
+                    <label class="form-label">审批备注<span id="commentRequired" style="color:#f56c6c;">（驳回必填）</span></label>
+                    <textarea id="modalComment" class="form-textarea" placeholder="请填写审批意见..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="closeApproveModal()">取消</button>
+                <button id="confirmApproveBtn" class="btn btn-primary" onclick="confirmApprove()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/leave/js/app.js"></script>
+</body>
+</html>
