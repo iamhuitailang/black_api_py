@@ -92,6 +92,17 @@
             grid-template-columns: repeat(15, 48px);
             grid-template-rows: repeat(10, 48px);
             gap: 0;
+            z-index: 1;
+        }
+
+        .overlay-layer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 720px;
+            height: 480px;
+            pointer-events: none;
+            z-index: 2;
         }
 
         .cell {
@@ -204,7 +215,6 @@
             position: absolute;
             border: 2px dashed rgba(255, 255, 255, 0.6);
             border-radius: 50%;
-            pointer-events: none;
             z-index: 3;
             background: rgba(255, 255, 255, 0.05);
         }
@@ -212,7 +222,6 @@
         .enemy {
             position: absolute;
             z-index: 10;
-            pointer-events: none;
             transition: none;
         }
 
@@ -407,7 +416,6 @@
         .projectile {
             position: absolute;
             z-index: 15;
-            pointer-events: none;
         }
 
         .projectile-arrow {
@@ -436,7 +444,6 @@
         .coin-pickup {
             position: absolute;
             z-index: 20;
-            pointer-events: none;
             font-size: 18px;
             color: #ffd700;
             font-weight: bold;
@@ -748,7 +755,6 @@
         .floating-text {
             position: absolute;
             z-index: 25;
-            pointer-events: none;
             font-weight: bold;
             animation: floatUp 1s ease-out forwards;
         }
@@ -768,7 +774,6 @@
             position: absolute;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(255, 152, 0, 0.5) 0%, transparent 70%);
-            pointer-events: none;
             z-index: 12;
             animation: splashExpand 0.3s ease-out forwards;
         }
@@ -813,75 +818,77 @@
                             </div>
                         </div>
 
-                        <div
-                            v-if="selectedTowerType && hoveredCell !== null && canPlaceTower(hoveredCell)"
-                            class="range-circle"
-                            :style="getPlacementRangeStyle()"
-                        ></div>
-
-                        <div
-                            v-for="tower in towersArray"
-                            :key="'range-' + tower.idx"
-                            v-show="selectedTowerIdx === tower.idx"
-                            class="range-circle"
-                            :style="getTowerRangeStyle(tower)"
-                        ></div>
-
-                        <div
-                            v-for="enemy in enemies"
-                            :key="enemy.id"
-                            class="enemy"
-                            :style="getEnemyStyle(enemy)"
-                        >
+                        <div class="overlay-layer"></div>
                             <div
-                                :class="[
-                                    'enemy-body',
-                                    'enemy-' + enemy.type,
-                                    enemy.hit ? 'enemy-hit' : '',
-                                    enemy.dying ? 'enemy-dying' : '',
-                                    !enemy.dying && enemy.type !== 'boss' ? 'enemy-walk' : '',
-                                    enemy.type === 'boss' ? 'boss-walk' : '',
-                                    enemy.slowed ? 'slowed-effect' : ''
-                                ]"
+                                v-if="selectedTowerType && hoveredCell !== null && canPlaceTower(hoveredCell)"
+                                class="range-circle"
+                                :style="getPlacementRangeStyle()"
+                            ></div>
+
+                            <div
+                                v-for="tower in towersArray"
+                                :key="'range-' + tower.idx"
+                                v-show="selectedTowerIdx === tower.idx"
+                                class="range-circle"
+                                :style="getTowerRangeStyle(tower)"
+                            ></div>
+
+                            <div
+                                v-for="enemy in enemies"
+                                :key="enemy.id"
+                                class="enemy"
+                                :style="getEnemyStyle(enemy)"
                             >
-                                <div class="health-bar">
-                                    <div class="health-bar-fill" :style="{ width: (enemy.hp / enemy.maxHp * 100) + '%' }"></div>
+                                <div
+                                    :class="[
+                                        'enemy-body',
+                                        'enemy-' + enemy.type,
+                                        enemy.hit ? 'enemy-hit' : '',
+                                        enemy.dying ? 'enemy-dying' : '',
+                                        !enemy.dying && enemy.type !== 'boss' ? 'enemy-walk' : '',
+                                        enemy.type === 'boss' ? 'boss-walk' : '',
+                                        enemy.slowed ? 'slowed-effect' : ''
+                                    ]"
+                                >
+                                    <div class="health-bar">
+                                        <div class="health-bar-fill" :style="{ width: (enemy.hp / enemy.maxHp * 100) + '%' }"></div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div
-                            v-for="proj in projectiles"
-                            :key="proj.id"
-                            class="projectile"
-                            :style="getProjectileStyle(proj)"
-                        >
-                            <div :class="'projectile-' + proj.type"></div>
-                        </div>
+                            <div
+                                v-for="proj in projectiles"
+                                :key="proj.id"
+                                class="projectile"
+                                :style="getProjectileStyle(proj)"
+                            >
+                                <div :class="'projectile-' + proj.type"></div>
+                            </div>
 
-                        <div
-                            v-for="splash in splashes"
-                            :key="splash.id"
-                            class="splash-effect"
-                            :style="getSplashStyle(splash)"
-                        ></div>
+                            <div
+                                v-for="splash in splashes"
+                                :key="splash.id"
+                                class="splash-effect"
+                                :style="getSplashStyle(splash)"
+                            ></div>
 
-                        <div
-                            v-for="coin in coinAnimations"
-                            :key="coin.id"
-                            class="coin-pickup"
-                            :style="getCoinStyle(coin)"
-                        >
-                            +{{ coin.amount }}
-                        </div>
+                            <div
+                                v-for="coin in coinAnimations"
+                                :key="coin.id"
+                                class="coin-pickup"
+                                :style="getCoinStyle(coin)"
+                            >
+                                +{{ coin.amount }}
+                            </div>
 
-                        <div
-                            v-for="dmg in damageTexts"
-                            :key="dmg.id"
-                            class="floating-text damage-text"
-                            :style="getDamageTextStyle(dmg)"
-                        >
-                            -{{ dmg.amount }}
+                            <div
+                                v-for="dmg in damageTexts"
+                                :key="dmg.id"
+                                class="floating-text damage-text"
+                                :style="getDamageTextStyle(dmg)"
+                            >
+                                -{{ dmg.amount }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1219,6 +1226,75 @@
                 let prepTimer = null;
                 let idCounter = 0;
 
+                const STORAGE_KEY = 'tower_defense_save';
+
+                function saveGame() {
+                    const towersData = {};
+                    for (const [idx, tower] of Object.entries(towers)) {
+                        towersData[idx] = {
+                            type: tower.type,
+                            level: tower.level,
+                            totalCost: tower.totalCost
+                        };
+                    }
+                    const state = {
+                        gold: gold.value,
+                        health: health.value,
+                        currentWave: currentWave.value,
+                        waveInProgress: waveInProgress.value,
+                        gameOver: gameOver.value,
+                        gameWon: gameWon.value,
+                        scoreSubmitted: scoreSubmitted.value,
+                        towers: towersData,
+                        timestamp: Date.now()
+                    };
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                    } catch (e) {}
+                }
+
+                function loadGame() {
+                    try {
+                        const saved = localStorage.getItem(STORAGE_KEY);
+                        if (!saved) return false;
+                        const state = JSON.parse(saved);
+                        if (!state || typeof state.gold !== 'number') return false;
+
+                        gold.value = state.gold || 200;
+                        health.value = state.health || 20;
+                        currentWave.value = state.currentWave || 0;
+                        waveInProgress.value = false;
+                        gameOver.value = state.gameOver || false;
+                        gameWon.value = state.gameWon || false;
+                        scoreSubmitted.value = state.scoreSubmitted || false;
+
+                        if (state.towers) {
+                            for (const [idx, tower] of Object.entries(state.towers)) {
+                                towers[idx] = {
+                                    type: tower.type,
+                                    level: tower.level,
+                                    cooldown: 0,
+                                    totalCost: tower.totalCost
+                                };
+                            }
+                        }
+
+                        if (currentWave.value > 0 && !gameOver.value && !gameWon.value) {
+                            startPrepCountdown();
+                        }
+
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                function clearSave() {
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                    } catch (e) {}
+                }
+
                 function nextId() {
                     return ++idCounter;
                 }
@@ -1295,6 +1371,7 @@
                         totalCost: towerInfo.cost
                     };
                     selectedTowerType.value = null;
+                    saveGame();
                 }
 
                 function getTowerInfo(type) {
@@ -1334,6 +1411,7 @@
                     gold.value -= cost;
                     towers[idx].level = 2;
                     towers[idx].totalCost += cost;
+                    saveGame();
                 }
 
                 function sellTower() {
@@ -1343,6 +1421,7 @@
                     gold.value += getSellValue(towers[idx]);
                     delete towers[idx];
                     selectedTowerIdx.value = null;
+                    saveGame();
                 }
 
                 function getPlacementRangeStyle() {
@@ -1481,6 +1560,7 @@
 
                 function endWave() {
                     waveInProgress.value = false;
+                    saveGame();
                     if (currentWave.value >= 10) {
                         gameWon.value = true;
                         fetchLeaderboard();
@@ -1546,6 +1626,7 @@
                             enemies.splice(i, 1);
                             if (health.value <= 0) {
                                 gameOver.value = true;
+                                saveGame();
                                 if (prepTimer) {
                                     clearInterval(prepTimer);
                                     prepTimer = null;
@@ -1784,9 +1865,12 @@
                         clearInterval(prepTimer);
                         prepTimer = null;
                     }
+
+                    clearSave();
                 }
 
                 onMounted(() => {
+                    loadGame();
                     gameLoopId = requestAnimationFrame(gameLoop);
                     fetchLeaderboard();
                 });
