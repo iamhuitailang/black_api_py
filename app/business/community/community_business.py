@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, Any, List, Optional
-from app.model.community import ItemModel, BorrowRequestModel, BorrowRecordModel, ReviewModel
+from app.model.community import ItemModel, BorrowRequestModel, BorrowRecordModel, ReviewModel, NotificationModel
 from app.model.auth.user import UserModel
 
 
@@ -11,6 +11,7 @@ class CommunityBusiness:
         self.record_model = BorrowRecordModel()
         self.review_model = ReviewModel()
         self.user_model = UserModel()
+        self.notif_model = NotificationModel()
 
     def publish_item(self, owner_id: int, name: str, category: str, description: str,
                      condition: str, borrow_rule: str, available_times: list,
@@ -140,6 +141,22 @@ class CommunityBusiness:
                 'message': '物品当前不可借用',
                 'data': None
             }
+
+        if self.request_model.has_pending_request(borrower_id, item_id):
+            return {
+                'code': 4,
+                'message': '您已对此物品提交过申请，请耐心等待审核',
+                'data': None
+            }
+
+        conflict_msg = self._check_date_conflict(item_id, date_range)
+        if conflict_msg:
+            return {
+                'code': 5,
+                'message': conflict_msg,
+                'data': None
+            }
+
         request_id = self.request_model.create(
             item_id=item_id,
             borrower_id=borrower_id,
@@ -147,11 +164,68 @@ class CommunityBusiness:
             message=message
         )
         request = self.request_model.get_by_id(request_id)
+
+        borrower = self.user_model.get_public_profile(borrower_id)
+        borrower_name = borrower['nickname'] if borrower else '用户'
+        self.notif_model.create(
+            user_id=item['owner_id'],
+            notif_type=NotificationModel.TYPE_REQUEST,
+            title=f'📩 收到新的借用申请',
+            content=f'{borrower_name} 想借用您的「{item["name"]}」，请及时处理。',
+            related_id=request_id
+        )
+
         return {
             'code': 0,
             'message': '申请已提交',
             'data': request
         }
+
+    def _check_date_conflict(self, item_id: int, date_range: dict) -> Optional[str]:
+        """检查日期范围是否有冲突，返回冲突描述，无冲突返回None"""
+        new_start = date_range.get('start')
+        new_end = date_range.get('end')
+        if not new_start or not new_end:
+            return '请填写完整的借用日期'
+
+        try:
+            ns = date.fromisoformat(new_start)
+            ne = date.fromisoformat(new_end)
+            if ns > ne:
+                return '归还日期不能早于借用日期'
+        except (ValueError, TypeError):
+            return '日期格式不正确'
+
+        approved_requests = self.request_model.get_approved_date_ranges(item_id)
+        for req in approved_requests:
+            dr = req.get('date_range', {})
+            s = dr.get('start')
+            e = dr.get('end')
+            if not s or not e:
+                continue
+            try:
+                es = date.fromisoformat(s)
+                ee = date.fromisoformat(e)
+                if not (ne < es or ns > ee):
+                    return f'该物品在 {s} 至 {e} 已被预约，请选择其他日期'
+            except (ValueError, TypeError):
+                continue
+
+        active_records = self.record_model.get_active_borrow_dates(item_id)
+        for rec in active_records:
+            s = rec.get('borrow_date')
+            e = rec.get('expected_return_date')
+            if not s or not e:
+                continue
+            try:
+                es = date.fromisoformat(s)
+                ee = date.fromisoformat(e)
+                if not (ne < es or ns > ee):
+                    return f'该物品在 {s} 至 {e} 正在借出中，请选择其他日期'
+            except (ValueError, TypeError):
+                continue
+
+        return None
 
     def get_borrow_requests_by_borrower(self, borrower_id: int, status: str = None) -> Dict[str, Any]:
         requests = self.request_model.get_list_by_borrower(borrower_id, status)
@@ -216,6 +290,18 @@ class CommunityBusiness:
         record = self.record_model.get_by_id(record_id)
         updated_request = self.request_model.get_by_id(request_id)
         updated_request['record'] = record
+
+        item = self.item_model.get_by_id(request['item_id'])
+        owner = self.user_model.get_public_profile(owner_id)
+        owner_name = owner['nickname'] if owner else '发布者'
+        self.notif_model.create(
+            user_id=request['borrower_id'],
+            notif_type=NotificationModel.TYPE_APPROVED,
+            title=f'✅ 您的借用申请已通过',
+            content=f'{owner_name} 同意了您借用「{item["name"] if item else "物品"}」的申请，请按时领取和归还。',
+            related_id=request_id
+        )
+
         return {
             'code': 0,
             'message': '已同意借用',
@@ -244,6 +330,18 @@ class CommunityBusiness:
                 'data': None
             }
         self.request_model.update_status(request_id, BorrowRequestModel.STATUS_REJECTED)
+
+        owner = self.user_model.get_public_profile(owner_id)
+        owner_name = owner['nickname'] if owner else '发布者'
+        reason_text = f'拒绝原因：{reason}' if reason else ''
+        self.notif_model.create(
+            user_id=request['borrower_id'],
+            notif_type=NotificationModel.TYPE_REJECTED,
+            title=f'❌ 您的借用申请被拒绝',
+            content=f'{owner_name} 拒绝了您借用「{item["name"] if item else "物品"}」的申请。{reason_text}',
+            related_id=request_id
+        )
+
         return {
             'code': 0,
             'message': '已拒绝申请',
@@ -454,6 +552,29 @@ class CommunityBusiness:
             if request:
                 item = self.item_model.get_by_id(request['item_id'])
                 borrower = self.user_model.get_public_profile(request['borrower_id'])
+                owner = self.user_model.get_public_profile(item['owner_id']) if item else None
+                
+                item_name = item['name'] if item else '物品'
+                borrower_name = borrower['nickname'] if borrower else '用户'
+                owner_name = owner['nickname'] if owner else '发布者'
+                
+                self.notif_model.create(
+                    user_id=request['borrower_id'],
+                    notif_type=NotificationModel.TYPE_OVERDUE,
+                    title=f'⚠️ 借用物品已超时',
+                    content=f'您借用的「{item_name}」已超过约定归还日期3天，请尽快归还。逾期记录可能影响您的信誉。',
+                    related_id=record['id']
+                )
+                
+                if item and item.get('owner_id'):
+                    self.notif_model.create(
+                        user_id=item['owner_id'],
+                        notif_type=NotificationModel.TYPE_OVERDUE,
+                        title=f'⏰ 借出物品已超时',
+                        content=f'您借出的「{item_name}」已超过约定归还日期3天，借入用户：{borrower_name}。',
+                        related_id=record['id']
+                    )
+                
                 reminders.append({
                     'record_id': record['id'],
                     'item': item,
@@ -528,4 +649,36 @@ class CommunityBusiness:
             'code': 0,
             'message': 'success',
             'data': contact
+        }
+
+    def get_notifications(self, user_id: int, unread_only: bool = False) -> Dict[str, Any]:
+        notifs = self.notif_model.get_by_user(user_id, unread_only=unread_only)
+        return {
+            'code': 0,
+            'message': 'success',
+            'data': notifs
+        }
+
+    def count_unread_notifications(self, user_id: int) -> Dict[str, Any]:
+        count = self.notif_model.count_unread(user_id)
+        return {
+            'code': 0,
+            'message': 'success',
+            'data': {'unread_count': count}
+        }
+
+    def mark_notification_read(self, user_id: int, notif_id: int) -> Dict[str, Any]:
+        self.notif_model.mark_read(notif_id, user_id)
+        return {
+            'code': 0,
+            'message': '已标记为已读',
+            'data': None
+        }
+
+    def mark_all_notifications_read(self, user_id: int) -> Dict[str, Any]:
+        self.notif_model.mark_all_read(user_id)
+        return {
+            'code': 0,
+            'message': '已全部标记为已读',
+            'data': None
         }

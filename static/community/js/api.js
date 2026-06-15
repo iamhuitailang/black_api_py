@@ -125,6 +125,22 @@ class CommunityApi {
   getContact(recordId) {
     return this.request('GET', '/community/contact/get', { record_id: recordId, user_id: this.userId });
   }
+
+  getNotifications(unreadOnly = false) {
+    return this.request('GET', '/community/notification/list/get', { unread_only: unreadOnly, user_id: this.userId }, {});
+  }
+
+  getUnreadCount() {
+    return this.request('GET', '/community/notification/unread/count/get', { user_id: this.userId }, {});
+  }
+
+  markNotifRead(notifId) {
+    return this.request('POST', '/community/notification/mark/read', { notif_id: notifId }, {});
+  }
+
+  markAllNotifsRead() {
+    return this.request('POST', '/community/notification/mark/all/read', { user_id: this.userId }, {});
+  }
 }
 
 const api = new CommunityApi();

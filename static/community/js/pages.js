@@ -283,20 +283,20 @@ function renderPublishModal() {
   const p = AppState.publish;
   const cats = CATEGORIES.filter(c => c.value).map(c =>
     `<label class="radio-option ${p.category===c.value?'selected':''}">
-       <input type="radio" ${p.category===c.value?'checked':''} onchange="AppState.publish.category='${c.value}';renderPublishModal();">
+       <input type="radio" ${p.category===c.value?'checked':''} onchange="AppState.publish.category='${c.value}';savePublishDraft();renderPublishModal();">
        <span>${c.icon} ${c.label}</span>
      </label>`
   ).join('');
   const conds = CONDITIONS.filter(c => c.value).map(c =>
     `<label class="radio-option ${p.condition===c.value?'selected':''}">
-       <input type="radio" ${p.condition===c.value?'checked':''} onchange="AppState.publish.condition='${c.value}';renderPublishModal();">
+       <input type="radio" ${p.condition===c.value?'checked':''} onchange="AppState.publish.condition='${c.value}';savePublishDraft();renderPublishModal();">
        <span>${c.label}</span>
      </label>`
   ).join('');
   const days = ['周一','周二','周三','周四','周五','周六','周日','工作日','周末','每天'];
   const timesPills = p.times.map((t, i) =>
     `<span class="times-pill">🕐 ${esc(t.day)} ${esc(t.time)}
-       <span class="remove" onclick="AppState.publish.times.splice(${i},1);renderPublishModal();">×</span>
+       <span class="remove" onclick="AppState.publish.times.splice(${i},1);savePublishDraft();renderPublishModal();">×</span>
      </span>`
   ).join('');
   const daysOpts = days.map(d => `<option ${p.timeDay===d?'selected':''}>${d}</option>`).join('');
@@ -315,7 +315,7 @@ function renderPublishModal() {
           <div class="form-group">
             <label class="form-label">物品名称<span class="required">*</span></label>
             <input class="form-input" value="${esc(p.name)}" placeholder="例如：露营帐篷4人套装"
-                   oninput="AppState.publish.name=this.value">
+                   oninput="AppState.publish.name=this.value;savePublishDraft();">
           </div>
           <div class="form-group">
             <label class="form-label">物品类别<span class="required">*</span></label>
@@ -328,12 +328,12 @@ function renderPublishModal() {
           <div class="form-group">
             <label class="form-label">物品描述<span class="required">*</span></label>
             <textarea class="form-textarea" placeholder="详细描述物品的品牌、尺寸、使用情况..."
-                      oninput="AppState.publish.description=this.value">${esc(p.description)}</textarea>
+                      oninput="AppState.publish.description=this.value;savePublishDraft();">${esc(p.description)}</textarea>
           </div>
           <div class="form-group">
             <label class="form-label">借用规则<span class="required">*</span></label>
             <input class="form-input" value="${esc(p.borrowRule)}" placeholder="例如：免费借用，押金200元，3天内归还"
-                   oninput="AppState.publish.borrowRule=this.value">
+                   oninput="AppState.publish.borrowRule=this.value;savePublishDraft();">
           </div>
           <div class="form-group">
             <label class="form-label">可出借时间段</label>
@@ -350,13 +350,14 @@ function renderPublishModal() {
           <div class="form-group">
             <label class="form-label">物品图片 URL</label>
             <input class="form-input" value="${esc(p.imageUrl)}" placeholder="可留空，https开头图片链接"
-                   oninput="AppState.publish.imageUrl=this.value">
+                   oninput="AppState.publish.imageUrl=this.value;savePublishDraft();renderPublishModal();">
             ${p.imageUrl ? `<div style="margin-top:10px;">
               <div style="width:140px;height:140px;border-radius:12px;overflow:hidden;border:2px dashed #a5d6a7;">
                 <img src="${esc(p.imageUrl)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
               </div></div>` : ''}
           </div>
           <div style="display:flex;gap:12px;margin-top:24px;">
+            <button class="btn btn-secondary" style="flex:1;" onclick="clearPublishDraft();AppState.publish={name:'',category:'',condition:'',description:'',borrowRule:'',times:[],imageUrl:'',timeDay:'',timeVal:''};renderPublishModal();">清空</button>
             <button class="btn btn-secondary" style="flex:1;" onclick="closePublishModal()">取消</button>
             <button class="btn btn-primary" style="flex:2;" onclick="submitPublish()">✨ 确认发布</button>
           </div>
@@ -371,6 +372,7 @@ function addPublishTime() {
   if (!p.timeDay || !p.timeVal) { toast('请填写日期和时间段', 'error'); return; }
   p.times.push({ day: p.timeDay, time: p.timeVal });
   p.timeDay = ''; p.timeVal = '';
+  savePublishDraft();
   renderPublishModal();
 }
 
@@ -388,6 +390,8 @@ async function submitPublish() {
     available_times: p.times, image_url: p.imageUrl || undefined
   });
   if (res.code === 0) {
+    clearPublishDraft();
+    AppState.publish = { name:'', category:'', condition:'', description:'', borrowRule:'', times:[], imageUrl:'', timeDay:'', timeVal:'' };
     closePublishModal();
     toast('发布成功！');
     navigate('detail', { id: res.data.id });

@@ -29,13 +29,42 @@ const AppState = {
   params: {},
   listFilter: { category: '', condition: '', keyword: '', page: 1 },
   records: { tab: 'borrow', status: '' },
-  publish: {
-    name: '', category: '', condition: '', description: '',
-    borrowRule: '', times: [], imageUrl: '', timeDay: '', timeVal: ''
-  },
+  publish: (() => {
+    try {
+      const saved = localStorage.getItem('community_publish_draft');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || '', category: parsed.category || '', condition: parsed.condition || '',
+          description: parsed.description || '', borrowRule: parsed.borrowRule || '',
+          times: parsed.times || [], imageUrl: parsed.imageUrl || '',
+          timeDay: '', timeVal: ''
+        };
+      }
+    } catch(e) {}
+    return {
+      name: '', category: '', condition: '', description: '',
+      borrowRule: '', times: [], imageUrl: '', timeDay: '', timeVal: ''
+    };
+  })(),
   review: { recordId: 0, rating: 5, comment: '' },
   borrow: { startDate: '', endDate: '', message: '' }
 };
+
+function savePublishDraft() {
+  try {
+    const p = AppState.publish;
+    localStorage.setItem('community_publish_draft', JSON.stringify({
+      name: p.name, category: p.category, condition: p.condition,
+      description: p.description, borrowRule: p.borrowRule,
+      times: p.times, imageUrl: p.imageUrl
+    }));
+  } catch(e) {}
+}
+
+function clearPublishDraft() {
+  try { localStorage.removeItem('community_publish_draft'); } catch(e) {}
+}
 
 function esc(str) {
   if (str === null || str === undefined) return '';
@@ -82,8 +111,23 @@ function navigate(view, params = {}) {
 
 function renderUserArea() {
   const el = document.getElementById('user-area');
+  const notifEl = document.getElementById('notification-area');
   if (api.isLoggedIn()) {
     const u = api.userInfo || {};
+    const unread = window.__unreadCount || 0;
+    notifEl.innerHTML = `
+      <div class="notification-trigger" onclick="toggleNotifications()" title="消息通知">
+        <span style="position:relative;cursor:pointer;font-size:22px;">🔔</span>
+        ${unread > 0 ? `<span class="notif-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
+      </div>
+      <div id="notification-panel" class="notification-panel hidden">
+        <div class="notif-header">
+          <div style="font-weight:600;">消息通知</div>
+          <a href="javascript:;" onclick="markAllNotifsRead()" style="font-size:12px;color:#66bb6a;">全部已读</a>
+        </div>
+        <div id="notification-list" class="notif-list"></div>
+      </div>
+    `;
     el.innerHTML = `
       <div class="user-avatar" title="${esc(u.nickname)}" onclick="navigate('profile',{id:${u.id}})">
         <img src="${esc(u.avatar_url)}" onerror="this.src='/static/community/images/avatar1.svg'">
@@ -95,6 +139,7 @@ function renderUserArea() {
       <button class="nav-btn" onclick="doLogout()">退出</button>
     `;
   } else {
+    notifEl.innerHTML = '';
     el.innerHTML = `<button class="login-btn" onclick="showLoginModal()">登录 / 注册</button>`;
   }
   document.getElementById('nav-home').classList.toggle('active', AppState.view === 'home');
@@ -103,18 +148,119 @@ function renderUserArea() {
 
 function doLogout() {
   api.logout();
+  window.__unreadCount = 0;
+  if (window.__notifTimer) clearInterval(window.__notifTimer);
   renderUserArea();
   navigate('home');
   toast('已退出登录');
 }
 
+/* ========= 通知相关 ========= */
+const NOTIF_ICONS = {
+  overdue: '⏰',
+  request: '📩',
+  approved: '✅',
+  rejected: '❌'
+};
+
+function toggleNotifications() {
+  const panel = document.getElementById('notification-panel');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    panel.classList.remove('hidden');
+    loadNotifications();
+    document.addEventListener('click', closeNotifPanelOnOutside, { once: true });
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function closeNotifPanelOnOutside(e) {
+  const panel = document.getElementById('notification-panel');
+  const trigger = document.querySelector('.notification-trigger');
+  if (panel && !panel.contains(e.target) && !trigger.contains(e.target)) {
+    panel.classList.add('hidden');
+  } else {
+    document.addEventListener('click', closeNotifPanelOnOutside, { once: true });
+  }
+}
+
+async function loadNotifications() {
+  const listEl = document.getElementById('notification-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#999;">加载中...</div>';
+  const res = await api.getNotifications(false);
+  if (res.code === 0 && res.data) {
+    const notifs = res.data;
+    if (notifs.length === 0) {
+      listEl.innerHTML = '<div class="notif-empty">🔔 暂无消息</div>';
+    } else {
+      listEl.innerHTML = notifs.map(n => {
+        const icon = NOTIF_ICONS[n.type] || '📬';
+        const time = n.created_at ? new Date(n.created_at.replace(' ', 'T')).toLocaleString('zh-CN', {
+          month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+        }) : '';
+        return `
+          <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="handleNotifClick(${n.id}, ${n.related_id}, '${n.type}')">
+            <span class="notif-icon">${icon}</span>
+            <div class="notif-content">
+              <div class="notif-title">${esc(n.title)}</div>
+              <div class="notif-text">${esc(n.content || '')}</div>
+              <div class="notif-time">${time}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  } else {
+    listEl.innerHTML = '<div class="notif-empty">加载失败</div>';
+  }
+}
+
+async function handleNotifClick(notifId, relatedId, type) {
+  await api.markNotifRead(notifId);
+  await refreshUnreadCount();
+  if (type === 'request' || type === 'approved' || type === 'rejected') {
+    navigate('records', { tab: relatedId ? 'requests' : 'myrequests' });
+  } else if (type === 'overdue') {
+    navigate('records', { tab: 'borrow' });
+  }
+  const panel = document.getElementById('notification-panel');
+  if (panel) panel.classList.add('hidden');
+}
+
+async function markAllNotifsRead() {
+  await api.markAllNotifsRead();
+  await refreshUnreadCount();
+  loadNotifications();
+}
+
+async function refreshUnreadCount() {
+  if (!api.isLoggedIn()) { window.__unreadCount = 0; return; }
+  const res = await api.getUnreadCount();
+  if (res.code === 0 && res.data) {
+    const oldCount = window.__unreadCount || 0;
+    window.__unreadCount = res.data.unread_count || 0;
+    if (oldCount !== window.__unreadCount) {
+      renderUserArea();
+    }
+  }
+}
+
+function startNotifPolling() {
+  if (window.__notifTimer) clearInterval(window.__notifTimer);
+  refreshUnreadCount();
+  window.__notifTimer = setInterval(refreshUnreadCount, 30000);
+}
+
 function showLoginModal() {
   const demoUsers = [
-    { u: 'admin', p: 'admin123', n: '管理员' },
-    { u: 'neighbor1', p: '123456', n: '小明' },
-    { u: 'neighbor2', p: '123456', n: '李阿姨' },
-    { u: 'neighbor3', p: '123456', n: '王叔叔' },
-    { u: 'neighbor4', p: '123456', n: '张姐' },
+    { u: 'admin', p: 'admin123', n: '管理员', a: '/static/community/images/avatar1.svg' },
+    { u: 'neighbor1', p: '123456', n: '小明', a: '/static/community/images/avatar1.svg' },
+    { u: 'neighbor2', p: '123456', n: '李阿姨', a: '/static/community/images/avatar2.svg' },
+    { u: 'neighbor3', p: '123456', n: '王叔叔', a: '/static/community/images/avatar3.svg' },
+    { u: 'neighbor4', p: '123456', n: '张姐', a: '/static/community/images/avatar4.svg' },
   ];
   const html = `
     <div class="modal-backdrop" onclick="if(event.target===this)closeLoginModal()">
@@ -125,18 +271,19 @@ function showLoginModal() {
         </div>
         <div class="modal-body">
           <div style="padding:10px 14px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:10px;margin-bottom:18px;font-size:13px;color:#2e7d32;">
-            👋 欢迎来到邻里共享！点击账号快速登录：
+            👋 欢迎来到邻里共享！点击头像快速登录：
           </div>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
             ${demoUsers.map(d => `
-              <button class="btn btn-secondary" style="flex-direction:column;padding:12px;"
-                      onclick="doLogin('${d.u}','${d.p}')">
-                <div style="font-weight:600;">${esc(d.n)}</div>
-                <div style="font-size:11px;color:#888;margin-top:2px;">${d.u} / ${d.p}</div>
+              <button class="quick-login-btn" title="${esc(d.n)}"
+                      onclick="doLogin('${d.u}','${d.p}')"
+                      style="flex-direction:column;padding:8px;background:none;border:none;cursor:pointer;">
+                <img src="${d.a}" style="width:48px;height:48px;border-radius:50%;border:2px solid #c8e6c9;">
+                <div style="font-weight:600;font-size:12px;margin-top:4px;color:#333;">${esc(d.n)}</div>
               </button>
             `).join('')}
           </div>
-          <div style="text-align:center;color:#999;font-size:12px;margin-bottom:14px;">—— 或手动输入 ——</div>
+          <div style="text-align:center;color:#999;font-size:12px;margin-bottom:14px;">—— 或手动输入（默认密码 123456） ——</div>
           <div class="form-group">
             <label class="form-label">用户名</label>
             <input id="login-user" class="form-input" placeholder="输入用户名">
@@ -177,6 +324,7 @@ async function doLogin(username, password) {
     };
     api.setUser(user);
     closeLoginModal();
+    startNotifPolling();
     renderUserArea();
     toast('登录成功，欢迎 ' + user.nickname);
     renderApp();

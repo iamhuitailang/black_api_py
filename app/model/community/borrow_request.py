@@ -119,3 +119,35 @@ class BorrowRequestModel:
 
     def delete(self, record_id: int) -> int:
         return self.exec.delete_by_id(record_id)
+
+    def has_pending_request(self, borrower_id: int, item_id: int) -> bool:
+        """检查某用户对某物品是否已有待处理或已批准的申请"""
+        sql = f"""
+            SELECT COUNT(*) as cnt FROM {self.TABLE_NAME}
+            WHERE borrower_id = ? AND item_id = ?
+            AND status IN ('pending', 'approved')
+        """
+        result = self.db.fetch_one(sql, (borrower_id, item_id))
+        return (result and result['cnt'] > 0)
+
+    def get_approved_date_ranges(self, item_id: int, exclude_request_id: int = None) -> List[Dict[str, Any]]:
+        """获取某物品已批准的借用日期范围，用于冲突检测"""
+        sql = f"""
+            SELECT br.id, br.date_range, br.status FROM {self.TABLE_NAME} br
+            WHERE br.item_id = ?
+            AND br.status = 'approved'
+        """
+        params = [item_id]
+        if exclude_request_id:
+            sql += " AND br.id != ?"
+            params.append(exclude_request_id)
+        requests = self.db.fetch_all(sql, tuple(params))
+        result = []
+        for req in requests:
+            if req.get('date_range'):
+                try:
+                    req['date_range'] = json.loads(req['date_range'])
+                    result.append(req)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        return result

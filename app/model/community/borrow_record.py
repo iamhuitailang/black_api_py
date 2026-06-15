@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from app.common.sqlite.db import get_db
@@ -131,3 +132,24 @@ class BorrowRecordModel:
             'updated_at': now
         }
         return self.exec.update_by_id(record_id, data)
+
+    def get_active_borrow_dates(self, item_id: int) -> List[Dict[str, Any]]:
+        """获取某物品正在借用中的日期范围，用于冲突检测"""
+        sql = f"""
+            SELECT br.id, br.borrow_date, br.expected_return_date, br.status,
+                   brr.date_range as request_date_range
+            FROM {self.TABLE_NAME} br
+            INNER JOIN tb_community_borrow_request brr ON br.request_id = brr.id
+            WHERE brr.item_id = ?
+            AND br.status IN ('borrowed', 'overdue')
+        """
+        records = self.db.fetch_all(sql, (item_id,))
+        result = []
+        for rec in records:
+            if rec.get('request_date_range'):
+                try:
+                    rec['request_date_range'] = json.loads(rec['request_date_range'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            result.append(rec)
+        return result

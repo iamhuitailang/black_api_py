@@ -26,9 +26,12 @@ function renderApp() {
 
 window.addEventListener('DOMContentLoaded', () => {
   renderApp();
+  if (api.isLoggedIn()) {
+    startNotifPolling();
+  }
   setInterval(async () => {
     if (api.isLoggedIn()) {
-      try { await api.check_overdue_reminders(); } catch(e) {}
+      try { await api.getMyOverdue(); } catch(e) {}
     }
   }, 60000);
 });

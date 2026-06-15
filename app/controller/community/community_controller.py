@@ -338,3 +338,55 @@ class CommunityController:
         if not uid:
             return {'code': 1, 'message': '请先登录', 'data': None}
         return self.community_business.get_contact_info(uid, record_id)
+
+    def ActionCommunityNotificationListGet(self, request: Request,
+                                    unread_only: Optional[bool] = Query(False),
+                                    user_id: Optional[int] = Query(None),
+                                    authorization: Optional[str] = Header(None)):
+        """
+        获取通知列表
+        GET /api/community/notification/list/get
+        """
+        uid = self._get_user_id(request, authorization, user_id)
+        if not uid:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+        return self.community_business.get_notifications(uid, unread_only=unread_only)
+
+    def ActionCommunityNotificationUnreadCountGet(self, request: Request,
+                                         user_id: Optional[int] = Query(None),
+                                         authorization: Optional[str] = Header(None)):
+        """
+        获取未读通知数量
+        GET /api/community/notification/unread/count/get
+        """
+        uid = self._get_user_id(request, authorization, user_id)
+        if not uid:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+        return self.community_business.count_unread_notifications(uid)
+
+    def ActionCommunityNotificationMarkReadPost(self, request: Request,
+                                            notif_id: int = Query(...),
+                                            authorization: Optional[str] = Header(None),
+                                            body: Optional[dict] = None):
+        """
+        标记通知为已读
+        POST /api/community/notification/mark/read
+        """
+        user_id = body.get('user_id') if body else None
+        uid = self._get_user_id(request, authorization, user_id)
+        if not uid:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+        return self.community_business.mark_notification_read(uid, notif_id)
+
+    def ActionCommunityNotificationMarkAllReadPost(self, request: Request,
+                                               authorization: Optional[str] = Header(None),
+                                               body: Optional[dict] = None):
+        """
+        标记全部通知为已读
+        POST /api/community/notification/mark/all/read
+        """
+        user_id = body.get('user_id') if body else None
+        uid = self._get_user_id(request, authorization, user_id)
+        if not uid:
+            return {'code': 1, 'message': '请先登录', 'data': None}
+        return self.community_business.mark_all_notifications_read(uid)

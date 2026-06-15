@@ -12,7 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
-from app.model.community import ItemModel, BorrowRequestModel, BorrowRecordModel, ReviewModel
+from app.model.community import ItemModel, BorrowRequestModel, BorrowRecordModel, ReviewModel, NotificationModel
 from app.common.sqlite.db import get_db
 
 
@@ -43,6 +43,7 @@ def init_database():
     BorrowRequestModel.create_table()
     BorrowRecordModel.create_table()
     ReviewModel.create_table()
+    NotificationModel.create_table()
     
     migrate_database()
     
