@@ -368,7 +368,9 @@
             vy: -Math.sin(game.shooterAngle) * SHOOT_SPEED,
             bubble: game.currentBubble,
             curveAmount: (Math.random() - 0.5) * 0.3,
-            curvePhase: 0
+            curvePhase: 0,
+            frames: 0,
+            maxFrames: 800
         };
 
         game.flyingBubble.bubble.x = game.flyingBubble.x;
@@ -388,7 +390,13 @@
         if (!game.flyingBubble) return;
 
         const fb = game.flyingBubble;
+        fb.frames++;
         fb.curvePhase += 0.1;
+
+        if (fb.frames > fb.maxFrames) {
+            snapToGrid(fb);
+            return;
+        }
 
         fb.x += fb.vx;
         fb.y += fb.vy;
@@ -448,10 +456,12 @@
         let bestCol = -1;
         let bestDist = Infinity;
 
-        const approxRow = Math.floor((fb.y - TOP_PADDING - BUBBLE_RADIUS) / ROW_HEIGHT + 0.5);
-        const maxRow = Math.max(approxRow + 2, game.grid.length);
+        const approxRow = Math.max(0, Math.floor((fb.y - TOP_PADDING - BUBBLE_RADIUS) / ROW_HEIGHT + 0.5));
+        const searchRange = 3;
+        const minRow = Math.max(0, approxRow - searchRange);
+        const maxRow = Math.min(approxRow + searchRange, game.grid.length + 2);
 
-        for (let row = 0; row <= maxRow; row++) {
+        for (let row = minRow; row <= maxRow; row++) {
             const colsInRow = game.cols - (row % 2 === 1 ? 1 : 0);
             for (let col = 0; col < colsInRow; col++) {
                 if (getBubble(row, col)) continue;
@@ -463,13 +473,13 @@
                 const dy = fb.y - ey;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
-                if (dist < BUBBLE_DIAMETER && dist < bestDist) {
-                    const neighbors = getNeighbors(row, col);
-                    if (row === 0 || neighbors.length > 0) {
-                        bestDist = dist;
-                        bestRow = row;
-                        bestCol = col;
-                    }
+                const hasValidNeighbor = row === 0 || getNeighbors(row, col).length > 0;
+                if (!hasValidNeighbor) continue;
+
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestRow = row;
+                    bestCol = col;
                 }
             }
         }
@@ -479,28 +489,73 @@
             return;
         }
 
-        approxRow = Math.max(0, Math.min(maxRow, approxRow));
-        const colsInRow2 = game.cols - (approxRow % 2 === 1 ? 1 : 0);
-        let bestCol2 = 0;
-        let bestDist2 = Infinity;
-        for (let col = 0; col < colsInRow2; col++) {
-            if (getBubble(approxRow, col)) continue;
-            const ex = LEFT_PADDING + col * BUBBLE_DIAMETER + (approxRow % 2 === 1 ? BUBBLE_RADIUS : 0);
-            const dx = fb.x - ex;
-            if (Math.abs(dx) < bestDist2) {
-                bestDist2 = Math.abs(dx);
-                bestCol2 = col;
+        for (let row = 0; row < game.grid.length + 3; row++) {
+            const colsInRow = game.cols - (row % 2 === 1 ? 1 : 0);
+            for (let col = 0; col < colsInRow; col++) {
+                if (getBubble(row, col)) continue;
+                const hasValidNeighbor = row === 0 || getNeighbors(row, col).length > 0;
+                if (!hasValidNeighbor) continue;
+
+                const ex = LEFT_PADDING + col * BUBBLE_DIAMETER + (row % 2 === 1 ? BUBBLE_RADIUS : 0);
+                const ey = TOP_PADDING + row * ROW_HEIGHT + BUBBLE_RADIUS;
+                const dx = fb.x - ex;
+                const dy = fb.y - ey;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestRow = row;
+                    bestCol = col;
+                }
             }
         }
-        snapToGridAt(fb, approxRow, bestCol2);
+
+        if (bestRow >= 0 && bestCol >= 0) {
+            snapToGridAt(fb, bestRow, bestCol);
+            return;
+        }
+
+        for (let row = 0; row < game.grid.length + 5; row++) {
+            const colsInRow = game.cols - (row % 2 === 1 ? 1 : 0);
+            for (let col = 0; col < colsInRow; col++) {
+                if (getBubble(row, col)) continue;
+                snapToGridAt(fb, row, col);
+                return;
+            }
+        }
+
+        game.flyingBubble = null;
+        game.state = GameState.IDLE;
     }
 
     function snapToGridAt(fb, row, col) {
+        if (getBubble(row, col)) {
+            findEmptySpotAndSnap(fb, row);
+            return;
+        }
         const bubble = fb.bubble;
         setBubble(row, col, bubble);
         game.flyingBubble = null;
 
         handlePlacement(row, col);
+    }
+
+    function findEmptySpotAndSnap(fb, startRow) {
+        const maxRow = Math.max(startRow + 5, game.grid.length + 3);
+        for (let row = 0; row < maxRow; row++) {
+            const colsInRow = game.cols - (row % 2 === 1 ? 1 : 0);
+            for (let col = 0; col < colsInRow; col++) {
+                if (!getBubble(row, col)) {
+                    const bubble = fb.bubble;
+                    setBubble(row, col, bubble);
+                    game.flyingBubble = null;
+                    handlePlacement(row, col);
+                    return;
+                }
+            }
+        }
+        game.flyingBubble = null;
+        game.state = GameState.IDLE;
     }
 
     // ============ 放置后处理 ============
@@ -541,7 +596,9 @@
             }
 
             game.state = GameState.ANIMATING;
+            const _animLevel = game.level;
             setTimeout(() => {
+                if (game.state !== GameState.ANIMATING || game.level !== _animLevel) return;
                 dropFloatingBubbles();
             }, 300);
         } else {
@@ -646,15 +703,13 @@
             game.score += dropCount * DROP_SCORE;
         }
 
-        if (game.poppingBubbles.length > 0 || game.fallingBubbles.length > 0) {
-            setTimeout(() => {
-                checkPressureRow();
-                afterPlacementCheck();
-            }, 400);
-        } else {
+        const _animLevel = game.level;
+        const _animState = game.state;
+        setTimeout(() => {
+            if (game.state !== _animState || game.level !== _animLevel) return;
             checkPressureRow();
             afterPlacementCheck();
-        }
+        }, 450);
     }
 
     // ============ 加压行检查 ============
@@ -666,44 +721,48 @@
     }
 
     function addPressureRow() {
-        const newGrid = [];
         const level = LEVELS[Math.min(game.level - 1, LEVELS.length - 1)];
         const availableColors = COLOR_NAMES.slice(0, level.colors);
 
-        for (let i = game.grid.length - 1; i >= 0; i--) {
-            if (game.grid[i]) {
-                for (let j = 0; j < game.grid[i].length; j++) {
-                    const b = game.grid[i][j];
-                    if (b) {
-                        const newRow = i + 1;
-                        while (newGrid.length <= newRow) newGrid.push([]);
-                        const isNewOdd = newRow % 2 === 1;
-                        let newCol = j;
-                        if ((i % 2) !== (newRow % 2)) {
-                            newCol = isNewOdd ? j : Math.max(0, j - 1);
-                        }
-                        if (!newGrid[newRow]) newGrid[newRow] = [];
-                        newGrid[newRow][newCol] = b;
-                    }
+        const tempBubbles = [];
+        for (let i = 0; i < game.grid.length; i++) {
+            if (!game.grid[i]) continue;
+            for (let j = 0; j < game.grid[i].length; j++) {
+                const b = game.grid[i][j];
+                if (b) {
+                    tempBubbles.push({
+                        bubble: b,
+                        newRow: i + 1,
+                        origX: b.x
+                    });
                 }
             }
         }
 
-        for (let row = 0; row < newGrid.length; row++) {
-            if (!newGrid[row]) continue;
-            for (let col = 0; col < newGrid[row].length; col++) {
-                const b = newGrid[row][col];
-                if (b) {
-                    b.row = row;
-                    b.col = col;
-                    b.updatePosition();
-                }
+        const rowBuckets = {};
+        for (const item of tempBubbles) {
+            if (!rowBuckets[item.newRow]) rowBuckets[item.newRow] = [];
+            rowBuckets[item.newRow].push(item);
+        }
+
+        const newGrid = [];
+        for (const rowStr in rowBuckets) {
+            const row = parseInt(rowStr);
+            const colsInRow = game.cols - (row % 2 === 1 ? 1 : 0);
+            const items = rowBuckets[row].sort((a, b) => a.origX - b.origX);
+            if (!newGrid[row]) newGrid[row] = [];
+
+            for (let i = 0; i < Math.min(items.length, colsInRow); i++) {
+                const b = items[i].bubble;
+                newGrid[row][i] = b;
+                b.row = row;
+                b.col = i;
             }
         }
 
         const firstRow = [];
-        const colsInRow = game.cols;
-        for (let col = 0; col < colsInRow; col++) {
+        const colsInFirstRow = game.cols;
+        for (let col = 0; col < colsInFirstRow; col++) {
             let type = SPECIAL.NORMAL;
             let color;
 
@@ -718,10 +777,18 @@
                 color = COLORS[availableColors[Math.floor(Math.random() * availableColors.length)]];
             }
 
-            const newBubble = new Bubble(0, col, color, type);
-            firstRow.push(newBubble);
+            firstRow.push(new Bubble(0, col, color, type));
         }
-        newGrid.unshift(firstRow);
+        newGrid[0] = firstRow;
+
+        let maxRow = 0;
+        for (const r in newGrid) {
+            maxRow = Math.max(maxRow, parseInt(r));
+        }
+        while (newGrid.length <= maxRow) {
+            if (!newGrid[newGrid.length]) newGrid.push([]);
+        }
+
         game.grid = newGrid;
 
         for (let row = 0; row < game.grid.length; row++) {
@@ -1050,7 +1117,30 @@
     }
 
     // ============ 主循环 ============
+    let _loopCount = 0;
+    let _lastState = null;
+    let _stateFrames = 0;
+
     function gameLoop() {
+        _loopCount++;
+        if (_lastState !== game.state) {
+            _lastState = game.state;
+            _stateFrames = 0;
+        } else {
+            _stateFrames++;
+        }
+
+        if (game.state === GameState.SHOOTING && _stateFrames > 900) {
+            console.warn('Shooting state stuck, recovering...');
+            game.flyingBubble = null;
+            game.state = GameState.IDLE;
+        }
+        if (game.state === GameState.ANIMATING && _stateFrames > 300) {
+            console.warn('Animating state stuck, recovering...');
+            game.state = GameState.IDLE;
+            afterPlacementCheck();
+        }
+
         handleInput();
 
         if (game.state === GameState.SHOOTING) {
