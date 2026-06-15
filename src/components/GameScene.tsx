@@ -52,6 +52,7 @@ export default function GameScene() {
   } = useGameStore();
 
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const [mousePosState, setMousePosState] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -176,6 +177,7 @@ export default function GameScene() {
 
       lastMousePos.current = pos;
       crosshairRef.current?.setPosition(pos.x, pos.y);
+      setMousePosState(pos);
 
       shoot(pos.x, pos.y, rect.width, rect.height);
 
@@ -205,6 +207,7 @@ export default function GameScene() {
       const pos = getMousePos(e);
       lastMousePos.current = pos;
       crosshairRef.current?.setPosition(pos.x, pos.y);
+      setMousePosState(pos);
     },
     [getMousePos]
   );
@@ -282,7 +285,6 @@ export default function GameScene() {
       >
         <Background />
         <Ground />
-        <MuzzleFlash intensity={muzzleFlash} />
       </div>
 
       {sortedZombies.map((zombie) => (
@@ -291,6 +293,7 @@ export default function GameScene() {
 
       <DamageNumbers numbers={damageNumbers} />
 
+      <MuzzleFlash intensity={muzzleFlash} x={mousePosState.x} y={mousePosState.y} />
       <Crosshair ref={crosshairRef} />
 
       {showWaveNotice && <WaveNotice text={waveNoticeText} />}
