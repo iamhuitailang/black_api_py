@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>邻里共享 - 社区闲置物品互助平台</title>
+  <link rel="stylesheet" href="/static/community/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="logo" onclick="navigate('home')">
+          <span class="logo-icon">🏡</span>
+          <span>邻里共享</span>
+        </div>
+        <nav class="header-nav">
+          <div class="nav-btn" id="nav-home" onclick="navigate('home')">🏠 首页</div>
+          <div class="nav-btn" id="nav-records" onclick="requireLogin('records')">📋 借用中心</div>
+          <div class="nav-btn" onclick="requireLogin('publish')">➕ 发布</div>
+        </nav>
+        <div class="user-area" id="user-area"></div>
+      </div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="empty-state"><div class="empty-icon">⏳</div><p>加载中...</p></div>
+    </main>
+
+    <!-- 全局 Toast -->
+    <div id="toast" style="display:none;"></div>
+
+    <!-- 登录弹窗 -->
+    <div id="login-modal" style="display:none;"></div>
+
+    <!-- 发布弹窗 -->
+    <div id="publish-modal" style="display:none;"></div>
+  </div>
+
+  <script src="/static/community/js/api.js"></script>
+  <script src="/static/community/js/helpers.js"></script>
+  <script src="/static/community/js/pages.js"></script>
+  <script src="/static/community/js/app.js"></script>
+</body>
+</html>

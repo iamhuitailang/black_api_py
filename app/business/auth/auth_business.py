@@ -42,13 +42,18 @@ class AuthBusiness:
         
         token = self.token_model.create_token(user.get('id'), hours=24)
         
+        public_profile = self.user_model.get_public_profile(user.get('id'))
+        
         return {
             'code': 0,
             'message': '登录成功',
             'data': {
-                'user': {
+                'user': public_profile or {
                     'id': user.get('id'),
-                    'username': user.get('username')
+                    'username': user.get('username'),
+                    'nickname': user.get('nickname', user.get('username')),
+                    'avatar_url': user.get('avatar_url', ''),
+                    'credit_score': user.get('credit_score', 5.0)
                 },
                 'token': token
             }
