@@ -155,6 +155,7 @@ async function doLogin(name, password) {
         showToast('登录成功', 'success');
         return true;
     } catch (e) {
+        showToast(e.message || '登录失败', 'error');
         return false;
     }
 }
