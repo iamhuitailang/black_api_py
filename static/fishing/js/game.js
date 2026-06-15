@@ -181,17 +181,22 @@
   function saveGameState() {
     const data = {
       sceneId: game.scene.id,
+      gameState: game.state,
       score: game.score,
       fishCount: game.fishCount,
       biggestFish: game.biggestFish,
       basket: game.basket,
       timeLeft: game.timeLeft,
+      hookX: game.hookPos.x,
+      hookY: game.hookPos.y,
       playerName: localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '',
-      ts: Date.now()
+      ts: Date.now(),
+      version: 2
     };
     try {
       localStorage.setItem(STORAGE_KEYS.GAME_STATE, JSON.stringify(data));
-    } catch (e) { /* ignore */ }
+      return true;
+    } catch (e) { return false; }
   }
 
   function loadGameState() {
@@ -200,6 +205,7 @@
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || !data.sceneId || data.timeLeft === undefined) return null;
+      if (!data.playerName || !data.playerName.trim()) return null;
       if (data.timeLeft <= 0) {
         clearGameState();
         return null;
@@ -208,6 +214,10 @@
       if (elapsed > GAME_DURATION + 60000) {
         clearGameState();
         return null;
+      }
+      // 游戏进行中时，扣除离线流逝的时间
+      if (data.gameState && data.gameState !== 'idle') {
+        data.timeLeft = Math.max(1000, data.timeLeft - elapsed);
       }
       return data;
     } catch (e) { return null; }
@@ -785,6 +795,7 @@
     game.state = State.WAITING;
     dom.game.btnCast.disabled = true;
     dom.game.btnReel.disabled = true;
+    saveGameState();
   }
 
   // ===============================
@@ -798,7 +809,9 @@
     dom.game.float.classList.add('shaking');
     dom.game.btnReel.disabled = false;
     dom.game.btnReel.classList.add('urgent');
+    dom.game.btnReel.textContent = '🪝 收竿';
     audio.bite();
+    saveGameState(); // 立即保存上钩状态
 
     clearTimeout(game.biteTimerId);
     const tick = () => {
@@ -849,6 +862,9 @@
         game.state = State.IDLE;
         dom.game.btnCast.disabled = false;
         dom.game.btnReel.disabled = true;
+        dom.game.btnReel.textContent = '🪝 收竿';
+        game._resumeNeedRetrieve = false;
+        saveGameState();
       }
     };
     requestAnimationFrame(animate);
@@ -1127,6 +1143,14 @@
       updateReeling(dt, ts);
     }
 
+    // 每2秒保存一次状态，确保刷新不丢进度
+    if (!game._lastSaveTs || ts - game._lastSaveTs > 2000) {
+      if (game.state !== State.CAUGHT && game.state !== State.FAILED) {
+        saveGameState();
+      }
+      game._lastSaveTs = ts;
+    }
+
     game.rafId = requestAnimationFrame(mainLoop);
   }
 
@@ -1146,6 +1170,9 @@
     game.reelingProgress = 0;
     game.fishSpawnAcc = 0;
 
+    const isResume = !!savedData;
+    let resumeHookPos = null;
+
     if (savedData) {
       game.scene = SCENES[savedData.sceneId] || SCENES.pond;
       game.score = savedData.score || 0;
@@ -1153,26 +1180,56 @@
       game.biggestFish = savedData.biggestFish || 0;
       game.basket = savedData.basket || [];
       game.timeLeft = savedData.timeLeft || GAME_DURATION;
+      // 如果之前鱼钩已抛出，恢复鱼钩位置
+      if (savedData.gameState && savedData.gameState !== 'idle' && savedData.hookX && savedData.hookY) {
+        resumeHookPos = { x: savedData.hookX, y: savedData.hookY };
+      }
     }
 
     clearAllFishes();
     dom.game.fishLayer.innerHTML = '';
     dom.game.fishDisplay.innerHTML = '';
     dom.game.tensionWrap.classList.remove('active');
-    dom.game.btnCast.disabled = false;
-    dom.game.btnReel.disabled = true;
     dom.game.hud.timer.style.color = 'var(--primary-dark)';
+
+    // 恢复游戏时：鱼钩在水下则收竿按钮可用，抛竿禁用
+    if (isResume && resumeHookPos) {
+      dom.game.btnCast.disabled = true;
+      dom.game.btnReel.disabled = false;
+      dom.game.btnReel.textContent = '🪝 收回鱼钩';
+      game._resumeNeedRetrieve = true;
+    } else {
+      dom.game.btnCast.disabled = false;
+      dom.game.btnReel.disabled = true;
+      dom.game.btnReel.textContent = '🪝 收竿';
+      game._resumeNeedRetrieve = false;
+    }
 
     updateFishermanHat();
     applyScene();
-    resetHookToRod();
     updateHUD();
 
-    clearGameState();
+    // 新游戏清存档，恢复游戏不清（继续保存）
+    if (!isResume) {
+      clearGameState();
+      resetHookToRod();
+    }
+
     showScreen('game');
 
     requestAnimationFrame(() => {
-      resetHookToRod();
+      if (isResume && resumeHookPos) {
+        // 恢复鱼钩位置（水下状态）
+        updateRodAndHook(resumeHookPos.x, resumeHookPos.y);
+        // 给玩家恢复提示
+        setTimeout(() => {
+          const stateText = savedData.gameState === 'waiting' ? '等待鱼上钩中' : '准备抛竿';
+          showToast(`✅ 已恢复进度：${game.score}分 · ${stateText}`, 'caught', 2500);
+          saveGameState(); // 恢复后立即保存
+        }, 500);
+      } else {
+        resetHookToRod();
+      }
       startGameTimer();
       game.lastFrameTs = 0;
       if (game.rafId) cancelAnimationFrame(game.rafId);
@@ -1400,7 +1457,17 @@
 
     // 收竿按钮
     dom.game.btnReel.addEventListener('click', () => {
-      if (game.state === State.BITE) handleReel();
+      if (game.state === State.BITE) {
+        handleReel();
+      } else if (game._resumeNeedRetrieve && game.state === State.IDLE) {
+        // 恢复游戏后收回鱼钩
+        dom.game.btnReel.disabled = true;
+        retrieveHook();
+        game._resumeNeedRetrieve = false;
+        setTimeout(() => {
+          dom.game.btnReel.textContent = '🪝 收竿';
+        }, 600);
+      }
     });
 
     // 键盘
