@@ -628,12 +628,12 @@ class RhythmRunGame {
         this.goodCount = state.goodCount;
         this.missCount = state.missCount;
 
-        this.player.state = state.playerState || 'run';
-        this.player.y = state.playerY || this.groundY;
-        this.player.velocityY = state.playerVelocityY || 0;
-        this.player.isJumping = state.playerIsJumping || false;
-        this.player.isSliding = state.playerIsSliding || false;
-        this.player.slideTimer = state.playerSlideTimer || 0;
+        this.player.state = 'run';
+        this.player.y = this.groundY;
+        this.player.velocityY = 0;
+        this.player.isJumping = false;
+        this.player.isSliding = false;
+        this.player.slideTimer = 0;
 
         if (state.obstacles) {
             for (let i = 0; i < this.obstacles.length && i < state.obstacles.length; i++) {
@@ -655,10 +655,21 @@ class RhythmRunGame {
         this.screenShake = 0;
         this.particles = [];
         this.judgeEffects = [];
+        this.autoSaveTimer = 0;
 
         this.audio.startFromBeat(state.currentBeat || 0);
+
+        const pixelsPerBeat = 100;
+        const beatTime = this.audio.getBeatTime();
+        this._updateObstacles(beatTime, pixelsPerBeat);
+        this._render();
+
         this.lastTime = performance.now();
         this._gameLoop();
+
+        if (this.onScoreUpdate) this.onScoreUpdate(this.score);
+        if (this.onComboUpdate) this.onComboUpdate(this.combo);
+        if (this.onProgressUpdate) this.onProgressUpdate(this.audio.getProgress());
 
         return true;
     }

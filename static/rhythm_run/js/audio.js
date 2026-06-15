@@ -75,9 +75,13 @@ class RhythmAudio {
 
         const secondsPerBeat = 60.0 / this.bpm;
         const startOffset = beat * secondsPerBeat;
-        this.startTime = this.audioContext.currentTime + 0.1 - startOffset;
+        this.startTime = this.audioContext.currentTime - startOffset;
         this.currentBeat = Math.floor(beat);
         this.nextNoteTime = this.startTime + this.currentBeat * secondsPerBeat;
+
+        while (this.nextNoteTime < this.audioContext.currentTime) {
+            this.nextNote();
+        }
 
         this.scheduler();
     }
