@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Run - 节奏跑酷</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="960" height="540"></canvas>
+
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">RHYTHM RUN</h1>
+            <p class="game-subtitle">节奏跑酷</p>
+            <div class="player-input">
+                <label for="player-name">玩家名称</label>
+                <input type="text" id="player-name" maxlength="20" placeholder="输入你的名字">
+            </div>
+            <div class="song-select">
+                <h3>选择歌曲</h3>
+                <div id="song-list"></div>
+            </div>
+            <div class="controls-info">
+                <p><span class="key">↑</span> 跳跃 - 越过矮墙</p>
+                <p><span class="key">↓</span> 滑行 - 通过深坑</p>
+                <p><span class="key">↑↓</span> 连按 - 通过双墙</p>
+            </div>
+            <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            <button id="show-leaderboard-btn" class="btn btn-secondary">排行榜</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="hud">
+                <div class="hud-left">
+                    <div class="score-label">SCORE</div>
+                    <div class="score-value" id="score-display">0</div>
+                </div>
+                <div class="hud-center">
+                    <div class="combo-display" id="combo-display">
+                        <span class="combo-count" id="combo-count">0</span>
+                        <span class="combo-label">COMBO</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="song-info" id="song-info-display">歌曲名</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="judge-line-indicator" id="judge-indicator"></div>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <h2 class="result-title">RESULTS</h2>
+            <div class="rating-display" id="rating-display">S</div>
+            <div class="result-stats">
+                <div class="stat-row">
+                    <span class="stat-label">总分</span>
+                    <span class="stat-value" id="result-score">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">最大连击</span>
+                    <span class="stat-value" id="result-combo">0</span>
+                </div>
+                <div class="stat-row perfect">
+                    <span class="stat-label">Perfect</span>
+                    <span class="stat-value" id="result-perfect">0</span>
+                </div>
+                <div class="stat-row good">
+                    <span class="stat-label">Good</span>
+                    <span class="stat-value" id="result-good">0</span>
+                </div>
+                <div class="stat-row miss">
+                    <span class="stat-label">Miss</span>
+                    <span class="stat-value" id="result-miss">0</span>
+                </div>
+            </div>
+            <div class="result-actions">
+                <button id="retry-btn" class="btn btn-primary">再来一次</button>
+                <button id="back-btn" class="btn btn-secondary">返回选曲</button>
+            </div>
+        </div>
+
+        <div id="leaderboard-screen" class="screen">
+            <h2 class="result-title">LEADERBOARD</h2>
+            <div class="leaderboard-songs">
+                <button class="lb-song-btn active" data-song="song1">夜色初章</button>
+                <button class="lb-song-btn" data-song="song2">霓虹狂奔</button>
+                <button class="lb-song-btn" data-song="song3">极速都市</button>
+            </div>
+            <div class="leaderboard-list" id="leaderboard-list"></div>
+            <button id="lb-back-btn" class="btn btn-secondary">返回</button>
+        </div>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

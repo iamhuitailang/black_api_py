@@ -1,0 +1,544 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #fff;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 960px;
+    height: 540px;
+    background: #050510;
+    border: 2px solid #2a2a5a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(100, 100, 255, 0.2);
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background: rgba(5, 5, 20, 0.92);
+    z-index: 10;
+}
+
+.screen.active {
+    display: flex;
+}
+
+.game-title {
+    font-size: 64px;
+    font-weight: bold;
+    letter-spacing: 8px;
+    color: #fff;
+    text-shadow: 0 0 20px #4a9eff, 0 0 40px #4a9eff;
+    margin-bottom: 8px;
+}
+
+.game-subtitle {
+    font-size: 20px;
+    color: #8a8aff;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+}
+
+.player-input {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.player-input label {
+    display: block;
+    margin-bottom: 8px;
+    color: #aaa;
+    font-size: 14px;
+}
+
+.player-input input {
+    width: 240px;
+    padding: 12px 16px;
+    font-size: 16px;
+    background: #1a1a3a;
+    border: 2px solid #3a3a6a;
+    border-radius: 6px;
+    color: #fff;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.player-input input:focus {
+    border-color: #4a9eff;
+}
+
+.song-select {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.song-select h3 {
+    margin-bottom: 12px;
+    color: #ccc;
+    font-weight: normal;
+    font-size: 16px;
+}
+
+#song-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.song-item {
+    padding: 12px 20px;
+    background: #1a1a3a;
+    border: 2px solid #3a3a6a;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 140px;
+    text-align: center;
+}
+
+.song-item:hover {
+    border-color: #4a9eff;
+    background: #222255;
+}
+
+.song-item.selected {
+    border-color: #4a9eff;
+    background: #2a2a6a;
+    box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
+}
+
+.song-item .song-name {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.song-item .song-info {
+    font-size: 12px;
+    color: #888;
+}
+
+.song-item .difficulty-easy { color: #4aff4a; }
+.song-item .difficulty-normal { color: #ffcc4a; }
+.song-item .difficulty-hard { color: #ff4a4a; }
+
+.controls-info {
+    margin: 20px 0;
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+    line-height: 2;
+}
+
+.key {
+    display: inline-block;
+    padding: 2px 10px;
+    background: #2a2a5a;
+    border: 1px solid #4a4a8a;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    margin: 0 4px;
+}
+
+.btn {
+    padding: 14px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 6px;
+    letter-spacing: 2px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4a9eff, #7a5aff);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(74, 158, 255, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(74, 158, 255, 0.6);
+}
+
+.btn-secondary {
+    background: #2a2a5a;
+    color: #ccc;
+    border: 1px solid #4a4a8a;
+}
+
+.btn-secondary:hover {
+    background: #3a3a7a;
+    color: #fff;
+}
+
+.hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.hud-left, .hud-center, .hud-right {
+    flex: 1;
+}
+
+.hud-center {
+    text-align: center;
+}
+
+.hud-right {
+    text-align: right;
+}
+
+.score-label {
+    font-size: 12px;
+    color: #888;
+    letter-spacing: 2px;
+}
+
+.score-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(74, 158, 255, 0.6);
+}
+
+.combo-display {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.combo-count {
+    font-size: 48px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-shadow: 0 0 15px rgba(255, 204, 0, 0.6);
+    line-height: 1;
+    transition: transform 0.1s;
+}
+
+.combo-count.pulse {
+    transform: scale(1.2);
+}
+
+.combo-label {
+    font-size: 12px;
+    color: #ffcc00;
+    letter-spacing: 4px;
+    margin-top: 4px;
+}
+
+.song-info {
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+
+.progress-bar {
+    width: 180px;
+    height: 6px;
+    background: #1a1a3a;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-left: auto;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a9eff, #7a5aff);
+    width: 0%;
+    transition: width 0.1s;
+}
+
+.judge-line-indicator {
+    position: absolute;
+    left: 25%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, rgba(74, 158, 255, 0.6), transparent);
+    box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.result-title {
+    font-size: 36px;
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 0 0 20px #4a9eff;
+    margin-bottom: 20px;
+}
+
+.rating-display {
+    font-size: 120px;
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 20px;
+    text-shadow: 0 0 30px currentColor;
+}
+
+.rating-display.rating-S { color: #ffdd00; }
+.rating-display.rating-A { color: #ff6b6b; }
+.rating-display.rating-B { color: #4ecdc4; }
+.rating-display.rating-C { color: #888; }
+
+.result-stats {
+    background: rgba(30, 30, 60, 0.6);
+    border-radius: 8px;
+    padding: 20px 40px;
+    margin-bottom: 25px;
+    min-width: 320px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a2a5a;
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #aaa;
+    font-size: 14px;
+}
+
+.stat-value {
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.stat-row.perfect .stat-value { color: #ffdd00; }
+.stat-row.good .stat-value { color: #4a9eff; }
+.stat-row.miss .stat-value { color: #ff6b6b; }
+
+.result-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.leaderboard-songs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.lb-song-btn {
+    padding: 8px 20px;
+    background: #1a1a3a;
+    border: 2px solid #3a3a6a;
+    border-radius: 6px;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.lb-song-btn:hover {
+    border-color: #4a9eff;
+    color: #fff;
+}
+
+.lb-song-btn.active {
+    border-color: #4a9eff;
+    background: #2a2a6a;
+    color: #fff;
+}
+
+.leaderboard-list {
+    width: 100%;
+    max-width: 500px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    background: rgba(20, 20, 50, 0.5);
+    border-radius: 8px;
+}
+
+.lb-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid #2a2a5a;
+}
+
+.lb-item:last-child {
+    border-bottom: none;
+}
+
+.lb-rank {
+    width: 40px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #888;
+}
+
+.lb-rank.rank-1 { color: #ffdd00; }
+.lb-rank.rank-2 { color: #c0c0c0; }
+.lb-rank.rank-3 { color: #cd7f32; }
+
+.lb-player {
+    flex: 1;
+    font-size: 15px;
+}
+
+.lb-score {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4a9eff;
+}
+
+.lb-rating {
+    margin-left: 15px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.lb-rating.rating-S { color: #ffdd00; }
+.lb-rating.rating-A { color: #ff6b6b; }
+.lb-rating.rating-B { color: #4ecdc4; }
+.lb-rating.rating-C { color: #888; }
+
+.lb-empty {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    font-size: 14px;
+}
+
+.celebration {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-shadow: 0 0 20px #ffcc00;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    animation: celebrationPop 1s ease-out forwards;
+}
+
+@keyframes celebrationPop {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    70% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -70%) scale(1);
+    }
+}
+
+.judgement-popup {
+    position: absolute;
+    left: 25%;
+    top: 45%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    animation: judgePop 0.6s ease-out forwards;
+}
+
+.judgement-popup.perfect {
+    color: #ffdd00;
+    text-shadow: 0 0 15px #ffdd00;
+}
+
+.judgement-popup.good {
+    color: #4a9eff;
+    text-shadow: 0 0 15px #4a9eff;
+}
+
+.judgement-popup.miss {
+    color: #ff6b6b;
+    text-shadow: 0 0 15px #ff6b6b;
+}
+
+@keyframes judgePop {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px) scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1.1);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px) scale(0.9);
+    }
+}
+
+.shake {
+    animation: shake 0.2s ease-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
