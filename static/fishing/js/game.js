@@ -186,6 +186,7 @@
       biggestFish: game.biggestFish,
       basket: game.basket,
       timeLeft: game.timeLeft,
+      playerName: localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '',
       ts: Date.now()
     };
     try {
@@ -339,7 +340,7 @@
     dom.game.line.style.left = tipX + 'px';
     dom.game.line.style.top = tipY + 'px';
     dom.game.line.style.width = len + 'px';
-    dom.game.line.style.height = '2px';
+    dom.game.line.style.height = '3px';
     dom.game.line.style.transform = `rotate(${ang}deg)`;
 
     if (y >= m.waterStartY) {
@@ -375,158 +376,248 @@
     const h = fishData.height;
     const color = fishData.color;
     const colorLight = fishData.colorLight || lightenColor(color, 30);
-    const dirClass = fishData.dir > 0 ? 'fish-right' : 'fish-left';
+    const colorDark = lightenColor(color, -20);
     const flip = fishData.dir < 0;
 
-    const svgW = w + w * 0.45;
-    const svgH = h * 1.6;
-    const bodyCx = svgW * 0.52;
+    const svgW = w * 1.5;
+    const svgH = h * 1.8;
+    const bodyCx = svgW * 0.58;
     const bodyCy = svgH * 0.5;
-    const bodyRx = w * 0.46;
+    const bodyRx = w * 0.48;
     const bodyRy = h * 0.42;
-
-    const tailPivotX = flip ? svgW * 0.88 : svgW * 0.12;
 
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('viewBox', `0 0 ${svgW.toFixed(1)} ${svgH.toFixed(1)}`);
-    svg.setAttribute('width', w + h * 0.45);
-    svg.setAttribute('height', svgH.toFixed(1));
+    svg.setAttribute('width', svgW);
+    svg.setAttribute('height', svgH);
     svg.style.overflow = 'visible';
+    svg.style.display = 'block';
 
-    if (flip) {
-      svg.style.transform = 'scaleX(-1)';
-    }
+    if (flip) svg.style.transform = 'scaleX(-1)';
 
-    // tail group
+    // ========== 尾巴组（用于摆动动画） ==========
     const tailG = document.createElementNS(ns, 'g');
     tailG.classList.add('fish-tail-group');
+    const tailPivotX = bodyCx - bodyRx * 0.85;
+    tailG.setAttribute('transform-origin', `${tailPivotX}px ${bodyCy}px`);
 
-    const tailBaseX = bodyCx - bodyRx * 0.8;
-    const tailTipTopY = bodyCy - bodyRy * 1.1;
-    const tailTipBotY = bodyCy + bodyRy * 1.1;
-    const tailTipX = tailBaseX - bodyRx * 0.55;
-
-    const tailPath = document.createElementNS(ns, 'path');
-    tailPath.setAttribute('d', [
-      `M ${tailBaseX},${bodyCy - bodyRy * 0.15}`,
-      `C ${tailBaseX - bodyRx * 0.2},${bodyCy - bodyRy * 0.6} ${tailTipX + bodyRx * 0.15},${tailTipTopY + bodyRy * 0.2} ${tailTipX},${tailTipTopY}`,
-      `Q ${tailTipX + bodyRx * 0.08},${bodyCy} ${tailTipX},${tailTipBotY}`,
-      `C ${tailTipX + bodyRx * 0.15},${tailTipBotY - bodyRy * 0.2} ${tailBaseX - bodyRx * 0.2},${bodyCy + bodyRy * 0.6} ${tailBaseX},${bodyCy + bodyRy * 0.15}`,
+    // 尾巴上半叶
+    const tailTopPath = document.createElementNS(ns, 'path');
+    const topTipX = tailPivotX - bodyRx * 0.65;
+    const topTipY = bodyCy - bodyRy * 1.25;
+    const topMidX = tailPivotX - bodyRx * 0.25;
+    const topMidY = bodyCy - bodyRy * 0.8;
+    const topBaseY = bodyCy - bodyRy * 0.25;
+    tailTopPath.setAttribute('d', [
+      `M ${tailPivotX},${topBaseY}`,
+      `C ${tailPivotX - bodyRx * 0.08},${bodyCy - bodyRy * 0.5} ${topMidX},${topMidY - bodyRy * 0.1} ${topTipX},${topTipY}`,
+      `Q ${topTipX + bodyRx * 0.05},${topTipY + bodyRy * 0.25} ${topMidX + bodyRx * 0.05},${topMidY + bodyRy * 0.15}`,
+      `C ${tailPivotX - bodyRx * 0.05},${topBaseY - bodyRy * 0.1} ${tailPivotX},${topBaseY} ${tailPivotX},${topBaseY}`,
       'Z'
     ].join(' '));
-    tailPath.setAttribute('fill', color);
-    tailPath.setAttribute('opacity', '0.9');
-    tailG.appendChild(tailPath);
+    tailTopPath.setAttribute('fill', color);
+    tailTopPath.setAttribute('opacity', '0.92');
 
-    // tail lines (fin rays)
-    for (let i = -1; i <= 1; i++) {
-      const line = document.createElementNS(ns, 'line');
-      const ly = bodyCy + i * bodyRy * 0.35;
-      line.setAttribute('x1', tailBaseX);
-      line.setAttribute('y1', ly);
-      line.setAttribute('x2', tailTipX + bodyRx * 0.08);
-      line.setAttribute('y2', bodyCy + i * bodyRy * 0.9);
+    // 尾巴下半叶
+    const tailBotPath = document.createElementNS(ns, 'path');
+    const botTipX = tailPivotX - bodyRx * 0.65;
+    const botTipY = bodyCy + bodyRy * 1.25;
+    const botMidX = tailPivotX - bodyRx * 0.25;
+    const botMidY = bodyCy + bodyRy * 0.8;
+    const botBaseY = bodyCy + bodyRy * 0.25;
+    tailBotPath.setAttribute('d', [
+      `M ${tailPivotX},${botBaseY}`,
+      `C ${tailPivotX - bodyRx * 0.08},${bodyCy + bodyRy * 0.5} ${botMidX},${botMidY + bodyRy * 0.1} ${botTipX},${botTipY}`,
+      `Q ${botTipX + bodyRx * 0.05},${botTipY - bodyRy * 0.25} ${botMidX + bodyRx * 0.05},${botMidY - bodyRy * 0.15}`,
+      `C ${tailPivotX - bodyRx * 0.05},${botBaseY + bodyRy * 0.1} ${tailPivotX},${botBaseY} ${tailPivotX},${botBaseY}`,
+      'Z'
+    ].join(' '));
+    tailBotPath.setAttribute('fill', color);
+    tailBotPath.setAttribute('opacity', '0.92');
+
+    // 尾巴中骨（分叉间的连接）
+    const tailMid = document.createElementNS(ns, 'path');
+    tailMid.setAttribute('d', [
+      `M ${tailPivotX},${topBaseY}`,
+      `Q ${tailPivotX - bodyRx * 0.3},${bodyCy} ${tailPivotX},${botBaseY}`,
+      'Z'
+    ].join(' '));
+    tailMid.setAttribute('fill', color);
+    tailMid.setAttribute('opacity', '0.7');
+
+    // 尾鳍纹路（3条）
+    const finLines = [0.3, 0, -0.3];
+    finLines.forEach(ratio => {
+      const line = document.createElementNS(ns, 'path');
+      const ly = bodyCy + ratio * bodyRy;
+      const tipX = tailPivotX - bodyRx * 0.55;
+      const tipY = bodyCy + ratio * bodyRy * 1.4;
+      line.setAttribute('d', [
+        `M ${tailPivotX - bodyRx * 0.1},${ly}`,
+        `Q ${tailPivotX - bodyRx * 0.35},${ly + ratio * bodyRy * 0.3} ${tipX},${tipY}`
+      ].join(' '));
       line.setAttribute('stroke', colorLight);
-      line.setAttribute('stroke-width', '1');
-      line.setAttribute('opacity', '0.5');
+      line.setAttribute('stroke-width', '1.2');
+      line.setAttribute('fill', 'none');
+      line.setAttribute('opacity', '0.45');
       tailG.appendChild(line);
-    }
+    });
 
+    tailG.appendChild(tailBotPath);
+    tailG.appendChild(tailMid);
+    tailG.appendChild(tailTopPath);
     svg.appendChild(tailG);
 
-    // body
+    // ========== 身体 ==========
     const body = document.createElementNS(ns, 'ellipse');
     body.setAttribute('cx', bodyCx);
     body.setAttribute('cy', bodyCy);
     body.setAttribute('rx', bodyRx);
     body.setAttribute('ry', bodyRy);
     body.setAttribute('fill', color);
-    body.setAttribute('stroke', 'rgba(0,0,0,0.2)');
+    body.setAttribute('stroke', colorDark);
     body.setAttribute('stroke-width', '1.5');
     svg.appendChild(body);
 
-    // belly highlight
+    // 腹部高光
     const belly = document.createElementNS(ns, 'ellipse');
     belly.setAttribute('cx', bodyCx + bodyRx * 0.05);
-    belly.setAttribute('cy', bodyCy + bodyRy * 0.35);
-    belly.setAttribute('rx', bodyRx * 0.75);
-    belly.setAttribute('ry', bodyRy * 0.45);
+    belly.setAttribute('cy', bodyCy + bodyRy * 0.38);
+    belly.setAttribute('rx', bodyRx * 0.7);
+    belly.setAttribute('ry', bodyRy * 0.42);
     belly.setAttribute('fill', colorLight);
-    belly.setAttribute('opacity', '0.35');
+    belly.setAttribute('opacity', '0.4');
     svg.appendChild(belly);
 
-    // dorsal fin
+    // 侧线（鱼身中线）
+    const sideLine = document.createElementNS(ns, 'path');
+    sideLine.setAttribute('d', [
+      `M ${bodyCx - bodyRx * 0.7},${bodyCy}`,
+      `Q ${bodyCx},${bodyCy + bodyRy * 0.02} ${bodyCx + bodyRx * 0.7},${bodyCy}`
+    ].join(' '));
+    sideLine.setAttribute('stroke', colorDark);
+    sideLine.setAttribute('stroke-width', '1');
+    sideLine.setAttribute('fill', 'none');
+    sideLine.setAttribute('opacity', '0.35');
+    svg.appendChild(sideLine);
+
+    // 背鳍
     const dorsal = document.createElementNS(ns, 'path');
-    const finStartX = bodyCx - bodyRx * 0.2;
-    const finPeakX = bodyCx + bodyRx * 0.05;
-    const finEndX = bodyCx + bodyRx * 0.35;
-    const finTopY = bodyCy - bodyRy - bodyRy * 0.35;
+    const dorsalStartX = bodyCx - bodyRx * 0.25;
+    const dorsalPeakX = bodyCx + bodyRx * 0.02;
+    const dorsalPeakY = bodyCy - bodyRy - bodyRy * 0.5;
+    const dorsalEndX = bodyCx + bodyRx * 0.32;
     dorsal.setAttribute('d', [
-      `M ${finStartX},${bodyCy - bodyRy * 0.85}`,
-      `Q ${finPeakX},${finTopY} ${finEndX},${bodyCy - bodyRy * 0.8}`,
+      `M ${dorsalStartX},${bodyCy - bodyRy * 0.85}`,
+      `C ${dorsalStartX + bodyRx * 0.1},${dorsalPeakY + bodyRy * 0.2} ${dorsalPeakX - bodyRx * 0.05},${dorsalPeakY} ${dorsalPeakX},${dorsalPeakY}`,
+      `C ${dorsalPeakX + bodyRx * 0.05},${dorsalPeakY + bodyRy * 0.1} ${dorsalEndX - bodyRx * 0.05},${bodyCy - bodyRy * 0.55} ${dorsalEndX},${bodyCy - bodyRy * 0.78}`,
       'Z'
     ].join(' '));
     dorsal.setAttribute('fill', color);
-    dorsal.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+    dorsal.setAttribute('stroke', colorDark);
     dorsal.setAttribute('stroke-width', '1');
-    dorsal.setAttribute('opacity', '0.85');
+    dorsal.setAttribute('opacity', '0.88');
     svg.appendChild(dorsal);
 
-    // pectoral fin (side fin)
+    // 胸鳍（侧面）
     const pFin = document.createElementNS(ns, 'path');
-    const pfx = bodyCx + bodyRx * 0.15;
-    const pfy = bodyCy + bodyRy * 0.3;
+    const pfx = bodyCx + bodyRx * 0.12;
+    const pfy = bodyCy + bodyRy * 0.25;
     pFin.setAttribute('d', [
       `M ${pfx},${pfy}`,
-      `Q ${pfx + bodyRx * 0.15},${pfy + bodyRy * 0.6} ${pfx - bodyRx * 0.2},${pfy + bodyRy * 0.55}`,
+      `C ${pfx + bodyRx * 0.08},${pfy + bodyRy * 0.55} ${pfx - bodyRx * 0.18},${pfy + bodyRy * 0.55} ${pfx - bodyRx * 0.22},${pfy + bodyRy * 0.2}`,
       'Z'
     ].join(' '));
     pFin.setAttribute('fill', color);
-    pFin.setAttribute('opacity', '0.7');
+    pFin.setAttribute('opacity', '0.72');
     svg.appendChild(pFin);
 
-    // eye white
-    const eyeX = bodyCx + bodyRx * 0.45;
-    const eyeY = bodyCy - bodyRy * 0.15;
-    const eyeR = Math.max(3, bodyRy * 0.2);
+    // 腹鳍
+    const vFin = document.createElementNS(ns, 'path');
+    const vfx = bodyCx - bodyRx * 0.05;
+    const vfy = bodyCy + bodyRy * 0.7;
+    vFin.setAttribute('d', [
+      `M ${vfx},${vfy}`,
+      `Q ${vfx - bodyRx * 0.02},${vfy + bodyRy * 0.35} ${vfx - bodyRx * 0.18},${vfy + bodyRy * 0.45}`,
+      `Q ${vfx - bodyRx * 0.05},${vfy + bodyRy * 0.15} ${vfx},${vfy}`,
+      'Z'
+    ].join(' '));
+    vFin.setAttribute('fill', color);
+    vFin.setAttribute('opacity', '0.65');
+    svg.appendChild(vFin);
+
+    // 鳃盖
+    const gill = document.createElementNS(ns, 'path');
+    const gx = bodyCx + bodyRx * 0.35;
+    gill.setAttribute('d', [
+      `M ${gx},${bodyCy - bodyRy * 0.5}`,
+      `Q ${gx + bodyRx * 0.08},${bodyCy} ${gx},${bodyCy + bodyRy * 0.5}`
+    ].join(' '));
+    gill.setAttribute('stroke', colorDark);
+    gill.setAttribute('stroke-width', '1');
+    gill.setAttribute('fill', 'none');
+    gill.setAttribute('opacity', '0.45');
+    svg.appendChild(gill);
+
+    // 眼白
+    const eyeX = bodyCx + bodyRx * 0.52;
+    const eyeY = bodyCy - bodyRy * 0.18;
+    const eyeR = Math.max(3, bodyRy * 0.22);
     const eyeWhite = document.createElementNS(ns, 'circle');
     eyeWhite.setAttribute('cx', eyeX);
     eyeWhite.setAttribute('cy', eyeY);
     eyeWhite.setAttribute('r', eyeR);
     eyeWhite.setAttribute('fill', 'white');
-    eyeWhite.setAttribute('stroke', 'rgba(0,0,0,0.25)');
+    eyeWhite.setAttribute('stroke', colorDark);
     eyeWhite.setAttribute('stroke-width', '1');
     svg.appendChild(eyeWhite);
 
-    // eye pupil
+    // 瞳孔
     const pupil = document.createElementNS(ns, 'circle');
-    pupil.setAttribute('cx', eyeX + eyeR * 0.2);
+    pupil.setAttribute('cx', eyeX + eyeR * 0.25);
     pupil.setAttribute('cy', eyeY);
-    pupil.setAttribute('r', eyeR * 0.55);
+    pupil.setAttribute('r', eyeR * 0.58);
     pupil.setAttribute('fill', '#1a1a1a');
     svg.appendChild(pupil);
 
-    // eye highlight
+    // 眼睛高光
     const highlight = document.createElementNS(ns, 'circle');
-    highlight.setAttribute('cx', eyeX + eyeR * 0.35);
-    highlight.setAttribute('cy', eyeY - eyeR * 0.25);
-    highlight.setAttribute('r', eyeR * 0.2);
+    highlight.setAttribute('cx', eyeX + eyeR * 0.4);
+    highlight.setAttribute('cy', eyeY - eyeR * 0.28);
+    highlight.setAttribute('r', eyeR * 0.22);
     highlight.setAttribute('fill', 'white');
     svg.appendChild(highlight);
 
-    // mouth line
+    // 嘴巴
     const mouth = document.createElementNS(ns, 'path');
     const mx = bodyCx + bodyRx * 0.85;
-    const my = bodyCy + bodyRy * 0.1;
-    mouth.setAttribute('d', `M ${mx},${my} Q ${mx + bodyRx * 0.08},${my + bodyRy * 0.08} ${mx - bodyRx * 0.02},${my + bodyRy * 0.15}`);
-    mouth.setAttribute('stroke', 'rgba(0,0,0,0.25)');
-    mouth.setAttribute('stroke-width', '1');
+    const my = bodyCy + bodyRy * 0.12;
+    mouth.setAttribute('d', [
+      `M ${mx},${my}`,
+      `Q ${mx + bodyRx * 0.06},${my + bodyRy * 0.1} ${mx - bodyRx * 0.04},${my + bodyRy * 0.16}`
+    ].join(' '));
+    mouth.setAttribute('stroke', colorDark);
+    mouth.setAttribute('stroke-width', '1.2');
     mouth.setAttribute('fill', 'none');
+    mouth.setAttribute('opacity', '0.6');
     svg.appendChild(mouth);
 
+    // 鱼鳞（几片弧形，装饰用）
+    for (let i = 0; i < 3; i++) {
+      const scale = document.createElementNS(ns, 'path');
+      const sx = bodyCx - bodyRx * 0.35 + i * bodyRx * 0.18;
+      const sy = bodyCy + bodyRy * 0.05;
+      scale.setAttribute('d', `M ${sx - bodyRx * 0.08},${sy} Q ${sx},${sy + bodyRy * 0.18} ${sx + bodyRx * 0.08},${sy}`);
+      scale.setAttribute('stroke', colorLight);
+      scale.setAttribute('stroke-width', '1');
+      scale.setAttribute('fill', 'none');
+      scale.setAttribute('opacity', '0.35');
+      svg.appendChild(scale);
+    }
+
     const wrapper = document.createElement('div');
-    wrapper.className = `fish ${dirClass} swimming`;
+    wrapper.className = `fish ${fishData.dir > 0 ? 'fish-right' : 'fish-left'} swimming`;
     wrapper.appendChild(svg);
     return wrapper;
   }
@@ -1204,22 +1295,28 @@
     }
   }
 
+  function validatePlayerName() {
+    const name = dom.start.playerName.value.trim();
+    if (!name) {
+      dom.start.playerName.classList.add('input-error');
+      dom.start.nameError.classList.add('show');
+      dom.start.playerName.focus();
+      return null;
+    }
+    dom.start.playerName.classList.remove('input-error');
+    dom.start.nameError.classList.remove('show');
+    localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, name);
+    return name;
+  }
+
   // ===============================
   // 事件绑定
   // ===============================
   function bindEvents() {
     // 开始界面 - 名称校验
     dom.start.btnStart.addEventListener('click', () => {
-      const name = dom.start.playerName.value.trim();
-      if (!name) {
-        dom.start.playerName.classList.add('input-error');
-        dom.start.nameError.classList.add('show');
-        dom.start.playerName.focus();
-        return;
-      }
-      dom.start.playerName.classList.remove('input-error');
-      dom.start.nameError.classList.remove('show');
-      localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, name);
+      if (!validatePlayerName()) return;
+      clearGameState();
       audio.ensure();
       startGame(null);
     });
@@ -1238,12 +1335,20 @@
     // 继续游戏
     dom.start.btnResume.addEventListener('click', () => {
       const saved = loadGameState();
-      if (saved) {
-        audio.ensure();
-        startGame(saved);
-      } else {
+      if (!saved) {
         dom.start.btnResume.style.display = 'none';
+        return;
       }
+      // 存档里有名字就用存档的，没有就校验输入框
+      const savedName = saved.playerName && saved.playerName.trim();
+      if (savedName) {
+        dom.start.playerName.value = savedName;
+        localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, savedName);
+      } else {
+        if (!validatePlayerName()) return;
+      }
+      audio.ensure();
+      startGame(saved);
     });
 
     dom.start.btnLeaderboard.addEventListener('click', () => {
@@ -1361,13 +1466,25 @@
   function init() {
     dom.start.totalFish.textContent = String(getTotalFish());
     dom.start.bestScore.textContent = String(getBestScore());
-    const saved = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME);
-    if (saved) dom.start.playerName.value = saved;
+    const savedName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME);
+    if (savedName) dom.start.playerName.value = savedName;
 
     renderSceneSelect();
-    checkResume();
     bindEvents();
     updateFishermanHat();
+
+    // 自动检测未完成游戏，有则直接恢复
+    const saved = loadGameState();
+    if (saved && saved.playerName && saved.playerName.trim()) {
+      dom.start.playerName.value = saved.playerName;
+      localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, saved.playerName);
+      game.scene = SCENES[saved.sceneId] || SCENES.pond;
+      renderSceneSelect();
+      startGame(saved);
+    } else {
+      checkResume();
+      showScreen('start');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
