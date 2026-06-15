@@ -92,17 +92,6 @@
             grid-template-columns: repeat(15, 48px);
             grid-template-rows: repeat(10, 48px);
             gap: 0;
-            z-index: 1;
-        }
-
-        .overlay-layer {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 720px;
-            height: 480px;
-            pointer-events: none;
-            z-index: 2;
         }
 
         .cell {
@@ -215,6 +204,7 @@
             position: absolute;
             border: 2px dashed rgba(255, 255, 255, 0.6);
             border-radius: 50%;
+            pointer-events: none;
             z-index: 3;
             background: rgba(255, 255, 255, 0.05);
         }
@@ -222,6 +212,7 @@
         .enemy {
             position: absolute;
             z-index: 10;
+            pointer-events: none;
             transition: none;
         }
 
@@ -416,6 +407,7 @@
         .projectile {
             position: absolute;
             z-index: 15;
+            pointer-events: none;
         }
 
         .projectile-arrow {
@@ -444,6 +436,7 @@
         .coin-pickup {
             position: absolute;
             z-index: 20;
+            pointer-events: none;
             font-size: 18px;
             color: #ffd700;
             font-weight: bold;
@@ -755,6 +748,7 @@
         .floating-text {
             position: absolute;
             z-index: 25;
+            pointer-events: none;
             font-weight: bold;
             animation: floatUp 1s ease-out forwards;
         }
@@ -774,6 +768,7 @@
             position: absolute;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(255, 152, 0, 0.5) 0%, transparent 70%);
+            pointer-events: none;
             z-index: 12;
             animation: splashExpand 0.3s ease-out forwards;
         }
@@ -805,20 +800,19 @@
             <div class="main-area">
                 <div class="game-board-wrapper">
                     <div class="game-board">
-                        <div class="grid-container" ref="gridContainer">
+                        <div class="grid-container" ref="gridContainer"
+                            @click="handleGridClick"
+                            @mousemove="handleGridMouseMove"
+                            @mouseleave="handleCellLeave"
+                        >
                             <div
                                 v-for="(cell, idx) in gridCells"
                                 :key="idx"
                                 :class="getCellClass(idx)"
-                                @click="handleCellClick(idx)"
-                                @mouseenter="handleCellHover(idx)"
-                                @mouseleave="handleCellLeave"
                             >
                                 <div v-if="towers[idx]" :class="['tower', 'tower-' + towers[idx].type, towers[idx].level === 2 ? 'tower-level-2' : '']"></div>
                             </div>
-                        </div>
 
-                        <div class="overlay-layer">
                             <div
                                 v-if="selectedTowerType && hoveredCell !== null && canPlaceTower(hoveredCell)"
                                 class="range-circle"
@@ -1228,6 +1222,7 @@
 
                 const STORAGE_KEY = 'tower_defense_save_v2';
                 const STORAGE_VERSION = 2;
+                let saveTimerId = null;
 
                 function saveGame() {
                     const towersData = {};
@@ -1249,6 +1244,14 @@
                     try {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
                     } catch (e) {}
+                }
+
+                function debouncedSave() {
+                    if (saveTimerId) clearTimeout(saveTimerId);
+                    saveTimerId = setTimeout(() => {
+                        saveGame();
+                        saveTimerId = null;
+                    }, 500);
                 }
 
                 function loadGame() {
@@ -1338,15 +1341,28 @@
                     return classes;
                 }
 
-                function handleCellHover(idx) {
-                    hoveredCell.value = idx;
+                function getCellIdxFromEvent(event) {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    const col = Math.floor(x / CELL_SIZE);
+                    const row = Math.floor(y / CELL_SIZE);
+                    if (col < 0 || col >= GRID_WIDTH || row < 0 || row >= GRID_HEIGHT) return -1;
+                    return row * GRID_WIDTH + col;
+                }
+
+                function handleGridMouseMove(event) {
+                    const idx = getCellIdxFromEvent(event);
+                    hoveredCell.value = idx >= 0 ? idx : null;
                 }
 
                 function handleCellLeave() {
                     hoveredCell.value = null;
                 }
 
-                function handleCellClick(idx) {
+                function handleGridClick(event) {
+                    const idx = getCellIdxFromEvent(event);
+                    if (idx < 0) return;
                     if (towers[idx]) {
                         selectedTowerIdx.value = idx;
                         selectedTowerType.value = null;
@@ -1545,6 +1561,7 @@
                     spawnTimer = 0;
                     currentWave.value++;
                     waveInProgress.value = true;
+                    saveGame();
                 }
 
                 function startPrepCountdown() {
@@ -1628,6 +1645,7 @@
                         if (enemy.pathProgress >= 1) {
                             health.value -= 1;
                             enemies.splice(i, 1);
+                            debouncedSave();
                             if (health.value <= 0) {
                                 gameOver.value = true;
                                 saveGame();
@@ -1791,6 +1809,7 @@
                         enemy.dying = true;
                         enemy.deathTimer = 0;
                         gold.value += enemy.reward;
+                        debouncedSave();
 
                         coinAnimations.push({
                             id: nextId(),
@@ -1916,8 +1935,8 @@
                     wavesCleared,
                     finalScore,
                     getCellClass,
-                    handleCellClick,
-                    handleCellHover,
+                    handleGridClick,
+                    handleGridMouseMove,
                     handleCellLeave,
                     selectTowerType,
                     canPlaceTower,
