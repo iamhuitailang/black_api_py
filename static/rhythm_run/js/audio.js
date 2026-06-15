@@ -64,6 +64,24 @@ class RhythmAudio {
         this.scheduler();
     }
 
+    startFromBeat(beat) {
+        if (!this.audioContext) {
+            this.init();
+        }
+        this.resume();
+
+        this.isPlaying = true;
+        this.totalBeats = Math.floor((this.bpm / 60) * this.duration);
+
+        const secondsPerBeat = 60.0 / this.bpm;
+        const startOffset = beat * secondsPerBeat;
+        this.startTime = this.audioContext.currentTime + 0.1 - startOffset;
+        this.currentBeat = Math.floor(beat);
+        this.nextNoteTime = this.startTime + this.currentBeat * secondsPerBeat;
+
+        this.scheduler();
+    }
+
     stop() {
         this.isPlaying = false;
         if (this.schedulerTimer) {

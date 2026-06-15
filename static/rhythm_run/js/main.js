@@ -179,6 +179,8 @@ function startGame() {
 
     localStorage.setItem(STORAGE_KEY, playerName);
 
+    localStorage.removeItem('rhythm_run_game_state');
+
     game.setSong(selectedSong);
 
     document.getElementById('song-info-display').textContent = selectedSong.name;
@@ -229,6 +231,39 @@ function showScreen(screenId) {
 }
 
 function restoreScreenState() {
+    const savedGameState = localStorage.getItem('rhythm_run_game_state');
+    if (savedGameState) {
+        try {
+            const state = JSON.parse(savedGameState);
+            const songData = songs.find(s => s.id === state.songId);
+            if (!songData) {
+                localStorage.removeItem('rhythm_run_game_state');
+            } else {
+                selectedSong = songData;
+                document.querySelectorAll('.song-item').forEach(item => {
+                    item.classList.toggle('selected', item.dataset.songId === state.songId);
+                });
+
+                document.getElementById('song-info-display').textContent = songData.name;
+                document.getElementById('score-display').textContent = state.score.toLocaleString();
+                document.getElementById('combo-count').textContent = state.combo;
+                const progress = state.currentBeat / ((songData.bpm / 60) * 180);
+                document.getElementById('progress-fill').style.width = (progress * 100) + '%';
+
+                showScreen('game-screen');
+
+                const restored = game.restoreState(state);
+                if (!restored) {
+                    localStorage.removeItem('rhythm_run_game_state');
+                    showScreen('start-screen');
+                }
+                return;
+            }
+        } catch (e) {
+            localStorage.removeItem('rhythm_run_game_state');
+        }
+    }
+
     const savedScreen = localStorage.getItem(SCREEN_STORAGE_KEY);
     const savedResult = localStorage.getItem(RESULT_STORAGE_KEY);
 
@@ -236,6 +271,10 @@ function restoreScreenState() {
         try {
             const stats = JSON.parse(savedResult);
             currentStats = stats;
+            const songData = songs.find(s => s.id === stats.songId);
+            if (songData) {
+                selectedSong = songData;
+            }
             showResult(stats);
             return;
         } catch (e) {
@@ -311,6 +350,7 @@ function submitScore(stats) {
 
 function retryGame() {
     localStorage.removeItem(RESULT_STORAGE_KEY);
+    localStorage.removeItem('rhythm_run_game_state');
     showScreen('game-screen');
     game.setSong(selectedSong);
     document.getElementById('score-display').textContent = '0';

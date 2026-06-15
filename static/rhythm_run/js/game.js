@@ -61,6 +61,7 @@ class RhythmRunGame {
 
         this.lastTime = 0;
         this.animationId = null;
+        this.autoSaveTimer = 0;
 
         this.onGameEnd = null;
         this.onScoreUpdate = null;
@@ -221,6 +222,7 @@ class RhythmRunGame {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        localStorage.removeItem('rhythm_run_game_state');
     }
 
     _gameLoop() {
@@ -262,6 +264,12 @@ class RhythmRunGame {
         }
 
         this._checkMissedObstacles(beatTime);
+
+        this.autoSaveTimer += deltaTime;
+        if (this.autoSaveTimer >= 2) {
+            this.autoSaveTimer = 0;
+            this.saveState();
+        }
     }
 
     _updatePlayer(deltaTime) {
@@ -553,6 +561,7 @@ class RhythmRunGame {
 
     _endGame() {
         this.stop();
+        localStorage.removeItem('rhythm_run_game_state');
         if (this.onGameEnd) {
             this.onGameEnd({
                 score: this.score,
@@ -562,6 +571,105 @@ class RhythmRunGame {
                 missCount: this.missCount
             });
         }
+    }
+
+    saveState() {
+        if (this.gameState !== 'playing') return;
+
+        const state = {
+            songId: this.currentSong.id,
+            score: this.score,
+            combo: this.combo,
+            maxCombo: this.maxCombo,
+            perfectCount: this.perfectCount,
+            goodCount: this.goodCount,
+            missCount: this.missCount,
+            currentBeat: this.audio.getBeatTime(),
+            playerState: this.player.state,
+            playerY: this.player.y,
+            playerVelocityY: this.player.velocityY,
+            playerIsJumping: this.player.isJumping,
+            playerIsSliding: this.player.isSliding,
+            playerSlideTimer: this.player.slideTimer || 0,
+            obstacles: this.obstacles.map(obs => ({
+                beat: obs.beat,
+                type: obs.type,
+                hit: obs.hit,
+                judged: obs.judged,
+                secondJudged: obs.secondJudged || false
+            })),
+            backgroundOffsets: {
+                far: this.backgroundLayers.far.offset,
+                mid: this.backgroundLayers.mid.offset,
+                near: this.backgroundLayers.near.offset
+            },
+            timestamp: Date.now()
+        };
+
+        localStorage.setItem('rhythm_run_game_state', JSON.stringify(state));
+    }
+
+    restoreState(state) {
+        if (!state || !state.songId) return false;
+
+        const song = { id: state.songId };
+        const songData = this._findSongData(state.songId);
+        if (!songData) return false;
+
+        this.currentSong = songData;
+        this.audio.setBpm(songData.bpm);
+        this.audio.setDuration(180);
+        this._generateObstacles(songData);
+
+        this.score = state.score;
+        this.combo = state.combo;
+        this.maxCombo = state.maxCombo;
+        this.perfectCount = state.perfectCount;
+        this.goodCount = state.goodCount;
+        this.missCount = state.missCount;
+
+        this.player.state = state.playerState || 'run';
+        this.player.y = state.playerY || this.groundY;
+        this.player.velocityY = state.playerVelocityY || 0;
+        this.player.isJumping = state.playerIsJumping || false;
+        this.player.isSliding = state.playerIsSliding || false;
+        this.player.slideTimer = state.playerSlideTimer || 0;
+
+        if (state.obstacles) {
+            for (let i = 0; i < this.obstacles.length && i < state.obstacles.length; i++) {
+                this.obstacles[i].judged = state.obstacles[i].judged;
+                this.obstacles[i].hit = state.obstacles[i].hit;
+                if (state.obstacles[i].secondJudged !== undefined) {
+                    this.obstacles[i].secondJudged = state.obstacles[i].secondJudged;
+                }
+            }
+        }
+
+        if (state.backgroundOffsets) {
+            this.backgroundLayers.far.offset = state.backgroundOffsets.far;
+            this.backgroundLayers.mid.offset = state.backgroundOffsets.mid;
+            this.backgroundLayers.near.offset = state.backgroundOffsets.near;
+        }
+
+        this.gameState = 'playing';
+        this.screenShake = 0;
+        this.particles = [];
+        this.judgeEffects = [];
+
+        this.audio.startFromBeat(state.currentBeat || 0);
+        this.lastTime = performance.now();
+        this._gameLoop();
+
+        return true;
+    }
+
+    _findSongData(songId) {
+        const songs = [
+            { id: 'song1', name: '夜色初章', bpm: 100, difficulty: 'Easy', difficultyLabel: '简单' },
+            { id: 'song2', name: '霓虹狂奔', bpm: 130, difficulty: 'Normal', difficultyLabel: '普通' },
+            { id: 'song3', name: '极速都市', bpm: 160, difficulty: 'Hard', difficultyLabel: '困难' }
+        ];
+        return songs.find(s => s.id === songId);
     }
 
     _render() {
