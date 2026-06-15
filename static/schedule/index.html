@@ -837,17 +837,17 @@
             <div class="form-row">
                 <div class="form-item">
                     <label>我的班次</label>
-                    <input type="date" id="swapMyDate">
+                    <input type="date" id="swapMyDate" onchange="saveSwapDraft()">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-item">
                     <label>想换的同事</label>
-                    <select id="swapTargetStaff"></select>
+                    <select id="swapTargetStaff" onchange="saveSwapDraft()"></select>
                 </div>
                 <div class="form-item">
                     <label>对方日期</label>
-                    <input type="date" id="swapTargetDate">
+                    <input type="date" id="swapTargetDate" onchange="saveSwapDraft()">
                 </div>
             </div>
         </div>
@@ -873,6 +873,7 @@
 const API_BASE = '/api';
 const TOKEN_KEY = 'schedule_token';
 const USER_KEY = 'schedule_user';
+const SWAP_DRAFT_KEY = 'schedule_swap_draft';
 
 let currentUser = null;
 let currentToken = '';
@@ -881,6 +882,28 @@ let shifts = [];
 let staffList = [];
 let currentSchedule = null;
 let deptSchedule = null;
+
+function saveSwapDraft() {
+    const draft = {
+        myDate: document.getElementById('swapMyDate').value,
+        targetStaffId: document.getElementById('swapTargetStaff').value,
+        targetDate: document.getElementById('swapTargetDate').value
+    };
+    if (draft.myDate || draft.targetStaffId || draft.targetDate) {
+        localStorage.setItem(SWAP_DRAFT_KEY, JSON.stringify(draft));
+    } else {
+        localStorage.removeItem(SWAP_DRAFT_KEY);
+    }
+}
+
+function loadSwapDraft() {
+    const s = localStorage.getItem(SWAP_DRAFT_KEY);
+    return s ? JSON.parse(s) : null;
+}
+
+function clearSwapDraft() {
+    localStorage.removeItem(SWAP_DRAFT_KEY);
+}
 
 function getToken() {
     return localStorage.getItem(TOKEN_KEY) || '';
@@ -1040,6 +1063,11 @@ function initApp() {
                 .filter(s => s.id !== currentUser.id)
                 .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         }
+
+        const draft = loadSwapDraft();
+        if (draft && (draft.myDate || draft.targetStaffId || draft.targetDate)) {
+            openSwapModal();
+        }
     }).catch(err => {
         console.error('初始化失败:', err);
     });
@@ -1194,15 +1222,20 @@ function showDayDetail(dateStr, shiftId) {
 function openSwapModal(myDate = '') {
     if (!currentUser) return;
     
+    const select = document.getElementById('swapTargetStaff');
+    select.innerHTML = staffList
+        .filter(s => s.id !== currentUser.id)
+        .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    
+    const draft = loadSwapDraft();
+    if (draft) {
+        if (draft.myDate) document.getElementById('swapMyDate').value = draft.myDate;
+        if (draft.targetStaffId) document.getElementById('swapTargetStaff').value = draft.targetStaffId;
+        if (draft.targetDate) document.getElementById('swapTargetDate').value = draft.targetDate;
+    }
     if (myDate) {
         document.getElementById('swapMyDate').value = myDate;
-    }
-    
-    const select = document.getElementById('swapTargetStaff');
-    if (select.options.length === 0) {
-        select.innerHTML = staffList
-            .filter(s => s.id !== currentUser.id)
-            .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        saveSwapDraft();
     }
     
     showModal('swapModal');
@@ -1224,6 +1257,7 @@ function submitSwapRequest() {
         date: myDate,
         target_date: targetDate
     }).then(() => {
+        clearSwapDraft();
         closeModal('swapModal');
         loadSwapRequests();
         alert('换班申请已提交');
