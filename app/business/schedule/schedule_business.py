@@ -13,6 +13,47 @@ class ScheduleBusiness:
         self.schedule_model = ScheduleModel()
         self.swap_model = SwapRequestModel()
 
+    def login(self, name: str, password: str) -> Dict[str, Any]:
+        if not name or not name.strip():
+            return {'code': 1, 'message': '请输入姓名', 'data': None}
+        if not password:
+            return {'code': 1, 'message': '请输入密码', 'data': None}
+
+        staff = self.staff_model.verify_password(name.strip(), password)
+        if not staff:
+            return {'code': 1, 'message': '姓名或密码错误', 'data': None}
+
+        token = self.staff_model.generate_token(staff['id'], hours=24)
+
+        return {
+            'code': 0,
+            'message': '登录成功',
+            'data': {
+                'staff': staff,
+                'token': token
+            }
+        }
+
+    def logout(self, token: str) -> Dict[str, Any]:
+        staff = self.staff_model.get_by_token(token)
+        if staff:
+            self.staff_model.clear_token(staff['id'])
+        return {'code': 0, 'message': '已退出登录', 'data': None}
+
+    def get_current_staff(self, token: str) -> Dict[str, Any]:
+        staff = self.staff_model.get_by_token(token)
+        if staff:
+            return {'code': 0, 'message': 'success', 'data': staff}
+        return {'code': 1, 'message': '未登录或登录已过期', 'data': None}
+
+    def _verify_token(self, token: str, require_admin: bool = False) -> Optional[Dict[str, Any]]:
+        staff = self.staff_model.get_by_token(token)
+        if not staff:
+            return None
+        if require_admin and staff['role'] != 'admin':
+            return None
+        return staff
+
     def get_shifts(self) -> Dict[str, Any]:
         shifts = self.shift_model.get_all()
         return {

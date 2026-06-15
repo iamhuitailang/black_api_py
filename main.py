@@ -53,8 +53,17 @@ def seed_schedule_data():
             ('黄护士', 'staff'),
         ]
         for name, role in default_staff:
-            staff_model.create(name, role)
+            staff_model.create(name, role, '123456')
         print("  - Created default staff")
+    else:
+        all_staff = staff_model.get_all()
+        need_init = False
+        for s in all_staff:
+            if not s.get('password_hash') or not s.get('salt'):
+                staff_model.update(s['id'], password='123456')
+                need_init = True
+        if need_init:
+            print("  - Initialized staff passwords (default: 123456)")
 
 
 def init_database():
