@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梦幻泡泡龙 - Bubble Shooter</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="header-item">
+                <span class="label">关卡</span>
+                <span class="value" id="levelDisplay">1</span>
+            </div>
+            <div class="header-item">
+                <span class="label">得分</span>
+                <span class="value" id="scoreDisplay">0</span>
+            </div>
+            <div class="header-item">
+                <span class="label">发射</span>
+                <span class="value" id="shotsDisplay">0</span>
+            </div>
+            <div class="header-item">
+                <span class="label">剩余气泡</span>
+                <span class="value" id="remainingDisplay">0</span>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="520" height="680"></canvas>
+
+        <div class="game-controls">
+            <div class="control-info">
+                <span>← → 旋转 &nbsp;|&nbsp; 空格 发射</span>
+            </div>
+            <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+            <button id="leaderboardBtn" class="btn btn-primary">排行榜</button>
+        </div>
+    </div>
+
+    <div id="levelCompleteModal" class="modal">
+        <div class="modal-content">
+            <h2>🎉 关卡完成！</h2>
+            <p>第 <span id="completedLevel">1</span> 关通关</p>
+            <div class="modal-stats">
+                <div class="stat-row">
+                    <span>发射次数</span>
+                    <span id="levelShots">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>本关得分</span>
+                    <span id="levelScore">0</span>
+                </div>
+                <div class="stat-row highlight">
+                    <span>累计总分</span>
+                    <span id="totalScoreModal">0</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="nextLevelBtn" class="btn btn-primary">下一关</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameCompleteModal" class="modal">
+        <div class="modal-content">
+            <h2>🏆 全部通关！</h2>
+            <p>恭喜你完成了所有8关！</p>
+            <div class="modal-stats">
+                <div class="stat-row highlight">
+                    <span>总得分</span>
+                    <span id="finalTotalScore">0</span>
+                </div>
+            </div>
+            <div class="name-input">
+                <input type="text" id="playerNameInput" placeholder="输入你的名字（最多20字）" maxlength="20">
+            </div>
+            <div class="modal-actions">
+                <button id="submitScoreBtn" class="btn btn-primary">提交成绩</button>
+                <button id="playAgainBtn" class="btn btn-secondary">再玩一次</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2>💔 游戏结束</h2>
+            <p>气泡触碰到底线了！</p>
+            <div class="modal-stats">
+                <div class="stat-row">
+                    <span>到达关卡</span>
+                    <span id="gameOverLevel">1</span>
+                </div>
+                <div class="stat-row highlight">
+                    <span>总得分</span>
+                    <span id="gameOverScore">0</span>
+                </div>
+            </div>
+            <div class="name-input">
+                <input type="text" id="gameOverNameInput" placeholder="输入你的名字（最多20字）" maxlength="20">
+            </div>
+            <div class="modal-actions">
+                <button id="submitGameOverScoreBtn" class="btn btn-primary">提交成绩</button>
+                <button id="restartGameBtn" class="btn btn-secondary">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaderboardModal" class="modal">
+        <div class="modal-content leaderboard-content">
+            <h2>🏆 排行榜</h2>
+            <div class="leaderboard-list" id="leaderboardList">
+                <div class="loading">加载中...</div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeLeaderboardBtn" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="submitToast" class="toast"></div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
