@@ -127,9 +127,14 @@ function clearAuth() {
 function showLogin() {
     document.getElementById('loginOverlay').style.display = 'flex';
     document.getElementById('mainApp').style.display = 'none';
-    document.getElementById('loginName').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginName').focus();
+    var errEl = document.getElementById('loginError');
+    if (errEl) errEl.style.display = 'none';
+    var btn = document.getElementById('loginBtn');
+    if (btn) { btn.disabled = false; btn.textContent = '登 录'; }
+    setTimeout(function() {
+        var nameEl = document.getElementById('loginName');
+        if (nameEl && !nameEl.value) nameEl.focus();
+    }, 100);
 }
 
 function showApp() {
@@ -186,27 +191,6 @@ function doLogout() {
 }
 
 function bindDOMEvents() {
-    const loginBtn = document.getElementById('loginBtn');
-    const loginPwd = document.getElementById('loginPassword');
-    const loginName = document.getElementById('loginName');
-
-    loginBtn.onclick = function() {
-        const name = loginName.value.trim();
-        const password = loginPwd.value;
-        if (!name || !password) {
-            showToast('请输入用户名和密码', 'error');
-            return;
-        }
-        doLogin(name, password);
-    };
-
-    loginPwd.onkeypress = function(e) {
-        if (e.key === 'Enter') loginBtn.click();
-    };
-    loginName.onkeypress = function(e) {
-        if (e.key === 'Enter') loginPwd.focus();
-    };
-
     document.getElementById('logoutBtn').onclick = doLogout;
 
     document.getElementById('initDataBtn').onclick = async function() {
@@ -225,6 +209,65 @@ function bindDOMEvents() {
         }
     };
 }
+
+window._handleLogin = function() {
+    var errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+    var nameEl = document.getElementById('loginName');
+    var pwdEl = document.getElementById('loginPassword');
+    var name = nameEl.value.trim();
+    var password = pwdEl.value;
+    if (!name || !password) {
+        errEl.textContent = '请输入用户名和密码';
+        errEl.style.display = 'block';
+        return;
+    }
+    var btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.textContent = '登录中...';
+    fetch('/api/leave/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name, password: password})
+    }).then(function(res) {
+        return res.text();
+    }).then(function(text) {
+        var data;
+        try { data = JSON.parse(text); } catch(e) {
+            errEl.textContent = '服务器返回格式错误';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = '登 录';
+            return;
+        }
+        if (data.code !== 0) {
+            errEl.textContent = data.message || '登录失败';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = '登 录';
+            return;
+        }
+        currentEmployee = data.data;
+        currentRole = data.data.role || 'employee';
+        saveAuth(data.data);
+        showApp();
+        setupTabs();
+        setupLeaveForm();
+        showToast('登录成功', 'success');
+        setTimeout(function() {
+            try { refreshEmployeeView(); } catch(e) { console.error(e); }
+            try { refreshApprovalList(); } catch(e) { console.error(e); }
+            if (currentRole === 'hr' || currentRole === 'admin') {
+                try { refreshHrStats(); } catch(e) { console.error(e); }
+            }
+        }, 100);
+    }).catch(function(e) {
+        errEl.textContent = '网络错误：' + e.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '登 录';
+    });
+};
 
 async function initApp() {
     bindDOMEvents();
