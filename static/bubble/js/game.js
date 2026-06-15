@@ -922,6 +922,7 @@
 
         if (checkGameOver()) {
             game.state = GameState.GAMEOVER;
+            saveGameState();
             showGameOver();
             return;
         }
@@ -929,6 +930,7 @@
         if (checkLevelComplete()) {
             game.state = GameState.LEVELCOMPLETE;
             game.totalScore += game.score;
+            saveGameState();
             if (game.level >= LEVELS.length) {
                 showGameComplete();
             } else {
@@ -938,6 +940,7 @@
         }
 
         game.state = GameState.IDLE;
+        saveGameState();
     }
 
     function checkGameOver() {
@@ -1055,8 +1058,6 @@
     function drawShooter() {
         const angle = game.shooterAngle;
 
-        drawAimLine();
-
         ctx.save();
         ctx.translate(SHOOTER_X, SHOOTER_Y);
 
@@ -1137,24 +1138,23 @@
 
     function drawAimLine() {
         const angle = game.shooterAngle;
-        const startX = SHOOTER_X + Math.cos(angle) * 20;
-        const startY = SHOOTER_Y - Math.sin(angle) * 20;
+        const startX = SHOOTER_X + Math.cos(angle) * 25;
+        const startY = SHOOTER_Y - Math.sin(angle) * 25;
 
         let x = startX;
         let y = startY;
-        const speed = 6;
+        const speed = 8;
         let vx = Math.cos(angle) * speed;
         let vy = -Math.sin(angle) * speed;
 
         ctx.save();
 
-        const gradient = ctx.createLinearGradient(startX, startY, startX + vx * 50, startY + vy * 50);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.15)');
-        ctx.strokeStyle = gradient;
+        ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.lineWidth = 3;
-        ctx.setLineDash([10, 8]);
-        ctx.lineDashOffset = -Date.now() / 30;
+        ctx.setLineDash([12, 10]);
+        ctx.lineDashOffset = -Date.now() / 25;
         ctx.lineCap = 'round';
 
         ctx.beginPath();
@@ -1164,7 +1164,7 @@
         let hit = false;
         let hitX = 0;
         let hitY = 0;
-        const maxSteps = 200;
+        const maxSteps = 250;
 
         while (steps < maxSteps && !hit) {
             x += vx;
@@ -1192,7 +1192,7 @@
                         if (!b) continue;
                         const dx = x - b.x;
                         const dy = y - b.y;
-                        if (dx * dx + dy * dy < BUBBLE_DIAMETER * BUBBLE_DIAMETER - 10) {
+                        if (dx * dx + dy * dy < BUBBLE_DIAMETER * BUBBLE_DIAMETER - 20) {
                             hit = true;
                             hitX = x;
                             hitY = y;
@@ -1201,9 +1201,7 @@
                 }
             }
 
-            if (!hit || steps > 5) {
-                ctx.lineTo(x, y);
-            }
+            ctx.lineTo(x, y);
             steps++;
         }
 
@@ -1211,16 +1209,25 @@
 
         if (hit) {
             ctx.setLineDash([]);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.lineWidth = 2;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+            ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(hitX, hitY, BUBBLE_RADIUS, 0, Math.PI * 2);
+            ctx.arc(hitX, hitY, BUBBLE_RADIUS + 2, 0, Math.PI * 2);
             ctx.stroke();
 
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.beginPath();
-            ctx.arc(hitX, hitY, BUBBLE_RADIUS, 0, Math.PI * 2);
+            ctx.arc(hitX, hitY, BUBBLE_RADIUS - 3, 0, Math.PI * 2);
             ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('◎', hitX, hitY);
         }
 
         ctx.restore();
@@ -1285,6 +1292,7 @@
         drawFallingBubbles();
         drawFlyingBubble();
         drawShooter();
+        drawAimLine();
         drawNoPopCounter();
 
         requestAnimationFrame(gameLoop);
@@ -1494,6 +1502,7 @@
     // ============ 按钮事件 ============
     document.getElementById('restartBtn').addEventListener('click', () => {
         game.totalScore = 0;
+        clearGameSave();
         initLevel(1);
         hideAllModals();
     });
@@ -1510,17 +1519,20 @@
     document.getElementById('nextLevelBtn').addEventListener('click', () => {
         hideAllModals();
         initLevel(game.level + 1);
+        saveGameState();
     });
 
     document.getElementById('playAgainBtn').addEventListener('click', () => {
         hideAllModals();
         game.totalScore = 0;
+        clearGameSave();
         initLevel(1);
     });
 
     document.getElementById('restartGameBtn').addEventListener('click', () => {
         hideAllModals();
         game.totalScore = 0;
+        clearGameSave();
         initLevel(1);
     });
 
@@ -1591,7 +1603,10 @@
     }
 
     // ============ 启动游戏 ============
-    initLevel(1);
+    const loaded = loadGameState();
+    if (!loaded) {
+        initLevel(1);
+    }
     gameLoop();
 
 })();
