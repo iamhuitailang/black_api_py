@@ -15,7 +15,7 @@ class FishingController:
     def __init__(self):
         self.business = FishingBusiness()
 
-    def ActionFishingSubmit(self, request: Request, body: FishingSubmitRequest):
+    def ActionFishingSubmitPost(self, request: Request, body: FishingSubmitRequest):
         """
         提交钓鱼成绩
         POST /api/fishing/submit

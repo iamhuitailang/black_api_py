@@ -21,7 +21,8 @@
 
         <div class="player-info">
           <label>玩家名字:</label>
-          <input type="text" id="player-name" maxlength="32" placeholder="匿名玩家" />
+          <input type="text" id="player-name" maxlength="32" placeholder="请输入玩家名字" />
+          <div class="name-error-msg" id="name-error">请输入玩家名字才能开始游戏</div>
         </div>
 
         <div class="start-stats">
@@ -36,6 +37,7 @@
         </div>
 
         <button class="btn btn-primary btn-lg" id="btn-start">开始钓鱼</button>
+        <button class="btn btn-resume btn-lg" id="btn-resume" style="display:none">▶ 继续上次游戏</button>
         <button class="btn btn-secondary" id="btn-show-leaderboard">🏆 排行榜</button>
       </div>
     </div>

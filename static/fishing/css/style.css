@@ -176,6 +176,20 @@ body {
 .player-info input:focus {
   border-color: var(--primary);
 }
+.player-info input.input-error {
+  border-color: var(--danger);
+  background: #fff5f5;
+}
+.name-error-msg {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 4px;
+  min-height: 16px;
+  display: none;
+}
+.name-error-msg.show {
+  display: block;
+}
 
 .start-stats {
   display: grid;
@@ -235,6 +249,16 @@ body {
   color: var(--primary-dark);
   border: 2px solid var(--primary);
   box-shadow: none;
+}
+.btn-resume {
+  background: linear-gradient(180deg, var(--good) 0%, #27ae60 100%);
+  color: white;
+  box-shadow: 0 4px 0 #187340, 0 6px 12px rgba(46,204,113,0.3);
+  width: 100%;
+}
+.btn-resume:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #187340, 0 8px 16px rgba(46,204,113,0.35);
 }
 .btn-secondary {
   background: linear-gradient(180deg, #f0f0f0 0%, #d8d8d8 100%);
@@ -587,10 +611,13 @@ body {
 .fishing-line {
   position: absolute;
   width: 2px;
-  background: rgba(255,255,255,0.7);
+  height: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(200,220,255,0.6));
   transform-origin: top left;
   z-index: 5;
   pointer-events: none;
+  border-radius: 1px;
+  box-shadow: 0 0 2px rgba(255,255,255,0.4);
 }
 
 .hook {
@@ -695,67 +722,25 @@ body {
   pointer-events: none;
   z-index: 4;
 }
-.fish-body {
-  position: relative;
-  border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.25);
-  box-shadow: inset -2px -2px 0 rgba(0,0,0,0.1),
-              inset 2px 2px 0 rgba(255,255,255,0.25);
+.fish svg {
+  display: block;
+  overflow: visible;
 }
-.fish-body::after {
-  content: "●";
-  position: absolute;
-  font-size: 10px;
-  color: #1a1a1a;
-  line-height: 1;
-  top: 20%;
+.fish.swimming .fish-tail-group {
+  animation: tailWagSvg 0.5s infinite;
+  transform-origin: center left;
 }
-.fish-left .fish-body::after { left: 10%; }
-.fish-right .fish-body::after { right: 10%; transform: scaleX(-1); }
-
-.fish-tail {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-style: solid;
+@keyframes tailWagSvg {
+  0%,100% { transform: rotate(0); }
+  50%     { transform: rotate(20deg); }
 }
-.fish-right .fish-tail {
-  left: -14px;
-  border-width: 14px 16px 14px 0;
-  border-color: transparent currentColor transparent transparent;
+.fish-left.swimming .fish-tail-group {
+  animation-name: tailWagSvgL;
+  transform-origin: center right;
 }
-.fish-left .fish-tail {
-  right: -14px;
-  border-width: 14px 0 14px 16px;
-  border-color: transparent transparent transparent currentColor;
-}
-.fish.swimming .fish-tail {
-  animation: tailWag 0.5s infinite;
-}
-@keyframes tailWag {
-  0%,100% { transform: translateY(-50%) rotate(0); }
-  50%     { transform: translateY(-50%) rotate(25deg); }
-}
-.fish-left.swimming .fish-tail {
-  animation-name: tailWagL;
-}
-@keyframes tailWagL {
-  0%,100% { transform: translateY(-50%) rotate(0); }
-  50%     { transform: translateY(-50%) rotate(-25deg); }
-}
-
-.fish-fin {
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 0 6px 10px 6px;
-  border-color: transparent transparent currentColor transparent;
-  opacity: 0.85;
+@keyframes tailWagSvgL {
+  0%,100% { transform: rotate(0); }
+  50%     { transform: rotate(-20deg); }
 }
 
 .fish-display {
