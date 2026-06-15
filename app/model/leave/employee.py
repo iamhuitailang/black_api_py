@@ -3,6 +3,11 @@ from typing import Dict, Any, List, Optional
 from app.common.sqlite.db import get_db
 from app.common.sqlite.orm_query import ORMQuery
 from app.common.sqlite.orm_exec import ORMExec
+import hashlib
+
+
+def hash_password(password: str) -> str:
+    return hashlib.md5(password.encode('utf-8')).hexdigest()
 
 
 class EmployeeModel:
@@ -24,14 +29,20 @@ class EmployeeModel:
                 manager_id INTEGER,
                 annual_leave_total INTEGER DEFAULT 10,
                 role TEXT DEFAULT 'employee',
+                password TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
         db.execute(sql)
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN password TEXT")
+        except Exception:
+            pass
 
     def create(self, name: str, department: str, manager_id: int = None,
-               annual_leave_total: int = 10, role: str = 'employee') -> int:
+               annual_leave_total: int = 10, role: str = 'employee',
+               password: str = None) -> int:
         now = datetime.now().isoformat()
         data = {
             'name': name,
@@ -39,10 +50,23 @@ class EmployeeModel:
             'manager_id': manager_id,
             'annual_leave_total': annual_leave_total,
             'role': role,
+            'password': hash_password(password) if password else hash_password('123456'),
             'created_at': now,
             'updated_at': now
         }
         return self.exec.insert(data)
+
+    def get_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        return self.query.find_one({'name': name})
+
+    def verify_password(self, name: str, password: str) -> Optional[Dict[str, Any]]:
+        emp = self.get_by_name(name)
+        if not emp:
+            return None
+        hashed = hash_password(password)
+        if emp.get('password') == hashed:
+            return emp
+        return None
 
     def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
         return self.query.find_by_id(record_id)

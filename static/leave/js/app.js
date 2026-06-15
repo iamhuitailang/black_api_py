@@ -80,80 +80,158 @@ function getStatusHtml(status) {
     return `<span class="status-tag ${s.cls}">${s.label}</span>`;
 }
 
+const AUTH_STORAGE_KEY = 'leave_user_auth';
+const FORM_STORAGE_KEY = 'leave_form_draft';
 let currentEmployee = null;
 let currentRole = 'employee';
 let allEmployees = [];
 let calendarYear, calendarMonth;
+let _tabsSetup = false;
+let _leaveFormSetup = false;
+
+function saveAuth(emp) {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(emp));
+}
+
+function getAuth() {
+    const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (saved) {
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
+
+function clearAuth() {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(FORM_STORAGE_KEY);
+}
+
+function showLogin() {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginName').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginName').focus();
+}
+
+function showApp() {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('currentUserName').textContent = currentEmployee.name;
+    document.getElementById('currentUserDept').textContent = currentEmployee.department;
+    const roleMap = { employee: '普通员工', manager: '部门经理', hr: 'HR管理员', admin: '超级管理员' };
+    document.getElementById('currentUserRole').textContent = roleMap[currentRole] || currentRole;
+
+    const hrTab = document.getElementById('hrTab');
+    if (currentRole === 'hr' || currentRole === 'admin') {
+        hrTab.style.display = 'block';
+    } else {
+        hrTab.style.display = 'none';
+        const activeTab = document.querySelector('.tab-item.active');
+        if (activeTab && activeTab.dataset.tab === 'hr') {
+            document.querySelector('[data-tab="employee"]').click();
+        }
+    }
+}
+
+async function doLogin(name, password) {
+    try {
+        const emp = await apiPost('/leave/login', { name, password });
+        currentEmployee = emp;
+        currentRole = emp.role || 'employee';
+        saveAuth(emp);
+        showApp();
+        setupTabs();
+        setupLeaveForm();
+        refreshEmployeeView();
+        refreshApprovalList();
+        if (currentRole === 'hr' || currentRole === 'admin') {
+            refreshHrStats();
+        }
+        showToast('登录成功', 'success');
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function doLogout() {
+    clearAuth();
+    currentEmployee = null;
+    currentRole = 'employee';
+    showLogin();
+    showToast('已退出登录', 'info');
+}
 
 async function initApp() {
     try {
-        allEmployees = await apiGet('/leave/employee/getlist');
-        if (!allEmployees || allEmployees.length === 0) {
-            await apiPost('/leave/seed');
-            allEmployees = await apiGet('/leave/employee/getlist');
-        }
+        const seedRes = await apiPost('/leave/seed');
+        console.log('Seed check:', seedRes);
     } catch (e) {
         console.error(e);
     }
 
-    renderUserSelect();
-    setupTabs();
-    setupLeaveForm();
-    if (currentEmployee) {
-        refreshEmployeeView();
-    }
-    refreshApprovalList();
-    refreshHrStats();
-}
-
-function renderUserSelect() {
-    const sel = document.getElementById('userSelect');
-    const roleSel = document.getElementById('roleSelect');
-    sel.innerHTML = '';
-    allEmployees.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp.id;
-        opt.textContent = `${emp.name}（${emp.department}）`;
-        sel.appendChild(opt);
-    });
-
-    if (allEmployees.length > 0 && !currentEmployee) {
-        currentEmployee = allEmployees[0];
-        sel.value = currentEmployee.id;
-        currentRole = currentEmployee.role || 'employee';
-        roleSel.value = currentRole;
-    }
-
-    sel.onchange = () => {
-        currentEmployee = allEmployees.find(e => e.id === parseInt(sel.value));
-        currentRole = currentEmployee.role || 'employee';
-        roleSel.value = currentRole;
-        refreshEmployeeView();
-        refreshApprovalList();
+    document.getElementById('loginBtn').onclick = async () => {
+        const name = document.getElementById('loginName').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!name || !password) {
+            showToast('请输入用户名和密码', 'error');
+            return;
+        }
+        const ok = await doLogin(name, password);
+        if (!ok) {
+            showToast('用户名或密码错误', 'error');
+        }
     };
 
-    roleSel.onchange = () => {
-        currentRole = roleSel.value;
-        refreshApprovalList();
-        refreshHrStats();
+    document.getElementById('loginPassword').onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('loginBtn').click();
+        }
     };
+
+    document.getElementById('logoutBtn').onclick = doLogout;
 
     document.getElementById('initDataBtn').onclick = async () => {
         try {
             await apiPost('/leave/seed');
             showToast('已初始化演示数据', 'success');
-            allEmployees = await apiGet('/leave/employee/getlist');
-            renderUserSelect();
-            refreshEmployeeView();
-            refreshApprovalList();
-            refreshHrStats();
+            if (currentEmployee) {
+                refreshEmployeeView();
+                refreshApprovalList();
+                if (currentRole === 'hr' || currentRole === 'admin') {
+                    refreshHrStats();
+                }
+            }
         } catch (e) {
             console.error(e);
         }
     };
+
+    const saved = getAuth();
+    if (saved) {
+        currentEmployee = saved;
+        currentRole = saved.role || 'employee';
+        showApp();
+        setupTabs();
+        setupLeaveForm();
+        refreshEmployeeView();
+        refreshApprovalList();
+        if (currentRole === 'hr' || currentRole === 'admin') {
+            refreshHrStats();
+        }
+    } else {
+        showLogin();
+    }
 }
 
 function setupTabs() {
+    if (_tabsSetup) return;
+    _tabsSetup = true;
     const tabs = document.querySelectorAll('.tab-item');
     const panels = document.querySelectorAll('.tab-panel');
     tabs.forEach(tab => {
@@ -165,19 +243,59 @@ function setupTabs() {
             document.getElementById(`panel-${target}`).classList.add('active');
             if (target === 'employee') refreshEmployeeView();
             if (target === 'approval') refreshApprovalList();
-            if (target === 'hr') refreshHrStats();
+            if (target === 'hr' && (currentRole === 'hr' || currentRole === 'admin')) {
+                refreshHrStats();
+            }
         };
     });
 }
 
+function saveFormDraft() {
+    if (!currentEmployee) return;
+    const draft = {
+        employee_id: currentEmployee.id,
+        leave_type: document.getElementById('leaveType').value,
+        start_date: document.getElementById('startDate').value,
+        end_date: document.getElementById('endDate').value,
+        reason: document.getElementById('leaveReason').value
+    };
+    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(draft));
+}
+
+function loadFormDraft() {
+    const saved = localStorage.getItem(FORM_STORAGE_KEY);
+    if (!saved) return;
+    try {
+        const draft = JSON.parse(saved);
+        if (currentEmployee && draft.employee_id === currentEmployee.id) {
+            if (draft.leave_type) document.getElementById('leaveType').value = draft.leave_type;
+            if (draft.start_date) document.getElementById('startDate').value = draft.start_date;
+            if (draft.end_date) document.getElementById('endDate').value = draft.end_date;
+            if (draft.reason) document.getElementById('leaveReason').value = draft.reason;
+        }
+    } catch (e) {
+        localStorage.removeItem(FORM_STORAGE_KEY);
+    }
+}
+
+function clearFormDraft() {
+    localStorage.removeItem(FORM_STORAGE_KEY);
+}
+
 function setupLeaveForm() {
+    if (_leaveFormSetup) return;
+    _leaveFormSetup = true;
     const startEl = document.getElementById('startDate');
     const endEl = document.getElementById('endDate');
+    const leaveTypeEl = document.getElementById('leaveType');
+    const reasonEl = document.getElementById('leaveReason');
     const workDaysEl = document.getElementById('workDays');
     const today = todayStr();
-    startEl.value = today;
     startEl.min = today;
     endEl.min = today;
+
+    loadFormDraft();
+    if (!startEl.value) startEl.value = today;
 
     async function updateWorkDays() {
         if (startEl.value && endEl.value) {
@@ -191,7 +309,11 @@ function setupLeaveForm() {
                 workDaysEl.textContent = '-';
             }
         }
+        saveFormDraft();
     }
+
+    leaveTypeEl.onchange = saveFormDraft;
+    reasonEl.oninput = saveFormDraft;
     startEl.onchange = () => {
         endEl.min = startEl.value;
         if (endEl.value && endEl.value < startEl.value) endEl.value = startEl.value;
@@ -202,10 +324,10 @@ function setupLeaveForm() {
 
     document.getElementById('submitLeaveBtn').onclick = async () => {
         if (!currentEmployee) return;
-        const leave_type = document.getElementById('leaveType').value;
+        const leave_type = leaveTypeEl.value;
         const start_date = startEl.value;
         const end_date = endEl.value;
-        const reason = document.getElementById('leaveReason').value.trim();
+        const reason = reasonEl.value.trim();
 
         if (!start_date || !end_date) {
             showToast('请选择起止日期', 'error');
@@ -225,7 +347,11 @@ function setupLeaveForm() {
                 reason
             });
             showToast('请假申请已提交', 'success');
-            document.getElementById('leaveReason').value = '';
+            clearFormDraft();
+            reasonEl.value = '';
+            startEl.value = today;
+            endEl.value = '';
+            workDaysEl.textContent = '0 个工作日';
             refreshEmployeeView();
         } catch (e) {
             console.error(e);
@@ -514,7 +640,11 @@ async function refreshHrStats() {
         refreshHrStats();
     };
     document.getElementById('exportCsvBtn').onclick = () => {
-        window.location.href = `${API_BASE}/leave/export/get?year=${statsYear}&month=${statsMonth}`;
+        if (currentRole !== 'hr' && currentRole !== 'admin') {
+            showToast('权限不足，仅HR或管理员可导出报表', 'error');
+            return;
+        }
+        window.location.href = `${API_BASE}/leave/export/get?year=${statsYear}&month=${statsMonth}&requester_role=${currentRole}`;
     };
 
     try {
@@ -535,7 +665,8 @@ async function refreshHrStats() {
     try {
         const allData = await apiGet('/leave/statistics/get', {
             year: statsYear,
-            month: statsMonth
+            month: statsMonth,
+            requester_role: currentRole
         });
         renderStatsCharts(allData);
         window._allStatsData = allData;

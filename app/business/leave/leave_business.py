@@ -23,6 +23,14 @@ class LeaveBusiness:
         self.leave_request_model = LeaveRequestModel()
         self.leave_balance_model = LeaveBalanceModel()
 
+    def login(self, name: str, password: str) -> Dict[str, Any]:
+        emp = self.employee_model.verify_password(name, password)
+        if not emp:
+            return {'code': 1, 'message': '用户名或密码错误', 'data': None}
+        emp_data = dict(emp)
+        emp_data.pop('password', None)
+        return {'code': 0, 'message': '登录成功', 'data': emp_data}
+
     def get_employees(self) -> Dict[str, Any]:
         employees = self.employee_model.get_all()
         return {
@@ -100,6 +108,15 @@ class LeaveBusiness:
                     'message': f'Insufficient compensation leave balance: {balance["compensation_remaining"]} days remaining',
                     'data': None
                 }
+
+        conflicts = self.leave_request_model.check_date_conflict(employee_id, start_date, end_date)
+        if conflicts:
+            conflict_dates = ', '.join([f"{c['start_date']} 至 {c['end_date']}" for c in conflicts])
+            return {
+                'code': 1,
+                'message': f'该日期范围内已有请假记录：{conflict_dates}',
+                'data': None
+            }
 
         new_id = self.leave_request_model.create(
             employee_id=employee_id,
@@ -276,7 +293,9 @@ class LeaveBusiness:
         return {'code': 0, 'message': 'success', 'data': leave_days}
 
     def get_hr_statistics(self, year: int = None, month: int = None,
-                          department: str = None) -> Dict[str, Any]:
+                          department: str = None, requester_role: str = None) -> Dict[str, Any]:
+        if requester_role and requester_role not in ['hr', 'admin']:
+            return {'code': 1, 'message': '权限不足，仅HR或管理员可查看统计数据', 'data': None}
         if year is None:
             year = datetime.now().year
 
@@ -388,13 +407,17 @@ class LeaveBusiness:
         return '\n'.join(lines)
 
     def init_seed_data(self) -> Dict[str, Any]:
+        from app.model.leave.employee import hash_password
         employees = self.employee_model.get_all()
         if employees:
-            return {'code': 0, 'message': 'Seed data already exists', 'data': None}
+            for emp in employees:
+                if not emp.get('password'):
+                    self.employee_model.update(emp['id'], password=hash_password('123456'))
+            return {'code': 0, 'message': 'Seed data updated with passwords', 'data': None}
 
-        hr_id = self.employee_model.create('HR管理员', '行政部', None, 15, 'hr')
-        mgr1_id = self.employee_model.create('张经理', '技术部', hr_id, 15, 'manager')
-        mgr2_id = self.employee_model.create('李经理', '市场部', hr_id, 15, 'manager')
+        hr_id = self.employee_model.create('HR管理员', '行政部', None, 15, 'hr', '123456')
+        mgr1_id = self.employee_model.create('张经理', '技术部', hr_id, 15, 'manager', '123456')
+        mgr2_id = self.employee_model.create('李经理', '市场部', hr_id, 15, 'manager', '123456')
 
         emp_ids = [
             ('张三', '技术部', mgr1_id, 10),
@@ -406,7 +429,7 @@ class LeaveBusiness:
         ]
         created_ids = []
         for name, dept, mid, annual in emp_ids:
-            eid = self.employee_model.create(name, dept, mid, annual, 'employee')
+            eid = self.employee_model.create(name, dept, mid, annual, 'employee', '123456')
             created_ids.append(eid)
 
         current_year = datetime.now().year

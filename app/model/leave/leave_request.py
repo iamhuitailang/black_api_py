@@ -158,3 +158,16 @@ class LeaveRequestModel:
             params.append(employee_id)
         sql += " ORDER BY lr.start_date ASC"
         return self.db.fetch_all(sql, tuple(params))
+
+    def check_date_conflict(self, employee_id: int, start_date: str, end_date: str, exclude_id: int = None) -> List[Dict[str, Any]]:
+        sql = f"""
+            SELECT * FROM {self.TABLE_NAME}
+            WHERE employee_id = ?
+                AND status IN ('approved', 'pending_hr', 'pending_manager')
+                AND start_date <= ? AND end_date >= ?
+        """
+        params = [employee_id, end_date, start_date]
+        if exclude_id:
+            sql += " AND id != ?"
+            params.append(exclude_id)
+        return self.db.fetch_all(sql, tuple(params))

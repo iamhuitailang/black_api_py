@@ -7,25 +7,44 @@
     <link rel="stylesheet" href="/static/leave/css/style.css">
 </head>
 <body>
-    <div class="app-container">
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <div class="login-title">🏢 公司请假管理系统</div>
+            <div class="login-subtitle">请登录以继续</div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label">用户名</label>
+                <input type="text" id="loginName" class="form-input" placeholder="请输入用户名">
+            </div>
+            <div class="form-group" style="margin-bottom:20px;">
+                <label class="form-label">密码</label>
+                <input type="password" id="loginPassword" class="form-input" placeholder="请输入密码">
+            </div>
+            <button id="loginBtn" class="btn btn-primary" style="width:100%;">登 录</button>
+            <div class="login-tip">
+                演示账号：HR管理员/张经理/张三  密码：123456
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="mainApp" style="display:none;">
         <div class="app-header">
             <div class="app-title">🏢 公司请假管理系统</div>
             <div class="user-bar">
-                <select id="userSelect" class="user-select"></select>
-                <select id="roleSelect" class="role-select">
-                    <option value="employee">普通员工</option>
-                    <option value="manager">部门经理</option>
-                    <option value="hr">HR管理员</option>
-                    <option value="admin">超级管理员</option>
-                </select>
+                <div class="user-info">
+                    <span class="user-avatar">👤</span>
+                    <span class="user-name" id="currentUserName"></span>
+                    <span class="user-dept" id="currentUserDept"></span>
+                    <span class="user-role" id="currentUserRole"></span>
+                </div>
                 <button id="initDataBtn" class="init-btn">初始化演示数据</button>
+                <button id="logoutBtn" class="btn btn-danger btn-sm">退出登录</button>
             </div>
         </div>
 
         <div class="tabs">
             <div class="tab-item active" data-tab="employee">👤 我的请假</div>
             <div class="tab-item" data-tab="approval">✅ 审批中心</div>
-            <div class="tab-item" data-tab="hr">📊 HR统计</div>
+            <div class="tab-item" data-tab="hr" id="hrTab">📊 HR统计</div>
         </div>
 
         <div class="tab-panel active" id="panel-employee">

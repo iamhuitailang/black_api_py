@@ -1,6 +1,6 @@
 from typing import Optional
-from fastapi import APIRouter, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Query, Request, status
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from io import StringIO
 from datetime import datetime
@@ -29,9 +29,21 @@ class LeaveRejectRequest(BaseModel):
     comment: Optional[str] = None
 
 
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+
+
 class LeaveController:
     def __init__(self):
         self.business = LeaveBusiness()
+
+    def ActionLeaveLoginPost(self, request: Request, body: LoginRequest):
+        """
+        员工登录
+        POST /api/leave/login
+        """
+        return self.business.login(body.name, body.password)
 
     def ActionLeaveEmployeeGetlist(self, request: Request):
         """
@@ -139,21 +151,28 @@ class LeaveController:
 
     def ActionLeaveStatisticsGet(self, request: Request, year: Optional[int] = Query(None),
                                    month: Optional[int] = Query(None, ge=1, le=12),
-                                   department: Optional[str] = Query(None)):
+                                   department: Optional[str] = Query(None),
+                                   requester_role: Optional[str] = Query(None)):
         """
         获取HR统计数据
         GET /api/leave/statistics/get
-        参数: year, month, department (均可选)
+        参数: year, month, department, requester_role (均可选)
         """
-        return self.business.get_hr_statistics(year, month, department)
+        return self.business.get_hr_statistics(year, month, department, requester_role)
 
     def ActionLeaveExportGet(self, request: Request, year: int = Query(...),
-                               month: int = Query(..., ge=1, le=12)):
+                               month: int = Query(..., ge=1, le=12),
+                               requester_role: str = Query(...)):
         """
         导出月度考勤报表CSV
         GET /api/leave/export/get
-        参数: year, month
+        参数: year, month, requester_role
         """
+        if requester_role not in ['hr', 'admin']:
+            return JSONResponse(
+                status_code=403,
+                content={'code': 1, 'message': '权限不足，仅HR或管理员可导出报表', 'data': None}
+            )
         csv_content = self.business.export_monthly_csv(year, month)
         filename = f"leave_report_{year}_{month:02d}.csv"
         return StreamingResponse(
