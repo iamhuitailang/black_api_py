@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>塔防游戏</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/static/tower_defense/vue.global.prod.js"></script>
     <style>
         * {
             margin: 0;
@@ -811,21 +811,21 @@
                             >
                                 <div v-if="towers[idx]" :class="['tower', 'tower-' + towers[idx].type, towers[idx].level === 2 ? 'tower-level-2' : '']"></div>
                             </div>
-
-                            <div
-                                v-if="selectedTowerType && hoveredCell !== null && canPlaceTower(hoveredCell)"
-                                class="range-circle"
-                                :style="getPlacementRangeStyle()"
-                            ></div>
-
-                            <div
-                                v-for="tower in towersArray"
-                                :key="'range-' + tower.idx"
-                                v-show="selectedTowerIdx === tower.idx"
-                                class="range-circle"
-                                :style="getTowerRangeStyle(tower)"
-                            ></div>
                         </div>
+
+                        <div
+                            v-if="selectedTowerType && hoveredCell !== null && canPlaceTower(hoveredCell)"
+                            class="range-circle"
+                            :style="getPlacementRangeStyle()"
+                        ></div>
+
+                        <div
+                            v-for="tower in towersArray"
+                            :key="'range-' + tower.idx"
+                            v-show="selectedTowerIdx === tower.idx"
+                            class="range-circle"
+                            :style="getTowerRangeStyle(tower)"
+                        ></div>
 
                         <div
                             v-for="enemy in enemies"
@@ -1722,7 +1722,7 @@
                     submitting.value = true;
 
                     try {
-                        const response = await fetch('/api/tower_defense/score/submit', {
+                        const response = await fetch('/api/tower/defense/score/set', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -1747,7 +1747,7 @@
 
                 async function fetchLeaderboard() {
                     try {
-                        const response = await fetch('/api/tower_defense/leaderboard/get?limit=20');
+                        const response = await fetch('/api/tower/defense/leaderboard/get?limit=20');
                         const result = await response.json();
                         if (result.code === 0) {
                             leaderboard.value = result.data.items || [];

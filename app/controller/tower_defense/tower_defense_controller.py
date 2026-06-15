@@ -14,10 +14,10 @@ class TowerDefenseController:
     def __init__(self):
         self.business = TowerDefenseBusiness()
 
-    def ActionTowerDefenseScoreSubmit(self, request: Request, body: ScoreSubmitRequest):
+    def ActionTowerDefenseScoreSet(self, request: Request, body: ScoreSubmitRequest):
         """
         提交塔防游戏成绩
-        POST /api/tower_defense/score/submit
+        POST /api/tower/defense/score/set
         请求体: { player_name: "玩家名", wave_cleared: 通关波数, score: 分数 }
         """
         result = self.business.submit_score(body.player_name, body.wave_cleared, body.score)
