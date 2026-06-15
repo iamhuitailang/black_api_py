@@ -11,13 +11,36 @@ let selectedSong = null;
 let playerName = '';
 let currentStats = null;
 
+const STORAGE_KEY = 'rhythm_run_player_name';
+const SONG_STORAGE_KEY = 'rhythm_run_selected_song';
+
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
     game = new RhythmRunGame(canvas);
 
+    const savedName = localStorage.getItem(STORAGE_KEY);
+    if (savedName) {
+        playerName = savedName;
+        document.getElementById('player-name').value = savedName;
+    }
+
     initSongList();
+
+    const savedSong = localStorage.getItem(SONG_STORAGE_KEY);
+    if (savedSong) {
+        selectSong(savedSong);
+    }
+
     bindEvents();
     setupGameCallbacks();
+
+    window.addEventListener('beforeunload', (e) => {
+        if (game && game.gameState === 'playing') {
+            e.preventDefault();
+            e.returnValue = '游戏正在进行中，刷新页面将丢失当前进度，确定要刷新吗？';
+            return e.returnValue;
+        }
+    });
 });
 
 function initSongList() {
@@ -48,6 +71,8 @@ function selectSong(songId) {
     document.querySelectorAll('.song-item').forEach(item => {
         item.classList.toggle('selected', item.dataset.songId === songId);
     });
+
+    localStorage.setItem(SONG_STORAGE_KEY, songId);
 }
 
 function bindEvents() {
@@ -67,6 +92,7 @@ function bindEvents() {
 
     document.getElementById('player-name').addEventListener('input', (e) => {
         playerName = e.target.value.trim();
+        clearError();
     });
 }
 
@@ -129,9 +155,24 @@ function startGame() {
     playerName = nameInput.value.trim();
 
     if (!playerName) {
-        playerName = 'Player';
-        nameInput.value = 'Player';
+        showError('请输入玩家名称后再开始游戏');
+        nameInput.focus();
+        return;
     }
+
+    if (playerName.length < 2) {
+        showError('玩家名称至少需要2个字符');
+        nameInput.focus();
+        return;
+    }
+
+    if (playerName.length > 20) {
+        showError('玩家名称不能超过20个字符');
+        nameInput.focus();
+        return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, playerName);
 
     game.setSong(selectedSong);
 
@@ -142,6 +183,33 @@ function startGame() {
 
     showScreen('game-screen');
     game.start();
+}
+
+function showError(message) {
+    clearError();
+    const playerInput = document.querySelector('.player-input');
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    errorDiv.style.color = '#ff6b6b';
+    errorDiv.style.fontSize = '13px';
+    errorDiv.style.marginTop = '8px';
+    errorDiv.style.textAlign = 'center';
+    playerInput.appendChild(errorDiv);
+
+    const nameInput = document.getElementById('player-name');
+    nameInput.style.borderColor = '#ff6b6b';
+    nameInput.style.boxShadow = '0 0 10px rgba(255, 107, 107, 0.3)';
+}
+
+function clearError() {
+    const existingError = document.querySelector('.error-message');
+    if (existingError) {
+        existingError.remove();
+    }
+    const nameInput = document.getElementById('player-name');
+    nameInput.style.borderColor = '';
+    nameInput.style.boxShadow = '';
 }
 
 function showScreen(screenId) {
