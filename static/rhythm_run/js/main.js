@@ -13,6 +13,9 @@ let currentStats = null;
 
 const STORAGE_KEY = 'rhythm_run_player_name';
 const SONG_STORAGE_KEY = 'rhythm_run_selected_song';
+const RESULT_STORAGE_KEY = 'rhythm_run_last_result';
+const LB_SONG_STORAGE_KEY = 'rhythm_run_leaderboard_song';
+const SCREEN_STORAGE_KEY = 'rhythm_run_current_screen';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
@@ -33,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     bindEvents();
     setupGameCallbacks();
+
+    restoreScreenState();
 
     window.addEventListener('beforeunload', (e) => {
         if (game && game.gameState === 'playing') {
@@ -217,6 +222,35 @@ function showScreen(screenId) {
         screen.classList.remove('active');
     });
     document.getElementById(screenId).classList.add('active');
+
+    if (screenId !== 'game-screen') {
+        localStorage.setItem(SCREEN_STORAGE_KEY, screenId);
+    }
+}
+
+function restoreScreenState() {
+    const savedScreen = localStorage.getItem(SCREEN_STORAGE_KEY);
+    const savedResult = localStorage.getItem(RESULT_STORAGE_KEY);
+
+    if (savedResult && savedScreen === 'result-screen') {
+        try {
+            const stats = JSON.parse(savedResult);
+            currentStats = stats;
+            showResult(stats);
+            return;
+        } catch (e) {
+            localStorage.removeItem(RESULT_STORAGE_KEY);
+        }
+    }
+
+    if (savedScreen === 'leaderboard-screen') {
+        const savedLbSong = localStorage.getItem(LB_SONG_STORAGE_KEY) || 'song1';
+        showScreen('leaderboard-screen');
+        document.querySelectorAll('.lb-song-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.song === savedLbSong);
+        });
+        loadLeaderboard(savedLbSong);
+    }
 }
 
 function showResult(stats) {
@@ -238,6 +272,14 @@ function showResult(stats) {
     document.getElementById('result-perfect').textContent = stats.perfectCount;
     document.getElementById('result-good').textContent = stats.goodCount;
     document.getElementById('result-miss').textContent = stats.missCount;
+
+    const resultData = {
+        ...stats,
+        rating: rating,
+        songId: selectedSong.id,
+        songName: selectedSong.name
+    };
+    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(resultData));
 
     showScreen('result-screen');
 }
@@ -268,6 +310,7 @@ function submitScore(stats) {
 }
 
 function retryGame() {
+    localStorage.removeItem(RESULT_STORAGE_KEY);
     showScreen('game-screen');
     game.setSong(selectedSong);
     document.getElementById('score-display').textContent = '0';
@@ -277,16 +320,23 @@ function retryGame() {
 }
 
 function backToSelect() {
+    localStorage.removeItem(RESULT_STORAGE_KEY);
     game.stop();
     showScreen('start-screen');
 }
 
 function showLeaderboard() {
+    const savedLbSong = localStorage.getItem(LB_SONG_STORAGE_KEY) || 'song1';
     showScreen('leaderboard-screen');
-    loadLeaderboard('song1');
+    document.querySelectorAll('.lb-song-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.song === savedLbSong);
+    });
+    loadLeaderboard(savedLbSong);
 }
 
 function loadLeaderboard(songId) {
+    localStorage.setItem(LB_SONG_STORAGE_KEY, songId);
+
     fetch(`${API_BASE}/rhythmrunleaderboard/get?song=${songId}&limit=20`)
         .then(res => res.json())
         .then(data => {
