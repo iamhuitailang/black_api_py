@@ -818,7 +818,7 @@
                             </div>
                         </div>
 
-                        <div class="overlay-layer"></div>
+                        <div class="overlay-layer">
                             <div
                                 v-if="selectedTowerType && hoveredCell !== null && canPlaceTower(hoveredCell)"
                                 class="range-circle"
@@ -1226,7 +1226,8 @@
                 let prepTimer = null;
                 let idCounter = 0;
 
-                const STORAGE_KEY = 'tower_defense_save';
+                const STORAGE_KEY = 'tower_defense_save_v2';
+                const STORAGE_VERSION = 2;
 
                 function saveGame() {
                     const towersData = {};
@@ -1238,13 +1239,10 @@
                         };
                     }
                     const state = {
+                        version: STORAGE_VERSION,
                         gold: gold.value,
                         health: health.value,
                         currentWave: currentWave.value,
-                        waveInProgress: waveInProgress.value,
-                        gameOver: gameOver.value,
-                        gameWon: gameWon.value,
-                        scoreSubmitted: scoreSubmitted.value,
                         towers: towersData,
                         timestamp: Date.now()
                     };
@@ -1255,18 +1253,22 @@
 
                 function loadGame() {
                     try {
+                        localStorage.removeItem('tower_defense_save');
                         const saved = localStorage.getItem(STORAGE_KEY);
                         if (!saved) return false;
                         const state = JSON.parse(saved);
-                        if (!state || typeof state.gold !== 'number') return false;
+                        if (!state || state.version !== STORAGE_VERSION || typeof state.gold !== 'number') {
+                            clearSave();
+                            return false;
+                        }
 
                         gold.value = state.gold || 200;
                         health.value = state.health || 20;
                         currentWave.value = state.currentWave || 0;
                         waveInProgress.value = false;
-                        gameOver.value = state.gameOver || false;
-                        gameWon.value = state.gameWon || false;
-                        scoreSubmitted.value = state.scoreSubmitted || false;
+                        gameOver.value = false;
+                        gameWon.value = false;
+                        scoreSubmitted.value = false;
 
                         if (state.towers) {
                             for (const [idx, tower] of Object.entries(state.towers)) {
@@ -1279,12 +1281,13 @@
                             }
                         }
 
-                        if (currentWave.value > 0 && !gameOver.value && !gameWon.value) {
+                        if (currentWave.value > 0) {
                             startPrepCountdown();
                         }
 
                         return true;
                     } catch (e) {
+                        clearSave();
                         return false;
                     }
                 }
@@ -1292,6 +1295,7 @@
                 function clearSave() {
                     try {
                         localStorage.removeItem(STORAGE_KEY);
+                        localStorage.removeItem('tower_defense_save');
                     } catch (e) {}
                 }
 
