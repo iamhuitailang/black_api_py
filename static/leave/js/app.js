@@ -5,25 +5,39 @@ async function apiGet(path, params = {}) {
     Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined && v !== null && v !== '') url.searchParams.append(k, v);
     });
-    const res = await fetch(url.toString());
-    const data = await res.json();
+    let res, text, data;
+    try {
+        res = await fetch(url.toString());
+        text = await res.text();
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error('API parse error:', path, e, text);
+        showToast('网络错误或服务器异常', 'error');
+        throw new Error('Network error');
+    }
     if (data.code !== 0) {
-        showToast(data.message || '操作失败', 'error');
-        throw new Error(data.message);
+        throw new Error(data.message || '操作失败');
     }
     return data.data;
 }
 
 async function apiPost(path, body = {}) {
-    const res = await fetch(API_BASE + path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    const data = await res.json();
+    let res, text, data;
+    try {
+        res = await fetch(API_BASE + path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        text = await res.text();
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error('API parse error:', path, e, text);
+        showToast('网络错误或服务器异常', 'error');
+        throw new Error('Network error');
+    }
     if (data.code !== 0) {
-        showToast(data.message || '操作失败', 'error');
-        throw new Error(data.message);
+        throw new Error(data.message || '操作失败');
     }
     return data.data;
 }
@@ -139,25 +153,28 @@ function showApp() {
 }
 
 async function doLogin(name, password) {
+    let emp = null;
     try {
-        const emp = await apiPost('/leave/login', { name, password });
-        currentEmployee = emp;
-        currentRole = emp.role || 'employee';
-        saveAuth(emp);
-        showApp();
-        setupTabs();
-        setupLeaveForm();
-        refreshEmployeeView();
-        refreshApprovalList();
-        if (currentRole === 'hr' || currentRole === 'admin') {
-            refreshHrStats();
-        }
-        showToast('登录成功', 'success');
-        return true;
+        emp = await apiPost('/leave/login', { name, password });
     } catch (e) {
-        showToast(e.message || '登录失败', 'error');
+        showToast(e.message || '用户名或密码错误', 'error');
         return false;
     }
+    currentEmployee = emp;
+    currentRole = emp.role || 'employee';
+    saveAuth(emp);
+    showApp();
+    setupTabs();
+    setupLeaveForm();
+    setTimeout(function() {
+        try { refreshEmployeeView(); } catch(e) { console.error(e); }
+        try { refreshApprovalList(); } catch(e) { console.error(e); }
+        if (currentRole === 'hr' || currentRole === 'admin') {
+            try { refreshHrStats(); } catch(e) { console.error(e); }
+        }
+    }, 50);
+    showToast('登录成功', 'success');
+    return true;
 }
 
 function doLogout() {
@@ -168,50 +185,49 @@ function doLogout() {
     showToast('已退出登录', 'info');
 }
 
-async function initApp() {
-    try {
-        const seedRes = await apiPost('/leave/seed');
-        console.log('Seed check:', seedRes);
-    } catch (e) {
-        console.error(e);
-    }
+function bindDOMEvents() {
+    const loginBtn = document.getElementById('loginBtn');
+    const loginPwd = document.getElementById('loginPassword');
+    const loginName = document.getElementById('loginName');
 
-    document.getElementById('loginBtn').onclick = async () => {
-        const name = document.getElementById('loginName').value.trim();
-        const password = document.getElementById('loginPassword').value;
+    loginBtn.onclick = function() {
+        const name = loginName.value.trim();
+        const password = loginPwd.value;
         if (!name || !password) {
             showToast('请输入用户名和密码', 'error');
             return;
         }
-        const ok = await doLogin(name, password);
-        if (!ok) {
-            showToast('用户名或密码错误', 'error');
-        }
+        doLogin(name, password);
     };
 
-    document.getElementById('loginPassword').onkeypress = (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('loginBtn').click();
-        }
+    loginPwd.onkeypress = function(e) {
+        if (e.key === 'Enter') loginBtn.click();
+    };
+    loginName.onkeypress = function(e) {
+        if (e.key === 'Enter') loginPwd.focus();
     };
 
     document.getElementById('logoutBtn').onclick = doLogout;
 
-    document.getElementById('initDataBtn').onclick = async () => {
+    document.getElementById('initDataBtn').onclick = async function() {
         try {
             await apiPost('/leave/seed');
             showToast('已初始化演示数据', 'success');
             if (currentEmployee) {
-                refreshEmployeeView();
-                refreshApprovalList();
+                try { refreshEmployeeView(); } catch(e) {}
+                try { refreshApprovalList(); } catch(e) {}
                 if (currentRole === 'hr' || currentRole === 'admin') {
-                    refreshHrStats();
+                    try { refreshHrStats(); } catch(e) {}
                 }
             }
         } catch (e) {
             console.error(e);
         }
     };
+}
+
+async function initApp() {
+    bindDOMEvents();
 
     const saved = getAuth();
     if (saved) {
@@ -220,13 +236,20 @@ async function initApp() {
         showApp();
         setupTabs();
         setupLeaveForm();
-        refreshEmployeeView();
-        refreshApprovalList();
+        try { refreshEmployeeView(); } catch(e) { console.error(e); }
+        try { refreshApprovalList(); } catch(e) { console.error(e); }
         if (currentRole === 'hr' || currentRole === 'admin') {
-            refreshHrStats();
+            try { refreshHrStats(); } catch(e) { console.error(e); }
         }
     } else {
         showLogin();
+    }
+
+    try {
+        const seedRes = await apiPost('/leave/seed');
+        console.log('Seed check:', seedRes);
+    } catch (e) {
+        console.error(e);
     }
 }
 
@@ -356,6 +379,7 @@ function setupLeaveForm() {
             refreshEmployeeView();
         } catch (e) {
             console.error(e);
+            showToast(e.message || '提交失败', 'error');
         }
     };
 }
@@ -617,6 +641,7 @@ async function confirmApprove() {
         refreshEmployeeView();
     } catch (e) {
         console.error(e);
+        showToast(e.message || '操作失败', 'error');
     }
 }
 
