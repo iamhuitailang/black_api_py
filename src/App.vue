@@ -69,6 +69,12 @@ function startIdleCheck() {
 const phase = computed(() => gameState.phase)
 
 onMounted(() => {
+  if (hasValidSave()) {
+    const data = loadGame()
+    if (data) {
+      continueFromSave(data)
+    }
+  }
   startIdleCheck()
 })
 

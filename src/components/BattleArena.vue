@@ -40,8 +40,8 @@ function render() {
   applyShake(ctx, props.screenShake)
 
   drawBackground(ctx, W, H)
-  drawStickman(ctx, props.p1, props.isIdle)
-  drawStickman(ctx, props.p2, props.isIdle)
+  drawStickman(ctx, props.p1, 1, props.isIdle)
+  drawStickman(ctx, props.p2, 2, props.isIdle)
   drawParticles(ctx, props.particles)
 
   ctx.restore()

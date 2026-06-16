@@ -72,6 +72,7 @@ export function drawBackground(ctx: CanvasRenderingContext2D, w: number, h: numb
 export function drawStickman(
   ctx: CanvasRenderingContext2D,
   p: PlayerState,
+  playerNum: 1 | 2,
   isIdle: boolean
 ) {
   const char = CHARACTERS[p.characterId]
@@ -80,8 +81,23 @@ export function drawStickman(
   const baseY = GROUND_Y
   const f = p.facing
 
+  // 玩家标识色
+  const playerColor = playerNum === 1 ? '#ff2d55' : '#00d4ff'
+
   ctx.save()
   ctx.translate(baseX, baseY)
+
+  // 脚下影子（玩家区分）
+  ctx.save()
+  const shadowGrad = ctx.createRadialGradient(0, -2, 0, 0, -2, 36)
+  shadowGrad.addColorStop(0, playerColor + '55')
+  shadowGrad.addColorStop(0.6, playerColor + '22')
+  shadowGrad.addColorStop(1, 'transparent')
+  ctx.fillStyle = shadowGrad
+  ctx.beginPath()
+  ctx.ellipse(0, -2, 36, 8, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
 
   // 被击倒时旋转
   if (p.state === 'knockdown') {
@@ -267,9 +283,12 @@ export function drawStickman(
 
   // 角色名字（小标签）
   ctx.save()
-  ctx.fillStyle = color
-  ctx.font = 'bold 11px VT323, monospace'
+  ctx.fillStyle = playerColor
+  ctx.font = 'bold 10px VT323, monospace'
   ctx.textAlign = 'center'
+  ctx.fillText('P' + playerNum, 0, -134)
+  ctx.fillStyle = color
+  ctx.font = 'bold 12px VT323, monospace'
   ctx.fillText(char.name, 0, -120)
   ctx.restore()
 

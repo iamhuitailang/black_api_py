@@ -105,9 +105,11 @@ export function useGameEngine() {
     gameState.timer = save.timer
     gameState.p1Selected = save.p1.characterId
     gameState.p2Selected = save.p2.characterId
-    restorePlayer(gameState.p1, save.p1)
-    restorePlayer(gameState.p2, save.p2)
     gameState.winner = save.winner
+    if (save.phase !== 'select') {
+      restorePlayer(gameState.p1, save.p1)
+      restorePlayer(gameState.p2, save.p2)
+    }
     if (save.phase === 'battle') {
       startGameLoop()
     }
@@ -145,7 +147,6 @@ export function useGameEngine() {
   }
 
   function autoSave() {
-    if (gameState.phase === 'select') return
     const data: GameSaveData = {
       phase: gameState.phase,
       round: gameState.round,
@@ -245,7 +246,7 @@ export function useGameEngine() {
     consumeAttack: () => boolean, consumeSpecial: () => boolean
   ) {
     const char = getCharacter(p.characterId)
-    const backKey = playerNum === 1 ? input.left : input.right
+    const backKey = p.facing === 1 ? input.left : input.right
 
     // 防御状态
     p.isBlocking = isDefending(p, backKey)
@@ -369,7 +370,7 @@ export function useGameEngine() {
     attacker.state = 'special'
     attacker.stateTimer = 20
     applyDamage(attacker, defender, sp.damage, true)
-    if (sp.stunTime > 0) {
+    if (sp.stunTime > 0 && !defender.isBlocking) {
       defender.state = 'knockdown'
       defender.knockdownTimer = Math.floor(sp.stunTime / 16.67)
     }
@@ -406,23 +407,28 @@ export function useGameEngine() {
     addParticle(defender.x, GAME_CONFIG.GROUND_Y - 60, defender.isBlocking ? '#ffffff' : getCharacter(defender.characterId).color, 6)
   }
 
-  function applyDamage(attacker: PlayerState, defender: PlayerState, dmg: number, ignoreBlock = false) {
+  function applyDamage(attacker: PlayerState, defender: PlayerState, dmg: number, isSpecial = false) {
     let finalDmg = dmg
-    if (!ignoreBlock && defender.isBlocking) {
+    if (defender.isBlocking) {
       finalDmg = Math.floor(dmg * 0.4)
       playBlock()
+    } else if (isSpecial) {
+      playSpecial()
     }
     defender.hp = Math.max(0, defender.hp - finalDmg)
     defender.energy = Math.min(100, defender.energy + GAME_CONFIG.ENERGY_ON_HURT)
     attacker.energy = Math.min(100, attacker.energy + GAME_CONFIG.ENERGY_ON_HIT)
-    if (!defender.isBlocking || ignoreBlock) {
+    if (!defender.isBlocking) {
       defender.state = 'hurt'
       defender.hurtTimer = GAME_CONFIG.HURT_FRAMES
       defender.stateTimer = GAME_CONFIG.HURT_FRAMES
       const knock = attacker.facing
       defender.x += knock * 15
+    } else {
+      const knock = attacker.facing
+      defender.x += knock * 5
     }
-    addParticle(defender.x, GAME_CONFIG.GROUND_Y - 60, getCharacter(defender.characterId).color, 10)
+    addParticle(defender.x, GAME_CONFIG.GROUND_Y - 60, defender.isBlocking ? '#ffffff' : getCharacter(defender.characterId).color, isSpecial ? 15 : 10)
   }
 
   function autoFace() {
