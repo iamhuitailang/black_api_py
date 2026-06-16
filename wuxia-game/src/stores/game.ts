@@ -20,6 +20,7 @@ export const useGameStore = defineStore('game', () => {
   const currentBattleEnemyId = ref<string | null>(null)
   const currentBattleNextNodeId = ref<string | null>(null)
   const unlockedEndings = ref<string[]>([])
+  const chapterBranches = ref<Record<1 | 2 | 3, number>>({ 1: 1, 2: 1, 3: 1 })
 
   const playerExists = computed(() => player.value !== null)
 
@@ -43,6 +44,7 @@ export const useGameStore = defineStore('game', () => {
     currentStoryNodeId.value = INITIAL_STORY_NODE
     currentChapter.value = 1
     branchChoices.value = []
+    chapterBranches.value = { 1: 1, 2: 1, 3: 1 }
     hasSave.value = true
   }
 
@@ -73,6 +75,18 @@ export const useGameStore = defineStore('game', () => {
     if (choiceId) {
       branchChoices.value.push(choiceId)
     }
+
+    if (nextNodeId === 'c2-start-1') chapterBranches.value[1] = 1
+    else if (nextNodeId === 'c2-start-2') chapterBranches.value[1] = 2
+    else if (nextNodeId === 'c2-start-3') chapterBranches.value[1] = 3
+
+    if (nextNodeId === 'c3-start-a') chapterBranches.value[2] = 1
+    else if (nextNodeId === 'c3-start-b') chapterBranches.value[2] = 2
+    else if (nextNodeId === 'c3-start-c') chapterBranches.value[2] = 3
+
+    if (nextNodeId === 'ending-a') chapterBranches.value[3] = 1
+    else if (nextNodeId === 'ending-b') chapterBranches.value[3] = 2
+    else if (nextNodeId === 'ending-c') chapterBranches.value[3] = 3
   }
 
   function setChapter(chapter: 1 | 2 | 3) {
@@ -128,23 +142,11 @@ export const useGameStore = defineStore('game', () => {
     hasSave.value = false
     currentBattleEnemyId.value = null
     currentBattleNextNodeId.value = null
+    chapterBranches.value = { 1: 1, 2: 1, 3: 1 }
   }
 
   function getBranchKey(): string {
-    const letterMap: Record<string, string> = { 'a': '1', 'b': '2', 'c': '3' }
-    const numMap: Record<string, string> = { '1': '1', '2': '2', '3': '3' }
-
-    const c1Choice = branchChoices.value.find(c => c.startsWith('c1-'))
-    const c2Choices = branchChoices.value.filter(c => c.startsWith('c2-'))
-    const c3Choices = branchChoices.value.filter(c => c.startsWith('c3-'))
-
-    const c2Choice = c2Choices.length > 0 ? c2Choices[c2Choices.length - 1] : undefined
-    const c3Choice = c3Choices.length > 0 ? c3Choices[c3Choices.length - 1] : undefined
-
-    const k1 = c1Choice ? letterMap[c1Choice.slice(-1)] || '1' : '1'
-    const k2 = c2Choice ? letterMap[c2Choice.slice(-1)] || numMap[c2Choice.slice(-1)] || '1' : '1'
-    const k3 = c3Choice ? letterMap[c3Choice.slice(-1)] || numMap[c3Choice.slice(-1)] || '1' : '1'
-    return `${k1}-${k2}-${k3}`
+    return `${chapterBranches.value[1]}-${chapterBranches.value[2]}-${chapterBranches.value[3]}`
   }
 
   return {
@@ -157,6 +159,7 @@ export const useGameStore = defineStore('game', () => {
     currentBattleEnemyId,
     currentBattleNextNodeId,
     unlockedEndings,
+    chapterBranches,
     playerExists,
     createNewPlayer,
     updatePlayer,
@@ -174,6 +177,7 @@ export const useGameStore = defineStore('game', () => {
   persist: {
     key: 'wuxia-game-save',
     storage: localStorage,
-    paths: ['player', 'currentStoryNodeId', 'currentChapter', 'branchChoices', 'arena', 'hasSave', 'currentBattleEnemyId', 'currentBattleNextNodeId', 'unlockedEndings']
+    debug: true,
+    paths: ['player', 'currentStoryNodeId', 'currentChapter', 'branchChoices', 'arena', 'hasSave', 'currentBattleEnemyId', 'currentBattleNextNodeId', 'unlockedEndings', 'chapterBranches']
   }
 })

@@ -22,10 +22,6 @@ const ending = computed(() => {
 const unlockedCount = computed(() => gameStore.unlockedEndings.length)
 
 onMounted(() => {
-  if (!gameStore.playerExists) {
-    router.push('/')
-    return
-  }
   gameStore.unlockEnding(branchKey.value)
 })
 

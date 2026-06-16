@@ -8,6 +8,7 @@ const router = useRouter()
 const gameStore = useGameStore()
 
 const hasSave = computed(() => gameStore.hasSave && gameStore.playerExists)
+const unlockedEndingsCount = computed(() => gameStore.unlockedEndings.length)
 
 function startNewGame() {
   gameStore.resetAll()
@@ -77,6 +78,9 @@ function goArena() {
           <p>⚔️ 四大门派 · 各具特色</p>
           <p>📖 三章剧情 · 九种结局</p>
           <p>🏆 比武竞技 · 神兵利器</p>
+        </div>
+        <div v-if="unlockedEndingsCount > 0" class="mt-4 text-xs text-gold/70 font-song">
+          已解锁结局：{{ unlockedEndingsCount }} / 9
         </div>
       </div>
     </div>
