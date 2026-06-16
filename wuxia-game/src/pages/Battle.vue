@@ -30,11 +30,12 @@ onMounted(() => {
     router.back()
     return
   }
+  battleStore.isProcessing = false
   if (battleStore.phase === 'enemy-turn') {
-    battleStore.phase = 'player-turn'
-    battleStore.isProcessing = false
-  } else if (battleStore.isProcessing) {
-    battleStore.isProcessing = false
+    battleStore.addLog('游戏从断点恢复，继续战斗...', 'system')
+    setTimeout(() => {
+      battleStore.enemyTurn()
+    }, 500)
   }
 })
 

@@ -126,6 +126,8 @@ export const useGameStore = defineStore('game', () => {
       rewards: []
     }
     hasSave.value = false
+    currentBattleEnemyId.value = null
+    currentBattleNextNodeId.value = null
   }
 
   function getBranchKey(): string {
@@ -171,6 +173,7 @@ export const useGameStore = defineStore('game', () => {
 }, {
   persist: {
     key: 'wuxia-game-save',
-    storage: localStorage
+    storage: localStorage,
+    paths: ['player', 'currentStoryNodeId', 'currentChapter', 'branchChoices', 'arena', 'hasSave', 'currentBattleEnemyId', 'currentBattleNextNodeId', 'unlockedEndings']
   }
 })

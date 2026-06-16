@@ -246,16 +246,18 @@ export const useBattleStore = defineStore('battle', () => {
     battleActive,
     isPlayerTurn,
     isProcessing,
+    addLog,
     startBattle,
     doPlayerNormalAttack,
     doPlayerSkill,
     doPlayerDefend,
+    enemyTurn,
     endBattle
   }
 }, {
   persist: {
     key: 'wuxia-battle-save',
     storage: localStorage,
-    paths: ['player', 'enemy', 'phase', 'turn', 'mode', 'logs']
+    paths: ['player', 'enemy', 'phase', 'turn', 'mode', 'logs', 'logIdCounter']
   }
 })
