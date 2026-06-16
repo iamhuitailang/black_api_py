@@ -208,8 +208,12 @@ class FactoryGame {
     
     getGridPos(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
-        const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const px = (e.clientX - rect.left) * scaleX;
+        const py = (e.clientY - rect.top) * scaleY;
+        const x = Math.floor(px / CELL_SIZE);
+        const y = Math.floor(py / CELL_SIZE);
         return { x, y };
     }
     
@@ -256,12 +260,16 @@ class FactoryGame {
     }
     
     handleMouseMove(e) {
-        const { x, y } = this.getGridPos(e);
-        this.mouseGridX = x;
-        this.mouseGridY = y;
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const px = (e.clientX - rect.left) * scaleX;
+        const py = (e.clientY - rect.top) * scaleY;
+        this.mouseGridX = Math.floor(px / CELL_SIZE);
+        this.mouseGridY = Math.floor(py / CELL_SIZE);
         
         if (this.isDrawingConveyor && this.conveyorStart) {
-            this.conveyorPath = this.calculateConveyorPath(this.conveyorStart, { x, y });
+            this.conveyorPath = this.calculateConveyorPath(this.conveyorStart, { x: this.mouseGridX, y: this.mouseGridY });
         }
     }
     
@@ -518,7 +526,7 @@ class FactoryGame {
             this.tickAssemblers();
         }
         
-        if (this.stuckCheckTimer >= 2000) {
+        if (this.stuckCheckTimer >= 500) {
             this.stuckCheckTimer = 0;
             this.checkStuckConveyors();
         }
@@ -701,11 +709,6 @@ class FactoryGame {
         
         for (let i = this.conveyors.length - 1; i >= 0; i--) {
             const conveyor = this.conveyors[i];
-            if (conveyor.items.length === 0) {
-                conveyor.isStuck = false;
-                conveyor._noTargets = false;
-                continue;
-            }
             
             const allTargets = this.getAllDeliveryTargets(conveyor);
             const forwardTargets = allTargets.filter(t => t.isForward);
@@ -714,6 +717,26 @@ class FactoryGame {
             conveyor._noTargets = allTargets.length === 0;
             conveyor._hasSplit = splitTargets.length > 0;
             if (splitTargets.length > 0) conveyor._splitInfo = splitTargets.map(t => t.splitDir);
+            else conveyor._splitInfo = [];
+            
+            if (conveyor._noTargets) {
+                conveyor.isStuck = true;
+                conveyor.isTerminalStuck = true;
+                if (!this.stuckConveyors.has(conveyor.id)) {
+                    this.stuckConveyors.add(conveyor.id);
+                }
+            } else {
+                if (conveyor.isTerminalStuck || conveyor.stuckCounter < 5) {
+                    conveyor.isStuck = false;
+                    conveyor.isTerminalStuck = false;
+                    this.stuckConveyors.delete(conveyor.id);
+                }
+            }
+            
+            if (conveyor.items.length === 0) {
+                conveyor.stuckCounter = 0;
+                continue;
+            }
             
             let anyMoved = false;
             
@@ -757,32 +780,42 @@ class FactoryGame {
                 if (!delivered) break;
             }
             
-            if (!anyMoved && conveyor.items.length > 0) {
+            if (!anyMoved && conveyor.items.length > 0 && !conveyor._noTargets) {
                 conveyor.stuckCounter = (conveyor.stuckCounter || 0) + 1;
-                if (conveyor.stuckCounter >= 5 && (conveyor._noTargets || allTargets.every(t => !this.canDeliverTo(t, { resource: 'iron_ore' })))) {
-                    if (!this.stuckConveyors.has(conveyor.id)) {
-                        this.stuckConveyors.add(conveyor.id);
+                if (conveyor.stuckCounter >= 10) {
+                    const hasAnyViable = allTargets.some(t => {
+                        const sampleItem = { resource: 'iron_ore' };
+                        const sampleItem2 = { resource: 'copper_ore' };
+                        const sampleItem3 = { resource: 'coal' };
+                        return this.canDeliverTo(t, sampleItem) || this.canDeliverTo(t, sampleItem2) || this.canDeliverTo(t, sampleItem3);
+                    });
+                    if (!hasAnyViable) {
+                        if (!this.stuckConveyors.has(conveyor.id)) {
+                            this.stuckConveyors.add(conveyor.id);
+                        }
+                        conveyor.isStuck = true;
                     }
-                    conveyor.isStuck = true;
-                    conveyor.isTerminalStuck = conveyor._noTargets;
                 }
-            } else {
+            } else if (anyMoved && !conveyor._noTargets) {
                 conveyor.stuckCounter = 0;
-                conveyor.isStuck = false;
-                conveyor.isTerminalStuck = false;
-                this.stuckConveyors.delete(conveyor.id);
             }
         }
     }
     
     checkStuckConveyors() {
-        const terminalStuck = this.conveyors.filter(c => c.isStuck && c._noTargets);
+        const terminalStuck = this.conveyors.filter(c => c._noTargets);
         if (terminalStuck.length > 0 && !this.hasShownStuckWarning) {
             const first = terminalStuck[0];
-            this.showToast(`⚠️ 传送带(${first.x},${first.y})末端悬空！请连接仓库/加工台/另一条传送带`, 'warning');
+            this.showToast(`⚠️ 传送带(${first.x},${first.y})末端悬空！请连接仓库/加工台或另一条传送带`, 'warning');
             this.hasShownStuckWarning = true;
         }
-        if (terminalStuck.length === 0) {
+        const allStuck = this.conveyors.filter(c => c.isStuck && c.stuckCounter >= 10);
+        if (allStuck.length > 0 && !this.hasShownStuckWarning && terminalStuck.length === 0) {
+            const first = allStuck[0];
+            this.showToast(`⚠️ 传送带(${first.x},${first.y})堵塞！请检查下游连接`, 'warning');
+            this.hasShownStuckWarning = true;
+        }
+        if (this.stuckConveyors.size === 0) {
             this.hasShownStuckWarning = false;
         }
     }

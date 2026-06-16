@@ -38,14 +38,15 @@ body {
     background: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
-    overflow: hidden;
+    overflow: auto;
 }
 
 #app {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    width: 100vw;
+    min-height: 100vh;
+    width: 100%;
+    min-width: 1280px;
 }
 
 .top-bar {
@@ -165,18 +166,22 @@ body {
 .main-content {
     display: flex;
     flex: 1;
-    overflow: hidden;
+    overflow: visible;
+    min-height: 760px;
 }
 
 .left-panel, .right-panel {
     width: 300px;
+    flex-shrink: 0;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
     overflow-y: auto;
+    overflow-x: visible;
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    max-height: 100vh;
 }
 
 .right-panel {
@@ -364,22 +369,32 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    justify-content: flex-start;
+    padding: 24px 20px;
+    background: radial-gradient(ellipse at center top, var(--bg-secondary) 0%, var(--bg-primary) 80%);
+    overflow-x: visible;
+    overflow-y: visible;
+    min-height: 760px;
 }
 
 .canvas-container {
     position: relative;
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow: visible;
     box-shadow: var(--shadow-lg);
     border: 2px solid var(--border);
+    width: 804px;
+    height: 644px;
+    flex-shrink: 0;
 }
 
 #factory-canvas {
     display: block;
     background: #1e293b;
+    width: 800px;
+    height: 640px;
+    max-width: none;
+    max-height: none;
 }
 
 .canvas-overlay {
