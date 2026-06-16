@@ -65,16 +65,21 @@ class Knife {
         this.stuckDepth = 0;
         this.length = 70;
         this.width = 14;
+        this.tipOffset = this.length * 0.45;
     }
 
     fly() {
         this.isFlying = true;
     }
 
-    update(targetCenterY) {
+    getTipY() {
+        return this.y - this.tipOffset;
+    }
+
+    update(targetHitY) {
         if (this.isFlying && !this.isStuck) {
             this.y -= this.flySpeed;
-            if (this.y <= targetCenterY) {
+            if (this.getTipY() <= targetHitY) {
                 return true;
             }
         }
@@ -270,12 +275,14 @@ class Target {
 
         this.knives.forEach(knife => {
             const knifeAngle = knife.stuckAngle;
-            const knifeX = Math.cos(knifeAngle - Math.PI / 2) * (this.radius - 10);
-            const knifeY = Math.sin(knifeAngle - Math.PI / 2) * (this.radius - 10);
+            const r = this.radius - 10;
+            const knifeX = Math.sin(knifeAngle) * r;
+            const knifeY = -Math.cos(knifeAngle) * r;
+            const knifeRotate = knifeAngle - Math.PI;
             
             ctx.save();
             ctx.translate(knifeX, knifeY);
-            ctx.rotate(knifeAngle);
+            ctx.rotate(knifeRotate);
             knife.draw(ctx);
             ctx.restore();
         });
@@ -284,7 +291,7 @@ class Target {
     }
 
     checkCollision(newKnifeAngle) {
-        const collisionThreshold = 0.12;
+        const collisionThreshold = 0.18;
         for (const knife of this.knives) {
             let diff = Math.abs(newKnifeAngle - knife.stuckAngle);
             while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
@@ -348,7 +355,6 @@ class KnifeGame {
                 if (result.code === 0 && result.data) {
                     await this.loadProgress();
                     this.startLevel(this.currentLevel);
-                    this.showScreen('game-screen');
                     return;
                 }
             } catch (e) {
@@ -367,7 +373,6 @@ class KnifeGame {
                 } catch (e) {}
             }
             this.startLevel(this.currentLevel);
-            this.showScreen('game-screen');
             return;
         }
 
@@ -459,9 +464,12 @@ class KnifeGame {
         if (result.code === 0) {
             API.setToken(result.data.token);
             this.isGuest = false;
+            localStorage.removeItem('knife_guest');
+            localStorage.removeItem('knife_level');
+            localStorage.removeItem('knife_max_level');
+            localStorage.removeItem('knife_skin');
             await this.loadProgress();
             this.startLevel(this.currentLevel);
-            this.showScreen('game-screen');
         } else {
             alert(result.message);
         }
@@ -482,9 +490,9 @@ class KnifeGame {
             color_secondary: '#D2691E',
             effect_type: null
         };
+        this.saveState();
         await this.loadLevelConfig(1);
         this.startLevel(1);
-        this.showScreen('game-screen');
     }
 
     async goToLogin() {
@@ -492,7 +500,14 @@ class KnifeGame {
             await API.logout();
         }
         API.clearToken();
+        localStorage.removeItem('knife_guest');
+        localStorage.removeItem('knife_level');
+        localStorage.removeItem('knife_max_level');
+        localStorage.removeItem('knife_skin');
         this.state = GameState.IDLE;
+        this.isGuest = false;
+        this.currentLevel = 1;
+        this.maxLevel = 1;
         this.showScreen('login-screen');
     }
 
@@ -580,7 +595,8 @@ class KnifeGame {
         this.target.update();
 
         if (this.flyingKnife && this.flyingKnife.isFlying) {
-            const reached = this.flyingKnife.update(this.target.y);
+            const hitY = this.target.y + this.target.radius - 10;
+            const reached = this.flyingKnife.update(hitY);
             if (reached) {
                 this.handleKnifeHit();
             }
@@ -634,15 +650,15 @@ class KnifeGame {
         const knife = this.flyingKnife;
         const target = this.target;
 
-        let angle = target.angle;
-        if (angle < 0) angle += Math.PI * 2;
-        angle = angle % (Math.PI * 2);
+        let stuckAngle = Math.PI + target.angle;
+        while (stuckAngle < 0) stuckAngle += Math.PI * 2;
+        stuckAngle = stuckAngle % (Math.PI * 2);
 
         const hitX = target.x;
-        const hitY = target.y + target.radius * 0.85;
-        target.addParticles(hitX, hitY, 20);
+        const hitY = target.y + target.radius - 10;
+        target.addParticles(hitX, hitY, 25);
 
-        if (target.checkCollision(angle)) {
+        if (target.checkCollision(stuckAngle)) {
             this.state = GameState.LOSE;
             this.flyingKnife = null;
             this.onLose();
@@ -651,13 +667,10 @@ class KnifeGame {
 
         knife.isStuck = true;
         knife.isFlying = false;
-        knife.stuckAngle = angle;
+        knife.stuckAngle = stuckAngle;
+        knife.y = hitY + knife.tipOffset;
         target.knives.push(knife);
         this.flyingKnife = null;
-
-        if (!this.isGuest) {
-            API.completeLevel(this.currentLevel).catch(() => {});
-        }
 
         if (this.knivesLeft <= 0) {
             this.state = GameState.WIN;
@@ -666,19 +679,28 @@ class KnifeGame {
             this.state = GameState.PLAYING;
         }
 
+        this.saveState();
         this.updateUI();
     }
 
     async onWin() {
+        let newSkins = [];
         if (!this.isGuest) {
             const result = await API.completeLevel(this.currentLevel);
             if (result.code === 0) {
-                this.maxLevel = Math.max(this.maxLevel, result.data.max_unlocked_level);
-                this.showWinOverlay(result.data.newly_unlocked_skins || []);
-                return;
+                if (result.data.max_unlocked_level > this.maxLevel) {
+                    this.maxLevel = result.data.max_unlocked_level;
+                }
+                newSkins = result.data.newly_unlocked_skins || [];
+            }
+        } else {
+            const nextLevel = this.currentLevel + 1;
+            if (nextLevel > this.maxLevel) {
+                this.maxLevel = nextLevel;
             }
         }
-        this.showWinOverlay([]);
+        this.saveState();
+        this.showWinOverlay(newSkins);
     }
 
     async onLose() {
