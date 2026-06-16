@@ -20,7 +20,25 @@ export const useGameStore = defineStore('game', () => {
   const currentBattleEnemyId = ref<string | null>(null)
   const currentBattleNextNodeId = ref<string | null>(null)
   const unlockedEndings = ref<string[]>([])
-  const chapterBranches = ref<Record<1 | 2 | 3, number>>({ 1: 1, 2: 1, 3: 1 })
+  const chapterBranches = ref<[number, number, number]>([1, 1, 1])
+
+  function migrateOldChapterBranches() {
+    const raw = localStorage.getItem('wuxia-game-save')
+    if (!raw) return
+    try {
+      const data = JSON.parse(raw)
+      if (data.chapterBranches && !Array.isArray(data.chapterBranches)) {
+        const old = data.chapterBranches
+        data.chapterBranches = [old['1'] || old[1] || 1, old['2'] || old[2] || 1, old['3'] || old[3] || 1]
+        localStorage.setItem('wuxia-game-save', JSON.stringify(data))
+        console.log('[migrate] chapterBranches converted from object to array:', data.chapterBranches)
+      }
+    } catch (e) {
+      console.error('[migrate] failed:', e)
+    }
+  }
+
+  migrateOldChapterBranches()
 
   const playerExists = computed(() => player.value !== null)
 
@@ -44,7 +62,7 @@ export const useGameStore = defineStore('game', () => {
     currentStoryNodeId.value = INITIAL_STORY_NODE
     currentChapter.value = 1
     branchChoices.value = []
-    chapterBranches.value = { 1: 1, 2: 1, 3: 1 }
+    chapterBranches.value = [1, 1, 1]
     hasSave.value = true
   }
 
@@ -71,22 +89,28 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function advanceStory(nextNodeId: string, choiceId?: string) {
+    console.log('[advanceStory]', { nextNodeId, choiceId, prevBranches: JSON.stringify(chapterBranches.value) })
     currentStoryNodeId.value = nextNodeId
     if (choiceId) {
       branchChoices.value.push(choiceId)
     }
 
-    if (nextNodeId === 'c2-start-1') chapterBranches.value[1] = 1
-    else if (nextNodeId === 'c2-start-2') chapterBranches.value[1] = 2
-    else if (nextNodeId === 'c2-start-3') chapterBranches.value[1] = 3
+    const b = Array.isArray(chapterBranches.value) ? [...chapterBranches.value] : [1, 1, 1]
 
-    if (nextNodeId === 'c3-start-a') chapterBranches.value[2] = 1
-    else if (nextNodeId === 'c3-start-b') chapterBranches.value[2] = 2
-    else if (nextNodeId === 'c3-start-c') chapterBranches.value[2] = 3
+    if (nextNodeId === 'c2-start-1') { b[0] = 1; console.log('[branch] ch1=1') }
+    else if (nextNodeId === 'c2-start-2') { b[0] = 2; console.log('[branch] ch1=2') }
+    else if (nextNodeId === 'c2-start-3') { b[0] = 3; console.log('[branch] ch1=3') }
 
-    if (nextNodeId === 'ending-a') chapterBranches.value[3] = 1
-    else if (nextNodeId === 'ending-b') chapterBranches.value[3] = 2
-    else if (nextNodeId === 'ending-c') chapterBranches.value[3] = 3
+    if (nextNodeId === 'c3-start-a') { b[1] = 1; console.log('[branch] ch2=1') }
+    else if (nextNodeId === 'c3-start-b') { b[1] = 2; console.log('[branch] ch2=2') }
+    else if (nextNodeId === 'c3-start-c') { b[1] = 3; console.log('[branch] ch2=3') }
+
+    if (nextNodeId === 'ending-a') { b[2] = 1; console.log('[branch] ch3=1') }
+    else if (nextNodeId === 'ending-b') { b[2] = 2; console.log('[branch] ch3=2') }
+    else if (nextNodeId === 'ending-c') { b[2] = 3; console.log('[branch] ch3=3') }
+
+    chapterBranches.value = [b[0], b[1], b[2]]
+    console.log('[advanceStory] after:', JSON.stringify(chapterBranches.value))
   }
 
   function setChapter(chapter: 1 | 2 | 3) {
@@ -123,8 +147,12 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function unlockEnding(branchKey: string) {
+    console.log('[unlockEnding]', { branchKey, current: [...unlockedEndings.value] })
     if (!unlockedEndings.value.includes(branchKey)) {
       unlockedEndings.value.push(branchKey)
+      console.log('[unlockEnding] added!', unlockedEndings.value)
+    } else {
+      console.log('[unlockEnding] already exists, skip')
     }
   }
 
@@ -142,11 +170,26 @@ export const useGameStore = defineStore('game', () => {
     hasSave.value = false
     currentBattleEnemyId.value = null
     currentBattleNextNodeId.value = null
-    chapterBranches.value = { 1: 1, 2: 1, 3: 1 }
+    chapterBranches.value = [1, 1, 1]
   }
 
   function getBranchKey(): string {
-    return `${chapterBranches.value[1]}-${chapterBranches.value[2]}-${chapterBranches.value[3]}`
+    const b = chapterBranches.value
+    let ch1: number, ch2: number, ch3: number
+    if (Array.isArray(b)) {
+      ch1 = b[0] ?? 1
+      ch2 = b[1] ?? 1
+      ch3 = b[2] ?? 1
+    } else if (typeof b === 'object' && b !== null) {
+      ch1 = b[0] ?? b['1'] ?? b[1] ?? 1
+      ch2 = b[1] ?? b['2'] ?? b[2] ?? 1
+      ch3 = b[2] ?? b['3'] ?? b[3] ?? 1
+    } else {
+      ch1 = ch2 = ch3 = 1
+    }
+    const key = `${ch1}-${ch2}-${ch3}`
+    console.log('[getBranchKey]', { raw: JSON.stringify(b), result: key })
+    return key
   }
 
   return {
