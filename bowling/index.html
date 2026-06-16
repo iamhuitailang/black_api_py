@@ -150,6 +150,16 @@ function playHit(){
 
 function loadSave(){try{const r=localStorage.getItem('arcade_bowl');return r?JSON.parse(r):null;}catch(e){return null;}}
 function saveSave(d){try{localStorage.setItem('arcade_bowl',JSON.stringify(d));}catch(e){}}
+function loadProgress(){try{const r=localStorage.getItem('arcade_bowl_prog');return r?JSON.parse(r):null;}catch(e){return null;}}
+function saveProgress(){
+  try{
+    const p={state:G.state,cf:G.cf,cb:G.cb,frames:G.frames,
+      pins:G.pins.map(p=>({id:p.id,up:p.up,x:p.x,y:p.y,vx:p.vx,vy:p.vy,rot:p.rot,fellAngle:p.fellAngle})),
+      pw:G.pw,sv:G.sv,positionX:G.px,selectedBall:G.sb,lane:G.lc,ct:G.ct,ctxt:G.ctxt,prt:G.prt,sf:G.sf};
+    localStorage.setItem('arcade_bowl_prog',JSON.stringify(p));
+  }catch(e){}
+}
+function clearProgress(){try{localStorage.removeItem('arcade_bowl_prog');}catch(e){}}
 
 let G={
   state:S.IDLE,frames:[],cf:0,cb:0,ts:0,bs:0,
@@ -172,13 +182,13 @@ function initPins(){
     const cnt=row+1;
     const sx=LC-(cnt-1)*PCS/2;
     for(let col=0;col<cnt;col++){
-      G.pins.push({id:id++,ox:sx+col*PCS,oy:PBY+(3-row)*PRS,x:sx+col*PCS,y:PBY+(3-row)*PRS,vx:0,vy:0,up:true,r:PR});
+      G.pins.push({id:id++,ox:sx+col*PCS,oy:PBY+(3-row)*PRS,x:sx+col*PCS,y:PBY+(3-row)*PRS,vx:0,vy:0,up:true,r:PR,rot:0,rotV:0,fellAngle:0});
     }
   }
 }
 
-function resetAllPins(){G.pins.forEach(p=>{p.x=p.ox;p.y=p.oy;p.vx=0;p.vy=0;p.up=true;});}
-function hideFallen(){G.pins.forEach(p=>{if(!p.up){p.x=-100;p.y=-100;p.vx=0;p.vy=0;}});}
+function resetAllPins(){G.pins.forEach(p=>{p.x=p.ox;p.y=p.oy;p.vx=0;p.vy=0;p.up=true;p.rot=0;p.rotV=0;p.fellAngle=0;});}
+function hideFallen(){}
 
 function getBT(){return BT.find(b=>b.id===G.sb)||BT[0];}
 function getLC(){return LC_MAP[G.lc];}
@@ -189,6 +199,7 @@ function newGame(){
   G.ball.vis=false;G.trail=[];G.gut=false;
   G.ct=0;G.ctxt='';G.prt=0;G.sf=0;
   G.pkr=0;G.pw=0;G.sv=0;
+  clearProgress();
   updUI();renderSB();updHint('移动鼠标选择位置<br>点击锁定');
 }
 
@@ -245,6 +256,8 @@ function checkCollisions(){
       const spd=Math.sqrt(b.vx*b.vx+b.vy*b.vy)*0.6;
       p.vx=Math.cos(a)*spd+b.vx*0.3;
       p.vy=Math.sin(a)*spd+b.vy*0.3;
+      p.rotV=(Math.random()-0.5)*0.5;
+      p.fellAngle=Math.random()*Math.PI*2;
       G.pkr++;playHit();
     }
   }
@@ -258,6 +271,8 @@ function checkCollisions(){
         const a=Math.atan2(p.y-fp.y,p.x-fp.x);
         const sp=Math.sqrt(fp.vx*fp.vx+fp.vy*fp.vy)*0.4;
         p.vx=Math.cos(a)*sp;p.vy=Math.sin(a)*sp;
+        p.rotV=(Math.random()-0.5)*0.5;
+        p.fellAngle=Math.random()*Math.PI*2;
         G.pkr++;playHit();
       }
     }
@@ -327,6 +342,7 @@ function endGame(){
   let nb=false;
   if(tot>G.bs){G.bs=tot;nb=true;}
   saveSave({bestScore:G.bs,totalStrikes:G.ts,unlockedBalls:G.ub,selectedBall:G.sb,laneCondition:G.lc});
+  clearProgress();
   document.getElementById('fs').textContent=tot;
   document.getElementById('bl').textContent=nb?'新纪录!':'最佳: '+G.bs;
   document.getElementById('bl').style.color=nb?'#FF6B35':'#FFD700';
@@ -384,10 +400,13 @@ function update(){
   if(G.state===S.PWR)updPower();
   if(G.state===S.SPN)updSpin();
   if(G.state===S.ROL)updateRolling();
-  G.pins.forEach(p=>{if(!p.up){p.x+=p.vx;p.y+=p.vy;p.vx*=0.9;p.vy*=0.9;}});
+  G.pins.forEach(p=>{if(!p.up){p.x+=p.vx;p.y+=p.vy;p.vx*=0.9;p.vy*=0.9;p.rot+=p.rotV;p.rotV*=0.93;}});
   if(G.ct>0)G.ct--;
   if(G.sf>0)G.sf--;
   if(G.prt>0){G.prt--;if(G.prt===0)startNext();}
+  if(G.state===S.POS||G.state===S.PWR||G.state===S.SPN||G.state===S.SCO){
+    if(G.state!==S.SCO||G.prt>5)saveProgress();
+  }
 }
 
 function render(){
@@ -441,8 +460,29 @@ function drawPins(){
       cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle='#f0f0f0';cx.fill();cx.restore();
       cx.beginPath();cx.arc(p.x,p.y-1,p.r*0.45,0,Math.PI*2);cx.fillStyle='#cc0000';cx.fill();
       cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.strokeStyle='rgba(200,200,200,0.5)';cx.lineWidth=0.5;cx.stroke();
-    }else if(Math.abs(p.vx)>0.1||Math.abs(p.vy)>0.1){
-      cx.globalAlpha=0.4;cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle='#aaa';cx.fill();cx.globalAlpha=1;
+    }else{
+      cx.save();
+      cx.translate(p.x,p.y);
+      cx.rotate(p.rot+p.fellAngle);
+      const ellipseRatio=0.5;
+      cx.save();
+      cx.shadowColor='rgba(255,255,255,0.1)';
+      cx.shadowBlur=2;
+      cx.beginPath();
+      cx.ellipse(0,0,p.r,p.r*ellipseRatio,0,0,Math.PI*2);
+      cx.fillStyle='#e0e0e0';
+      cx.fill();
+      cx.restore();
+      cx.beginPath();
+      cx.arc(0,-1,p.r*0.35,0,Math.PI*2);
+      cx.fillStyle='#aa2222';
+      cx.fill();
+      cx.strokeStyle='rgba(180,180,180,0.5)';
+      cx.lineWidth=0.5;
+      cx.beginPath();
+      cx.ellipse(0,0,p.r,p.r*ellipseRatio,0,0,Math.PI*2);
+      cx.stroke();
+      cx.restore();
     }
   }
 }
@@ -577,7 +617,43 @@ function init(){
   if(sv){G.bs=sv.bestScore||0;G.ts=sv.totalStrikes||0;G.ub=sv.unlockedBalls||['basic','curve','power','precision'];G.sb=sv.selectedBall||'basic';G.lc=sv.laneCondition||'standard';}
   initFrames();initPins();
   buildBalls();buildLanes();renderSB();updUI();
-  newGame();
+
+  const prog=loadProgress();
+  if(prog&&(prog.state===S.POS||prog.state===S.PWR||prog.state===S.SPN||prog.state===S.SCO||prog.state===S.ROL)){
+    G.state=prog.state;G.cf=prog.cf;G.cb=prog.cb;
+    if(prog.frames&&prog.frames.length===10){
+      for(let i=0;i<10;i++){
+        G.frames[i].r=prog.frames[i].r||[];
+        G.frames[i].strike=prog.frames[i].strike||false;
+        G.frames[i].spare=prog.frames[i].spare||false;
+      }
+      calcScores();
+    }
+    if(prog.pins&&prog.pins.length===G.pins.length){
+      for(let i=0;i<G.pins.length;i++){
+        G.pins[i].up=prog.pins[i].up;
+        G.pins[i].x=prog.pins[i].x;
+        G.pins[i].y=prog.pins[i].y;
+        G.pins[i].vx=0;G.pins[i].vy=0;
+        G.pins[i].rot=prog.pins[i].rot||0;
+        G.pins[i].rotV=0;
+        G.pins[i].fellAngle=prog.pins[i].fellAngle!==undefined?prog.pins[i].fellAngle:Math.random()*Math.PI*2;
+      }
+    }
+    G.pw=prog.pw||0;G.sv=prog.sv||0;G.px=prog.positionX||LC;
+    G.ct=prog.ct||0;G.ctxt=prog.ctxt||'';G.prt=prog.prt||0;G.sf=prog.sf||0;
+    G.ball.vis=false;
+    document.getElementById('pw').style.width=(G.pw*100)+'%';
+    document.getElementById('si').style.left=((G.sv+1)/2*100)+'%';
+    if(G.state===S.ROL)G.state=S.POS;
+    renderSB();updUI();
+    if(G.state===S.POS)updHint('移动鼠标选择位置<br>点击锁定');
+    else if(G.state===S.PWR)updHint('力度条摆动中<br>点击锁定力度');
+    else if(G.state===S.SPN)updHint('旋转条摆动中<br>点击锁定旋转');
+    else if(G.state===S.SCO)updHint('');
+  }else{
+    newGame();
+  }
 
   cv.addEventListener('mousemove',e=>{
     const r=cv.getBoundingClientRect();
