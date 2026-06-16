@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>词语接龙 - 游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="game-page">
+    <div class="game-container">
+        <header class="game-header">
+            <div class="user-info">
+                <span class="username">👋 <span id="username">玩家</span></span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="profileBtn">📊 个人中心</button>
+                <button class="icon-btn" id="logoutBtn">🚪 退出</button>
+            </div>
+        </header>
+
+        <div class="game-main">
+            <div class="game-area">
+                <div id="startScreen" class="start-screen">
+                    <h1 class="start-title">🎮 词语接龙</h1>
+                    <p class="start-subtitle">机器裁判，绝不耍赖！</p>
+                    <button class="btn btn-primary start-btn" id="startBtn">开始游戏</button>
+                </div>
+
+                <div id="gameScreen" style="display: none;">
+                    <div class="game-status">
+                        <div class="score-display">
+                            <div class="score-item">
+                                <div class="score-label">得分</div>
+                                <div class="score-value" id="score">0</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">回合</div>
+                                <div class="score-value" id="round">1</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">连胜</div>
+                                <div class="score-value streak" id="streak">0</div>
+                            </div>
+                        </div>
+                        <div class="timer-container">
+                            <div class="timer-ring" id="timerRing">
+                                <div class="timer-text" id="timerText">15</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="required-char">
+                        <div class="required-label">请输入以" <span id="requiredCharText">字</span> "开头的词语</div>
+                        <div class="required-char-display" id="requiredChar">字</div>
+                    </div>
+
+                    <div class="input-area">
+                        <input type="text" class="word-input" id="wordInput" placeholder="请输入词语..." autocomplete="off">
+                        <div class="input-hint">
+                            两字词10分 · 三字词20分 · 四字及以上35分
+                            <span id="bonusHint" style="display: none;" class="bonus-badge">🔥 连胜加成中</span>
+                        </div>
+                        <button class="btn btn-primary submit-btn" id="submitBtn">提交</button>
+                    </div>
+
+                    <div class="chat-history" id="chatHistory"></div>
+                </div>
+
+                <div id="endScreen" style="display: none;" class="end-screen">
+                    <h1 class="end-title" id="endTitle">游戏结束</h1>
+                    <p class="end-subtitle" id="endSubtitle">再接再厉！</p>
+                    <div class="end-stats">
+                        <div class="end-stat-item">
+                            <div class="end-stat-label">最终得分</div>
+                            <div class="end-stat-value" id="finalScore">0</div>
+                        </div>
+                        <div class="end-stat-item">
+                            <div class="end-stat-label">接龙回合</div>
+                            <div class="end-stat-value" id="finalRounds">0</div>
+                        </div>
+                        <div class="end-stat-item">
+                            <div class="end-stat-label">最长连胜</div>
+                            <div class="end-stat-value" id="finalStreak">0</div>
+                        </div>
+                        <div class="end-stat-item">
+                            <div class="end-stat-label">词语数量</div>
+                            <div class="end-stat-value" id="finalWords">0</div>
+                        </div>
+                    </div>
+                    <div class="end-actions">
+                        <button class="btn btn-primary" id="playAgainBtn">再来一局</button>
+                        <button class="btn btn-secondary" id="viewProfileBtn">查看统计</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="sidebar-card">
+                    <h3 class="sidebar-title">📖 游戏规则</h3>
+                    <ul class="rules-list">
+                        <li>⏱️ 每轮15秒内必须输入词语</li>
+                        <li>🔤 词语必须以上一个词的最后一个字开头</li>
+                        <li>🏆 两字词10分，三字词20分，四字及以上35分</li>
+                        <li>🔥 连续5轮成功触发连胜加成，得分翻倍</li>
+                        <li>❌ 词语不合法、重复或超时则游戏结束</li>
+                    </ul>
+                </div>
+                <div class="sidebar-card">
+                    <h3 class="sidebar-title">💡 小提示</h3>
+                    <ul class="rules-list">
+                        <li>尽量使用四字词获得更高分数</li>
+                        <li>保持连胜可以获得翻倍加成</li>
+                        <li>注意词库中常见词汇更容易通过</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

@@ -63,6 +63,9 @@ class UserModel:
         }
         return self.exec.insert(data)
 
+    def create_user(self, username: str, password: str) -> int:
+        return self.create(username, password)
+
     def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
         return self.query.find_by_id(record_id)
 

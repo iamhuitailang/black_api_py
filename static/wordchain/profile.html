@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>词语接龙 - 个人中心</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="profile-page">
+    <div class="profile-container">
+        <header class="game-header">
+            <div class="user-info">
+                <button class="icon-btn" id="backBtn">← 返回游戏</button>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="logoutBtn">🚪 退出</button>
+            </div>
+        </header>
+
+        <div class="profile-header">
+            <div class="profile-avatar" id="userAvatar">玩</div>
+            <h1 class="profile-username" id="profileUsername">玩家</h1>
+            <p class="profile-join-date">词语接龙爱好者</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="icon">🎮</div>
+                <div class="label">总场数</div>
+                <div class="value" id="totalGames">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">🏆</div>
+                <div class="label">胜率</div>
+                <div class="value" id="winRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">🔥</div>
+                <div class="label">最长连胜</div>
+                <div class="value" id="maxStreak">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">⭐</div>
+                <div class="label">最高分</div>
+                <div class="value" id="bestScore">0</div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h2 class="chart-title">📊 最常使用的首字</h2>
+            <div id="chartContainer" class="chart-container">
+                <div class="no-data">暂无数据，快去玩几局游戏吧！</div>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <button class="btn btn-primary" id="playBtn">🎮 开始游戏</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>
