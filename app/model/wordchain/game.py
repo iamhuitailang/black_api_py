@@ -75,7 +75,8 @@ class GameModel:
         data['updated_at'] = datetime.now().isoformat()
         return self.exec.update_by_id(game_id, data)
 
-    def add_score(self, game_id: int, points: int, is_streak_bonus: bool = False) -> Dict[str, Any]:
+    def add_score(self, game_id: int, points: int, is_streak_bonus: bool = False, 
+                  current_word: str = None, current_last_char: str = None) -> Dict[str, Any]:
         game = self.query.find_by_id(game_id)
         if not game:
             return None
@@ -93,6 +94,11 @@ class GameModel:
             'updated_at': datetime.now().isoformat()
         }
         
+        if current_word:
+            data['current_word'] = current_word
+        if current_last_char:
+            data['current_last_char'] = current_last_char
+        
         self.exec.update_by_id(game_id, data)
         
         return {
@@ -100,7 +106,9 @@ class GameModel:
             'new_round': new_round,
             'new_streak': new_streak,
             'new_max_streak': new_max_streak,
-            'is_streak_bonus': is_streak_bonus and new_streak >= 5
+            'is_streak_bonus': is_streak_bonus and new_streak >= 5,
+            'current_word': current_word,
+            'current_last_char': current_last_char
         }
 
     def reset_streak(self, game_id: int) -> int:
@@ -186,6 +194,20 @@ class GameModel:
         """
         result = self.db.fetch_one(sql, (user_id,))
         return result if result else None
+
+    def get_user_unfinished_game(self, user_id: int) -> Optional[Dict[str, Any]]:
+        game = self.query.find_one(
+            {'user_id': user_id, 'status': self.STATUS_PLAYING},
+            order_by='id DESC'
+        )
+        if game:
+            status_map = {
+                self.STATUS_PLAYING: 'playing',
+                self.STATUS_FINISHED: 'finished',
+                self.STATUS_TIMEOUT: 'timeout'
+            }
+            game['status'] = status_map.get(game['status'], 'playing')
+        return game
 
     def get_user_avg_rounds(self, user_id: int) -> float:
         sql = f"""

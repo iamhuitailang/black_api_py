@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = 'http://localhost:8890/api';
 
 class ApiClient {
     constructor() {
@@ -91,6 +91,10 @@ class ApiClient {
 
     async getUserStats() {
         return this.get('/wordchain/user/stats/get');
+    }
+
+    async resumeGame() {
+        return this.get('/wordchain/game/resume/get');
     }
 }
 

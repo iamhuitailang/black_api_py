@@ -182,7 +182,10 @@ class GameBusiness:
             result='success'
         )
         
-        game_update = self.game_model.add_score(game_id, final_score, is_streak_bonus)
+        game_update = self.game_model.add_score(
+            game_id, final_score, is_streak_bonus,
+            current_word=word, current_last_char=last_char
+        )
         new_score = game_update.get('new_score', 0) if game_update else game.get('score', 0) + final_score
         new_last_char = last_char
         
@@ -292,6 +295,32 @@ class GameBusiness:
             'data': {
                 'stats': stats,
                 'first_char_stats': first_char_stats
+            }
+        }
+
+    def resume_game(self, user_id: int) -> Dict[str, Any]:
+        game = self.game_model.get_user_unfinished_game(user_id)
+        if not game:
+            return {
+                'code': 0,
+                'message': '没有未完成的游戏',
+                'data': {
+                    'has_unfinished': False,
+                    'game': None,
+                    'rounds': []
+                }
+            }
+        
+        game_id = game.get('id')
+        rounds = self.game_round_model.get_game_rounds(game_id)
+        
+        return {
+            'code': 0,
+            'message': '找到未完成的游戏',
+            'data': {
+                'has_unfinished': True,
+                'game': game,
+                'rounds': rounds
             }
         }
 

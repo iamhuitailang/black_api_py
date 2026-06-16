@@ -120,12 +120,29 @@ class WordModel:
         }
 
     def get_random_start_word(self, min_length: int = 2, max_length: int = 4) -> Optional[Dict[str, Any]]:
-        sql = f"""
+        sql4 = f"""
             SELECT * FROM {self.TABLE_NAME} 
-            WHERE length >= ? AND length <= ?
-            ORDER BY frequency DESC, RANDOM() LIMIT 1
+            WHERE length = 4
+            AND frequency >= ?
+            ORDER BY RANDOM() LIMIT ?
         """
-        return self.db.fetch_one(sql, (min_length, max_length))
+        min_freq = 100
+        limit = 200
+        results = self.db.fetch_all(sql4, (min_freq, limit))
+        
+        if not results:
+            sql = f"""
+                SELECT * FROM {self.TABLE_NAME} 
+                WHERE length >= ? AND length <= ?
+                ORDER BY RANDOM() LIMIT ?
+            """
+            results = self.db.fetch_all(sql, (min_length, max_length, limit))
+        
+        if not results:
+            return None
+        
+        import random
+        return random.choice(results)
 
     def get_words_starting_with(self, char: str, limit: int = 10) -> List[Dict[str, Any]]:
         return self.query.find_all(

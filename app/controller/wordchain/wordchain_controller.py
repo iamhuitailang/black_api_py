@@ -138,3 +138,19 @@ class WordChainController:
             }
         
         return self.game_business.get_user_stats(user_id=user.get('id'))
+
+    def ActionWordchainGameResumeGet(self, request: Request, authorization: Optional[str] = Header(None)):
+        """
+        恢复游戏接口
+        GET /api/wordchain/game/resume/get
+        获取当前用户未完成的游戏，用于刷新页面后恢复
+        """
+        user = self._get_current_user(request, authorization)
+        if not user:
+            return {
+                'code': 1,
+                'message': '请先登录',
+                'data': None
+            }
+        
+        return self.game_business.resume_game(user_id=user.get('id'))
