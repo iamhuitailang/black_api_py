@@ -355,11 +355,12 @@ function autoContinueGame() {
   selectedCharacter.value = saveData.characterId;
   engine.value = new GameEngine(gameCanvas.value);
   engine.value.startFromSave(saveData);
+  engine.value.togglePause();
+  gameState.value = 'paused';
+  startUpdateLoop();
   requestAnimationFrame(() => {
-    if (engine.value && !engine.value.gameOver) {
-      engine.value.togglePause();
-      gameState.value = 'paused';
-      startUpdateLoop();
+    if (engine.value && engine.value.player) {
+      engine.value.render();
     }
   });
 }

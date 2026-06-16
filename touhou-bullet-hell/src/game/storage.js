@@ -71,9 +71,53 @@ export function updateStageProgress(stageId, bossDefeated = false) {
 }
 
 export function saveGameState(state) {
-  const save = loadSave();
-  save.lastPlayed = Date.now();
-  saveSave({ ...save, quickSave: state });
+  try {
+    const save = loadSave();
+    save.lastPlayed = Date.now();
+    
+    let trimmed = false;
+    const maxEnemyBullets = 400;
+    const maxPlayerBullets = 100;
+    const maxEnemies = 20;
+    const maxPowerUps = 10;
+    
+    if (state.enemyBullets && state.enemyBullets.length > maxEnemyBullets) {
+      state.enemyBullets = state.enemyBullets.slice(-maxEnemyBullets);
+      trimmed = true;
+    }
+    if (state.playerBullets && state.playerBullets.length > maxPlayerBullets) {
+      state.playerBullets = state.playerBullets.slice(-maxPlayerBullets);
+      trimmed = true;
+    }
+    if (state.enemies && state.enemies.length > maxEnemies) {
+      state.enemies = state.enemies.slice(0, maxEnemies);
+      trimmed = true;
+    }
+    if (state.powerUps && state.powerUps.length > maxPowerUps) {
+      state.powerUps = state.powerUps.slice(0, maxPowerUps);
+      trimmed = true;
+    }
+    
+    save.quickSave = state;
+    const jsonStr = JSON.stringify(save);
+    
+    if (jsonStr.length > 4500000) {
+      console.warn('Save data still too large, aggressive trim');
+      if (state.enemyBullets && state.enemyBullets.length > 100) {
+        state.enemyBullets = state.enemyBullets.slice(-100);
+        save.quickSave = state;
+        saveSave(save);
+        return;
+      }
+    }
+    
+    saveSave(save);
+    if (trimmed) {
+      console.debug('Save data trimmed to fit localStorage');
+    }
+  } catch (e) {
+    console.warn('Failed to save game state:', e);
+  }
 }
 
 export function loadGameState() {

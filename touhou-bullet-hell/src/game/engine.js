@@ -2,7 +2,7 @@ import {
   GAME_WIDTH, GAME_HEIGHT, PLAYER_START_X, PLAYER_START_Y, 
   STAGES, BOSS, GRAZE_RADIUS 
 } from './constants.js';
-import { Player, Enemy, Boss, PowerUp, EnemyBullet } from './entities.js';
+import { Player, Enemy, Boss, PowerUp, EnemyBullet, PlayerBullet } from './entities.js';
 import { audioManager } from './audio.js';
 import { saveGameState, loadGameState, updateHighScore, updateStageProgress, clearQuickSave } from './storage.js';
 
@@ -121,12 +121,25 @@ export class GameEngine {
 
   startFromSave(saveData) {
     this.reset();
-    this.player = new Player(saveData.characterId, saveData.playerX, saveData.playerY);
-    this.player.bombs = saveData.bombs;
-    this.player.lives = saveData.lives;
+    
+    const pData = saveData.player || {
+      x: saveData.playerX, y: saveData.playerY,
+      bombs: saveData.bombs, lives: saveData.lives, maxBombs: 3,
+      invincible: false, invincibleTimer: 0, slowMode: false
+    };
+    
+    this.player = new Player(saveData.characterId, pData.x, pData.y);
+    this.player.bombs = pData.bombs;
+    this.player.maxBombs = pData.maxBombs || 3;
+    this.player.lives = pData.lives;
+    this.player.invincible = pData.invincible || false;
+    this.player.invincibleTimer = pData.invincibleTimer || 0;
+    this.player.slowMode = pData.slowMode || false;
+    
     this.score = saveData.score;
     this.scoreMultiplier = saveData.scoreMultiplier;
     this.grazeCount = saveData.grazeCount;
+    this.consecutiveGraze = saveData.consecutiveGraze || 0;
     this.currentStage = saveData.currentStage;
     this.stageElapsed = saveData.stageElapsed;
     this.bossPhase = saveData.bossPhase;
@@ -134,6 +147,79 @@ export class GameEngine {
     if (this.bossPhase && saveData.bossHp) {
       this.boss = new Boss();
       this.boss.hp = saveData.bossHp;
+      this.boss.phase = saveData.bossPhaseIndex || 0;
+      this.boss.x = saveData.bossX || this.boss.x;
+      this.boss.y = saveData.bossY || this.boss.y;
+      this.boss.targetX = saveData.bossTargetX || this.boss.targetX;
+      this.boss.spiralAngle = saveData.bossSpiralAngle || 0;
+      const hpPercent = this.boss.hp / this.boss.maxHp;
+      if (hpPercent <= BOSS.phases[2].hpThreshold) this.boss.phase = 2;
+      else if (hpPercent <= BOSS.phases[1].hpThreshold) this.boss.phase = 1;
+    }
+    
+    if (saveData.activeBomb) {
+      this.activeBomb = {
+        type: saveData.activeBomb.type,
+        duration: saveData.activeBomb.duration,
+        startTime: saveData.activeBomb.startTime
+      };
+      const elapsed = Date.now() - this.activeBomb.startTime;
+      if (elapsed >= this.activeBomb.duration) {
+        this.activeBomb = null;
+      } else {
+        if (this.activeBomb.type === 'laser') this.laserActive = true;
+        if (this.activeBomb.type === 'slowField') this.slowFieldActive = true;
+      }
+    }
+    this.bombFlash = false;
+    
+    if (Array.isArray(saveData.playerBullets)) {
+      this.playerBullets = saveData.playerBullets.map(b => {
+        const pb = new PlayerBullet(b.x, b.y, b.vx, b.vy, b.damage);
+        if (b.radius) pb.radius = b.radius;
+        if (b.homing) pb.homing = b.homing;
+        if (b.homingStrength) pb.homingStrength = b.homingStrength;
+        return pb;
+      });
+    }
+    
+    if (Array.isArray(saveData.enemyBullets)) {
+      this.enemyBullets = saveData.enemyBullets.map(b => {
+        return new EnemyBullet(b.x, b.y, b.vx, b.vy, b.color, b.radius || 6);
+      });
+    }
+    
+    if (Array.isArray(saveData.enemies)) {
+      this.enemies = saveData.enemies.map(eData => {
+        const e = new Enemy(eData.type, eData.baseX || eData.x, -50);
+        e.x = eData.x;
+        e.y = eData.y;
+        e.hp = eData.hp;
+        e.maxHp = eData.maxHp;
+        e.radius = eData.radius;
+        e.speed = eData.speed;
+        e.color = eData.color;
+        e.shootInterval = eData.shootInterval;
+        e.bulletSpeed = eData.bulletSpeed;
+        e.score = eData.score;
+        e.movePattern = eData.movePattern;
+        e.moveTimer = eData.moveTimer;
+        e.baseX = eData.baseX;
+        e.shootCooldown = eData.shootCooldown;
+        e.dropPowerUp = eData.dropPowerUp;
+        e.active = true;
+        return e;
+      });
+    }
+    
+    if (Array.isArray(saveData.powerUps)) {
+      this.powerUps = saveData.powerUps.map(pData => {
+        const p = new PowerUp(pData.x, pData.y, pData.type || 'P');
+        if (pData.radius) p.radius = pData.radius;
+        if (pData.vy) p.vy = pData.vy;
+        if (pData.bobTimer) p.bobTimer = pData.bobTimer;
+        return p;
+      });
     }
     
     this.running = true;
@@ -161,10 +247,26 @@ export class GameEngine {
     if (this._beforeUnloadHandler) {
       window.removeEventListener('beforeunload', this._beforeUnloadHandler);
     }
+    if (this._pageHideHandler) {
+      window.removeEventListener('pagehide', this._pageHideHandler);
+    }
+    if (this._visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
+    }
     this._beforeUnloadHandler = () => {
       this.saveNow();
     };
+    this._pageHideHandler = () => {
+      this.saveNow();
+    };
+    this._visibilityChangeHandler = () => {
+      if (document.visibilityState === 'hidden') {
+        this.saveNow();
+      }
+    };
     window.addEventListener('beforeunload', this._beforeUnloadHandler);
+    window.addEventListener('pagehide', this._pageHideHandler);
+    document.addEventListener('visibilitychange', this._visibilityChangeHandler);
   }
 
   togglePause() {
@@ -173,6 +275,9 @@ export class GameEngine {
     if (!this.paused) {
       this.lastTime = performance.now();
       this.gameLoop();
+    } else {
+      this.render();
+      this.saveNow();
     }
   }
 
@@ -518,26 +623,69 @@ export class GameEngine {
 
   savePeriodically() {
     this._saveAccum = (this._saveAccum || 0) + 1;
-    if (this._saveAccum >= 60) {
+    if (this._saveAccum >= 30) {
       this._saveAccum = 0;
-      saveGameState(this.getSaveData());
+      try {
+        saveGameState(this.getSaveData());
+      } catch (e) {
+        console.warn('Save failed:', e);
+      }
     }
   }
 
   getSaveData() {
     return {
       characterId: this.player.id,
-      playerX: this.player.x,
-      playerY: this.player.y,
-      bombs: this.player.bombs,
-      lives: this.player.lives,
+      player: {
+        x: this.player.x,
+        y: this.player.y,
+        bombs: this.player.bombs,
+        maxBombs: this.player.maxBombs,
+        lives: this.player.lives,
+        invincible: this.player.invincible,
+        invincibleTimer: this.player.invincibleTimer,
+        slowMode: this.player.slowMode
+      },
       score: this.score,
       scoreMultiplier: this.scoreMultiplier,
       grazeCount: this.grazeCount,
+      consecutiveGraze: this.consecutiveGraze,
       currentStage: this.currentStage,
       stageElapsed: this.stageElapsed,
       bossPhase: this.bossPhase,
       bossHp: this.boss ? this.boss.hp : null,
+      bossPhaseIndex: this.boss ? this.boss.phase : 0,
+      bossX: this.boss ? this.boss.x : null,
+      bossY: this.boss ? this.boss.y : null,
+      bossTargetX: this.boss ? this.boss.targetX : null,
+      bossSpiralAngle: this.boss ? this.boss.spiralAngle : null,
+      activeBomb: this.activeBomb ? {
+        type: this.activeBomb.type,
+        duration: this.activeBomb.duration,
+        startTime: this.activeBomb.startTime,
+      } : null,
+      bombFlash: this.bombFlash,
+      slowFieldActive: this.slowFieldActive,
+      laserActive: this.laserActive,
+      playerBullets: this.playerBullets.map(b => ({
+        x: b.x, y: b.y, vx: b.vx, vy: b.vy,
+        damage: b.damage, radius: b.radius,
+        homing: b.homing, homingStrength: b.homingStrength
+      })),
+      enemyBullets: this.enemyBullets.slice(-400).map(b => ({
+        x: b.x, y: b.y, vx: b.vx, vy: b.vy,
+        color: b.color, radius: b.radius
+      })),
+      enemies: this.enemies.map(e => ({
+        type: e.type, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp,
+        radius: e.radius, speed: e.speed, color: e.color,
+        shootInterval: e.shootInterval, bulletSpeed: e.bulletSpeed,
+        score: e.score, movePattern: e.movePattern, moveTimer: e.moveTimer,
+        baseX: e.baseX, shootCooldown: e.shootCooldown, dropPowerUp: e.dropPowerUp
+      })),
+      powerUps: this.powerUps.map(p => ({
+        x: p.x, y: p.y, type: p.type, radius: p.radius, vy: p.vy, bobTimer: p.bobTimer
+      })),
       timestamp: Date.now()
     };
   }
@@ -630,6 +778,14 @@ export class GameEngine {
     if (this._beforeUnloadHandler) {
       window.removeEventListener('beforeunload', this._beforeUnloadHandler);
       this._beforeUnloadHandler = null;
+    }
+    if (this._pageHideHandler) {
+      window.removeEventListener('pagehide', this._pageHideHandler);
+      this._pageHideHandler = null;
+    }
+    if (this._visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
+      this._visibilityChangeHandler = null;
     }
   }
 }
