@@ -298,55 +298,110 @@ class Target {
 
 class KnifeGame {
     constructor() {
-        this.canvas = document.getElementById('game-canvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.state = GameState.IDLE;
-        this.currentLevel = 1;
-        this.maxLevel = 1;
-        this.levelConfig = null;
-        this.currentSkin = {
-            skin_key: 'default',
-            color_primary: '#8B4513',
-            color_secondary: '#D2691E',
-            effect_type: null
-        };
-        this.target = null;
-        this.flyingKnife = null;
-        this.knivesLeft = 0;
-        this.knivesTotal = 0;
-        this.lastTime = 0;
-        this.isGuest = false;
+        try {
+            this.canvas = document.getElementById('game-canvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.state = GameState.IDLE;
+            this.currentLevel = 1;
+            this.maxLevel = 1;
+            this.levelConfig = null;
+            this.currentSkin = {
+                skin_key: 'default',
+                color_primary: '#8B4513',
+                color_secondary: '#D2691E',
+                effect_type: null
+            };
+            this.target = null;
+            this.flyingKnife = null;
+            this.knivesLeft = 0;
+            this.knivesTotal = 0;
+            this.lastTime = 0;
+            this.isGuest = false;
+            this.canvasSize = 400;
 
-        this.resizeCanvas();
-        window.addEventListener('resize', () => this.resizeCanvas());
-        this.canvas.addEventListener('click', () => this.throwKnife());
-        this.canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.throwKnife();
-        }, { passive: false });
+            this.resizeCanvas();
+            window.addEventListener('resize', () => this.resizeCanvas());
+            this.canvas.addEventListener('click', () => this.throwKnife());
+            this.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.throwKnife();
+            }, { passive: false });
 
-        this.bindUI();
+            this.bindUI();
+
+            setTimeout(() => this.init(), 10);
+        } catch (e) {
+            console.error('游戏初始化失败:', e);
+            alert('游戏初始化失败: ' + e.message);
+        }
+    }
+
+    async init() {
+        const savedGuest = localStorage.getItem('knife_guest');
+        const savedLevel = localStorage.getItem('knife_level');
+        const savedSkin = localStorage.getItem('knife_skin');
+        const savedMaxLevel = localStorage.getItem('knife_max_level');
+
+        if (API.token) {
+            try {
+                const result = await API.getCurrentUser();
+                if (result.code === 0 && result.data) {
+                    await this.loadProgress();
+                    this.startLevel(this.currentLevel);
+                    this.showScreen('game-screen');
+                    return;
+                }
+            } catch (e) {
+                console.log('自动登录失败:', e);
+            }
+            API.clearToken();
+        }
+
+        if (savedGuest === 'true' && savedLevel) {
+            this.isGuest = true;
+            this.currentLevel = parseInt(savedLevel) || 1;
+            this.maxLevel = parseInt(savedMaxLevel) || this.currentLevel;
+            if (savedSkin) {
+                try {
+                    this.currentSkin = JSON.parse(savedSkin);
+                } catch (e) {}
+            }
+            this.startLevel(this.currentLevel);
+            this.showScreen('game-screen');
+            return;
+        }
+
+        this.showScreen('login-screen');
     }
 
     resizeCanvas() {
-        const container = this.canvas.parentElement;
-        const maxWidth = Math.min(container.clientWidth, 500);
-        const maxHeight = Math.min(container.clientHeight, 700);
-        
-        const size = Math.min(maxWidth, maxHeight);
-        const dpr = window.devicePixelRatio || 1;
-        
-        this.canvas.style.width = size + 'px';
-        this.canvas.style.height = size + 'px';
-        this.canvas.width = size * dpr;
-        this.canvas.height = size * dpr;
-        this.ctx.scale(dpr, dpr);
-        
-        this.canvasSize = size;
+        try {
+            const container = this.canvas.parentElement;
+            if (!container) return;
 
-        if (this.target) {
-            this.target.x = this.canvasSize / 2;
-            this.target.y = this.canvasSize * 0.35;
+            const containerWidth = container.clientWidth || 400;
+            const containerHeight = container.clientHeight || 400;
+            const maxWidth = Math.min(containerWidth, 500);
+            const maxHeight = Math.min(containerHeight, 700);
+            
+            const size = Math.min(maxWidth, maxHeight);
+            const dpr = window.devicePixelRatio || 1;
+            
+            if (size > 0) {
+                this.canvas.style.width = size + 'px';
+                this.canvas.style.height = size + 'px';
+                this.canvas.width = size * dpr;
+                this.canvas.height = size * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.canvasSize = size;
+            }
+
+            if (this.target) {
+                this.target.x = this.canvasSize / 2;
+                this.target.y = this.canvasSize * 0.35;
+            }
+        } catch (e) {
+            console.warn('Canvas resize failed:', e);
         }
     }
 
@@ -375,6 +430,20 @@ class KnifeGame {
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
+    }
+
+    saveState() {
+        if (this.isGuest) {
+            localStorage.setItem('knife_guest', 'true');
+            localStorage.setItem('knife_level', this.currentLevel.toString());
+            localStorage.setItem('knife_max_level', this.maxLevel.toString());
+            localStorage.setItem('knife_skin', JSON.stringify(this.currentSkin));
+        } else {
+            localStorage.removeItem('knife_guest');
+            localStorage.removeItem('knife_level');
+            localStorage.removeItem('knife_max_level');
+            localStorage.removeItem('knife_skin');
+        }
     }
 
     async handleLogin() {
@@ -458,25 +527,34 @@ class KnifeGame {
     }
 
     startLevel(levelNum) {
-        this.loadLevelConfig(levelNum).then(() => {
-            this.currentLevel = levelNum;
-            this.knivesTotal = this.levelConfig.knife_count;
-            this.knivesLeft = this.knivesTotal;
+        this.showScreen('game-screen');
+        
+        setTimeout(() => {
+            this.resizeCanvas();
+            this.loadLevelConfig(levelNum).then(() => {
+                this.currentLevel = levelNum;
+                this.knivesTotal = this.levelConfig.knife_count;
+                this.knivesLeft = this.knivesTotal;
 
-            const targetRadius = Math.min(this.levelConfig.target_radius, this.canvasSize * 0.28);
-            this.target = new Target(
-                this.canvasSize / 2,
-                this.canvasSize * 0.35,
-                targetRadius,
-                this.levelConfig.target_speed,
-                this.levelConfig.direction_change
-            );
-            this.flyingKnife = null;
-            this.state = GameState.PLAYING;
-            this.hideOverlay();
-            this.updateUI();
-            this.startLoop();
-        });
+                const targetRadius = Math.min(this.levelConfig.target_radius, this.canvasSize * 0.28);
+                this.target = new Target(
+                    this.canvasSize / 2,
+                    this.canvasSize * 0.35,
+                    targetRadius,
+                    this.levelConfig.target_speed,
+                    this.levelConfig.direction_change
+                );
+                this.flyingKnife = null;
+                this.state = GameState.PLAYING;
+                this.hideOverlay();
+                this.updateUI();
+                this.saveState();
+                this.startLoop();
+            }).catch(err => {
+                console.error('加载关卡失败:', err);
+                alert('加载关卡失败: ' + err.message);
+            });
+        }, 50);
     }
 
     startLoop() {
@@ -709,6 +787,7 @@ class KnifeGame {
                         color_secondary: skin.color_secondary,
                         effect_type: skin.effect_type
                     };
+                    this.saveState();
                     this.showSkins();
                 });
             }
