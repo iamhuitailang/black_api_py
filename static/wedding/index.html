@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💍 婚礼策划管理系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .app-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #e8a5b5 0%, #c06c84 100%);
+            color: white;
+            padding: 24px 32px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(192, 108, 132, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .header h1 { font-size: 28px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+        .header .subtitle { opacity: 0.9; font-size: 14px; margin-top: 4px; }
+        .role-selector {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .role-selector label { font-size: 13px; opacity: 0.9; margin-right: 8px; }
+        .role-selector select {
+            background: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Countdown Card */
+        .countdown-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        .countdown-card .label { font-size: 16px; opacity: 0.9; margin-bottom: 12px; }
+        .countdown-card .days {
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            margin: 8px 0;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .countdown-card .days-unit { font-size: 20px; opacity: 0.85; }
+        .countdown-card .date { margin-top: 12px; font-size: 14px; opacity: 0.85; }
+        .countdown-card input[type=date] {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .countdown-card input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: white;
+            padding: 8px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover { background: #f5f5f5; color: #333; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #e8a5b5 0%, #c06c84 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(192, 108, 132, 0.3);
+        }
+
+        /* Cards Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        .stat-card .stat-label { font-size: 13px; color: #888; }
+        .stat-card .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+        .stat-card .stat-sub { font-size: 12px; color: #aaa; margin-top: 4px; }
+
+        /* Section */
+        .section {
+            background: white;
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .section-title { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .section-title .badge {
+            font-size: 12px;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.35); }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover { background: #38a169; }
+        .btn-danger { background: #f56565; color: white; }
+        .btn-danger:hover { background: #e53e3e; }
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-warning:hover { background: #dd6b20; }
+        .btn-ghost { background: #f7fafc; color: #4a5568; }
+        .btn-ghost:hover { background: #edf2f7; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .filter-chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-chip:hover { background: #edf2f7; }
+        .filter-chip.active {
+            background: linear-gradient(135deg, #e8a5b5 0%, #c06c84 100%);
+            color: white;
+            border-color: transparent;
+        }
+        select, input[type=text], input[type=number], input[type=date], textarea {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            outline: none;
+            transition: border 0.2s;
+        }
+        select:focus, input:focus, textarea:focus { border-color: #a0aec0; box-shadow: 0 0 0 3px rgba(160,174,192,0.15); }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { font-size: 13px; color: #718096; font-weight: 600; background: #fafafa; }
+        th:first-child { border-radius: 10px 0 0 0; }
+        th:last-child { border-radius: 0 10px 0 0; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafbfc; }
+
+        /* Tags */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tag-pending { background: #fef6e4; color: #b7791f; }
+        .tag-confirmed { background: #e6f7ee; color: #2f855a; }
+        .tag-declined { background: #fed7d7; color: #c53030; }
+        .tag-high { background: #fed7d7; color: #c53030; }
+        .tag-medium { background: #fef6e4; color: #b7791f; }
+        .tag-low { background: #e6f7ee; color: #2f855a; }
+        .tag-over-budget { background: #fed7d7; color: #c53030; font-weight: 600; }
+        .tag-group-亲友 { background: #e6f0ff; color: #2b6cb0; }
+        .tag-group-同事 { background: #fef6e4; color: #b7791f; }
+        .tag-group-长辈 { background: #f0e6ff; color: #6b46c1; }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .progress-fill.over { background: linear-gradient(90deg, #f56565, #c53030); }
+
+        /* Budget Summary */
+        .budget-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .budget-item {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .budget-item.over { border-left-color: #f56565; }
+        .budget-item .cat-name { font-size: 13px; color: #718096; margin-bottom: 6px; }
+        .budget-item .cat-cost { font-size: 20px; font-weight: 700; }
+        .budget-item .cat-detail { font-size: 12px; color: #a0aec0; margin-top: 4px; }
+        .budget-item.over .cat-cost { color: #c53030; }
+
+        .total-budget-bar {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .total-budget-bar .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .total-budget-bar .row.over .actual { color: #c53030; }
+
+        /* Task Item */
+        .task-list { display: flex; flex-direction: column; gap: 10px; }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: #f7fafc;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .task-item:hover { background: #edf2f7; }
+        .task-item.priority-1 { border-left-color: #f56565; }
+        .task-item.priority-2 { border-left-color: #ed8936; }
+        .task-item.priority-3 { border-left-color: #48bb78; }
+        .task-item.done { opacity: 0.55; }
+        .task-item.done .task-title { text-decoration: line-through; }
+        .task-checkbox {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid #cbd5e0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            background: white;
+        }
+        .task-checkbox.checked {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+        .task-title { flex: 1; font-weight: 500; }
+        .task-meta { display: flex; gap: 10px; align-items: center; font-size: 13px; color: #718096; }
+        .task-overdue { color: #c53030; font-weight: 500; }
+
+        /* Urgent Banner */
+        .urgent-banner {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border: 1px solid #fc8181;
+            color: #c53030;
+            padding: 12px 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .modal {
+            background: white;
+            padding: 28px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #4a5568; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-left: 4px solid #48bb78;
+            animation: slideIn 0.3s;
+            min-width: 260px;
+        }
+        .toast.error { border-left-color: #f56565; }
+        .toast.success { border-left-color: #48bb78; }
+        @keyframes slideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: #a0aec0;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .actions-cell { display: flex; gap: 6px; }
+        .vendor-contact { font-size: 13px; color: #718096; }
+        .text-over-budget { color: #c53030 !important; font-weight: 600; }
+        .checkbox-wrapper { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>💍 婚礼策划管理系统</h1>
+                <div class="subtitle">轻松管理宾客、预算、供应商和待办事项</div>
+            </div>
+            <div class="role-selector">
+                <label>当前身份：</label>
+                <select v-model="currentRole" @change="onRoleChange">
+                    <option value="planner-token-123">策划师（全部权限）</option>
+                    <option value="partner-token-456">伴侣（编辑不可删除核心）</option>
+                    <option value="guest-token-789">宾客（仅RSVP）</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Countdown -->
+        <div class="countdown-card">
+            <div class="label">距离婚礼还有</div>
+            <div>
+                <span class="days">{{ countdown.days_left ?? '--' }}</span>
+                <span class="days-unit">天</span>
+            </div>
+            <div class="date">
+                📅 婚礼日期：
+                <input type="date" v-model="weddingDateInput" @change="updateWeddingDate"
+                       :disabled="!canEditSettings" />
+            </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#e6f0ff;">👥</div>
+                <div class="stat-label">宾客总数</div>
+                <div class="stat-value">{{ guestStats.total }}</div>
+                <div class="stat-sub">
+                    ✅ {{ guestStats.confirmed }} 已确认 · ⏳ {{ guestStats.pending }} 待回复
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#e6f7ee;">💰</div>
+                <div class="stat-label">已支出 / 预算</div>
+                <div class="stat-value" :class="{ 'text-over-budget': budgetStats.over }">
+                    ¥{{ formatMoney(budgetStats.actual) }}
+                </div>
+                <div class="stat-sub">/ ¥{{ formatMoney(budgetStats.estimated) }}
+                    <span v-if="budgetStats.over" style="color:#c53030;">⚠️ 超支 ¥{{ formatMoney(budgetStats.actual - budgetStats.estimated) }}</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fef6e4;">📋</div>
+                <div class="stat-label">待办任务</div>
+                <div class="stat-value">{{ taskStats.pending }}</div>
+                <div class="stat-sub">共 {{ taskStats.total }} 项 · 完成 {{ taskStats.done }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#f0e6ff;">🏢</div>
+                <div class="stat-label">供应商</div>
+                <div class="stat-value">{{ vendorStats.total }}</div>
+                <div class="stat-sub" :style="vendorStats.urgent > 0 ? {color:'#c53030'}:{}">
+                    🔔 {{ vendorStats.urgent }} 个合同即将到期
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button v-for="tab in tabs" :key="tab.key"
+                    class="tab-btn" :class="{active: activeTab===tab.key}"
+                    @click="activeTab = tab.key"
+                    :disabled="roleInfo && !hasTabAccess(tab.key)">
+                <span>{{ tab.icon }}</span>
+                {{ tab.label }}
+            </button>
+        </div>
+
+        <!-- ============ Guests Tab ============ -->
+        <div v-if="activeTab === 'guests'" class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    👥 宾客名单管理
+                    <span class="badge">{{ guestStats.total }} 人</span>
+                </div>
+                <button v-if="canCreateGuest" class="btn btn-primary" @click="openGuestModal()">
+                    ➕ 添加宾客
+                </button>
+            </div>
+
+            <div class="filters">
+                <span style="font-size:13px;color:#718096;align-self:center;">分组：</span>
+                <div class="filter-chip" :class="{active: guestGroupFilter === ''}"
+                     @click="guestGroupFilter = ''">全部</div>
+                <div v-for="g in ['亲友','同事','长辈']" :key="g"
+                     class="filter-chip" :class="{active: guestGroupFilter === g}"
+                     @click="guestGroupFilter = g">{{ g }}</div>
+                <span style="width:16px;"></span>
+                <span style="font-size:13px;color:#718096;align-self:center;">状态：</span>
+                <div class="filter-chip" :class="{active: guestStatusFilter === ''}"
+                     @click="guestStatusFilter = ''">全部</div>
+                <div v-for="s in ['待回复','已确认','已拒绝']" :key="s"
+                     class="filter-chip" :class="{active: guestStatusFilter === s}"
+                     @click="guestStatusFilter = s">{{ s }}</div>
+            </div>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>分组</th>
+                    <th>RSVP状态</th>
+                    <th>用餐偏好</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="g in filteredGuests" :key="g.id">
+                    <td style="font-weight:500;">{{ g.name }}</td>
+                    <td><span class="tag tag-group-{{ g.group_tag }}">{{ g.group_tag }}</span></td>
+                    <td>
+                        <span class="tag" :class="{
+                            'tag-pending': g.rsvp_status === '待回复',
+                            'tag-confirmed': g.rsvp_status === '已确认',
+                            'tag-declined': g.rsvp_status === '已拒绝'
+                        }">
+                            {{ g.rsvp_status }}
+                        </span>
+                    </td>
+                    <td>{{ g.meal_preference || '—' }}</td>
+                    <td style="font-size:12px;color:#a0aec0;">{{ formatTime(g.rsvp_updated_at) }}</td>
+                    <td>
+                        <div class="actions-cell">
+                            <select v-if="canRsvp" class="btn-sm" style="padding:4px 8px;"
+                                    :value="g.rsvp_status"
+                                    @change="quickRsvp(g.id, $event.target.value, g.meal_preference)">
+                                <option value="待回复">待回复</option>
+                                <option value="已确认">✅ 确认</option>
+                                <option value="已拒绝">❌ 拒绝</option>
+                            </select>
+                            <button v-if="canEditGuest" class="btn btn-ghost btn-sm" @click="openGuestModal(g)">编辑</button>
+                            <button v-if="canDeleteGuest" class="btn btn-danger btn-sm" @click="deleteGuest(g)">删除</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr v-if="filteredGuests.length === 0">
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="icon">💌</div>
+                            暂无宾客数据
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============ Budget Tab ============ -->
+        <div v-if="activeTab === 'budget'" class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    💰 预算追踪器
+                    <span class="badge">共 {{ budgetItems.length }} 项</span>
+                </div>
+                <button v-if="canCreateBudget" class="btn btn-primary" @click="openBudgetModal()">
+                    ➕ 添加项目
+                </button>
+            </div>
+
+            <div class="budget-summary">
+                <div v-for="(info, cat) in budgetByCategory" :key="cat"
+                     class="budget-item" :class="{over: info.over_budget}">
+                    <div class="cat-name">{{ cat }}</div>
+                    <div class="cat-cost">¥{{ formatMoney(info.actual_cost) }}</div>
+                    <div class="cat-detail">
+                        预算 ¥{{ formatMoney(info.estimated_cost) }}
+                        <span v-if="info.over_budget" style="color:#c53030;">
+                            · ⚠️ 超支 ¥{{ formatMoney(info.actual_cost - info.estimated_cost) }}
+                        </span>
+                    </div>
+                    <div class="progress-bar" style="margin-top:8px;">
+                        <div class="progress-fill" :class="{over: info.over_budget}"
+                             :style="{width: getBudgetPercent(info.estimated_cost, info.actual_cost)}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="total-budget-bar">
+                <div class="row" :class="{over: budgetStats.over}">
+                    <span>总计支出</span>
+                    <span class="actual" :class="{over: budgetStats.over}">
+                        ¥{{ formatMoney(budgetStats.actual) }}
+                        <span v-if="budgetStats.over">⚠️ 超支</span>
+                    </span>
+                </div>
+                <div class="row">
+                    <span>总预算</span>
+                    <span>¥{{ formatMoney(budgetStats.estimated) }}</span>
+                </div>
+                <div class="progress-bar" style="height:12px;">
+                    <div class="progress-fill" :class="{over: budgetStats.over}"
+                         :style="{width: getBudgetPercent(budgetStats.estimated, budgetStats.actual)}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters">
+                <span style="font-size:13px;color:#718096;align-self:center;">类别筛选：</span>
+                <div class="filter-chip" :class="{active: budgetCategoryFilter === ''}"
+                     @click="budgetCategoryFilter = ''">全部</div>
+                <div v-for="c in ['场地','餐饮','摄影','布置','其他']" :key="c"
+                     class="filter-chip" :class="{active: budgetCategoryFilter === c}"
+                     @click="budgetCategoryFilter = c">{{ c }}</div>
+            </div>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>类别</th>
+                    <th>项目名称</th>
+                    <th>预算</th>
+                    <th>实际支出</th>
+                    <th>支付状态</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="b in filteredBudgetItems" :key="b.id">
+                    <td><span class="tag tag-group-长辈">{{ b.category }}</span></td>
+                    <td style="font-weight:500;">{{ b.item_name }}</td>
+                    <td>¥{{ formatMoney(b.estimated_cost) }}</td>
+                    <td :class="{'text-over-budget': b.estimated_cost > 0 && b.actual_cost > b.estimated_cost}">
+                        ¥{{ formatMoney(b.actual_cost) }}
+                    </td>
+                    <td>
+                        <span class="tag" :class="b.paid ? 'tag-confirmed' : 'tag-pending'">
+                            {{ b.paid ? '已支付' : '待支付' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="actions-cell">
+                            <button v-if="canEditBudget" class="btn btn-ghost btn-sm" @click="openBudgetModal(b)">编辑</button>
+                            <button v-if="canDeleteBudget" class="btn btn-danger btn-sm" @click="deleteBudgetItem(b)">删除</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr v-if="filteredBudgetItems.length === 0">
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="icon">📝</div>
+                            暂无预算项目
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============ Vendors Tab ============ -->
+        <div v-if="activeTab === 'vendors'" class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    🏢 供应商联络簿
+                    <span class="badge">共 {{ vendors.length }} 家</span>
+                </div>
+                <button v-if="canCreateVendor" class="btn btn-primary" @click="openVendorModal()">
+                    ➕ 添加供应商
+                </button>
+            </div>
+
+            <div v-if="upcomingDeadlines.length > 0" class="urgent-banner">
+                🔔 有 {{ upcomingDeadlines.length }} 个合同将在3天内到期，请及时处理！
+                <span v-for="u in upcomingDeadlines.slice(0,3)" :key="u.id" style="font-weight:400;">
+                    · {{ u.name }}（{{ u.days_left }}天后）
+                </span>
+            </div>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>供应商</th>
+                    <th>服务类型</th>
+                    <th>联系方式</th>
+                    <th>合同截止日期</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in vendors" :key="v.id">
+                    <td style="font-weight:500;">{{ v.name }}</td>
+                    <td><span class="tag tag-group-同事">{{ v.service }}</span></td>
+                    <td class="vendor-contact">{{ v.contact || '—' }}</td>
+                    <td>
+                        <div>
+                            {{ v.contract_deadline || '—' }}
+                            <span v-if="v.days_left !== undefined"
+                                  :style="{color: v.days_left <= 0 ? '#c53030' : v.days_left <= 3 ? '#ed8936' : '#718096',
+                                           fontSize:'12px', marginLeft:'6px'}">
+                                {{ v.days_left < 0 ? '已过期' : v.days_left === 0 ? '今天到期' : `(${v.days_left}天后)` }}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="actions-cell">
+                            <button v-if="canEditVendor" class="btn btn-ghost btn-sm" @click="openVendorModal(v)">编辑</button>
+                            <button v-if="canDeleteVendor" class="btn btn-danger btn-sm" @click="deleteVendor(v)">删除</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr v-if="vendors.length === 0">
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <div class="icon">📞</div>
+                            暂无供应商
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============ Tasks Tab ============ -->
+        <div v-if="activeTab === 'tasks'" class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    ✅ 任务清单
+                    <span class="badge">待完成 {{ taskStats.pending }} / {{ taskStats.total }}</span>
+                </div>
+                <button v-if="canCreateTask" class="btn btn-primary" @click="openTaskModal()">
+                    ➕ 新建任务
+                </button>
+            </div>
+
+            <div class="progress-bar" style="margin-bottom:24px;height:10px;">
+                <div class="progress-fill"
+                     :style="{width: taskStats.total > 0 ? (taskStats.done / taskStats.total * 100) + '%' : '0%'}">
+                </div>
+            </div>
+
+            <div class="task-list">
+                <div v-for="t in tasks" :key="t.id"
+                     class="task-item"
+                     :class="['priority-' + t.priority, {done: t.done}]">
+                    <div class="task-checkbox" :class="{checked: t.done}" @click="toggleTask(t)">
+                        <span v-if="t.done">✓</span>
+                    </div>
+                    <div class="task-title">{{ t.title }}</div>
+                    <div class="task-meta">
+                        <span class="tag" :class="{
+                            'tag-high': t.priority === 1,
+                            'tag-medium': t.priority === 2,
+                            'tag-low': t.priority === 3
+                        }">
+                            {{ t.priority === 1 ? '高优先级' : t.priority === 2 ? '中优先级' : '低优先级' }}
+                        </span>
+                        <span v-if="t.deadline"
+                              :class="{'task-overdue': t.is_overdue}">
+                            📅 {{ t.deadline }}
+                            <span v-if="t.days_left !== undefined && !t.done">
+                                ({{ t.is_overdue ? '已过期' + (-t.days_left) + '天' : t.days_left + '天后' }})
+                            </span>
+                        </span>
+                        <button v-if="canEditTask" class="btn btn-ghost btn-sm" @click.stop="openTaskModal(t)">编辑</button>
+                        <button v-if="canDeleteTask" class="btn btn-danger btn-sm" @click.stop="deleteTask(t)">删除</button>
+                    </div>
+                </div>
+                <div v-if="tasks.length === 0" class="empty-state">
+                    <div class="icon">📝</div>
+                    暂无任务，点击右上角添加吧！
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Modals ============ -->
+    <!-- Guest Modal -->
+    <div v-if="showGuestModal" class="modal-overlay" @click.self="showGuestModal = false">
+        <div class="modal">
+            <div class="modal-title">{{ editingGuest ? '编辑宾客' : '添加宾客' }}</div>
+            <div class="form-group">
+                <label>宾客姓名 *</label>
+                <input type="text" v-model="guestForm.name" placeholder="请输入姓名" />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>分组</label>
+                    <select v-model="guestForm.group_tag">
+                        <option value="亲友">亲友</option>
+                        <option value="同事">同事</option>
+                        <option value="长辈">长辈</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>RSVP状态</label>
+                    <select v-model="guestForm.rsvp_status">
+                        <option value="待回复">待回复</option>
+                        <option value="已确认">已确认</option>
+                        <option value="已拒绝">已拒绝</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>用餐偏好</label>
+                <input type="text" v-model="guestForm.meal_preference" placeholder="如：素食、清真、无海鲜等" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" @click="showGuestModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveGuest">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Modal -->
+    <div v-if="showBudgetModal" class="modal-overlay" @click.self="showBudgetModal = false">
+        <div class="modal">
+            <div class="modal-title">{{ editingBudget ? '编辑预算项目' : '添加预算项目' }}</div>
+            <div class="form-group">
+                <label>类别 *</label>
+                <select v-model="budgetForm.category">
+                    <option v-for="c in ['场地','餐饮','摄影','布置','其他']" :key="c" :value="c">{{ c }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>项目名称 *</label>
+                <input type="text" v-model="budgetForm.item_name" placeholder="请输入项目名称" />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>预算金额 (¥)</label>
+                    <input type="number" v-model.number="budgetForm.estimated_cost" min="0" step="100" />
+                </div>
+                <div class="form-group">
+                    <label>实际支出 (¥)</label>
+                    <input type="number" v-model.number="budgetForm.actual_cost" min="0" step="100" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" v-model="budgetForm.paid" :true-value="1" :false-value="0" />
+                    已支付
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" @click="showBudgetModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveBudgetItem">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor Modal -->
+    <div v-if="showVendorModal" class="modal-overlay" @click.self="showVendorModal = false">
+        <div class="modal">
+            <div class="modal-title">{{ editingVendor ? '编辑供应商' : '添加供应商' }}</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>供应商名称 *</label>
+                    <input type="text" v-model="vendorForm.name" placeholder="公司/工作室名" />
+                </div>
+                <div class="form-group">
+                    <label>服务类型 *</label>
+                    <input type="text" v-model="vendorForm.service" placeholder="如：花艺师、司仪、化妆师" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>联系方式</label>
+                <input type="text" v-model="vendorForm.contact" placeholder="联系人 + 电话" />
+            </div>
+            <div class="form-group">
+                <label>合同截止日期</label>
+                <input type="date" v-model="vendorForm.contract_deadline" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" @click="showVendorModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveVendor">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div v-if="showTaskModal" class="modal-overlay" @click.self="showTaskModal = false">
+        <div class="modal">
+            <div class="modal-title">{{ editingTask ? '编辑任务' : '新建任务' }}</div>
+            <div class="form-group">
+                <label>任务标题 *</label>
+                <input type="text" v-model="taskForm.title" placeholder="请输入任务内容" />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>截止日期</label>
+                    <input type="date" v-model="taskForm.deadline" />
+                </div>
+                <div class="form-group">
+                    <label>优先级</label>
+                    <select v-model.number="taskForm.priority">
+                        <option :value="1">🔴 高优先级</option>
+                        <option :value="2">🟡 中优先级</option>
+                        <option :value="3">🟢 低优先级</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" @click="showTaskModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveTask">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+        <div v-for="(t, i) in toasts" :key="i" class="toast" :class="t.type">
+            {{ t.message }}
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, watch } = Vue;
+
+const API = '/api';
+
+createApp({
+    setup() {
+        // Role & Permissions
+        const currentRole = ref('planner-token-123');
+        const roleInfo = ref(null);
+
+        const getAuthHeader = () => ({ 'Authorization': `Bearer ${currentRole.value}` });
+
+        // Tabs
+        const tabs = [
+            { key: 'guests', label: '宾客名单', icon: '👥' },
+            { key: 'budget', label: '预算追踪', icon: '💰' },
+            { key: 'vendors', label: '供应商', icon: '🏢' },
+            { key: 'tasks', label: '任务清单', icon: '✅' },
+        ];
+        const activeTab = ref('guests');
+
+        const hasTabAccess = (key) => {
+            if (!roleInfo.value) return true;
+            const perm = roleInfo.value.data?.permissions || {};
+            const resourceMap = {
+                guests: 'guests',
+                budget: 'budget_items',
+                vendors: 'vendors',
+                tasks: 'tasks'
+            };
+            return perm[resourceMap[key]]?.includes('read');
+        };
+
+        const permissionList = computed(() => roleInfo.value?.data?.permissions || {});
+        const canRead = (r) => permissionList.value[r]?.includes('read') ?? true;
+        const canCreate = (r) => permissionList.value[r]?.includes('create') ?? true;
+        const canEdit = (r) => permissionList.value[r]?.includes('update') ?? true;
+        const canDelete = (r) => permissionList.value[r]?.includes('delete') ?? false;
+        const canRsvp = computed(() => permissionList.value.guests?.includes('rsvp') ?? true);
+
+        const canCreateGuest = computed(() => canCreate('guests'));
+        const canEditGuest = computed(() => canEdit('guests'));
+        const canDeleteGuest = computed(() => canDelete('guests'));
+        const canCreateBudget = computed(() => canCreate('budget_items'));
+        const canEditBudget = computed(() => canEdit('budget_items'));
+        const canDeleteBudget = computed(() => canDelete('budget_items'));
+        const canCreateVendor = computed(() => canCreate('vendors'));
+        const canEditVendor = computed(() => canEdit('vendors'));
+        const canDeleteVendor = computed(() => canDelete('vendors'));
+        const canCreateTask = computed(() => canCreate('tasks'));
+        const canEditTask = computed(() => canEdit('tasks'));
+        const canDeleteTask = computed(() => canDelete('tasks'));
+        const canEditSettings = computed(() => canEdit('wedding_settings'));
+
+        // Countdown
+        const countdown = ref({ days_left: null, wedding_date: null });
+        const weddingDateInput = ref('');
+
+        // Guests
+        const guests = ref([]);
+        const guestGroupFilter = ref('');
+        const guestStatusFilter = ref('');
+        const showGuestModal = ref(false);
+        const editingGuest = ref(null);
+        const guestForm = ref({ name: '', group_tag: '亲友', rsvp_status: '待回复', meal_preference: '' });
+
+        const filteredGuests = computed(() => {
+            return guests.value.filter(g => {
+                if (guestGroupFilter.value && g.group_tag !== guestGroupFilter.value) return false;
+                if (guestStatusFilter.value && g.rsvp_status !== guestStatusFilter.value) return false;
+                return true;
+            });
+        });
+
+        const guestStats = computed(() => {
+            const list = guests.value;
+            return {
+                total: list.length,
+                confirmed: list.filter(g => g.rsvp_status === '已确认').length,
+                pending: list.filter(g => g.rsvp_status === '待回复').length,
+                declined: list.filter(g => g.rsvp_status === '已拒绝').length,
+            };
+        });
+
+        // Budget
+        const budgetItems = ref([]);
+        const budgetByCategory = ref({});
+        const budgetCategoryFilter = ref('');
+        const showBudgetModal = ref(false);
+        const editingBudget = ref(null);
+        const budgetForm = ref({ category: '场地', item_name: '', estimated_cost: 0, actual_cost: 0, paid: 0 });
+
+        const filteredBudgetItems = computed(() => {
+            if (!budgetCategoryFilter.value) return budgetItems.value;
+            return budgetItems.value.filter(b => b.category === budgetCategoryFilter.value);
+        });
+
+        const budgetStats = computed(() => {
+            let est = 0, act = 0;
+            for (const b of budgetItems.value) {
+                est += b.estimated_cost || 0;
+                act += b.actual_cost || 0;
+            }
+            return { estimated: est, actual: act, over: act > est && est > 0 };
+        });
+
+        // Vendors
+        const vendors = ref([]);
+        const upcomingDeadlines = ref([]);
+        const showVendorModal = ref(false);
+        const editingVendor = ref(null);
+        const vendorForm = ref({ name: '', service: '', contact: '', contract_deadline: '' });
+
+        const vendorStats = computed(() => ({
+            total: vendors.value.length,
+            urgent: upcomingDeadlines.value.length
+        }));
+
+        // Tasks
+        const tasks = ref([]);
+        const showTaskModal = ref(false);
+        const editingTask = ref(null);
+        const taskForm = ref({ title: '', deadline: '', priority: 2 });
+
+        const taskStats = computed(() => {
+            const list = tasks.value;
+            const done = list.filter(t => t.done).length;
+            return { total: list.length, done, pending: list.length - done };
+        });
+
+        // Toasts
+        const toasts = ref([]);
+        const toast = (message, type = 'success') => {
+            toasts.value.push({ message, type });
+            setTimeout(() => toasts.value.shift(), 2800);
+        };
+
+        // Helpers
+        const formatMoney = (n) => {
+            const num = Number(n) || 0;
+            return num.toLocaleString('zh-CN');
+        };
+        const formatTime = (t) => {
+            if (!t) return '—';
+            const d = new Date(t);
+            if (isNaN(d.getTime())) return t;
+            return `${d.getMonth()+1}月${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        };
+        const getBudgetPercent = (est, act) => {
+            if (!est) return act > 0 ? '100%' : '0%';
+            const pct = Math.min(100, Math.round(act / est * 100));
+            return pct + '%';
+        };
+
+        // API helpers
+        const request = async (url, options = {}) => {
+            try {
+                const res = await fetch(API + url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader(),
+                        ...(options.headers || {})
+                    },
+                    ...(options.body ? { body: JSON.stringify(options.body) } : {})
+                });
+                const data = await res.json();
+                if (data.code === 0) return data;
+                toast(data.message || '操作失败', 'error');
+                return data;
+            } catch (e) {
+                toast('网络请求失败: ' + e.message, 'error');
+                return { code: 1, message: e.message, data: null };
+            }
+        };
+
+        // Fetch Data
+        const fetchRoleInfo = async () => {
+            const res = await request('/role/get');
+            if (res.code === 0) roleInfo.value = res;
+        };
+
+        const fetchCountdown = async () => {
+            const res = await request('/countdown/get');
+            if (res.code === 0) {
+                countdown.value = res.data;
+                weddingDateInput.value = res.data.wedding_date || '';
+            }
+        };
+
+        const updateWeddingDate = async () => {
+            if (!weddingDateInput.value) return;
+            const res = await request('/settings/put', {
+                method: 'PUT',
+                body: { key: 'wedding_date', value: weddingDateInput.value }
+            });
+            if (res.code === 0) {
+                toast('婚礼日期已更新');
+                fetchCountdown();
+            }
+        };
+
+        const fetchGuests = async () => {
+            const res = await request('/guests/get');
+            if (res.code === 0) guests.value = res.data?.list || [];
+        };
+
+        const fetchBudget = async () => {
+            const res = await request('/budget/items/get');
+            if (res.code === 0) {
+                budgetItems.value = res.data?.list || [];
+                budgetByCategory.value = res.data?.summary?.categories || {};
+            }
+        };
+
+        const fetchVendors = async () => {
+            const res = await request('/vendors/get');
+            if (res.code === 0) {
+                vendors.value = (res.data?.list || []).map(v => {
+                    if (v.contract_deadline) {
+                        const d = new Date(v.contract_deadline);
+                        const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+                        v.days_left = Math.round((d - today) / 86400000);
+                    }
+                    return v;
+                });
+                upcomingDeadlines.value = (res.data?.upcoming_deadlines || []).map(u => {
+                    if (u.contract_deadline) {
+                        const d = new Date(u.contract_deadline);
+                        const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+                        u.days_left = Math.round((d - today) / 86400000);
+                    }
+                    return u;
+                });
+            }
+        };
+
+        const fetchTasks = async () => {
+            const res = await request('/tasks/get');
+            if (res.code === 0) tasks.value = res.data?.list || [];
+        };
+
+        const refreshAll = () => {
+            fetchRoleInfo();
+            fetchCountdown();
+            fetchGuests();
+            fetchBudget();
+            fetchVendors();
+            fetchTasks();
+        };
+
+        // Guest Actions
+        const openGuestModal = (g = null) => {
+            editingGuest.value = g;
+            if (g) {
+                guestForm.value = { ...g };
+            } else {
+                guestForm.value = { name: '', group_tag: '亲友', rsvp_status: '待回复', meal_preference: '' };
+            }
+            showGuestModal.value = true;
+        };
+
+        const saveGuest = async () => {
+            if (!guestForm.value.name?.trim()) {
+                toast('请填写宾客姓名', 'error'); return;
+            }
+            let res;
+            if (editingGuest.value) {
+                res = await request('/guests/put', {
+                    method: 'PUT',
+                    body: { id: editingGuest.value.id, ...guestForm.value }
+                });
+            } else {
+                res = await request('/guests', { method: 'POST', body: guestForm.value });
+            }
+            if (res.code === 0) {
+                toast(editingGuest.value ? '已更新' : '已添加');
+                showGuestModal.value = false;
+                fetchGuests();
+            }
+        };
+
+        const quickRsvp = async (id, status, meal) => {
+            const res = await request('/guests/rsvp/put', {
+                method: 'PUT',
+                body: { id, rsvp_status: status, meal_preference: meal }
+            });
+            if (res.code === 0) {
+                toast('RSVP状态已更新');
+                fetchGuests();
+            }
+        };
+
+        const deleteGuest = async (g) => {
+            if (!confirm(`确定删除宾客「${g.name}」吗？`)) return;
+            const res = await request('/guests/delete', { method: 'DELETE', body: { id: g.id } });
+            if (res.code === 0) {
+                toast('已删除');
+                fetchGuests();
+            }
+        };
+
+        // Budget Actions
+        const openBudgetModal = (b = null) => {
+            editingBudget.value = b;
+            if (b) {
+                budgetForm.value = { ...b };
+            } else {
+                budgetForm.value = { category: '场地', item_name: '', estimated_cost: 0, actual_cost: 0, paid: 0 };
+            }
+            showBudgetModal.value = true;
+        };
+
+        const saveBudgetItem = async () => {
+            if (!budgetForm.value.item_name?.trim()) {
+                toast('请填写项目名称', 'error'); return;
+            }
+            let res;
+            if (editingBudget.value) {
+                res = await request('/budget/items/put', {
+                    method: 'PUT',
+                    body: { id: editingBudget.value.id, ...budgetForm.value }
+                });
+            } else {
+                res = await request('/budget/items', { method: 'POST', body: budgetForm.value });
+            }
+            if (res.code === 0) {
+                toast(editingBudget.value ? '已更新' : '已添加');
+                showBudgetModal.value = false;
+                fetchBudget();
+            }
+        };
+
+        const deleteBudgetItem = async (b) => {
+            if (!confirm(`确定删除预算项目「${b.item_name}」吗？`)) return;
+            const res = await request('/budget/items/delete', { method: 'DELETE', body: { id: b.id } });
+            if (res.code === 0) {
+                toast('已删除');
+                fetchBudget();
+            }
+        };
+
+        // Vendor Actions
+        const openVendorModal = (v = null) => {
+            editingVendor.value = v;
+            if (v) {
+                vendorForm.value = { ...v };
+            } else {
+                vendorForm.value = { name: '', service: '', contact: '', contract_deadline: '' };
+            }
+            showVendorModal.value = true;
+        };
+
+        const saveVendor = async () => {
+            if (!vendorForm.value.name?.trim() || !vendorForm.value.service?.trim()) {
+                toast('请填写名称和服务类型', 'error'); return;
+            }
+            let res;
+            if (editingVendor.value) {
+                res = await request('/vendors/put', {
+                    method: 'PUT',
+                    body: { id: editingVendor.value.id, ...vendorForm.value }
+                });
+            } else {
+                res = await request('/vendors', { method: 'POST', body: vendorForm.value });
+            }
+            if (res.code === 0) {
+                toast(editingVendor.value ? '已更新' : '已添加');
+                showVendorModal.value = false;
+                fetchVendors();
+            }
+        };
+
+        const deleteVendor = async (v) => {
+            if (!confirm(`确定删除供应商「${v.name}」吗？`)) return;
+            const res = await request('/vendors/delete', { method: 'DELETE', body: { id: v.id } });
+            if (res.code === 0) {
+                toast('已删除');
+                fetchVendors();
+            }
+        };
+
+        // Task Actions
+        const openTaskModal = (t = null) => {
+            editingTask.value = t;
+            if (t) {
+                taskForm.value = { title: t.title, deadline: t.deadline || '', priority: t.priority };
+            } else {
+                taskForm.value = { title: '', deadline: '', priority: 2 };
+            }
+            showTaskModal.value = true;
+        };
+
+        const saveTask = async () => {
+            if (!taskForm.value.title?.trim()) {
+                toast('请填写任务标题', 'error'); return;
+            }
+            let res;
+            if (editingTask.value) {
+                res = await request('/tasks/put', {
+                    method: 'PUT',
+                    body: { id: editingTask.value.id, ...taskForm.value }
+                });
+            } else {
+                res = await request('/tasks', { method: 'POST', body: taskForm.value });
+            }
+            if (res.code === 0) {
+                toast(editingTask.value ? '已更新' : '已添加');
+                showTaskModal.value = false;
+                fetchTasks();
+            }
+        };
+
+        const toggleTask = async (t) => {
+            const res = await request('/tasks/toggle/put', { method: 'PUT', body: { id: t.id } });
+            if (res.code === 0) fetchTasks();
+        };
+
+        const deleteTask = async (t) => {
+            if (!confirm(`确定删除任务「${t.title}」吗？`)) return;
+            const res = await request('/tasks/delete', { method: 'DELETE', body: { id: t.id } });
+            if (res.code === 0) {
+                toast('已删除');
+                fetchTasks();
+            }
+        };
+
+        // Role Change
+        const onRoleChange = () => {
+            refreshAll();
+            toast('已切换身份');
+        };
+
+        onMounted(() => {
+            refreshAll();
+        });
+
+        return {
+            // state
+            currentRole, roleInfo, tabs, activeTab,
+            countdown, weddingDateInput,
+            guests, guestGroupFilter, guestStatusFilter, filteredGuests, guestStats,
+            showGuestModal, editingGuest, guestForm,
+            budgetItems, budgetByCategory, budgetCategoryFilter, filteredBudgetItems, budgetStats,
+            showBudgetModal, editingBudget, budgetForm,
+            vendors, upcomingDeadlines, vendorStats,
+            showVendorModal, editingVendor, vendorForm,
+            tasks, taskStats,
+            showTaskModal, editingTask, taskForm,
+            toasts,
+            // perms
+            hasTabAccess,
+            canCreateGuest, canEditGuest, canDeleteGuest, canRsvp,
+            canCreateBudget, canEditBudget, canDeleteBudget,
+            canCreateVendor, canEditVendor, canDeleteVendor,
+            canCreateTask, canEditTask, canDeleteTask,
+            canEditSettings,
+            // methods
+            onRoleChange, updateWeddingDate,
+            openGuestModal, saveGuest, quickRsvp, deleteGuest,
+            openBudgetModal, saveBudgetItem, deleteBudgetItem,
+            openVendorModal, saveVendor, deleteVendor,
+            openTaskModal, saveTask, toggleTask, deleteTask,
+            // helpers
+            formatMoney, formatTime, getBudgetPercent,
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
