@@ -1121,16 +1121,21 @@ function drawPlayer(x, y) {
     else if (pickaxe === 'DIAMOND') headColor = '#00CED1';
     
     let pivotX, pivotY, dirX, dirY;
+    let displayDir = activeDir;
+    if (facingLeft) {
+        if (activeDir === 'left') displayDir = 'right';
+        else if (activeDir === 'right') displayDir = 'left';
+    }
     
-    if (activeDir === 'up') {
+    if (displayDir === 'up') {
         pivotX = x + 20;
         pivotY = bodyY + 14;
         dirX = 0; dirY = -1;
-    } else if (activeDir === 'down') {
+    } else if (displayDir === 'down') {
         pivotX = x + 20;
         pivotY = bodyY + 30;
         dirX = 0; dirY = 1;
-    } else if (activeDir === 'left') {
+    } else if (displayDir === 'left') {
         pivotX = x + 12;
         pivotY = bodyY + 22;
         dirX = -1; dirY = 0;
