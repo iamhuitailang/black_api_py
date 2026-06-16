@@ -74,7 +74,7 @@ export const STAGES = [
   {
     id: 1,
     name: '第一关 - 春之樱',
-    bulletsPerSecond: 8,
+    bulletsPerSecond: 3,
     duration: 30000,
     bgColor: '#1a0a2e',
     enemyTypes: ['small', 'medium']
@@ -82,7 +82,7 @@ export const STAGES = [
   {
     id: 2,
     name: '第二关 - 夏之绿',
-    bulletsPerSecond: 14,
+    bulletsPerSecond: 4,
     duration: 35000,
     bgColor: '#0a1a1a',
     enemyTypes: ['small', 'medium', 'large']
@@ -90,7 +90,7 @@ export const STAGES = [
   {
     id: 3,
     name: '第三关 - 秋之红',
-    bulletsPerSecond: 20,
+    bulletsPerSecond: 5,
     duration: 40000,
     bgColor: '#2e1a0a',
     enemyTypes: ['medium', 'large']
@@ -98,7 +98,7 @@ export const STAGES = [
   {
     id: 4,
     name: '第四关 - 冬之雪',
-    bulletsPerSecond: 28,
+    bulletsPerSecond: 7,
     duration: 45000,
     bgColor: '#0a1a2e',
     enemyTypes: ['medium', 'large', 'elite']
@@ -106,7 +106,7 @@ export const STAGES = [
   {
     id: 5,
     name: '第五关 - 终焉',
-    bulletsPerSecond: 35,
+    bulletsPerSecond: 9,
     duration: 50000,
     bgColor: '#2e0a1a',
     enemyTypes: ['large', 'elite']
@@ -117,8 +117,8 @@ export const BOSS = {
   name: '最终Boss - 八云紫',
   maxHp: 1000,
   phases: [
-    { hpThreshold: 1.0, pattern: 'ring', bulletsPerSecond: 15 },
-    { hpThreshold: 0.6, pattern: 'fan', bulletsPerSecond: 22 },
-    { hpThreshold: 0.3, pattern: 'spiral', bulletsPerSecond: 30 }
+    { hpThreshold: 1.0, pattern: 'ring', bulletsPerSecond: 5 },
+    { hpThreshold: 0.6, pattern: 'fan', bulletsPerSecond: 7 },
+    { hpThreshold: 0.3, pattern: 'spiral', bulletsPerSecond: 10 }
   ]
 };

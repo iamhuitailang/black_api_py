@@ -114,6 +114,7 @@ export class GameEngine {
     this.paused = false;
     this.stageStartTime = Date.now();
     this.lastTime = performance.now();
+    this._bindBeforeUnload();
     this.gameLoop();
   }
 
@@ -137,7 +138,18 @@ export class GameEngine {
     this.running = true;
     this.paused = false;
     this.lastTime = performance.now();
+    this._bindBeforeUnload();
     this.gameLoop();
+  }
+
+  _bindBeforeUnload() {
+    if (this._beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+    }
+    this._beforeUnloadHandler = () => {
+      this.saveNow();
+    };
+    window.addEventListener('beforeunload', this._beforeUnloadHandler);
   }
 
   togglePause() {
@@ -230,7 +242,7 @@ export class GameEngine {
     }
     
     this.enemySpawnTimer += deltaTime;
-    const spawnInterval = 1500 - (this.currentStage - 1) * 200;
+    const spawnInterval = 2500 - (this.currentStage - 1) * 300;
     if (this.enemySpawnTimer >= spawnInterval) {
       this.enemySpawnTimer = 0;
       this.spawnEnemy(stage);
@@ -250,6 +262,8 @@ export class GameEngine {
   }
 
   spawnEnemy(stage) {
+    const maxEnemies = 3 + this.currentStage;
+    if (this.enemies.length >= maxEnemies) return;
     const types = stage.enemyTypes;
     const type = types[Math.floor(Math.random() * types.length)];
     const x = 50 + Math.random() * (GAME_WIDTH - 100);
@@ -260,8 +274,8 @@ export class GameEngine {
   spawnRandomBullet() {
     const x = Math.random() * GAME_WIDTH;
     const y = -10;
-    const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
-    const speed = 2 + Math.random() * 2;
+    const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+    const speed = 1.5 + Math.random() * 1.5;
     this.enemyBullets.push(new EnemyBullet(
       x, y, Math.cos(angle) * speed, Math.sin(angle) * speed
     ));
@@ -488,7 +502,9 @@ export class GameEngine {
   }
 
   savePeriodically() {
-    if (Date.now() % 5000 < 20) {
+    this._saveAccum = (this._saveAccum || 0) + 1;
+    if (this._saveAccum >= 60) {
+      this._saveAccum = 0;
       saveGameState(this.getSaveData());
     }
   }
@@ -586,8 +602,19 @@ export class GameEngine {
     }
   }
 
+  saveNow() {
+    if (this.player && this.running && !this.gameOver) {
+      saveGameState(this.getSaveData());
+    }
+  }
+
   destroy() {
+    this.saveNow();
     this.stop();
     this.keys = {};
+    if (this._beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+      this._beforeUnloadHandler = null;
+    }
   }
 }

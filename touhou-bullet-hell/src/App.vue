@@ -214,7 +214,7 @@
   </div>
 </template>
 
-<script setup>import { ref, onMounted, onUnmounted, computed } from 'vue';
+<script setup>import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { GameEngine } from './game/engine.js';
 import { CHARACTERS, STAGES, BOSS } from './game/constants.js';
 import { audioManager } from './game/audio.js';
@@ -332,15 +332,35 @@ function getStageProgress() {
  return Math.min(100, (engine.value.stageElapsed / stage.duration) * 100);
 }
 function loadSaveData() {
- const save = loadSave();
- highScore.value = save.highScore;
- unlockedCharacters.value = save.unlockedCharacters;
- const quickSave = loadGameState();
- hasQuickSave.value = quickSave !== null;
+  const save = loadSave();
+  highScore.value = save.highScore;
+  unlockedCharacters.value = save.unlockedCharacters;
+  const quickSave = loadGameState();
+  hasQuickSave.value = quickSave !== null;
+}
+
+function autoContinueGame() {
+  const saveData = loadGameState();
+  if (!saveData || !gameCanvas.value) return;
+  audioManager.init();
+  isNewHighScore.value = false;
+  selectedCharacter.value = saveData.characterId;
+  engine.value = new GameEngine(gameCanvas.value);
+  engine.value.startFromSave(saveData);
+  engine.value.togglePause();
+  gameState.value = 'paused';
+  startUpdateLoop();
 }
 onMounted(() => {
- loadSaveData();
- window.addEventListener('keydown', handleGlobalKeydown);
+  loadSaveData();
+  window.addEventListener('keydown', handleGlobalKeydown);
+  const quickSave = loadGameState();
+  if (quickSave) {
+    hasQuickSave.value = true;
+    nextTick(() => {
+      autoContinueGame();
+    });
+  }
 });
 onUnmounted(() => {
  stopUpdateLoop();

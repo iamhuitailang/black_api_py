@@ -325,8 +325,8 @@ export class Enemy {
         this.radius = 12;
         this.speed = 1.5;
         this.color = '#ff6666';
-        this.shootInterval = 2500;
-        this.bulletSpeed = 3;
+        this.shootInterval = 3500;
+        this.bulletSpeed = 2.5;
         this.score = 100;
         break;
       case 'medium':
@@ -335,8 +335,8 @@ export class Enemy {
         this.radius = 18;
         this.speed = 1;
         this.color = '#66ff66';
-        this.shootInterval = 1800;
-        this.bulletSpeed = 3.5;
+        this.shootInterval = 2800;
+        this.bulletSpeed = 2.8;
         this.score = 250;
         break;
       case 'large':
@@ -345,8 +345,8 @@ export class Enemy {
         this.radius = 25;
         this.speed = 0.8;
         this.color = '#6666ff';
-        this.shootInterval = 1200;
-        this.bulletSpeed = 4;
+        this.shootInterval = 2200;
+        this.bulletSpeed = 3;
         this.score = 500;
         break;
       case 'elite':
@@ -355,8 +355,8 @@ export class Enemy {
         this.radius = 30;
         this.speed = 0.6;
         this.color = '#ff66ff';
-        this.shootInterval = 800;
-        this.bulletSpeed = 4.5;
+        this.shootInterval = 1800;
+        this.bulletSpeed = 3.2;
         this.score = 1000;
         break;
     }
@@ -410,8 +410,8 @@ export class Enemy {
         Math.sin(angle) * this.bulletSpeed
       ));
     } else if (this.type === 'medium') {
-      for (let i = -1; i <= 1; i++) {
-        const a = angle + i * 0.3;
+      for (let i = -1; i <= 1; i += 2) {
+        const a = angle + i * 0.25;
         bullets.push(new EnemyBullet(
           this.x, this.y + this.radius,
           Math.cos(a) * this.bulletSpeed,
@@ -419,8 +419,8 @@ export class Enemy {
         ));
       }
     } else if (this.type === 'large') {
-      for (let i = 0; i < 5; i++) {
-        const a = angle + (i - 2) * 0.25;
+      for (let i = 0; i < 3; i++) {
+        const a = angle + (i - 1) * 0.3;
         bullets.push(new EnemyBullet(
           this.x, this.y + this.radius,
           Math.cos(a) * this.bulletSpeed,
@@ -428,12 +428,12 @@ export class Enemy {
         ));
       }
     } else if (this.type === 'elite') {
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2 + this.moveTimer / 1000;
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + this.moveTimer / 1000;
         bullets.push(new EnemyBullet(
           this.x, this.y,
-          Math.cos(a) * this.bulletSpeed * 0.8,
-          Math.sin(a) * this.bulletSpeed * 0.8
+          Math.cos(a) * this.bulletSpeed * 0.7,
+          Math.sin(a) * this.bulletSpeed * 0.7
         ));
       }
     }
@@ -526,56 +526,56 @@ export class Boss {
     
     switch (phase.pattern) {
       case 'ring':
-        const ringCount = 24;
+        const ringCount = 16;
         for (let i = 0; i < ringCount; i++) {
           const angle = (i / ringCount) * Math.PI * 2 + this.moveTimer / 500;
           bullets.push(new EnemyBullet(
             this.x, this.y + this.radius,
-            Math.cos(angle) * 2.5,
-            Math.sin(angle) * 2.5,
+            Math.cos(angle) * 1.8,
+            Math.sin(angle) * 1.8,
             BULLET_COLORS.enemy.pink,
-            8
-          ));
-        }
-        break;
-      
-      case 'fan':
-        const fanCount = 11;
-        const fanAngle = Math.atan2(playerY - this.y, playerX - this.x);
-        const spread = 1.2;
-        for (let i = 0; i < fanCount; i++) {
-          const angle = fanAngle - spread / 2 + (i / (fanCount - 1)) * spread;
-          bullets.push(new EnemyBullet(
-            this.x, this.y + this.radius,
-            Math.cos(angle) * 3.5,
-            Math.sin(angle) * 3.5,
-            BULLET_COLORS.enemy.cyan,
             7
           ));
         }
         break;
       
+      case 'fan':
+        const fanCount = 7;
+        const fanAngle = Math.atan2(playerY - this.y, playerX - this.x);
+        const spread = 1.0;
+        for (let i = 0; i < fanCount; i++) {
+          const angle = fanAngle - spread / 2 + (i / (fanCount - 1)) * spread;
+          bullets.push(new EnemyBullet(
+            this.x, this.y + this.radius,
+            Math.cos(angle) * 2.5,
+            Math.sin(angle) * 2.5,
+            BULLET_COLORS.enemy.cyan,
+            6
+          ));
+        }
+        break;
+      
       case 'spiral':
-        this.spiralAngle += 0.3;
-        const spiralCount = 3;
+        this.spiralAngle += 0.25;
+        const spiralCount = 2;
         for (let i = 0; i < spiralCount; i++) {
           const angle = this.spiralAngle + (i / spiralCount) * Math.PI * 2;
           bullets.push(new EnemyBullet(
             this.x, this.y + this.radius,
-            Math.cos(angle) * 3,
-            Math.sin(angle) * 3,
+            Math.cos(angle) * 2.2,
+            Math.sin(angle) * 2.2,
             BULLET_COLORS.enemy.purple,
-            6
+            5
           ));
         }
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.2) {
           const aimAngle = Math.atan2(playerY - this.y, playerX - this.x);
           bullets.push(new EnemyBullet(
             this.x, this.y + this.radius,
-            Math.cos(aimAngle) * 5,
-            Math.sin(aimAngle) * 5,
+            Math.cos(aimAngle) * 3.5,
+            Math.sin(aimAngle) * 3.5,
             BULLET_COLORS.enemy.red,
-            10
+            8
           ));
         }
         break;

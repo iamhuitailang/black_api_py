@@ -5,6 +5,7 @@ body {
   color: #fff;
   font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
   overflow: hidden;
+  height: 100vh;
 }
 
 #app {
@@ -13,46 +14,51 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 
 .game-container {
   position: relative;
   display: flex;
   gap: 20px;
-  align-items: flex-start;
+  align-items: center;
+  max-height: 100vh;
 }
 
 .game-canvas {
   border: 3px solid #ff6b9d;
   border-radius: 8px;
   box-shadow: 0 0 30px rgba(255, 107, 157, 0.5);
+  display: block;
 }
 
 .sidebar {
-  width: 200px;
+  width: 180px;
   background: rgba(20, 20, 40, 0.9);
   border: 2px solid #6366f1;
   border-radius: 8px;
-  padding: 15px;
+  padding: 10px;
   box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  max-height: 640px;
+  overflow-y: auto;
 }
 
 .hud-item {
-  margin-bottom: 15px;
-  padding: 10px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   border-left: 3px solid #ff6b9d;
 }
 
 .hud-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #a0a0c0;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .hud-value {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
   color: #ffd700;
 }
@@ -60,13 +66,13 @@ body {
 .btn {
   display: block;
   width: 100%;
-  padding: 12px 20px;
-  margin: 10px 0;
+  padding: 10px 16px;
+  margin: 5px 0;
   background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -95,22 +101,24 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   background: radial-gradient(ellipse at center, rgba(20, 20, 60, 0.95) 0%, rgba(10, 10, 30, 0.98) 100%);
   z-index: 100;
+  overflow-y: auto;
+  padding: 20px 10px;
 }
 
 .menu-title {
-  font-size: 48px;
+  font-size: 36px;
   font-weight: bold;
   background: linear-gradient(135deg, #ff6b9d 0%, #ffd700 50%, #ff6b9d 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 30px rgba(255, 107, 157, 0.5);
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   animation: titleGlow 2s ease-in-out infinite alternate;
+  flex-shrink: 0;
 }
 
 @keyframes titleGlow {
@@ -119,20 +127,22 @@ body {
 }
 
 .menu-subtitle {
-  font-size: 18px;
+  font-size: 14px;
   color: #a0a0c0;
-  margin-bottom: 40px;
+  margin-bottom: 15px;
+  flex-shrink: 0;
 }
 
 .character-select {
   display: flex;
-  gap: 30px;
-  margin: 30px 0;
+  gap: 15px;
+  margin: 10px 0;
+  flex-shrink: 0;
 }
 
 .character-card {
-  width: 180px;
-  padding: 20px;
+  width: 140px;
+  padding: 12px;
   background: rgba(30, 30, 60, 0.8);
   border: 3px solid #444;
   border-radius: 12px;
@@ -158,32 +168,32 @@ body {
 }
 
 .character-avatar {
-  width: 100px;
-  height: 100px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  margin: 0 auto 15px;
+  margin: 0 auto 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 28px;
   font-weight: bold;
 }
 
 .character-name {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .character-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: #a0a0c0;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .character-stats {
-  margin-top: 15px;
-  font-size: 11px;
+  margin-top: 8px;
+  font-size: 10px;
   text-align: left;
 }
 
@@ -292,12 +302,14 @@ body {
   align-items: center;
   background: rgba(0, 0, 0, 0.9);
   z-index: 200;
+  overflow-y: auto;
+  padding: 20px;
 }
 
 .result-title {
-  font-size: 48px;
+  font-size: 36px;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .result-title.win {
@@ -347,12 +359,13 @@ body {
 }
 
 .instructions {
-  margin-top: 30px;
-  padding: 20px;
+  margin-top: 10px;
+  padding: 12px;
   background: rgba(30, 30, 60, 0.8);
   border-radius: 8px;
-  max-width: 500px;
+  max-width: 460px;
   text-align: left;
+  flex-shrink: 0;
 }
 
 .instructions h3 {
@@ -362,9 +375,9 @@ body {
 
 .instructions p {
   color: #c0c0e0;
-  font-size: 14px;
-  line-height: 1.8;
-  margin: 5px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 3px 0;
 }
 
 .key {
