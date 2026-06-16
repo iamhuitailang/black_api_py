@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { Game } from '../game/Game';
 import type { GameState } from '../game/types';
 import { GAME_CONFIG, SKINS } from '../game/config';
-import { Pause, Play, RotateCcw, Home, Volume2, VolumeX, Lock, Star, Zap, Heart } from 'lucide-vue-next';
+import { Pause, Play, RotateCcw, Home, Volume2, VolumeX, Lock, Star, Zap, Heart, RefreshCw } from 'lucide-vue-next';
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let game: Game | null = null;
@@ -11,6 +11,8 @@ let game: Game | null = null;
 const gameState = ref<GameState | null>(null);
 const soundEnabled = ref(true);
 const isNewHighScore = ref(false);
+const hasSavedGame = ref(false);
+const showResumeConfirm = ref(false);
 
 const formattedScore = computed(() => {
   if (!gameState.value) return '0';
@@ -37,9 +39,23 @@ const skins = computed(() => {
   return game.getSkins();
 });
 
+const checkSavedGame = (): boolean => {
+  const data = localStorage.getItem('color-switch-snapshot');
+  if (!data) return false;
+  try {
+    const { timestamp } = JSON.parse(data);
+    return Date.now() - timestamp < 3600000;
+  } catch {
+    return false;
+  }
+};
+
 const onStateChange = (state: GameState) => {
   if (state.status === 'gameover' && gameState.value) {
     isNewHighScore.value = state.score > gameState.value.highScore;
+  }
+  if (state.status === 'menu') {
+    hasSavedGame.value = checkSavedGame();
   }
   gameState.value = state;
 };
@@ -51,13 +67,22 @@ const startGame = () => {
   }
 };
 
+const resumeGame = () => {
+  if (game) {
+    const success = game.loadGameSnapshot();
+    if (success) {
+      showResumeConfirm.value = false;
+    }
+  }
+};
+
 const pauseGame = () => {
   if (game) {
     game.pause();
   }
 };
 
-const resumeGame = () => {
+const resumePausedGame = () => {
   if (game) {
     game.resume();
   }
@@ -91,12 +116,21 @@ const getSkinPreviewColor = (skinId: string): string => {
   return skin?.color || '#ffffff';
 };
 
+const showResumeDialog = () => {
+  showResumeConfirm.value = true;
+};
+
+const cancelResume = () => {
+  showResumeConfirm.value = false;
+};
+
 onMounted(() => {
   if (canvasRef.value) {
     canvasRef.value.width = GAME_CONFIG.CANVAS_WIDTH;
     canvasRef.value.height = GAME_CONFIG.CANVAS_HEIGHT;
     game = new Game(canvasRef.value, onStateChange);
     gameState.value = game.getState();
+    hasSavedGame.value = checkSavedGame();
   }
 });
 
@@ -181,6 +215,16 @@ onUnmounted(() => {
         </div>
 
         <button
+          v-if="hasSavedGame"
+          @click="showResumeDialog"
+          class="px-12 py-3 mb-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-lg font-bold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/50 active:scale-95 flex items-center gap-2"
+          style="font-family: 'Orbitron', sans-serif;"
+        >
+          <RefreshCw class="w-5 h-5" />
+          继续游戏
+        </button>
+
+        <button
           @click="startGame"
           class="px-12 py-4 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xl font-bold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-pink-500/50 active:scale-95"
           style="font-family: 'Orbitron', sans-serif;"
@@ -191,6 +235,32 @@ onUnmounted(() => {
         <div class="mt-6 text-gray-500 text-xs text-center" style="font-family: 'Rajdhani', sans-serif;">
           <p>点击屏幕或按空格键跳跃</p>
           <p class="mt-1">穿越匹配颜色的圆环段</p>
+        </div>
+      </div>
+
+      <div v-if="showResumeConfirm" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md rounded-xl z-50">
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 text-center max-w-xs">
+          <RefreshCw class="w-12 h-12 text-green-400 mx-auto mb-4 animate-spin" style="animation-duration: 3s;" />
+          <h3 class="text-2xl font-bold text-white mb-2" style="font-family: 'Orbitron', sans-serif;">继续游戏？</h3>
+          <p class="text-gray-300 mb-6" style="font-family: 'Rajdhani', sans-serif;">
+            检测到未完成的游戏进度，是否继续上次的游戏？
+          </p>
+          <div class="flex flex-col gap-3">
+            <button
+              @click="resumeGame"
+              class="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-full transition-all duration-300 hover:scale-105"
+              style="font-family: 'Orbitron', sans-serif;"
+            >
+              继续
+            </button>
+            <button
+              @click="cancelResume"
+              class="px-8 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white font-bold rounded-full transition-all duration-300 hover:scale-105"
+              style="font-family: 'Orbitron', sans-serif;"
+            >
+              取消
+            </button>
+          </div>
         </div>
       </div>
 
@@ -215,7 +285,7 @@ onUnmounted(() => {
               </div>
             </div>
             <button
-              @click="gameState?.status === 'playing' ? pauseGame() : resumeGame()"
+              @click="gameState?.status === 'playing' ? pauseGame() : resumePausedGame()"
               class="bg-black/50 backdrop-blur-md rounded-xl p-2 border border-white/10 hover:bg-white/10 transition-colors"
             >
               <Pause v-if="gameState?.status === 'playing'" class="w-6 h-6 text-white" />

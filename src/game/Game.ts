@@ -1,5 +1,5 @@
 import type { GameState, Ring as RingType, GameStatus } from './types';
-import { GAME_CONFIG, GAME_CONFIG as CONFIG } from './config';
+import { GAME_CONFIG, GAME_CONFIG as CONFIG, COLORS } from './config';
 import { PhysicsEngine } from './engine/PhysicsEngine';
 import { CollisionDetector } from './engine/CollisionDetector';
 import { ParticleSystem } from './engine/ParticleSystem';
@@ -9,12 +9,31 @@ import { SkinManager } from './entities/SkinManager';
 import { AudioManager } from './audio/AudioManager';
 import { SaveManager } from './storage/SaveManager';
 
+interface GameSnapshot {
+  ballY: number;
+  ballVy: number;
+  ballColorIndex: number;
+  rings: Array<{
+    y: number;
+    rotation: number;
+    rotationSpeed: number;
+    passed: boolean;
+    isDouble: boolean;
+    segments: Array<{ color: string; startAngle: number; endAngle: number }>;
+    starCollected?: boolean;
+    starX?: number;
+    starY?: number;
+  }>;
+  nextRingY: number;
+}
+
 export class Game {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private animationId: number | null = null;
   private lastTime: number = 0;
   private deltaTime: number = 0;
+  private saveTimer: number = 0;
 
   private physicsEngine: PhysicsEngine;
   private collisionDetector: CollisionDetector;
@@ -108,10 +127,11 @@ export class Game {
   private resetGame(): void {
     this.ball.reset();
     this.rings = [];
-    this.nextRingY = GAME_CONFIG.CANVAS_HEIGHT + 100;
+    this.nextRingY = -200;
     this.generateInitialRings();
     this.particleSystem = new ParticleSystem();
     this.audioManager = new AudioManager();
+    this.saveTimer = 0;
 
     this.state.score = 0;
     this.state.lives = CONFIG.INITIAL_LIVES;
@@ -126,7 +146,7 @@ export class Game {
   }
 
   private generateInitialRings(): void {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       this.generateRing();
     }
   }
@@ -157,6 +177,12 @@ export class Game {
     this.update();
     this.render();
 
+    this.saveTimer += this.deltaTime;
+    if (this.saveTimer >= 2000) {
+      this.saveTimer = 0;
+      this.saveGameSnapshot();
+    }
+
     this.animationId = requestAnimationFrame(this.gameLoop);
   };
 
@@ -175,9 +201,14 @@ export class Game {
 
     for (let i = this.rings.length - 1; i >= 0; i--) {
       const ring = this.rings[i];
-      this.physicsEngine.updateRing(ring, this.state.ringSpeed);
+      ring.y += this.state.ringSpeed;
+      ring.rotation += ring.rotationSpeed;
 
       if (ring.star && !ring.star.collected) {
+        ring.star.y = ring.y + Math.sin(Math.atan2(ring.star.y - ring.y, ring.star.x - GAME_CONFIG.CANVAS_WIDTH / 2)) * ring.radius;
+        ring.star.x = GAME_CONFIG.CANVAS_WIDTH / 2 + Math.cos(Math.atan2(ring.star.y - ring.y, ring.star.x - GAME_CONFIG.CANVAS_WIDTH / 2)) * ring.radius;
+        ring.star.rotation += 0.05;
+
         if (this.collisionDetector.checkStarCollision(this.ball, ring.star)) {
           ring.collectStar();
           this.state.starsCollected++;
@@ -190,7 +221,7 @@ export class Game {
         }
       }
 
-      if (this.collisionDetector.checkRingPassed(this.ball, ring)) {
+      if (!ring.passed && this.ball.y < ring.y - ring.radius && this.ball.y > ring.y - ring.radius - 50) {
         ring.passed = true;
         this.state.ringsPassed++;
         this.state.combo++;
@@ -218,25 +249,73 @@ export class Game {
         this.notifyStateChange();
       }
 
-      const collision = this.collisionDetector.checkRingCollision(this.ball, ring);
+      const collision = this.checkRingCollision(ring);
       if (collision.collided && !ring.passed) {
         if (!collision.colorMatch) {
           this.handleMiss(ring);
         }
       }
 
-      if (this.collisionDetector.isRingOffScreen(ring)) {
+      if (ring.y - ring.radius > GAME_CONFIG.CANVAS_HEIGHT + 100) {
         this.rings.splice(i, 1);
       }
     }
 
-    while (this.nextRingY < GAME_CONFIG.CANVAS_HEIGHT + 300) {
+    while (this.nextRingY < GAME_CONFIG.CANVAS_HEIGHT + 200) {
       this.generateRing();
     }
 
-    if (this.physicsEngine.checkBottomCollision(this.ball)) {
+    if (this.ball.y + this.ball.radius >= GAME_CONFIG.CANVAS_HEIGHT) {
       this.handleMiss(null);
     }
+
+    if (this.ball.y - this.ball.radius < 0) {
+      this.ball.y = this.ball.radius;
+      this.ball.vy = 0;
+    }
+  }
+
+  private checkRingCollision(ring: RingType): { collided: boolean; colorMatch: boolean } {
+    const ringCenterX = GAME_CONFIG.CANVAS_WIDTH / 2;
+    const ringCenterY = ring.y;
+
+    const dx = this.ball.x - ringCenterX;
+    const dy = this.ball.y - ringCenterY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    const innerRadius = ring.radius - ring.thickness / 2;
+    const outerRadius = ring.radius + ring.thickness / 2;
+
+    const isInRingArea = distance >= innerRadius - this.ball.radius && distance <= outerRadius + this.ball.radius;
+
+    if (!isInRingArea) {
+      return { collided: false, colorMatch: false };
+    }
+
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) angle += Math.PI * 2;
+
+    angle = (angle + ring.rotation) % (Math.PI * 2);
+    if (angle < 0) angle += Math.PI * 2;
+
+    for (const segment of ring.segments) {
+      const adjustedStart = segment.startAngle % (Math.PI * 2);
+      const adjustedEnd = segment.endAngle % (Math.PI * 2);
+
+      let isInSegment = false;
+      if (adjustedStart < adjustedEnd) {
+        isInSegment = angle >= adjustedStart && angle <= adjustedEnd;
+      } else {
+        isInSegment = angle >= adjustedStart || angle <= adjustedEnd;
+      }
+
+      if (isInSegment) {
+        const colorMatch = segment.color === this.ball.color;
+        return { collided: true, colorMatch };
+      }
+    }
+
+    return { collided: false, colorMatch: false };
   }
 
   private handleMiss(ring: RingType | null): void {
@@ -248,13 +327,8 @@ export class Game {
     if (this.state.lives <= 0) {
       this.gameOver();
     } else {
-      if (ring) {
-        this.ball.y = ring.y + ring.radius + 50;
-        this.ball.vy = 0;
-      } else {
-        this.ball.y = GAME_CONFIG.BALL_START_Y;
-        this.ball.vy = 0;
-      }
+      this.ball.y = ring ? ring.y + ring.radius + 50 : GAME_CONFIG.BALL_START_Y;
+      this.ball.vy = 0;
     }
 
     this.notifyStateChange();
@@ -274,6 +348,7 @@ export class Game {
     }
 
     this.saveManager.save(this.state);
+    this.clearGameSnapshot();
 
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
@@ -324,9 +399,97 @@ export class Game {
     ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
   }
 
+  private saveGameSnapshot(): void {
+    const snapshot: GameSnapshot = {
+      ballY: this.ball.y,
+      ballVy: this.ball.vy,
+      ballColorIndex: this.ball.colorIndex,
+      rings: this.rings.map(ring => ({
+        y: ring.y,
+        rotation: ring.rotation,
+        rotationSpeed: ring.rotationSpeed,
+        passed: ring.passed,
+        isDouble: ring.isDouble,
+        segments: ring.segments.map(s => ({ ...s })),
+        starCollected: ring.star?.collected,
+        starX: ring.star?.x,
+        starY: ring.star?.y,
+      })),
+      nextRingY: this.nextRingY,
+    };
+    localStorage.setItem('color-switch-snapshot', JSON.stringify({
+      state: this.state,
+      snapshot,
+      timestamp: Date.now(),
+    }));
+  }
+
+  private clearGameSnapshot(): void {
+    localStorage.removeItem('color-switch-snapshot');
+  }
+
+  loadGameSnapshot(): boolean {
+    const data = localStorage.getItem('color-switch-snapshot');
+    if (!data) return false;
+
+    try {
+      const { state, snapshot, timestamp } = JSON.parse(data);
+      
+      if (Date.now() - timestamp > 3600000) {
+        this.clearGameSnapshot();
+        return false;
+      }
+
+      this.state = { ...state, status: 'playing' };
+      this.skinManager.loadState(this.state.selectedSkin, this.state.unlockedSkins);
+      this.physicsEngine.setGravity(this.state.gravity);
+
+      this.ball.y = snapshot.ballY;
+      this.ball.vy = snapshot.ballVy;
+      this.ball.colorIndex = snapshot.ballColorIndex;
+      this.ball.color = COLORS[snapshot.ballColorIndex];
+
+      this.rings = snapshot.rings.map((r: any) => {
+        const ring = new Ring(r.y, r.isDouble, 0);
+        ring.rotation = r.rotation;
+        ring.rotationSpeed = r.rotationSpeed;
+        ring.passed = r.passed;
+        ring.segments = r.segments;
+        if (r.starX !== undefined && r.starY !== undefined) {
+          ring.star = {
+            x: r.starX,
+            y: r.starY,
+            collected: r.starCollected || false,
+            rotation: 0,
+            particles: [],
+            render: function() {},
+          };
+        } else {
+          ring.star = undefined;
+        }
+        return ring;
+      });
+
+      this.nextRingY = snapshot.nextRingY;
+      this.ball.trail = [];
+
+      this.state.status = 'playing';
+      this.notifyStateChange();
+      this.lastTime = performance.now();
+      this.gameLoop();
+
+      return true;
+    } catch (e) {
+      console.error('Failed to load snapshot:', e);
+      this.clearGameSnapshot();
+      return false;
+    }
+  }
+
   pause(): void {
     if (this.state.status === 'playing') {
       this.state.status = 'paused';
+      this.saveGameSnapshot();
       if (this.animationId) {
         cancelAnimationFrame(this.animationId);
         this.animationId = null;
@@ -351,6 +514,7 @@ export class Game {
     }
     this.state.status = 'menu';
     this.saveManager.save(this.state);
+    this.clearGameSnapshot();
     this.notifyStateChange();
   }
 
