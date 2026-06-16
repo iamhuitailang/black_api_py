@@ -36,6 +36,7 @@ let animationState = {
     particles: [],
     lastMoveTime: 0,
     moveDirection: null,
+    facingDirection: 'down',
     shakeTime: 0
 };
 
@@ -426,10 +427,11 @@ function movePlayer(col, row) {
     
     const pc = gameState.player.col;
     const pr = gameState.player.row;
-    if (col < pc) animationState.moveDirection = 'left';
-    else if (col > pc) animationState.moveDirection = 'right';
-    else if (row < pr) animationState.moveDirection = 'up';
-    else animationState.moveDirection = 'down';
+    if (col < pc) animationState.facingDirection = 'left';
+    else if (col > pc) animationState.facingDirection = 'right';
+    else if (row < pr) animationState.facingDirection = 'up';
+    else animationState.facingDirection = 'down';
+    animationState.moveDirection = animationState.facingDirection;
     animationState.lastMoveTime = Date.now();
     
     gameState.player.col = col;
@@ -519,6 +521,7 @@ function mineBlock(col, row) {
     else if (row < pr) dir = 'up';
     
     triggerMiningAnimation(dir);
+    animationState.facingDirection = dir;
     spawnParticles(col, row, getBlockTypeById(block.type).color);
     animationState.shakeTime = Date.now();
     
@@ -1061,9 +1064,11 @@ function drawPlayer(x, y) {
     const footOffset = timeSinceMove < 200 ? Math.sin((timeSinceMove / 200) * Math.PI * 2) * 2 : 0;
     
     const bodyY = y + walkBob;
+    const facing = animationState.facingDirection;
     
     let swingAngle = 0;
     let swingProgress = 0;
+    const activeDir = animationState.miningDirection || facing;
     if (animationState.miningDirection) {
         const elapsed = now - animationState.miningStartTime;
         if (elapsed < animationState.miningDuration) {
@@ -1075,6 +1080,14 @@ function drawPlayer(x, y) {
     }
     
     const eyeBlink = Math.sin(now / 3000) > 0.95 ? 0 : 1;
+    const facingLeft = facing === 'left';
+    
+    ctx.save();
+    if (facingLeft) {
+        ctx.translate(x + BLOCK_SIZE, 0);
+        ctx.scale(-1, 1);
+        x = 0;
+    }
     
     ctx.fillStyle = '#4169E1';
     ctx.fillRect(x + 10, bodyY + 16, 20, 18);
@@ -1107,20 +1120,17 @@ function drawPlayer(x, y) {
     else if (pickaxe === 'STEEL') headColor = '#708090';
     else if (pickaxe === 'DIAMOND') headColor = '#00CED1';
     
-    ctx.save();
-    let pivotX = x + 24;
-    let pivotY = bodyY + 22;
-    let dirX = 1, dirY = 0;
+    let pivotX, pivotY, dirX, dirY;
     
-    if (animationState.miningDirection === 'up') {
+    if (activeDir === 'up') {
         pivotX = x + 20;
         pivotY = bodyY + 14;
         dirX = 0; dirY = -1;
-    } else if (animationState.miningDirection === 'down') {
+    } else if (activeDir === 'down') {
         pivotX = x + 20;
         pivotY = bodyY + 30;
         dirX = 0; dirY = 1;
-    } else if (animationState.miningDirection === 'left') {
+    } else if (activeDir === 'left') {
         pivotX = x + 12;
         pivotY = bodyY + 22;
         dirX = -1; dirY = 0;
@@ -1132,7 +1142,7 @@ function drawPlayer(x, y) {
     
     ctx.translate(pivotX, pivotY);
     const baseAngle = Math.atan2(dirY, dirX);
-    ctx.rotate(baseAngle + swingAngle * (animationState.miningDirection === 'left' ? -1 : 1));
+    ctx.rotate(baseAngle + swingAngle);
     
     const handleLen = 16;
     ctx.fillStyle = handleColor;
