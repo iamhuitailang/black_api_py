@@ -83,6 +83,7 @@ export function createGameState() {
   function addMoney(amount) {
     state.money += amount
     state.sessionScore += amount
+    saveToStorage()
   }
 
   function addCollected(debrisType) {
@@ -97,6 +98,7 @@ export function createGameState() {
       time: Date.now()
     }
     state.collectionLog = addCollectionLog(logEntry, state)
+    saveToStorage()
   }
 
   function selectZone(systemId, zoneId) {

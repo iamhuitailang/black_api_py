@@ -90,6 +90,11 @@ export class Ship {
     
     this.applyGravity(planets, gravityCoeff)
     
+    if (GAME_CONFIG.SHIP.drag) {
+      this.vx *= GAME_CONFIG.SHIP.drag
+      this.vy *= GAME_CONFIG.SHIP.drag
+    }
+    
     this.x += this.vx
     this.y += this.vy
   }

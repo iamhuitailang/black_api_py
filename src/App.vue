@@ -149,7 +149,7 @@ function startStatsLoop() {
     updateStats()
     
     const now = Date.now()
-    if (now - lastSaveTime > 5000) {
+    if (now - lastSaveTime > 2000) {
       gameState.saveToStorage()
       lastSaveTime = now
     }
@@ -252,9 +252,15 @@ watch(() => gameState.state.isGameOver, (newVal) => {
   }
 })
 
+function handleBeforeUnload() {
+  gameState.saveToStorage()
+}
+
 onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('pagehide', handleBeforeUnload)
   
   setTimeout(() => {
     initGame()
@@ -263,6 +269,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('pagehide', handleBeforeUnload)
   if (animationFrame) {
     cancelAnimationFrame(animationFrame)
   }

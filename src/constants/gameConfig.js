@@ -1,14 +1,15 @@
 export const GAME_CONFIG = {
   SHIP: {
-    baseMaxSpeed: 6,
-    acceleration: 0.3,
-    rotationSpeed: 0.08,
+    baseMaxSpeed: 5,
+    acceleration: 0.15,
+    rotationSpeed: 0.045,
     baseFuelMax: 100,
-    fuelConsumptionIdle: 0.1,
-    fuelConsumptionThrust: 0.3,
+    fuelConsumptionIdle: 0.05,
+    fuelConsumptionThrust: 0.15,
     baseHp: 100,
     basePickRadius: 20,
-    size: 15
+    size: 15,
+    drag: 0.995
   },
   GRAVITY: {
     coefficient: 500
