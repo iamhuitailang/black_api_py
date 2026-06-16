@@ -590,58 +590,110 @@ class FactoryGame {
         this.items.push(item);
     }
     
-    getAllAdjacentConveyors(x, y, excludeDir = null) {
-        const results = [];
-        const dirs = {
-            right: { dx: 1, dy: 0, entryFrom: 'left' },
-            left: { dx: -1, dy: 0, entryFrom: 'right' },
-            up: { dx: 0, dy: -1, entryFrom: 'down' },
-            down: { dx: 0, dy: 1, entryFrom: 'up' }
-        };
-        for (const [name, dir] of Object.entries(dirs)) {
-            if (excludeDir && name === excludeDir) continue;
-            const nx = x + dir.dx, ny = y + dir.dy;
-            if (nx >= 0 && nx < GRID_COLS && ny >= 0 && ny < GRID_ROWS) {
-                const cell = this.grid[ny][nx];
-                if (cell && cell.type === 'conveyor') {
-                    results.push({ conveyor: cell, direction: name, entryFrom: dir.entryFrom });
-                }
-            }
-        }
-        return results;
-    }
-    
-    getSplitTargets(conveyor) {
+    getAllDeliveryTargets(conveyor) {
         const dirMap = {
             right: { dx: 1, dy: 0 },
             left: { dx: -1, dy: 0 },
             up: { dx: 0, dy: -1 },
             down: { dx: 0, dy: 1 }
         };
-        const [fdx, fdy] = dirMap[conveyor.direction] || [1, 0];
-        const fx = conveyor.x + fdx, fy = conveyor.y + fdy;
+        const backDir = { right: 'left', left: 'right', up: 'down', down: 'up' };
+        const forwardDir = conveyor.direction;
+        const x = conveyor.x, y = conveyor.y;
         
         const targets = [];
-        if (fx >= 0 && fx < GRID_COLS && fy >= 0 && fy < GRID_ROWS) {
-            const forward = this.grid[fy][fx];
-            if (forward) {
-                if (forward.type === 'conveyor') targets.push({ type: 'conveyor', obj: forward });
-                else if (forward.type === 'warehouse') targets.push({ type: 'warehouse', obj: forward });
-                else if (forward.type === 'assembler') targets.push({ type: 'assembler', obj: forward });
+        
+        const testCell = (nx, ny, sideDir) => {
+            if (nx < 0 || nx >= GRID_COLS || ny < 0 || ny >= GRID_ROWS) return null;
+            const cell = this.grid[ny][nx];
+            if (!cell) return null;
+            if (cell.type === 'conveyor') {
+                return { type: 'conveyor', obj: cell, sideDir };
             }
+            if (cell.type === 'warehouse') {
+                return { type: 'warehouse', obj: cell, sideDir };
+            }
+            if (cell.type === 'assembler') {
+                return { type: 'assembler', obj: cell, sideDir };
+            }
+            return null;
+        };
+        
+        const fd = dirMap[forwardDir];
+        const forwardTarget = testCell(x + fd.dx, y + fd.dy, 'forward');
+        if (forwardTarget) {
+            forwardTarget.isForward = true;
+            targets.push(forwardTarget);
         }
         
-        const adjacent = this.getAllAdjacentConveyors(conveyor.x, conveyor.y);
-        for (const adj of adjacent) {
-            if (adj.direction === conveyor.direction) continue;
-            const backDirs = { right: 'left', left: 'right', up: 'down', down: 'up' };
-            if (adj.direction === backDirs[conveyor.direction]) continue;
-            if (!targets.find(t => t.type === 'conveyor' && t.obj.id === adj.conveyor.id)) {
-                targets.push({ type: 'conveyor', obj: adj.conveyor, isSplit: true, splitDir: adj.direction });
+        const sideNames = ['left', 'right', 'up', 'down'].filter(d => d !== forwardDir && d !== backDir[forwardDir]);
+        for (const sName of sideNames) {
+            const sd = dirMap[sName];
+            const sideTarget = testCell(x + sd.dx, y + sd.dy, sName);
+            if (sideTarget) {
+                sideTarget.isSplit = true;
+                sideTarget.splitDir = sName;
+                targets.push(sideTarget);
             }
         }
         
         return targets;
+    }
+    
+    canDeliverTo(target, item) {
+        const maxCapacity = this.getConveyorCapacity();
+        if (target.type === 'conveyor') {
+            return target.obj.items.length < maxCapacity;
+        }
+        if (target.type === 'warehouse') {
+            return this.getTotalStorage() < this.getWarehouseCapacity();
+        }
+        if (target.type === 'assembler') {
+            const recipe = RECIPES[target.obj.recipe];
+            if (!recipe || !recipe.inputs[item.resource]) return false;
+            const required = recipe.inputs[item.resource];
+            return (target.obj.buffer[item.resource] || 0) < required * 4;
+        }
+        return false;
+    }
+    
+    deliverItem(target, item, itemId, conveyor) {
+        const maxCapacity = this.getConveyorCapacity();
+        if (target.type === 'warehouse') {
+            if (this.getTotalStorage() < this.getWarehouseCapacity()) {
+                this.resources[item.resource]++;
+                this.totalOutputValue += PRODUCT_PRICES[item.resource] || 0;
+                const idx = this.items.findIndex(it => it.id === itemId);
+                if (idx >= 0) this.items.splice(idx, 1);
+                return true;
+            }
+            return false;
+        }
+        if (target.type === 'assembler') {
+            const recipe = RECIPES[target.obj.recipe];
+            if (!recipe || !recipe.inputs[item.resource]) return false;
+            const required = recipe.inputs[item.resource];
+            if ((target.obj.buffer[item.resource] || 0) < required * 4) {
+                target.obj.buffer[item.resource]++;
+                const idx = this.items.findIndex(it => it.id === itemId);
+                if (idx >= 0) this.items.splice(idx, 1);
+                return true;
+            }
+            return false;
+        }
+        if (target.type === 'conveyor') {
+            if (target.obj.items.length < maxCapacity) {
+                target.obj.items.unshift(itemId);
+                const itm = this.items.find(it => it.id === itemId);
+                if (itm) {
+                    itm.currentConveyor = target.obj.id;
+                    itm.progress = 0;
+                }
+                return true;
+            }
+            return false;
+        }
+        return false;
     }
     
     tickConveyors() {
@@ -651,16 +703,17 @@ class FactoryGame {
             const conveyor = this.conveyors[i];
             if (conveyor.items.length === 0) {
                 conveyor.isStuck = false;
+                conveyor._noTargets = false;
                 continue;
             }
             
-            const targets = this.getSplitTargets(conveyor);
-            const forwardTargets = targets.filter(t => !t.isSplit);
-            const splitTargets = targets.filter(t => t.isSplit);
+            const allTargets = this.getAllDeliveryTargets(conveyor);
+            const forwardTargets = allTargets.filter(t => t.isForward);
+            const splitTargets = allTargets.filter(t => t.isSplit);
             
-            const hasWarehouseForward = forwardTargets.some(t => t.type === 'warehouse');
-            const hasAssemblerForward = forwardTargets.some(t => t.type === 'assembler');
-            const hasConveyorForward = forwardTargets.some(t => t.type === 'conveyor');
+            conveyor._noTargets = allTargets.length === 0;
+            conveyor._hasSplit = splitTargets.length > 0;
+            if (splitTargets.length > 0) conveyor._splitInfo = splitTargets.map(t => t.splitDir);
             
             let anyMoved = false;
             
@@ -674,104 +727,62 @@ class FactoryGame {
                 
                 let delivered = false;
                 
-                if (hasWarehouseForward) {
-                    const warehouseTarget = forwardTargets.find(t => t.type === 'warehouse');
-                    if (warehouseTarget && this.getTotalStorage() < this.getWarehouseCapacity()) {
-                        this.resources[item.resource]++;
-                        this.totalOutputValue += PRODUCT_PRICES[item.resource] || 0;
+                const availableForward = forwardTargets.filter(t => this.canDeliverTo(t, item));
+                const availableSplit = splitTargets.filter(t => this.canDeliverTo(t, item));
+                const allAvailable = [...availableForward, ...availableSplit];
+                
+                if (allAvailable.length === 0) break;
+                
+                if (availableForward.length > 0) {
+                    const target = availableForward[0];
+                    if (this.deliverItem(target, item, itemId, conveyor)) {
                         conveyor.items.pop();
-                        const idx = this.items.findIndex(it => it.id === itemId);
-                        if (idx >= 0) this.items.splice(idx, 1);
-                        delivered = true;
-                        anyMoved = true;
-                        continue;
-                    } else {
-                        break;
-                    }
-                }
-                
-                if (hasAssemblerForward) {
-                    const asmTarget = forwardTargets.find(t => t.type === 'assembler');
-                    if (asmTarget) {
-                        const recipe = RECIPES[asmTarget.obj.recipe];
-                        if (recipe && recipe.inputs[item.resource] !== undefined) {
-                            if (asmTarget.obj.buffer[item.resource] < recipe.inputs[item.resource] * 3) {
-                                asmTarget.obj.buffer[item.resource]++;
-                                conveyor.items.pop();
-                                const idx = this.items.findIndex(it => it.id === itemId);
-                                if (idx >= 0) this.items.splice(idx, 1);
-                                delivered = true;
-                                anyMoved = true;
-                                continue;
-                            }
-                        }
-                        if (!delivered) break;
-                    }
-                }
-                
-                if (hasConveyorForward) {
-                    const convTarget = forwardTargets.find(t => t.type === 'conveyor');
-                    if (convTarget && convTarget.obj.items.length < maxCapacity) {
-                        const movedId = conveyor.items.pop();
-                        convTarget.obj.items.unshift(movedId);
-                        const itm = this.items.find(it => it.id === movedId);
-                        if (itm) {
-                            itm.currentConveyor = convTarget.obj.id;
-                            itm.progress = 0;
-                        }
                         delivered = true;
                         anyMoved = true;
                         continue;
                     }
                 }
                 
-                if (splitTargets.length > 0) {
-                    const availableSplits = splitTargets.filter(t => t.obj.items.length < maxCapacity);
-                    if (availableSplits.length > 0) {
-                        conveyor._splitCounter = (conveyor._splitCounter || 0) + 1;
-                        const splitTarget = availableSplits[conveyor._splitCounter % availableSplits.length];
-                        const movedId = conveyor.items.pop();
-                        splitTarget.obj.items.unshift(movedId);
-                        const itm = this.items.find(it => it.id === movedId);
-                        if (itm) {
-                            itm.currentConveyor = splitTarget.obj.id;
-                            itm.progress = 0;
-                        }
+                if (!delivered && availableSplit.length > 0) {
+                    conveyor._splitCounter = (conveyor._splitCounter || 0) + 1;
+                    const chosen = availableSplit[conveyor._splitCounter % availableSplit.length];
+                    if (this.deliverItem(chosen, item, itemId, conveyor)) {
+                        conveyor.items.pop();
                         delivered = true;
                         anyMoved = true;
                         continue;
                     }
                 }
                 
-                break;
+                if (!delivered) break;
             }
             
             if (!anyMoved && conveyor.items.length > 0) {
                 conveyor.stuckCounter = (conveyor.stuckCounter || 0) + 1;
-                if (conveyor.stuckCounter >= 3) {
+                if (conveyor.stuckCounter >= 5 && (conveyor._noTargets || allTargets.every(t => !this.canDeliverTo(t, { resource: 'iron_ore' })))) {
                     if (!this.stuckConveyors.has(conveyor.id)) {
                         this.stuckConveyors.add(conveyor.id);
                     }
                     conveyor.isStuck = true;
+                    conveyor.isTerminalStuck = conveyor._noTargets;
                 }
             } else {
                 conveyor.stuckCounter = 0;
                 conveyor.isStuck = false;
+                conveyor.isTerminalStuck = false;
                 this.stuckConveyors.delete(conveyor.id);
             }
         }
     }
     
     checkStuckConveyors() {
-        if (this.stuckConveyors.size > 0 && !this.hasShownStuckWarning) {
-            const firstStuckId = Array.from(this.stuckConveyors)[0];
-            const stuckConv = this.conveyors.find(c => c.id === firstStuckId);
-            if (stuckConv) {
-                this.showToast(`⚠️ 传送带(${stuckConv.x},${stuckConv.y})末端堵塞！请连接仓库或加工台`, 'warning');
-                this.hasShownStuckWarning = true;
-            }
+        const terminalStuck = this.conveyors.filter(c => c.isStuck && c._noTargets);
+        if (terminalStuck.length > 0 && !this.hasShownStuckWarning) {
+            const first = terminalStuck[0];
+            this.showToast(`⚠️ 传送带(${first.x},${first.y})末端悬空！请连接仓库/加工台/另一条传送带`, 'warning');
+            this.hasShownStuckWarning = true;
         }
-        if (this.stuckConveyors.size === 0) {
+        if (terminalStuck.length === 0) {
             this.hasShownStuckWarning = false;
         }
     }
@@ -869,7 +880,7 @@ class FactoryGame {
             this.drawConveyorPathPreview();
         }
         
-        if (this.mouseGridX >= 0 && this.mouseGridY < GRID_COLS && 
+        if (this.mouseGridX >= 0 && this.mouseGridX < GRID_COLS && 
             this.mouseGridY >= 0 && this.mouseGridY < GRID_ROWS &&
             this.currentTool !== 'select' && this.currentTool !== 'conveyor') {
             this.drawHoverPreview();
@@ -903,12 +914,90 @@ class FactoryGame {
     
     drawHoverPreview() {
         const ctx = this.ctx;
-        const x = this.mouseGridX * CELL_SIZE;
-        const y = this.mouseGridY * CELL_SIZE;
-        const cell = this.grid[this.mouseGridY][this.mouseGridX];
+        const gx = this.mouseGridX;
+        const gy = this.mouseGridY;
+        const x = gx * CELL_SIZE;
+        const y = gy * CELL_SIZE;
+        const cell = this.grid[gy][gx];
         
-        ctx.fillStyle = cell ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
+        ctx.save();
+        ctx.globalAlpha = 0.65;
+        
+        if (cell) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+            ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+            ctx.restore();
+            return;
+        }
+        
+        const tool = this.currentTool;
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.25)';
         ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+        
+        ctx.globalAlpha = 0.9;
+        
+        if (tool.startsWith('miner_')) {
+            const resColors = {
+                miner_iron: ['#6b7280', '#9ca3af'],
+                miner_copper: ['#92400e', '#cd7f32'],
+                miner_coal: ['#1f2937', '#374151']
+            };
+            const resIcons = { miner_iron: '🪨', miner_copper: '🟠', miner_coal: '⬛' };
+            const [c1, c2] = resColors[tool] || resColors.miner_iron;
+            const grad = ctx.createLinearGradient(x, y, x, y + CELL_SIZE);
+            grad.addColorStop(0, c2); grad.addColorStop(1, c1);
+            ctx.fillStyle = grad;
+            ctx.fillRect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12);
+            ctx.strokeStyle = c2; ctx.lineWidth = 3;
+            ctx.strokeRect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12);
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(x + CELL_SIZE / 2, y + CELL_SIZE / 2, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = c2; ctx.font = 'bold 20px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(resIcons[tool] || '⛏️', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+        } else if (tool.startsWith('assembler_')) {
+            const recipeColors = {
+                assembler_gear: ['#1e40af', '#3b82f6'],
+                assembler_circuit: ['#065f46', '#10b981'],
+                assembler_steel: ['#374151', '#6b7280']
+            };
+            const recipeIcons = { assembler_gear: '⚙️', assembler_circuit: '🔌', assembler_steel: '🔩' };
+            const [c1, c2] = recipeColors[tool] || recipeColors.assembler_gear;
+            ctx.fillStyle = '#1f2937';
+            ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+            const grad = ctx.createLinearGradient(x + 10, y + 10, x + CELL_SIZE - 10, y + CELL_SIZE - 10);
+            grad.addColorStop(0, c2); grad.addColorStop(1, c1);
+            ctx.fillStyle = grad;
+            ctx.fillRect(x + 10, y + 10, CELL_SIZE - 20, CELL_SIZE - 20);
+            ctx.strokeStyle = c2; ctx.lineWidth = 2;
+            ctx.strokeRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+            ctx.strokeRect(x + 10, y + 10, CELL_SIZE - 20, CELL_SIZE - 20);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 18px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(recipeIcons[tool] || '🔧', x + CELL_SIZE / 2, y + CELL_SIZE / 2 - 5);
+        } else if (tool === 'warehouse') {
+            const grad = ctx.createLinearGradient(x, y, x, y + CELL_SIZE);
+            grad.addColorStop(0, '#7c3aed'); grad.addColorStop(1, '#5b21b6');
+            ctx.fillStyle = grad;
+            ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+            ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 3;
+            ctx.strokeRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+            ctx.fillStyle = '#c084fc';
+            ctx.fillRect(x + 12, y + 12, CELL_SIZE - 24, CELL_SIZE - 24);
+            ctx.fillStyle = '#5b21b6'; ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('📦', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+        }
+        
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+        ctx.setLineDash([]);
+        
+        ctx.restore();
     }
     
     drawConveyorPathPreview() {
@@ -928,19 +1017,23 @@ class FactoryGame {
     
     drawConveyors() {
         const ctx = this.ctx;
+        const dirMapSplit = {
+            right: [1, 0], left: [-1, 0], up: [0, -1], down: [0, 1]
+        };
         
         for (const conveyor of this.conveyors) {
             const x = conveyor.x * CELL_SIZE;
             const y = conveyor.y * CELL_SIZE;
             
-            let isStuck = conveyor.isStuck;
-            let hasSplit = this.getSplitTargets(conveyor).some(t => t.isSplit);
+            let isStuck = conveyor.isStuck && conveyor._noTargets;
+            let hasSplit = conveyor._hasSplit;
+            let splitDirs = conveyor._splitInfo || [];
             
             if (isStuck) {
-                const blink = Math.sin(performance.now() / 150) * 0.5 + 0.5;
+                const blink = Math.sin(performance.now() / 120) * 0.5 + 0.5;
                 const g1 = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
-                g1.addColorStop(0, `rgba(239, 68, 68, ${0.5 + blink * 0.3})`);
-                g1.addColorStop(1, `rgba(185, 28, 28, ${0.4 + blink * 0.3})`);
+                g1.addColorStop(0, `rgba(239, 68, 68, ${0.55 + blink * 0.35})`);
+                g1.addColorStop(1, `rgba(185, 28, 28, ${0.45 + blink * 0.35})`);
                 ctx.fillStyle = g1;
             } else if (hasSplit) {
                 const g1 = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
@@ -957,9 +1050,9 @@ class FactoryGame {
             
             if (isStuck) {
                 ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 3.5;
                 ctx.shadowColor = '#ef4444';
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 14;
             } else if (hasSplit) {
                 ctx.strokeStyle = '#a855f7';
                 ctx.lineWidth = 2.5;
@@ -971,20 +1064,34 @@ class FactoryGame {
             ctx.shadowBlur = 0;
             
             if (hasSplit && !isStuck) {
-                const splits = this.getSplitTargets(conveyor).filter(t => t.isSplit);
-                for (const split of splits) {
-                    const dirMap = {
-                        right: [1, 0], left: [-1, 0], up: [0, -1], down: [0, 1]
-                    };
-                    const [dx, dy] = dirMap[split.splitDir] || [0, 0];
-                    ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([4, 4]);
+                for (const sDir of splitDirs) {
+                    const [dx, dy] = dirMapSplit[sDir] || [0, 0];
+                    if (dx === 0 && dy === 0) continue;
+                    ctx.strokeStyle = 'rgba(168, 85, 247, 0.75)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([6, 4]);
                     ctx.beginPath();
                     ctx.moveTo(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
-                    ctx.lineTo(x + CELL_SIZE / 2 + dx * 30, y + CELL_SIZE / 2 + dy * 30);
+                    ctx.lineTo(x + CELL_SIZE / 2 + dx * 32, y + CELL_SIZE / 2 + dy * 32);
                     ctx.stroke();
                     ctx.setLineDash([]);
+                    
+                    ctx.fillStyle = '#a855f7';
+                    ctx.beginPath();
+                    const ah = 6;
+                    const endX = x + CELL_SIZE / 2 + dx * 32;
+                    const endY = y + CELL_SIZE / 2 + dy * 32;
+                    if (dx !== 0) {
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(endX - ah * dx, endY - ah);
+                        ctx.lineTo(endX - ah * dx, endY + ah);
+                    } else {
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(endX - ah, endY - ah * dy);
+                        ctx.lineTo(endX + ah, endY - ah * dy);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
                 }
             }
             
@@ -994,26 +1101,29 @@ class FactoryGame {
             const rotations = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
             ctx.rotate(rotations[conveyor.direction] || 0);
             
-            const arrowColor = isStuck ? '#fca5a5' : (hasSplit ? '#c084fc' : '#5a7a9a');
+            const arrowColor = isStuck ? '#fecaca' : (hasSplit ? '#c084fc' : '#5a7a9a');
             ctx.fillStyle = arrowColor;
             ctx.beginPath();
-            ctx.moveTo(15, -8);
-            ctx.lineTo(25, 0);
-            ctx.lineTo(15, 8);
+            ctx.moveTo(14, -10);
+            ctx.lineTo(28, 0);
+            ctx.lineTo(14, 10);
             ctx.closePath();
             ctx.fill();
             
-            ctx.fillStyle = `rgba(${isStuck ? '252, 165, 165' : (hasSplit ? '192, 132, 252' : '90, 122, 154')}, 0.5)`;
-            ctx.fillRect(-20, -2, 30, 4);
+            ctx.fillStyle = `rgba(${isStuck ? '254, 202, 202' : (hasSplit ? '192, 132, 252' : '90, 122, 154')}, 0.55)`;
+            ctx.fillRect(-22, -3, 36, 6);
             
             ctx.restore();
             
             if (isStuck) {
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px sans-serif';
+                ctx.font = 'bold 18px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('⚠', x + CELL_SIZE - 18, y + 18);
+                ctx.fillText('⚠', x + CELL_SIZE - 17, y + 18);
+                ctx.fillStyle = '#fca5a5';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.fillText('末端悬空', x + CELL_SIZE - 18, y + 34);
             }
             
             if (hasSplit && !isStuck) {
@@ -1022,6 +1132,13 @@ class FactoryGame {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText('◇分流', x + CELL_SIZE - 22, y + 16);
+            }
+            
+            if (conveyor.items.length > 0) {
+                ctx.fillStyle = conveyor.items.length >= this.getConveyorCapacity() ? '#f59e0b' : 'rgba(255,255,255,0.55)';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${conveyor.items.length}/${this.getConveyorCapacity()}`, x + 6, y + CELL_SIZE - 6);
             }
         }
     }
@@ -1495,9 +1612,12 @@ class FactoryGame {
         
         if (cell.type === 'conveyor') {
             const dirNames = { right: '右→', left: '←左', up: '↑上', down: '下↓' };
-            const stuck = cell.isStuck ? ' ⚠️堵塞' : '';
-            const split = this.getSplitTargets(cell).some(t => t.isSplit) ? ' 🟣分流' : '';
-            info.textContent = ` | 位置: (${x}, ${y}) - 传送带 (${dirNames[cell.direction] || cell.direction}) 物品:${cell.items.length}${stuck}${split}`;
+            let flags = '';
+            if (cell.isStuck && cell._noTargets) flags += ' 🔴末端悬空';
+            else if (cell.items.length >= this.getConveyorCapacity()) flags += ' 🟡已满';
+            if (cell._hasSplit) flags += ` 🟣分流(${cell._splitInfo?.join('/') || ''})`;
+            if (cell._noTargets && !cell.isStuck) flags += ' ⚪无目标';
+            info.textContent = ` | 位置: (${x}, ${y}) - 传送带 (${dirNames[cell.direction] || cell.direction}) 物品:${cell.items.length}/${this.getConveyorCapacity()}${flags}`;
         } else if (cell.type === 'miner') {
             const resNames = { iron_ore: '铁矿', copper_ore: '铜矿', coal: '煤矿' };
             const status = cell.statusMsg ? ` [${cell.statusMsg}]` : ' [正常]';
