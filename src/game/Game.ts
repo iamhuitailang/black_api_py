@@ -1,10 +1,9 @@
-import type { GameState, Ring as RingType, GameStatus } from './types';
-import { GAME_CONFIG, GAME_CONFIG as CONFIG, COLORS } from './config';
-import { PhysicsEngine } from './engine/PhysicsEngine';
-import { CollisionDetector } from './engine/CollisionDetector';
+import type { GameState, Ring as RingType } from './types';
+import { GAME_CONFIG as CONFIG, COLORS } from './config';
 import { ParticleSystem } from './engine/ParticleSystem';
 import { Ball } from './entities/Ball';
 import { Ring } from './entities/Ring';
+import { Star } from './entities/Star';
 import { SkinManager } from './entities/SkinManager';
 import { AudioManager } from './audio/AudioManager';
 import { SaveManager } from './storage/SaveManager';
@@ -13,6 +12,8 @@ interface GameSnapshot {
   ballY: number;
   ballVy: number;
   ballColorIndex: number;
+  ballColorTimer: number;
+  ballTrail: Array<{ x: number; y: number; alpha: number; color: string }>;
   rings: Array<{
     y: number;
     rotation: number;
@@ -20,11 +21,11 @@ interface GameSnapshot {
     passed: boolean;
     isDouble: boolean;
     segments: Array<{ color: string; startAngle: number; endAngle: number }>;
-    starCollected?: boolean;
-    starX?: number;
-    starY?: number;
+    starCollected: boolean;
+    starAngle: number;
   }>;
-  nextRingY: number;
+  distanceSinceLastRing: number;
+  currentSpacing: number;
 }
 
 export class Game {
@@ -35,8 +36,6 @@ export class Game {
   private deltaTime: number = 0;
   private saveTimer: number = 0;
 
-  private physicsEngine: PhysicsEngine;
-  private collisionDetector: CollisionDetector;
   private particleSystem: ParticleSystem;
   private audioManager: AudioManager;
   private saveManager: SaveManager;
@@ -44,18 +43,21 @@ export class Game {
 
   private ball: Ball;
   private rings: RingType[] = [];
-  private nextRingY: number = 0;
+  private distanceSinceLastRing: number = 0;
+  private currentSpacing: number = 0;
 
   private state: GameState;
   private onStateChange?: (state: GameState) => void;
+
+  private gravity: number = CONFIG.GRAVITY;
+  private baseGravity: number = CONFIG.GRAVITY;
+  private ringSpeed: number = CONFIG.RING_SPEED;
 
   constructor(canvas: HTMLCanvasElement, onStateChange?: (state: GameState) => void) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
     this.onStateChange = onStateChange;
 
-    this.physicsEngine = new PhysicsEngine();
-    this.collisionDetector = new CollisionDetector();
     this.particleSystem = new ParticleSystem();
     this.audioManager = new AudioManager();
     this.saveManager = new SaveManager();
@@ -84,7 +86,8 @@ export class Game {
     };
 
     this.skinManager.loadState(this.state.selectedSkin, this.state.unlockedSkins);
-    this.physicsEngine.setGravity(this.state.gravity);
+    this.gravity = this.state.gravity;
+    this.ringSpeed = this.state.ringSpeed;
 
     this.setupEventListeners();
   }
@@ -111,7 +114,7 @@ export class Game {
   }
 
   private jump(): void {
-    this.physicsEngine.jump(this.ball);
+    this.ball.vy = CONFIG.JUMP_FORCE;
     this.audioManager.playJump();
     this.particleSystem.emit(this.ball.x, this.ball.y + this.ball.radius, this.ball.color, 5);
   }
@@ -127,11 +130,18 @@ export class Game {
   private resetGame(): void {
     this.ball.reset();
     this.rings = [];
-    this.nextRingY = -200;
-    this.generateInitialRings();
     this.particleSystem = new ParticleSystem();
     this.audioManager = new AudioManager();
     this.saveTimer = 0;
+    this.distanceSinceLastRing = 0;
+    this.currentSpacing = 0;
+
+    this.gravity = this.baseGravity;
+    this.ringSpeed = CONFIG.RING_SPEED;
+
+    for (let i = 0; i < 4; i++) {
+      this.spawnRing(CONFIG.CANVAS_HEIGHT - 80 - i * 170);
+    }
 
     this.state.score = 0;
     this.state.lives = CONFIG.INITIAL_LIVES;
@@ -140,31 +150,13 @@ export class Game {
     this.state.frenzyMode = false;
     this.state.frenzyTimeLeft = 0;
     this.state.ringsPassed = 0;
-    this.state.gravity = this.state.baseGravity;
-    this.state.ringSpeed = CONFIG.RING_SPEED;
-    this.physicsEngine.setGravity(this.state.gravity);
+    this.state.gravity = this.gravity;
+    this.state.ringSpeed = this.ringSpeed;
   }
 
-  private generateInitialRings(): void {
-    for (let i = 0; i < 6; i++) {
-      this.generateRing();
-    }
-  }
-
-  private generateRing(): void {
-    const isDouble = Math.random() < CONFIG.DOUBLE_RING_CHANCE;
-    const spacing = isDouble
-      ? CONFIG.DOUBLE_RING_SPACING
-      : CONFIG.RING_SPACING_MIN + Math.random() * (CONFIG.RING_SPACING_MAX - CONFIG.RING_SPACING_MIN);
-
-    this.nextRingY += spacing;
+  private spawnRing(y: number, isDouble: boolean = false): void {
     const rotationOffset = Math.random() * Math.PI * 2;
-    this.rings.push(new Ring(this.nextRingY, isDouble, rotationOffset));
-
-    if (isDouble) {
-      this.nextRingY += CONFIG.DOUBLE_RING_SPACING;
-      this.rings.push(new Ring(this.nextRingY, false, rotationOffset + Math.PI / 4));
-    }
+    this.rings.push(new Ring(y, isDouble, rotationOffset));
   }
 
   private gameLoop = (): void => {
@@ -188,7 +180,19 @@ export class Game {
 
   private update(): void {
     this.ball.update(this.deltaTime);
-    this.physicsEngine.updateBall(this.ball);
+    this.ball.vy += this.gravity;
+    this.ball.y += this.ball.vy;
+
+    if (this.ball.y - this.ball.radius < 0) {
+      this.ball.y = this.ball.radius;
+      this.ball.vy = 0;
+    }
+
+    if (this.ball.y + this.ball.radius > CONFIG.CANVAS_HEIGHT) {
+      this.ball.y = CONFIG.CANVAS_HEIGHT - this.ball.radius;
+      this.ball.vy = 0;
+    }
+
     this.particleSystem.update();
 
     if (this.state.frenzyMode) {
@@ -201,82 +205,88 @@ export class Game {
 
     for (let i = this.rings.length - 1; i >= 0; i--) {
       const ring = this.rings[i];
-      ring.y += this.state.ringSpeed;
+      ring.y -= this.ringSpeed;
       ring.rotation += ring.rotationSpeed;
 
-      if (ring.star && !ring.star.collected) {
-        ring.star.y = ring.y + Math.sin(Math.atan2(ring.star.y - ring.y, ring.star.x - GAME_CONFIG.CANVAS_WIDTH / 2)) * ring.radius;
-        ring.star.x = GAME_CONFIG.CANVAS_WIDTH / 2 + Math.cos(Math.atan2(ring.star.y - ring.y, ring.star.x - GAME_CONFIG.CANVAS_WIDTH / 2)) * ring.radius;
+      if (ring.star) {
+        const starAngle = Math.atan2(ring.star.y - ring.y, ring.star.x - CONFIG.CANVAS_WIDTH / 2);
+        const newAngle = starAngle + ring.rotationSpeed;
+        ring.star.x = CONFIG.CANVAS_WIDTH / 2 + Math.cos(newAngle) * ring.radius;
+        ring.star.y = ring.y + Math.sin(newAngle) * ring.radius;
         ring.star.rotation += 0.05;
 
-        if (this.collisionDetector.checkStarCollision(this.ball, ring.star)) {
-          ring.collectStar();
-          this.state.starsCollected++;
-          const multiplier = this.state.frenzyMode ? 3 : 1;
-          this.state.score += CONFIG.STAR_SCORE * multiplier;
-          this.state.totalScore += CONFIG.STAR_SCORE * multiplier;
-          this.audioManager.playStarCollect();
-          this.particleSystem.emitStarCollect(ring.star.x, ring.star.y);
-          this.notifyStateChange();
+        if (!ring.star.collected) {
+          const dx = this.ball.x - ring.star.x;
+          const dy = this.ball.y - ring.star.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < this.ball.radius + 15) {
+            ring.star.collected = true;
+            this.state.starsCollected++;
+            const multiplier = this.state.frenzyMode ? 3 : 1;
+            this.state.score += CONFIG.STAR_SCORE * multiplier;
+            this.state.totalScore += CONFIG.STAR_SCORE * multiplier;
+            this.audioManager.playStarCollect();
+            this.particleSystem.emitStarCollect(ring.star.x, ring.star.y);
+            this.notifyStateChange();
+          }
         }
-      }
-
-      if (!ring.passed && this.ball.y < ring.y - ring.radius && this.ball.y > ring.y - ring.radius - 50) {
-        ring.passed = true;
-        this.state.ringsPassed++;
-        this.state.combo++;
-        if (this.state.combo > this.state.maxCombo) {
-          this.state.maxCombo = this.state.combo;
-        }
-
-        const multiplier = this.state.frenzyMode ? 3 : 1;
-        this.state.score += CONFIG.RING_PASS_SCORE * multiplier;
-        this.state.totalScore += CONFIG.RING_PASS_SCORE * multiplier;
-        this.audioManager.playScore();
-        this.particleSystem.emit(this.ball.x, this.ball.y, this.ball.color, 8);
-
-        if (this.state.combo >= CONFIG.FRENZY_THRESHOLD && !this.state.frenzyMode) {
-          this.state.frenzyMode = true;
-          this.state.frenzyTimeLeft = CONFIG.FRENZY_DURATION;
-          this.audioManager.playFrenzy();
-        }
-
-        if (this.state.ringsPassed % CONFIG.DIFFICULTY_INCREASE_INTERVAL === 0) {
-          this.state.gravity += CONFIG.DIFFICULTY_INCREASE_AMOUNT;
-          this.physicsEngine.setGravity(this.state.gravity);
-        }
-
-        this.notifyStateChange();
       }
 
       const collision = this.checkRingCollision(ring);
       if (collision.collided && !ring.passed) {
-        if (!collision.colorMatch) {
+        if (collision.colorMatch) {
+          ring.passed = true;
+          this.state.ringsPassed++;
+          this.state.combo++;
+          if (this.state.combo > this.state.maxCombo) {
+            this.state.maxCombo = this.state.combo;
+          }
+
+          const multiplier = this.state.frenzyMode ? 3 : 1;
+          this.state.score += CONFIG.RING_PASS_SCORE * multiplier;
+          this.state.totalScore += CONFIG.RING_PASS_SCORE * multiplier;
+          this.audioManager.playScore();
+          this.particleSystem.emit(this.ball.x, this.ball.y, this.ball.color, 8);
+
+          if (this.state.combo >= CONFIG.FRENZY_THRESHOLD && !this.state.frenzyMode) {
+            this.state.frenzyMode = true;
+            this.state.frenzyTimeLeft = CONFIG.FRENZY_DURATION;
+            this.audioManager.playFrenzy();
+          }
+
+          if (this.state.ringsPassed % CONFIG.DIFFICULTY_INCREASE_INTERVAL === 0) {
+            this.gravity += CONFIG.DIFFICULTY_INCREASE_AMOUNT;
+            this.state.gravity = this.gravity;
+          }
+
+          this.notifyStateChange();
+        } else {
           this.handleMiss(ring);
         }
       }
 
-      if (ring.y - ring.radius > GAME_CONFIG.CANVAS_HEIGHT + 100) {
+      if (ring.y + ring.radius < -100) {
         this.rings.splice(i, 1);
       }
     }
 
-    while (this.nextRingY < GAME_CONFIG.CANVAS_HEIGHT + 200) {
-      this.generateRing();
-    }
+    this.distanceSinceLastRing += this.ringSpeed;
 
-    if (this.ball.y + this.ball.radius >= GAME_CONFIG.CANVAS_HEIGHT) {
-      this.handleMiss(null);
-    }
+    if (this.distanceSinceLastRing >= this.currentSpacing) {
+      this.distanceSinceLastRing = 0;
+      this.currentSpacing = CONFIG.RING_SPACING_MIN + Math.random() * (CONFIG.RING_SPACING_MAX - CONFIG.RING_SPACING_MIN);
 
-    if (this.ball.y - this.ball.radius < 0) {
-      this.ball.y = this.ball.radius;
-      this.ball.vy = 0;
+      const isDouble = Math.random() < CONFIG.DOUBLE_RING_CHANCE;
+      this.spawnRing(CONFIG.CANVAS_HEIGHT + 100, isDouble);
+
+      if (isDouble) {
+        this.spawnRing(CONFIG.CANVAS_HEIGHT + 100 + CONFIG.DOUBLE_RING_SPACING, false);
+      }
     }
   }
 
   private checkRingCollision(ring: RingType): { collided: boolean; colorMatch: boolean } {
-    const ringCenterX = GAME_CONFIG.CANVAS_WIDTH / 2;
+    const ringCenterX = CONFIG.CANVAS_WIDTH / 2;
     const ringCenterY = ring.y;
 
     const dx = this.ball.x - ringCenterX;
@@ -295,12 +305,11 @@ export class Game {
     let angle = Math.atan2(dy, dx);
     if (angle < 0) angle += Math.PI * 2;
 
-    angle = (angle + ring.rotation) % (Math.PI * 2);
-    if (angle < 0) angle += Math.PI * 2;
-
     for (const segment of ring.segments) {
-      const adjustedStart = segment.startAngle % (Math.PI * 2);
-      const adjustedEnd = segment.endAngle % (Math.PI * 2);
+      let adjustedStart = (segment.startAngle + ring.rotation) % (Math.PI * 2);
+      let adjustedEnd = (segment.endAngle + ring.rotation) % (Math.PI * 2);
+      if (adjustedStart < 0) adjustedStart += Math.PI * 2;
+      if (adjustedEnd < 0) adjustedEnd += Math.PI * 2;
 
       let isInSegment = false;
       if (adjustedStart < adjustedEnd) {
@@ -318,7 +327,8 @@ export class Game {
     return { collided: false, colorMatch: false };
   }
 
-  private handleMiss(ring: RingType | null): void {
+  private handleMiss(ring: RingType): void {
+    ring.passed = true;
     this.state.lives--;
     this.state.combo = 0;
     this.audioManager.playHit();
@@ -327,7 +337,7 @@ export class Game {
     if (this.state.lives <= 0) {
       this.gameOver();
     } else {
-      this.ball.y = ring ? ring.y + ring.radius + 50 : GAME_CONFIG.BALL_START_Y;
+      this.ball.y = ring.y - ring.radius - 50;
       this.ball.vy = 0;
     }
 
@@ -360,8 +370,8 @@ export class Game {
 
   private render(): void {
     const ctx = this.ctx;
-    const width = GAME_CONFIG.CANVAS_WIDTH;
-    const height = GAME_CONFIG.CANVAS_HEIGHT;
+    const width = CONFIG.CANVAS_WIDTH;
+    const height = CONFIG.CANVAS_HEIGHT;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
     gradient.addColorStop(0, '#0a0a1a');
@@ -386,40 +396,53 @@ export class Game {
   private renderFrenzyEffect(ctx: CanvasRenderingContext2D): void {
     const pulse = Math.sin(Date.now() / 100) * 0.1 + 0.2;
     const gradient = ctx.createRadialGradient(
-      GAME_CONFIG.CANVAS_WIDTH / 2,
-      GAME_CONFIG.CANVAS_HEIGHT / 2,
+      CONFIG.CANVAS_WIDTH / 2,
+      CONFIG.CANVAS_HEIGHT / 2,
       100,
-      GAME_CONFIG.CANVAS_WIDTH / 2,
-      GAME_CONFIG.CANVAS_HEIGHT / 2,
-      GAME_CONFIG.CANVAS_WIDTH
+      CONFIG.CANVAS_WIDTH / 2,
+      CONFIG.CANVAS_HEIGHT / 2,
+      CONFIG.CANVAS_WIDTH
     );
     gradient.addColorStop(0, 'rgba(255, 0, 100, 0)');
     gradient.addColorStop(1, `rgba(255, 0, 100, ${pulse})`);
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
   }
 
   private saveGameSnapshot(): void {
+    if (this.state.status !== 'playing') return;
+
     const snapshot: GameSnapshot = {
       ballY: this.ball.y,
       ballVy: this.ball.vy,
       ballColorIndex: this.ball.colorIndex,
-      rings: this.rings.map(ring => ({
-        y: ring.y,
-        rotation: ring.rotation,
-        rotationSpeed: ring.rotationSpeed,
-        passed: ring.passed,
-        isDouble: ring.isDouble,
-        segments: ring.segments.map(s => ({ ...s })),
-        starCollected: ring.star?.collected,
-        starX: ring.star?.x,
-        starY: ring.star?.y,
-      })),
-      nextRingY: this.nextRingY,
+      ballColorTimer: (this.ball as any).colorChangeTimer || 0,
+      ballTrail: [...this.ball.trail],
+      rings: this.rings.map(ring => {
+        let starAngle = 0;
+        if (ring.star) {
+          starAngle = Math.atan2(ring.star.y - ring.y, ring.star.x - CONFIG.CANVAS_WIDTH / 2);
+        }
+        return {
+          y: ring.y,
+          rotation: ring.rotation,
+          rotationSpeed: ring.rotationSpeed,
+          passed: ring.passed,
+          isDouble: ring.isDouble,
+          segments: ring.segments.map(s => ({ ...s })),
+          starCollected: ring.star?.collected || false,
+          starAngle,
+        };
+      }),
+      distanceSinceLastRing: this.distanceSinceLastRing,
+      currentSpacing: this.currentSpacing,
     };
+
     localStorage.setItem('color-switch-snapshot', JSON.stringify({
       state: this.state,
       snapshot,
+      gravity: this.gravity,
+      ringSpeed: this.ringSpeed,
       timestamp: Date.now(),
     }));
   }
@@ -433,21 +456,25 @@ export class Game {
     if (!data) return false;
 
     try {
-      const { state, snapshot, timestamp } = JSON.parse(data);
-      
+      const { state, snapshot, gravity, ringSpeed, timestamp } = JSON.parse(data);
+
       if (Date.now() - timestamp > 3600000) {
         this.clearGameSnapshot();
         return false;
       }
 
-      this.state = { ...state, status: 'playing' };
+      this.state = { ...state };
       this.skinManager.loadState(this.state.selectedSkin, this.state.unlockedSkins);
-      this.physicsEngine.setGravity(this.state.gravity);
+      this.gravity = gravity || CONFIG.GRAVITY;
+      this.ringSpeed = ringSpeed || CONFIG.RING_SPEED;
 
+      this.ball.reset();
       this.ball.y = snapshot.ballY;
       this.ball.vy = snapshot.ballVy;
       this.ball.colorIndex = snapshot.ballColorIndex;
       this.ball.color = COLORS[snapshot.ballColorIndex];
+      (this.ball as any).colorChangeTimer = snapshot.ballColorTimer || 0;
+      this.ball.trail = snapshot.ballTrail || [];
 
       this.rings = snapshot.rings.map((r: any) => {
         const ring = new Ring(r.y, r.isDouble, 0);
@@ -455,25 +482,26 @@ export class Game {
         ring.rotationSpeed = r.rotationSpeed;
         ring.passed = r.passed;
         ring.segments = r.segments;
-        if (r.starX !== undefined && r.starY !== undefined) {
-          ring.star = {
-            x: r.starX,
-            y: r.starY,
-            collected: r.starCollected || false,
-            rotation: 0,
-            particles: [],
-            render: function() {},
-          };
+
+        if (!r.starCollected && r.starAngle !== undefined) {
+          const starX = CONFIG.CANVAS_WIDTH / 2 + Math.cos(r.starAngle) * ring.radius;
+          const starY = ring.y + Math.sin(r.starAngle) * ring.radius;
+          ring.star = new Star(starX, starY);
         } else {
           ring.star = undefined;
         }
+
         return ring;
       });
 
-      this.nextRingY = snapshot.nextRingY;
-      this.ball.trail = [];
+      this.distanceSinceLastRing = snapshot.distanceSinceLastRing || 0;
+      this.currentSpacing = snapshot.currentSpacing || 200;
 
       this.state.status = 'playing';
+      this.particleSystem = new ParticleSystem();
+      this.audioManager = new AudioManager();
+      this.saveTimer = 0;
+
       this.notifyStateChange();
       this.lastTime = performance.now();
       this.gameLoop();

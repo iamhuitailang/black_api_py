@@ -56,8 +56,11 @@ export class Ring implements RingType {
     this.rotation += this.rotationSpeed;
 
     if (this.star) {
-      this.star.y = this.y + Math.sin(Math.atan2(this.star.y - this.y, this.star.x - GAME_CONFIG.CANVAS_WIDTH / 2)) * this.radius;
-      this.star.x = GAME_CONFIG.CANVAS_WIDTH / 2 + Math.cos(Math.atan2(this.star.y - this.y, this.star.x - GAME_CONFIG.CANVAS_WIDTH / 2)) * this.radius;
+      const centerX = GAME_CONFIG.CANVAS_WIDTH / 2;
+      const starAngle = Math.atan2(this.star.y - this.y, this.star.x - centerX);
+      const newAngle = starAngle + this.rotationSpeed;
+      this.star.x = centerX + Math.cos(newAngle) * this.radius;
+      this.star.y = this.y + Math.sin(newAngle) * this.radius;
       this.star.rotation += 0.05;
     }
   }
