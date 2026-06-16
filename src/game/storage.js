@@ -28,17 +28,50 @@ const DEFAULT_SAVE = {
   highScores: {}
 }
 
+function deepMerge(defaultObj, dataObj) {
+  const result = { ...defaultObj }
+  for (const key in dataObj) {
+    if (dataObj[key] && typeof dataObj[key] === 'object' && !Array.isArray(dataObj[key])) {
+      result[key] = deepMerge(defaultObj[key] || {}, dataObj[key])
+    } else if (Array.isArray(dataObj[key]) && Array.isArray(defaultObj[key])) {
+      result[key] = dataObj[key].length >= defaultObj[key].length 
+        ? dataObj[key] 
+        : [...dataObj[key], ...defaultObj[key].slice(dataObj[key].length)]
+    } else {
+      result[key] = dataObj[key]
+    }
+  }
+  return result
+}
+
 export function loadGame() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       const data = JSON.parse(saved)
-      return { ...DEFAULT_SAVE, ...data }
+      const merged = deepMerge(DEFAULT_SAVE, data)
+      if (!merged.progress.zoneCompleted || !Array.isArray(merged.progress.zoneCompleted)) {
+        merged.progress.zoneCompleted = DEFAULT_SAVE.progress.zoneCompleted.map(arr => [...arr])
+      } else {
+        while (merged.progress.zoneCompleted.length < 3) {
+          merged.progress.zoneCompleted.push([false, false, false, false, false])
+        }
+        for (let i = 0; i < merged.progress.zoneCompleted.length; i++) {
+          if (!Array.isArray(merged.progress.zoneCompleted[i])) {
+            merged.progress.zoneCompleted[i] = [false, false, false, false, false]
+          } else {
+            while (merged.progress.zoneCompleted[i].length < 5) {
+              merged.progress.zoneCompleted[i].push(false)
+            }
+          }
+        }
+      }
+      return merged
     }
   } catch (e) {
     console.warn('加载存档失败:', e)
   }
-  return { ...DEFAULT_SAVE }
+  return JSON.parse(JSON.stringify(DEFAULT_SAVE))
 }
 
 export function saveGame(gameState) {

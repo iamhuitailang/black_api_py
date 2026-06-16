@@ -5,7 +5,7 @@ export const SYSTEMS = [
     description: '太阳系内圈，碎片密集但危险较少',
     bgColor: '#0a0a2e',
     planets: [
-      { x: 400, y: 300, radius: 40, mass: 500, color: '#4a6fa5' }
+      { x: 180, y: 160, radius: 40, mass: 500, color: '#4a6fa5' }
     ],
     zones: [
       { id: 0, name: '训练区', debrisCount: 15, dangerLevel: 0.1, requiredValue: 200 },
@@ -21,8 +21,8 @@ export const SYSTEMS = [
     description: '火星与木星之间，稀有零件较多',
     bgColor: '#1a0a2e',
     planets: [
-      { x: 300, y: 250, radius: 35, mass: 400, color: '#8b6914' },
-      { x: 600, y: 450, radius: 30, mass: 350, color: '#6b4423' }
+      { x: 160, y: 460, radius: 35, mass: 400, color: '#8b6914' },
+      { x: 740, y: 140, radius: 30, mass: 350, color: '#6b4423' }
     ],
     zones: [
       { id: 0, name: '内环带', debrisCount: 25, dangerLevel: 0.25, requiredValue: 3000 },
@@ -38,9 +38,9 @@ export const SYSTEMS = [
     description: '危险与机遇并存的边疆区域',
     bgColor: '#0a1a1a',
     planets: [
-      { x: 250, y: 350, radius: 50, mass: 600, color: '#d4a574' },
-      { x: 650, y: 200, radius: 45, mass: 550, color: '#c9a86c' },
-      { x: 500, y: 500, radius: 35, mass: 400, color: '#7ec8e3' }
+      { x: 160, y: 200, radius: 50, mass: 600, color: '#d4a574' },
+      { x: 740, y: 220, radius: 45, mass: 550, color: '#c9a86c' },
+      { x: 450, y: 520, radius: 35, mass: 400, color: '#7ec8e3' }
     ],
     zones: [
       { id: 0, name: '木星轨道', debrisCount: 35, dangerLevel: 0.4, requiredValue: 20000 },

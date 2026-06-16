@@ -8,15 +8,28 @@ export function createGameState() {
   const savedData = loadGame()
   
   const state = reactive({
-    money: savedData.money,
-    upgrades: { ...savedData.upgrades },
-    progress: {
-      currentSystem: savedData.progress.currentSystem,
-      currentZone: savedData.progress.currentZone,
-      zoneCompleted: savedData.progress.zoneCompleted.map(arr => [...arr])
+    money: savedData.money || 0,
+    upgrades: {
+      engine: (savedData.upgrades && savedData.upgrades.engine) || 0,
+      fuel_tank: (savedData.upgrades && savedData.upgrades.fuel_tank) || 0,
+      armor: (savedData.upgrades && savedData.upgrades.armor) || 0,
+      pick_radius: (savedData.upgrades && savedData.upgrades.pick_radius) || 0
     },
-    collectionLog: [...savedData.collectionLog],
-    totalCollected: { ...savedData.totalCollected },
+    progress: {
+      currentSystem: (savedData.progress && savedData.progress.currentSystem) || 0,
+      currentZone: (savedData.progress && savedData.progress.currentZone) || 0,
+      zoneCompleted: (savedData.progress && savedData.progress.zoneCompleted) 
+        ? savedData.progress.zoneCompleted.map(arr => [...(arr || [])])
+        : [[false, false, false, false, false], [false, false, false, false, false], [false, false, false, false, false]]
+    },
+    collectionLog: Array.isArray(savedData.collectionLog) ? [...savedData.collectionLog] : [],
+    totalCollected: {
+      small_screw: (savedData.totalCollected && savedData.totalCollected.small_screw) || 0,
+      medium_panel: (savedData.totalCollected && savedData.totalCollected.medium_panel) || 0,
+      large_wreck: (savedData.totalCollected && savedData.totalCollected.large_wreck) || 0,
+      dangerous: (savedData.totalCollected && savedData.totalCollected.dangerous) || 0,
+      rare_part: (savedData.totalCollected && savedData.totalCollected.rare_part) || 0
+    },
     sessionScore: 0,
     sessionCollected: 0,
     isPaused: false,

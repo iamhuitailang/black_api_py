@@ -48,11 +48,28 @@ export class GameEngine {
   }
 
   initZone(systemData, zoneData) {
-    this.planets = systemData.planets.map(p => ({ ...p }))
+    const baseWidth = 900
+    const baseHeight = 600
+    const scaleX = this.width / baseWidth
+    const scaleY = this.height / baseHeight
+    
+    this.planets = systemData.planets.map(p => ({
+      ...p,
+      x: p.x * scaleX,
+      y: p.y * scaleY,
+      radius: p.radius * Math.min(scaleX, scaleY)
+    }))
+    
     this.bgColor = systemData.bgColor
     
-    const startX = this.width / 2
-    const startY = this.height / 2
+    let startX = this.width / 2
+    let startY = this.height / 2
+    
+    if (!this.isSafePosition(startX, startY, 30)) {
+      const safePos = this.findSafePosition(30)
+      startX = safePos.x
+      startY = safePos.y
+    }
     
     this.ship = new Ship(startX, startY, this.gameState.state.upgrades)
     this.debris = createDebris(zoneData.debrisCount, this.width, this.height, this.planets)
@@ -62,6 +79,38 @@ export class GameEngine {
     this.pickupEffects = []
     this.damageFlash = 0
     this.time = 0
+  }
+  
+  isSafePosition(x, y, margin = 20) {
+    for (const planet of this.planets) {
+      const dx = x - planet.x
+      const dy = y - planet.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < planet.radius + margin) {
+        return false
+      }
+    }
+    return true
+  }
+  
+  findSafePosition(margin = 30) {
+    const centerX = this.width / 2
+    const centerY = this.height / 2
+    
+    for (let r = 50; r < Math.max(this.width, this.height); r += 30) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+        const x = centerX + Math.cos(angle) * r
+        const y = centerY + Math.sin(angle) * r
+        
+        if (x > margin && x < this.width - margin &&
+            y > margin && y < this.height - margin &&
+            this.isSafePosition(x, y, margin)) {
+          return { x, y }
+        }
+      }
+    }
+    
+    return { x: this.width / 2, y: this.height / 2 }
   }
 
   start() {
