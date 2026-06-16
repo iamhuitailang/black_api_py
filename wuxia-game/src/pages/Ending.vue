@@ -19,10 +19,14 @@ const ending = computed(() => {
   return getEndingByBranch(branchKey.value) || ENDINGS[0]
 })
 
+const unlockedCount = computed(() => gameStore.unlockedEndings.length)
+
 onMounted(() => {
   if (!gameStore.playerExists) {
     router.push('/')
+    return
   }
+  gameStore.unlockEnding(branchKey.value)
 })
 
 function returnToMenu() {
@@ -99,8 +103,9 @@ function goArena() {
 
       <div class="mt-12 text-ink-500 text-xs font-song space-y-1">
         <p>感谢游玩《武侠传》</p>
-        <p>共 9 种结局，当前已解锁 1 种</p>
-        <p class="text-gold/50 mt-2">· 江湖路远，后会有期 ·</p>
+        <p>共 9 种结局，当前已解锁 {{ unlockedCount }} 种</p>
+        <p v-if="unlockedCount < 9" class="text-gold/50 mt-2">· 尝试不同的选择，解锁更多结局 ·</p>
+        <p v-else class="text-gold mt-2">· 九九归一，江湖路尽 ·</p>
       </div>
     </div>
   </div>

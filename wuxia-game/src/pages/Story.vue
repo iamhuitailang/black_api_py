@@ -96,6 +96,7 @@ function goNext() {
 
 function startBattle() {
   if (!pendingBattleId.value || !player.value) return
+  gameStore.setCurrentBattle(pendingBattleId.value, pendingNextNodeId.value || undefined)
   battleStore.startBattle(player.value, pendingBattleId.value, 'story')
   router.push('/battle')
 }

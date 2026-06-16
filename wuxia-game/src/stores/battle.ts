@@ -167,9 +167,12 @@ export const useBattleStore = defineStore('battle', () => {
       }
       enemyResult.logs.forEach(log => {
         if (log.includes('反弹')) addLog(log, 'damage')
+        else if (log.includes('回复')) addLog(log, 'heal')
         else addLog(log, 'enemy')
       })
-      playHitSound()
+      if (enemyResult.damage > 0 || enemyResult.reflectDamage > 0) {
+        playHitSound()
+      }
 
       setTimeout(() => {
         if (enemy.value!.hp <= 0) {
@@ -248,5 +251,11 @@ export const useBattleStore = defineStore('battle', () => {
     doPlayerSkill,
     doPlayerDefend,
     endBattle
+  }
+}, {
+  persist: {
+    key: 'wuxia-battle-save',
+    storage: localStorage,
+    paths: ['player', 'enemy', 'phase', 'turn', 'mode', 'logs']
   }
 })

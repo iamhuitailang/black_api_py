@@ -17,6 +17,9 @@ export const useGameStore = defineStore('game', () => {
     rewards: []
   })
   const hasSave = ref<boolean>(false)
+  const currentBattleEnemyId = ref<string | null>(null)
+  const currentBattleNextNodeId = ref<string | null>(null)
+  const unlockedEndings = ref<string[]>([])
 
   const playerExists = computed(() => player.value !== null)
 
@@ -95,6 +98,22 @@ export const useGameStore = defineStore('game', () => {
     if (player.value.qi > player.value.maxQi) player.value.qi = player.value.maxQi
   }
 
+  function setCurrentBattle(enemyId: string, nextNodeId?: string) {
+    currentBattleEnemyId.value = enemyId
+    currentBattleNextNodeId.value = nextNodeId || null
+  }
+
+  function clearCurrentBattle() {
+    currentBattleEnemyId.value = null
+    currentBattleNextNodeId.value = null
+  }
+
+  function unlockEnding(branchKey: string) {
+    if (!unlockedEndings.value.includes(branchKey)) {
+      unlockedEndings.value.push(branchKey)
+    }
+  }
+
   function resetAll() {
     player.value = null
     currentStoryNodeId.value = INITIAL_STORY_NODE
@@ -133,6 +152,9 @@ export const useGameStore = defineStore('game', () => {
     branchChoices,
     arena,
     hasSave,
+    currentBattleEnemyId,
+    currentBattleNextNodeId,
+    unlockedEndings,
     playerExists,
     createNewPlayer,
     updatePlayer,
@@ -140,6 +162,9 @@ export const useGameStore = defineStore('game', () => {
     advanceStory,
     setChapter,
     addEquipment,
+    setCurrentBattle,
+    clearCurrentBattle,
+    unlockEnding,
     resetAll,
     getBranchKey
   }

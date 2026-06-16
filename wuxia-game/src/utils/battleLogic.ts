@@ -142,6 +142,32 @@ export function playerUseSkill(player: Player, enemy: Enemy, skillId: string): A
   return result
 }
 
+export type EnemyAction = 'normal' | 'skill' | 'defend'
+
+export function decideEnemyAction(enemy: Enemy, player: Player): EnemyAction {
+  const playerHpPercent = player.hp / getTotalMaxHp(player)
+  const enemyHpPercent = enemy.hp / enemy.maxHp
+  const roll = Math.random()
+
+  switch (enemy.aiType) {
+    case 'aggressive':
+      if (enemyHpPercent < 0.3 && roll < 0.3) return 'defend'
+      if (playerHpPercent < 0.3) return roll < 0.7 ? 'skill' : 'normal'
+      return roll < 0.15 ? 'defend' : roll < 0.55 ? 'skill' : 'normal'
+    case 'defensive':
+      if (enemyHpPercent < 0.5 && roll < 0.5) return 'defend'
+      if (playerHpPercent > 0.7) return roll < 0.2 ? 'skill' : roll < 0.5 ? 'defend' : 'normal'
+      if (playerHpPercent < 0.3) return roll < 0.6 ? 'skill' : 'normal'
+      return roll < 0.25 ? 'defend' : roll < 0.5 ? 'skill' : 'normal'
+    case 'balanced':
+    default:
+      if (enemyHpPercent < 0.4 && roll < 0.4) return 'defend'
+      if (playerHpPercent < 0.3) return roll < 0.6 ? 'skill' : 'normal'
+      if (playerHpPercent > 0.7) return roll < 0.15 ? 'defend' : roll < 0.4 ? 'skill' : 'normal'
+      return roll < 0.2 ? 'defend' : roll < 0.5 ? 'skill' : 'normal'
+  }
+}
+
 export function enemyAttack(enemy: Enemy, player: Player): AttackResult {
   const result: AttackResult = {
     damage: 0,
@@ -152,23 +178,17 @@ export function enemyAttack(enemy: Enemy, player: Player): AttackResult {
     healAmount: 0
   }
 
-  const hpPercent = player.hp / getTotalMaxHp(player)
-  let useSkill = false
+  const action = decideEnemyAction(enemy, player)
 
-  switch (enemy.aiType) {
-    case 'aggressive':
-      useSkill = hpPercent < 0.3 ? Math.random() < 0.8 : Math.random() < 0.5
-      break
-    case 'defensive':
-      useSkill = hpPercent > 0.7 ? Math.random() < 0.3 : Math.random() < 0.5
-      break
-    case 'balanced':
-    default:
-      useSkill = hpPercent < 0.3 ? Math.random() < 0.7 : hpPercent > 0.7 ? Math.random() < 0.4 : Math.random() < 0.5
-      break
+  if (action === 'defend') {
+    const healAmt = Math.floor(enemy.maxHp * 0.1)
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt)
+    result.healAmount = healAmt
+    result.logs.push(`${enemy.name} 收招防御，回复了 ${healAmt} 点生命！`)
+    return result
   }
 
-  if (useSkill) {
+  if (action === 'skill') {
     const variance = 0.85 + Math.random() * 0.3
     result.damage = Math.floor(enemy.skillDamage * variance)
     result.logs.push(`${enemy.name} 施展杀招，对你造成 ${result.damage} 点伤害！`)

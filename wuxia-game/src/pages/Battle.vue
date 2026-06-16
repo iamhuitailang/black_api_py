@@ -28,6 +28,13 @@ const playerSkills = computed(() => {
 onMounted(() => {
   if (!battleStore.battleActive) {
     router.back()
+    return
+  }
+  if (battleStore.phase === 'enemy-turn') {
+    battleStore.phase = 'player-turn'
+    battleStore.isProcessing = false
+  } else if (battleStore.isProcessing) {
+    battleStore.isProcessing = false
   }
 })
 
@@ -54,6 +61,10 @@ function handleVictory() {
       qi: battlePlayer.maxQi,
       buffs: []
     })
+    if (gameStore.currentBattleNextNodeId) {
+      gameStore.advanceStory(gameStore.currentBattleNextNodeId)
+    }
+    gameStore.clearCurrentBattle()
   } else if (battleStore.mode === 'arena') {
     gameStore.arena.winStreak++
     if (gameStore.arena.winStreak > gameStore.arena.maxWinStreak) {
@@ -105,14 +116,16 @@ function continueAfterBattle() {
 }
 
 function retryBattle() {
-  if (!player.value || !enemy.value) return
-  if (battleStore.mode === 'arena') {
+  const mode = battleStore.mode
+  if (mode === 'story') {
+    const enemyId = gameStore.currentBattleEnemyId
+    if (!enemyId || !gameStore.player) return
     gameStore.healPlayerFull()
-  }
-  battleStore.endBattle()
-  if (battleStore.mode === 'story') {
-    router.push('/story')
+    battleStore.endBattle()
+    battleStore.startBattle(gameStore.player, enemyId, 'story')
   } else {
+    gameStore.healPlayerFull()
+    battleStore.endBattle()
     router.push('/arena')
   }
 }
