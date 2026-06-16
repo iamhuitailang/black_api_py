@@ -2,6 +2,18 @@ import type { Ring as RingType, RingSegment, Star as StarType } from '../types';
 import { GAME_CONFIG, COLORS } from '../config';
 import { Star } from './Star';
 
+export interface RingSnapshot {
+  y: number;
+  rotation: number;
+  rotationSpeed: number;
+  passed: boolean;
+  isDouble: boolean;
+  segments: RingSegment[];
+  hasStar: boolean;
+  starCollected: boolean;
+  starAngle: number;
+}
+
 export class Ring implements RingType {
   y: number;
   radius: number;
@@ -29,6 +41,44 @@ export class Ring implements RingType {
       const starY = this.y + Math.sin(starAngle) * this.radius;
       this.star = new Star(starX, starY);
     }
+  }
+
+  static fromSnapshot(snap: RingSnapshot): Ring {
+    const ring = new Ring(0, snap.isDouble, 0);
+    ring.y = snap.y;
+    ring.rotation = snap.rotation;
+    ring.rotationSpeed = snap.rotationSpeed;
+    ring.passed = snap.passed;
+    ring.segments = snap.segments.map(s => ({ ...s }));
+
+    if (snap.hasStar && !snap.starCollected) {
+      const starAngle = snap.starAngle || 0;
+      const starX = GAME_CONFIG.CANVAS_WIDTH / 2 + Math.cos(starAngle) * ring.radius;
+      const starY = ring.y + Math.sin(starAngle) * ring.radius;
+      ring.star = new Star(starX, starY);
+    } else {
+      ring.star = undefined;
+    }
+
+    return ring;
+  }
+
+  toSnapshot(): RingSnapshot {
+    let starAngle = 0;
+    if (this.star) {
+      starAngle = Math.atan2(this.star.y - this.y, this.star.x - GAME_CONFIG.CANVAS_WIDTH / 2);
+    }
+    return {
+      y: this.y,
+      rotation: this.rotation,
+      rotationSpeed: this.rotationSpeed,
+      passed: this.passed,
+      isDouble: this.isDouble,
+      segments: this.segments.map(s => ({ ...s })),
+      hasStar: !!this.star,
+      starCollected: this.star?.collected || false,
+      starAngle,
+    };
   }
 
   private generateSegments(): RingSegment[] {

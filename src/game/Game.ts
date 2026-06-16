@@ -1,30 +1,15 @@
 import type { GameState, Ring as RingType } from './types';
 import { GAME_CONFIG as CONFIG, COLORS } from './config';
 import { ParticleSystem } from './engine/ParticleSystem';
-import { Ball } from './entities/Ball';
-import { Ring } from './entities/Ring';
-import { Star } from './entities/Star';
+import { Ball, type BallSnapshot } from './entities/Ball';
+import { Ring, type RingSnapshot } from './entities/Ring';
 import { SkinManager } from './entities/SkinManager';
 import { AudioManager } from './audio/AudioManager';
 import { SaveManager } from './storage/SaveManager';
 
 interface GameSnapshot {
-  ballY: number;
-  ballVy: number;
-  ballColorIndex: number;
-  ballColorTimer: number;
-  ballTrail: Array<{ x: number; y: number; alpha: number; color: string }>;
-  rings: Array<{
-    y: number;
-    rotation: number;
-    rotationSpeed: number;
-    passed: boolean;
-    isDouble: boolean;
-    segments: Array<{ color: string; startAngle: number; endAngle: number }>;
-    hasStar: boolean;
-    starCollected: boolean;
-    starAngle: number;
-  }>;
+  ball: BallSnapshot;
+  rings: RingSnapshot[];
   distanceSinceLastRing: number;
   currentSpacing: number;
 }
@@ -170,7 +155,7 @@ export class Game {
     this.render();
 
     this.saveTimer += this.deltaTime;
-    if (this.saveTimer >= 2000) {
+    if (this.saveTimer >= 500) {
       this.saveTimer = 0;
       this.saveGameSnapshot();
     }
@@ -412,29 +397,11 @@ export class Game {
   private saveGameSnapshot(): void {
     if (this.state.status !== 'playing') return;
 
+    const validRings = this.rings.filter(r => r.y >= -150);
+
     const snapshot: GameSnapshot = {
-      ballY: this.ball.y,
-      ballVy: this.ball.vy,
-      ballColorIndex: this.ball.colorIndex,
-      ballColorTimer: (this.ball as any).colorChangeTimer || 0,
-      ballTrail: [...this.ball.trail],
-      rings: this.rings.map(ring => {
-        let starAngle = 0;
-        if (ring.star) {
-          starAngle = Math.atan2(ring.star.y - ring.y, ring.star.x - CONFIG.CANVAS_WIDTH / 2);
-        }
-        return {
-          y: ring.y,
-          rotation: ring.rotation,
-          rotationSpeed: ring.rotationSpeed,
-          passed: ring.passed,
-          isDouble: ring.isDouble,
-          segments: ring.segments.map(s => ({ ...s })),
-          hasStar: !!ring.star,
-          starCollected: ring.star?.collected || false,
-          starAngle,
-        };
-      }),
+      ball: this.ball.toSnapshot(),
+      rings: validRings.map(ring => (ring as Ring).toSnapshot()),
       distanceSinceLastRing: this.distanceSinceLastRing,
       currentSpacing: this.currentSpacing,
     };
@@ -457,6 +424,11 @@ export class Game {
     if (!data) return false;
 
     try {
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+      }
+
       const { state, snapshot, gravity, ringSpeed, timestamp } = JSON.parse(data);
 
       if (Date.now() - timestamp > 3600000) {
@@ -469,32 +441,10 @@ export class Game {
       this.gravity = gravity || CONFIG.GRAVITY;
       this.ringSpeed = ringSpeed || CONFIG.RING_SPEED;
 
-      this.ball.reset();
-      this.ball.y = snapshot.ballY;
-      this.ball.vy = snapshot.ballVy;
-      this.ball.colorIndex = snapshot.ballColorIndex;
-      this.ball.color = COLORS[snapshot.ballColorIndex];
-      (this.ball as any).colorChangeTimer = snapshot.ballColorTimer || 0;
-      this.ball.trail = snapshot.ballTrail || [];
+      this.ball.loadSnapshot(snapshot.ball);
 
-      this.rings = snapshot.rings.map((r: any) => {
-        const ring = new Ring(r.y, r.isDouble, 0);
-        ring.rotation = r.rotation;
-        ring.rotationSpeed = r.rotationSpeed;
-        ring.passed = r.passed;
-        ring.segments = r.segments;
-
-        if (r.hasStar && !r.starCollected) {
-          const starAngle = r.starAngle || 0;
-          const starX = CONFIG.CANVAS_WIDTH / 2 + Math.cos(starAngle) * ring.radius;
-          const starY = ring.y + Math.sin(starAngle) * ring.radius;
-          ring.star = new Star(starX, starY);
-        } else {
-          ring.star = undefined;
-        }
-
-        return ring;
-      });
+      const validRingSnaps = (snapshot.rings as RingSnapshot[]).filter(r => r.y >= -150);
+      this.rings = validRingSnaps.map(r => Ring.fromSnapshot(r));
 
       this.distanceSinceLastRing = snapshot.distanceSinceLastRing || 0;
       this.currentSpacing = snapshot.currentSpacing || (CONFIG.RING_SPACING_MIN + CONFIG.RING_SPACING_MAX) / 2;

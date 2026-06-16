@@ -1,6 +1,14 @@
 import type { Ball as BallType } from '../types';
 import { GAME_CONFIG, COLORS } from '../config';
 
+export interface BallSnapshot {
+  y: number;
+  vy: number;
+  colorIndex: number;
+  colorChangeTimer: number;
+  trail: { x: number; y: number; alpha: number; color: string }[];
+}
+
 export class Ball implements BallType {
   x: number;
   y: number;
@@ -21,6 +29,25 @@ export class Ball implements BallType {
     this.color = COLORS[this.colorIndex];
     this.trail = [];
     this.colorChangeInterval = GAME_CONFIG.COLOR_CHANGE_INTERVAL;
+  }
+
+  toSnapshot(): BallSnapshot {
+    return {
+      y: this.y,
+      vy: this.vy,
+      colorIndex: this.colorIndex,
+      colorChangeTimer: this.colorChangeTimer,
+      trail: this.trail.map(t => ({ ...t })),
+    };
+  }
+
+  loadSnapshot(snap: BallSnapshot): void {
+    this.y = snap.y;
+    this.vy = snap.vy;
+    this.colorIndex = snap.colorIndex;
+    this.color = COLORS[snap.colorIndex];
+    this.colorChangeTimer = snap.colorChangeTimer || 0;
+    this.trail = (snap.trail || []).map(t => ({ ...t }));
   }
 
   update(deltaTime: number): void {
