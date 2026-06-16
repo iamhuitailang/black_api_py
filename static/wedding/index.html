@@ -550,12 +550,6 @@
                 </button>
             </form>
 
-            <div class="login-tips">
-                <strong>测试账号：</strong><br/>
-                🎩 策划师：<code>admin</code> / <code>admin123</code><br/>
-                💕 伴侣：<code>partner</code> / <code>partner123</code><br/>
-                💌 宾客：<code>guest</code> / <code>guest123</code>
-            </div>
         </div>
     </div>
 
@@ -1082,6 +1076,8 @@ const { createApp, ref, computed, onMounted, watch } = Vue;
 const API = '/api';
 const TOKEN_KEY = 'wedding_auth_token';
 const USER_KEY = 'wedding_user_info';
+const UI_STATE_KEY = 'wedding_ui_state';
+const DATA_CACHE_KEY = 'wedding_data_cache';
 
 createApp({
     setup() {
@@ -1117,6 +1113,76 @@ createApp({
                 }
             }
             return false;
+        };
+
+        const saveUIState = () => {
+            if (!isLoggedIn.value) return;
+            const state = {
+                activeTab: activeTab.value,
+                guestGroupFilter: guestGroupFilter.value,
+                guestStatusFilter: guestStatusFilter.value,
+                budgetCategoryFilter: budgetCategoryFilter.value,
+                weddingDateInput: weddingDateInput.value,
+            };
+            try {
+                localStorage.setItem(UI_STATE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        };
+
+        const loadUIState = () => {
+            const str = localStorage.getItem(UI_STATE_KEY);
+            if (!str) return;
+            try {
+                const state = JSON.parse(str);
+                if (state.activeTab) activeTab.value = state.activeTab;
+                if (state.guestGroupFilter !== undefined) guestGroupFilter.value = state.guestGroupFilter;
+                if (state.guestStatusFilter !== undefined) guestStatusFilter.value = state.guestStatusFilter;
+                if (state.budgetCategoryFilter !== undefined) budgetCategoryFilter.value = state.budgetCategoryFilter;
+                if (state.weddingDateInput) weddingDateInput.value = state.weddingDateInput;
+            } catch (e) {}
+        };
+
+        const clearUIState = () => {
+            localStorage.removeItem(UI_STATE_KEY);
+        };
+
+        const saveDataCache = () => {
+            if (!isLoggedIn.value) return;
+            try {
+                const cache = {
+                    guests: guests.value,
+                    budgetItems: budgetItems.value,
+                    budgetByCategory: budgetByCategory.value,
+                    vendors: vendors.value,
+                    upcomingDeadlines: upcomingDeadlines.value,
+                    tasks: tasks.value,
+                    countdown: countdown.value,
+                    cachedAt: Date.now()
+                };
+                localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(cache));
+            } catch (e) {}
+        };
+
+        const loadDataCache = () => {
+            const str = localStorage.getItem(DATA_CACHE_KEY);
+            if (!str) return false;
+            try {
+                const cache = JSON.parse(str);
+                if (cache.guests) guests.value = cache.guests;
+                if (cache.budgetItems) budgetItems.value = cache.budgetItems;
+                if (cache.budgetByCategory) budgetByCategory.value = cache.budgetByCategory;
+                if (cache.vendors) vendors.value = cache.vendors;
+                if (cache.upcomingDeadlines) upcomingDeadlines.value = cache.upcomingDeadlines;
+                if (cache.tasks) tasks.value = cache.tasks;
+                if (cache.countdown) countdown.value = cache.countdown;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        const clearDataCache = () => {
+            localStorage.removeItem(DATA_CACHE_KEY);
         };
 
         const getRoleName = (role) => {
@@ -1165,10 +1231,17 @@ createApp({
         const handleLogout = () => {
             if (!confirm('确定要退出登录吗？')) return;
             clearAuthStorage();
+            clearUIState();
+            clearDataCache();
             authToken.value = '';
             currentUser.value = { id: null, username: '', role: '', roleName: '' };
             isLoggedIn.value = false;
             roleInfo.value = null;
+            guests.value = [];
+            budgetItems.value = [];
+            budgetByCategory.value = {};
+            vendors.value = [];
+            tasks.value = [];
             toast('已退出登录');
         };
 
@@ -1361,6 +1434,7 @@ createApp({
             if (res.code === 0) {
                 countdown.value = res.data;
                 weddingDateInput.value = res.data.wedding_date || '';
+                saveDataCache();
             }
         };
 
@@ -1378,7 +1452,10 @@ createApp({
 
         const fetchGuests = async () => {
             const res = await request('/guests/get');
-            if (res.code === 0) guests.value = res.data?.list || [];
+            if (res.code === 0) {
+                guests.value = res.data?.list || [];
+                saveDataCache();
+            }
         };
 
         const fetchBudget = async () => {
@@ -1386,6 +1463,7 @@ createApp({
             if (res.code === 0) {
                 budgetItems.value = res.data?.list || [];
                 budgetByCategory.value = res.data?.summary?.categories || {};
+                saveDataCache();
             }
         };
 
@@ -1408,12 +1486,16 @@ createApp({
                     }
                     return u;
                 });
+                saveDataCache();
             }
         };
 
         const fetchTasks = async () => {
             const res = await request('/tasks/get');
-            if (res.code === 0) tasks.value = res.data?.list || [];
+            if (res.code === 0) {
+                tasks.value = res.data?.list || [];
+                saveDataCache();
+            }
         };
 
         const refreshAll = () => {
@@ -1605,9 +1687,18 @@ createApp({
         onMounted(() => {
             const hasAuth = loadAuthFromStorage();
             if (hasAuth) {
+                loadUIState();
+                loadDataCache();
                 refreshAll();
             }
         });
+
+        watch([
+            activeTab, guestGroupFilter, guestStatusFilter,
+            budgetCategoryFilter, weddingDateInput
+        ], () => {
+            saveUIState();
+        }, { deep: true });
 
         return {
             // state
