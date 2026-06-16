@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>飞刀大师 - Knife Master</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <h1 class="game-title">🗡️ 飞刀大师</h1>
+                <p class="game-subtitle">精准投掷，挑战极限</p>
+                <div class="login-form">
+                    <input type="text" id="username" placeholder="用户名" autocomplete="username">
+                    <input type="password" id="password" placeholder="密码" autocomplete="current-password">
+                    <button id="login-btn" class="btn-primary">登录</button>
+                    <button id="register-btn" class="btn-secondary">注册</button>
+                    <button id="guest-btn" class="btn-ghost">游客模式</button>
+                </div>
+                <p class="login-tip">默认账号: admin / admin123</p>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="header-left">
+                    <button id="back-btn" class="icon-btn">←</button>
+                    <span class="level-info">第 <span id="level-num">1</span> 关</span>
+                </div>
+                <div class="header-center">
+                    <span class="knife-count">剩余飞刀: <span id="knife-left">5</span> / <span id="knife-total">5</span></span>
+                </div>
+                <div class="header-right">
+                    <button id="skin-btn" class="icon-btn">🎨</button>
+                    <button id="level-btn" class="icon-btn">📋</button>
+                </div>
+            </div>
+
+            <div class="game-canvas-container">
+                <canvas id="game-canvas"></canvas>
+                <div id="game-overlay" class="game-overlay hidden">
+                    <div class="overlay-content">
+                        <h2 id="overlay-title">关卡完成！</h2>
+                        <p id="overlay-message">太棒了！</p>
+                        <div id="unlocked-skins" class="unlocked-skins hidden">
+                            <p>🎉 解锁新皮肤：</p>
+                            <div id="new-skins-list"></div>
+                        </div>
+                        <div class="overlay-buttons">
+                            <button id="retry-btn" class="btn-primary">重试</button>
+                            <button id="next-btn" class="btn-primary">下一关</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-footer">
+                <p class="tip">点击屏幕投掷飞刀，不要碰到其他飞刀！</p>
+            </div>
+        </div>
+
+        <div id="skin-screen" class="screen">
+            <div class="modal-header">
+                <button id="skin-back-btn" class="icon-btn">←</button>
+                <h2>飞刀皮肤</h2>
+                <div style="width: 40px;"></div>
+            </div>
+            <div id="skin-list" class="skin-list"></div>
+        </div>
+
+        <div id="level-screen" class="screen">
+            <div class="modal-header">
+                <button id="level-back-btn" class="icon-btn">←</button>
+                <h2>选择关卡</h2>
+                <div style="width: 40px;"></div>
+            </div>
+            <div id="level-list" class="level-list"></div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
