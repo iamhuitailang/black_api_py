@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'wordchain_game_state';
+const INPUT_KEY = 'wordchain_input';
 
 let gameState = {
     gameId: null,
@@ -28,6 +29,23 @@ function saveGameState() {
     }
 }
 
+function saveInputText() {
+    const input = document.getElementById('wordInput');
+    if (input && input.value) {
+        localStorage.setItem(INPUT_KEY, input.value);
+    } else {
+        localStorage.removeItem(INPUT_KEY);
+    }
+}
+
+function loadInputText() {
+    return localStorage.getItem(INPUT_KEY) || '';
+}
+
+function clearInputText() {
+    localStorage.removeItem(INPUT_KEY);
+}
+
 function loadGameState() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -42,6 +60,7 @@ function loadGameState() {
 
 function clearGameState() {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(INPUT_KEY);
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -57,9 +76,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('submitBtn').addEventListener('click', submitWord);
     document.getElementById('playAgainBtn').addEventListener('click', startGame);
     document.getElementById('viewProfileBtn').addEventListener('click', () => {
+        saveInputText();
         window.location.href = 'profile.html';
     });
     document.getElementById('profileBtn').addEventListener('click', () => {
+        saveInputText();
         window.location.href = 'profile.html';
     });
     document.getElementById('logoutBtn').addEventListener('click', logout);
@@ -70,32 +91,40 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    window.addEventListener('beforeunload', function() {
+        saveInputText();
+        saveGameState();
+    });
+
     await tryResumeGame();
 });
 
 async function tryResumeGame() {
-    const savedState = loadGameState();
-    
-    if (!savedState || !savedState.gameId || !savedState.isPlaying) {
-        return;
-    }
-    
-    const result = await api.resumeGame();
-    
-    if (result.code === 0 && result.data && result.data.has_unfinished) {
-        const game = result.data.game;
-        const rounds = result.data.rounds;
+    try {
+        const result = await api.resumeGame();
         
-        if (game && game.id === savedState.gameId && game.status === 'playing') {
-            restoreGame(game, rounds, savedState);
-            return;
+        if (result.code === 0 && result.data && result.data.has_unfinished) {
+            const game = result.data.game;
+            const rounds = result.data.rounds;
+            
+            if (game && game.status === 'playing') {
+                restoreGame(game, rounds);
+                return;
+            }
         }
+    } catch (e) {
+        console.error('恢复游戏失败:', e);
     }
     
     clearGameState();
+    
+    const savedInput = loadInputText();
+    if (savedInput) {
+        document.getElementById('wordInput').value = savedInput;
+    }
 }
 
-function restoreGame(game, rounds, savedState) {
+function restoreGame(game, rounds) {
     gameState.gameId = game.id;
     gameState.score = game.score || 0;
     gameState.round = game.round_count || 1;
@@ -125,11 +154,16 @@ function restoreGame(game, rounds, savedState) {
             info = round.message || '接龙失败';
         }
         
-        addChatBubble(source, round.word, info, result, true);
+        addChatBubble(source, round.word, info, result);
     });
     
     updateUI();
     startTimer();
+    
+    const savedInput = loadInputText();
+    if (savedInput) {
+        document.getElementById('wordInput').value = savedInput;
+    }
     
     showToast('游戏已恢复', 'success');
     document.getElementById('wordInput').focus();
@@ -137,11 +171,17 @@ function restoreGame(game, rounds, savedState) {
 
 async function startGame() {
     clearGameState();
+    clearInputText();
+    
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
     
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('endScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'block';
     document.getElementById('chatHistory').innerHTML = '';
+    document.getElementById('wordInput').value = '';
 
     const startBtn = document.getElementById('startBtn');
     const playAgainBtn = document.getElementById('playAgainBtn');
@@ -149,34 +189,46 @@ async function startGame() {
     playAgainBtn.disabled = true;
     startBtn.innerHTML = '<span class="loading"></span> 开始中...';
 
-    const result = await api.startGame();
-    
-    startBtn.disabled = false;
-    playAgainBtn.disabled = false;
-    startBtn.textContent = '开始游戏';
+    try {
+        const result = await api.startGame();
+        
+        startBtn.disabled = false;
+        playAgainBtn.disabled = false;
+        startBtn.textContent = '开始游戏';
 
-    if (result.code === 0) {
-        gameState = {
-            gameId: result.data.game_id,
-            score: 0,
-            round: 1,
-            streak: 0,
-            requiredChar: result.data.current_last_char,
-            timeLeft: 15,
-            timerInterval: null,
-            isPlaying: true,
-            startWord: result.data.start_word
-        };
+        if (result.code === 0) {
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+            }
+            
+            gameState = {
+                gameId: result.data.game_id,
+                score: 0,
+                round: 1,
+                streak: 0,
+                requiredChar: result.data.current_last_char,
+                timeLeft: 15,
+                timerInterval: null,
+                isPlaying: true,
+                startWord: result.data.start_word
+            };
 
-        updateUI();
-        addChatBubble('system', result.data.start_word, '系统起始词');
-        startTimer();
-        saveGameState();
-        document.getElementById('wordInput').focus();
-    } else {
-        showToast(result.message, 'error');
-        document.getElementById('startScreen').style.display = 'block';
-        document.getElementById('gameScreen').style.display = 'none';
+            updateUI();
+            addChatBubble('system', result.data.start_word, '系统起始词');
+            startTimer();
+            saveGameState();
+            document.getElementById('wordInput').focus();
+        } else {
+            showToast(result.message, 'error');
+            document.getElementById('startScreen').style.display = 'block';
+            document.getElementById('gameScreen').style.display = 'none';
+        }
+    } catch (e) {
+        startBtn.disabled = false;
+        playAgainBtn.disabled = false;
+        startBtn.textContent = '开始游戏';
+        showToast('网络错误，请重试', 'error');
+        console.error('开始游戏失败:', e);
     }
 }
 
@@ -256,68 +308,83 @@ async function submitWord() {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="loading"></span> 提交中...';
 
-    const result = await api.submitWord(gameState.gameId, word);
-    
-    submitBtn.disabled = false;
-    submitBtn.textContent = '提交';
+    try {
+        const result = await api.submitWord(gameState.gameId, word);
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交';
 
-    if (result.code === 0) {
-        if (result.data.game_over) {
-            addChatBubble('player', word, result.message || '游戏结束', result.data.is_win ? 'success' : 'failed');
-            handleGameOver(result.data);
+        if (result.code === 0) {
+            if (result.data.game_over) {
+                addChatBubble('player', word, result.message || '游戏结束', result.data.is_win ? 'success' : 'failed');
+                handleGameOver(result.data);
+            } else {
+                clearInterval(gameState.timerInterval);
+                
+                gameState.score = result.data.total_score;
+                gameState.round = result.data.round;
+                gameState.streak = result.data.winning_streak;
+                gameState.requiredChar = result.data.next_required_char;
+                
+                let scoreText = `+${result.data.score}分`;
+                if (result.data.is_streak_bonus) {
+                    scoreText += ' (连胜加成×2)';
+                }
+                
+                addChatBubble('player', word, scoreText, 'success');
+                updateUI();
+                saveGameState();
+                clearInputText();
+                
+                input.value = '';
+                startTimer();
+                input.focus();
+                
+                if (result.data.is_streak_bonus) {
+                    showToast('🔥 连胜加成！得分翻倍！', 'success');
+                }
+            }
         } else {
-            clearInterval(gameState.timerInterval);
-            
-            gameState.score = result.data.total_score;
-            gameState.round = result.data.round;
-            gameState.streak = result.data.winning_streak;
-            gameState.requiredChar = result.data.next_required_char;
-            
-            let scoreText = `+${result.data.score}分`;
-            if (result.data.is_streak_bonus) {
-                scoreText += ' (连胜加成×2)';
-            }
-            
-            addChatBubble('player', word, scoreText, 'success');
-            updateUI();
-            saveGameState();
-            
-            input.value = '';
-            startTimer();
-            input.focus();
-            
-            if (result.data.is_streak_bonus) {
-                showToast('🔥 连胜加成！得分翻倍！', 'success');
-            }
+            addChatBubble('player', word, result.message, 'failed');
+            handleGameOver({
+                is_win: false,
+                final_score: gameState.score,
+                round_count: gameState.round,
+                max_streak: gameState.streak,
+                words_count: gameState.round - 1
+            });
+            showToast(result.message, 'error');
         }
-    } else {
-        addChatBubble('player', word, result.message, 'failed');
-        handleGameOver({
-            is_win: false,
-            final_score: gameState.score,
-            round_count: gameState.round,
-            max_streak: gameState.streak,
-            words_count: gameState.round - 1
-        });
-        showToast(result.message, 'error');
+    } catch (e) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交';
+        showToast('网络错误，请重试', 'error');
+        console.error('提交失败:', e);
     }
 }
 
 async function handleTimeout() {
     if (!gameState.isPlaying) return;
 
-    const result = await api.timeout(gameState.gameId);
-    
-    if (result.code === 0) {
-        addChatBubble('player', '⏰ 时间到', '超时未作答', 'failed');
-        handleGameOver(result.data);
+    try {
+        const result = await api.timeout(gameState.gameId);
+        
+        if (result.code === 0) {
+            addChatBubble('player', '⏰ 时间到', '超时未作答', 'failed');
+            handleGameOver(result.data);
+        }
+    } catch (e) {
+        console.error('超时处理失败:', e);
     }
 }
 
 function handleGameOver(data) {
     gameState.isPlaying = false;
-    clearInterval(gameState.timerInterval);
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
     clearGameState();
+    clearInputText();
 
     document.getElementById('gameScreen').style.display = 'none';
     document.getElementById('endScreen').style.display = 'block';
@@ -340,7 +407,7 @@ function handleGameOver(data) {
     document.getElementById('finalWords').textContent = data.words_count;
 }
 
-function addChatBubble(source, word, info, result = 'success', restore = false) {
+function addChatBubble(source, word, info, result = 'success') {
     const chatHistory = document.getElementById('chatHistory');
     const bubble = document.createElement('div');
     
@@ -358,6 +425,7 @@ function addChatBubble(source, word, info, result = 'success', restore = false) 
 
 async function logout() {
     clearGameState();
+    clearInputText();
     await api.logout();
     api.clearToken();
     localStorage.removeItem('wordchain_user');
