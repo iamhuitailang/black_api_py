@@ -154,7 +154,7 @@ function loadProgress(){try{const r=localStorage.getItem('arcade_bowl_prog');ret
 function saveProgress(){
   try{
     const p={state:G.state,cf:G.cf,cb:G.cb,frames:G.frames,
-      pins:G.pins.map(p=>({id:p.id,up:p.up,x:p.x,y:p.y,vx:p.vx,vy:p.vy,rot:p.rot,fellAngle:p.fellAngle})),
+      pins:G.pins.map(p=>({id:p.id,up:p.up,x:p.x,y:p.y,vx:p.vx,vy:p.vy,rot:p.rot,fellAngle:p.fellAngle,z:p.z||0,vz:p.vz||0})),
       pw:G.pw,sv:G.sv,positionX:G.px,selectedBall:G.sb,lane:G.lc,ct:G.ct,ctxt:G.ctxt,prt:G.prt,sf:G.sf};
     localStorage.setItem('arcade_bowl_prog',JSON.stringify(p));
   }catch(e){}
@@ -164,12 +164,18 @@ function clearProgress(){try{localStorage.removeItem('arcade_bowl_prog');}catch(
 let G={
   state:S.IDLE,frames:[],cf:0,cb:0,ts:0,bs:0,
   ub:['basic','curve','power','precision'],sb:'basic',lc:'standard',
-  pins:[],ball:{x:LC,y:BSY,vx:0,vy:0,sp:0,vis:false},
+  pins:[],ball:{x:LC,y:BSY,vx:0,vy:0,sp:0,vis:false,mass:6},
   trail:[],gut:false,
   px:LC,pw:0,pd:1,sv:0,sd:1,
   mx:LC,pkr:0,
   ct:0,ctxt:'',prt:0,sf:0
 };
+
+const GRAVITY = 0.18;
+const PIN_MASS = 1;
+const RESTITUTION = 0.7;
+const FLOOR_FRICTION = 0.92;
+const AIR_FRICTION = 0.998;
 
 function initFrames(){
   G.frames=[];
@@ -182,12 +188,12 @@ function initPins(){
     const cnt=row+1;
     const sx=LC-(cnt-1)*PCS/2;
     for(let col=0;col<cnt;col++){
-      G.pins.push({id:id++,ox:sx+col*PCS,oy:PBY+(3-row)*PRS,x:sx+col*PCS,y:PBY+(3-row)*PRS,vx:0,vy:0,up:true,r:PR,rot:0,rotV:0,fellAngle:0});
+      G.pins.push({id:id++,ox:sx+col*PCS,oy:PBY+(3-row)*PRS,x:sx+col*PCS,y:PBY+(3-row)*PRS,vx:0,vy:0,up:true,r:PR,rot:0,rotV:0,fellAngle:0,mass:PIN_MASS,standing:true,bounce:RESTITUTION});
     }
   }
 }
 
-function resetAllPins(){G.pins.forEach(p=>{p.x=p.ox;p.y=p.oy;p.vx=0;p.vy=0;p.up=true;p.rot=0;p.rotV=0;p.fellAngle=0;});}
+function resetAllPins(){G.pins.forEach(p=>{p.x=p.ox;p.y=p.oy;p.vx=0;p.vy=0;p.up=true;p.rot=0;p.rotV=0;p.fellAngle=0;p.standing=true;});}
 function hideFallen(){}
 
 function getBT(){return BT.find(b=>b.id===G.sb)||BT[0];}
@@ -245,36 +251,169 @@ function updateRolling(){
   if(!G.gut)checkCollisions();
 }
 
+function resolveCollision2D(a, b, rest, cor) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  let dist = Math.sqrt(dx * dx + dy * dy);
+  const minDist = (a.r || 0) + (b.r || 0);
+  if (dist === 0) {
+    dist = 0.01;
+  }
+  if (dist > minDist) return false;
+
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const overlap = minDist - dist;
+
+  const aMass = a.mass || 1;
+  const bMass = b.mass || 1;
+  const totalMass = aMass + bMass;
+
+  a.x -= nx * overlap * (bMass / totalMass);
+  a.y -= ny * overlap * (bMass / totalMass);
+  b.x += nx * overlap * (aMass / totalMass);
+  b.y += ny * overlap * (aMass / totalMass);
+
+  const dvx = a.vx - b.vx;
+  const dvy = a.vy - b.vy;
+  const dvn = dvx * nx + dvy * ny;
+
+  if (dvn > 0) return false;
+
+  const j = -(1 + cor) * dvn / (1 / aMass + 1 / bMass);
+
+  const jx = j * nx;
+  const jy = j * ny;
+
+  a.vx += jx / aMass;
+  a.vy += jy / aMass;
+  b.vx -= jx / bMass;
+  b.vy -= jy / bMass;
+
+  if (a.rotV !== undefined) a.rotV += (Math.random() - 0.5) * 0.8;
+  if (b.rotV !== undefined) b.rotV += (Math.random() - 0.5) * 0.8;
+
+  return true;
+}
+
+function applyPhysics(p) {
+  p.vx *= AIR_FRICTION;
+  p.vy *= AIR_FRICTION;
+
+  p.x += p.vx;
+  p.y += p.vy;
+
+  if (p.z !== undefined) {
+    p.vz -= GRAVITY;
+    p.z += p.vz;
+    if (p.z < 0) {
+      p.z = 0;
+      if (Math.abs(p.vz) > 0.5) {
+        p.vz = -p.vz * 0.45;
+        p.vx *= 0.85;
+        p.vy *= 0.85;
+      } else {
+        p.vz = 0;
+        p.vx *= FLOOR_FRICTION;
+        p.vy *= FLOOR_FRICTION;
+      }
+    }
+  }
+
+  p.rot += p.rotV;
+  p.rotV *= 0.95;
+
+  const minX = LL - GW + p.r;
+  const maxX = LR + GW - p.r;
+  const minY = -50;
+  const maxY = BSY + 60;
+
+  if (p.x < minX) {
+    p.x = minX;
+    p.vx = -p.vx * 0.6;
+    p.rotV += 0.3;
+  }
+  if (p.x > maxX) {
+    p.x = maxX;
+    p.vx = -p.vx * 0.6;
+    p.rotV -= 0.3;
+  }
+  if (p.y < minY) {
+    p.y = minY;
+    p.vy = -p.vy * 0.5;
+  }
+  if (p.y > maxY) {
+    p.y = maxY;
+    p.vy = -p.vy * 0.7;
+  }
+}
+
+function updatePinPhysics() {
+  for (let i = 0; i < G.pins.length; i++) {
+    const p = G.pins[i];
+    if (!p.up && (Math.abs(p.vx) > 0.01 || Math.abs(p.vy) > 0.01 || (p.z !== undefined && p.z > 0.01))) {
+      applyPhysics(p);
+    } else if (!p.up) {
+      p.vx *= 0.9;
+      p.vy *= 0.9;
+      p.rotV *= 0.9;
+    }
+  }
+
+  for (let iter = 0; iter < 3; iter++) {
+    for (let i = 0; i < G.pins.length; i++) {
+      const a = G.pins[i];
+      if (!a.up && (Math.abs(a.vx) < 0.01 && Math.abs(a.vy) < 0.01 && (a.z === undefined || a.z <= 0.01))) { continue; }
+      for (let j = i + 1; j < G.pins.length; j++) {
+        const b = G.pins[j];
+        if (!b.up && (Math.abs(b.vx) < 0.01 && Math.abs(b.vy) < 0.01 && (b.z === undefined || b.z <= 0.01))) { continue; }
+
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = a.r + b.r;
+
+        if (dist < minDist) {
+          const aWasUp = a.up;
+          const bWasUp = b.up;
+
+          resolveCollision2D(a, b, 0.0, 0.7);
+
+          if (aWasUp && Math.sqrt(a.vx * a.vx + a.vy * a.vy) > 0.8) {
+            a.up = false;
+            if (a.z === undefined) { a.z = 0; }
+            a.vz = 1.5 + Math.random() * 2;
+            a.fellAngle = Math.random() * Math.PI * 2;
+            G.pkr++;
+            playHit();
+          }
+          if (bWasUp && Math.sqrt(b.vx * b.vx + b.vy * b.vy) > 0.8) {
+            b.up = false;
+            if (b.z === undefined) { b.z = 0; }
+            b.vz = 1.5 + Math.random() * 2;
+            b.fellAngle = Math.random() * Math.PI * 2;
+            G.pkr++;
+            playHit();
+          }
+        }
+      }
+    }
+  }
+}
+
 function checkCollisions(){
   const b=G.ball;
   for(const p of G.pins){
     if(!p.up)continue;
     const dx=b.x-p.x,dy=b.y-p.y,d=Math.sqrt(dx*dx+dy*dy);
     if(d<BR+p.r){
+      resolveCollision2D(b, p, 0, 0.6);
       p.up=false;
-      const a=Math.atan2(p.y-b.y,p.x-b.x);
-      const spd=Math.sqrt(b.vx*b.vx+b.vy*b.vy)*0.6;
-      p.vx=Math.cos(a)*spd+b.vx*0.3;
-      p.vy=Math.sin(a)*spd+b.vy*0.3;
-      p.rotV=(Math.random()-0.5)*0.5;
-      p.fellAngle=Math.random()*Math.PI*2;
+      p.z = 0;
+      p.vz = 2 + Math.random() * 3;
+      p.fellAngle = Math.random() * Math.PI * 2;
+      p.rotV += (Math.random() - 0.5) * 1.5;
       G.pkr++;playHit();
-    }
-  }
-  const fly=G.pins.filter(p=>!p.up&&(Math.abs(p.vx)>0.3||Math.abs(p.vy)>0.3));
-  for(const fp of fly){
-    for(const p of G.pins){
-      if(!p.up)continue;
-      const dx=fp.x-p.x,dy=fp.y-p.y,d=Math.sqrt(dx*dx+dy*dy);
-      if(d<12){
-        p.up=false;
-        const a=Math.atan2(p.y-fp.y,p.x-fp.x);
-        const sp=Math.sqrt(fp.vx*fp.vx+fp.vy*fp.vy)*0.4;
-        p.vx=Math.cos(a)*sp;p.vy=Math.sin(a)*sp;
-        p.rotV=(Math.random()-0.5)*0.5;
-        p.fellAngle=Math.random()*Math.PI*2;
-        G.pkr++;playHit();
-      }
     }
   }
 }
@@ -400,10 +539,18 @@ function update(){
   if(G.state===S.PWR)updPower();
   if(G.state===S.SPN)updSpin();
   if(G.state===S.ROL)updateRolling();
-  G.pins.forEach(p=>{if(!p.up){p.x+=p.vx;p.y+=p.vy;p.vx*=0.9;p.vy*=0.9;p.rot+=p.rotV;p.rotV*=0.93;}});
+  if(G.state===S.ROL||G.state===S.SCO){
+    updatePinPhysics();
+  }
   if(G.ct>0)G.ct--;
   if(G.sf>0)G.sf--;
-  if(G.prt>0){G.prt--;if(G.prt===0)startNext();}
+  if(G.state===S.SCO){
+    const moving=G.pins.some(p=>!p.up&&(Math.abs(p.vx)>0.1||Math.abs(p.vy)>0.1||(p.z!==undefined&&p.z>0.05)));
+    if(!moving&&G.prt===0){
+      G.prt=40;
+    }
+  }
+  if(G.prt>0){G.prt--;if(G.prt===0&&G.state===S.SCO)startNext();}
   if(G.state===S.POS||G.state===S.PWR||G.state===S.SPN||G.state===S.SCO){
     if(G.state!==S.SCO||G.prt>5)saveProgress();
   }
@@ -455,24 +602,47 @@ function drawLane(){
 
 function drawPins(){
   for(const p of G.pins){
+    const z = p.z || 0;
+    const scale = 1 + z * 0.05;
+    const shadowOffset = z * 0.8;
     if(p.up){
-      cx.save();cx.shadowColor='rgba(255,255,255,0.25)';cx.shadowBlur=3;
-      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle='#f0f0f0';cx.fill();cx.restore();
-      cx.beginPath();cx.arc(p.x,p.y-1,p.r*0.45,0,Math.PI*2);cx.fillStyle='#cc0000';cx.fill();
-      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.strokeStyle='rgba(200,200,200,0.5)';cx.lineWidth=0.5;cx.stroke();
+      cx.save();
+      cx.shadowColor='rgba(0,0,0,0.4)';
+      cx.shadowBlur=3+z*0.3;
+      cx.shadowOffsetX=shadowOffset;
+      cx.shadowOffsetY=shadowOffset;
+      cx.beginPath();
+      cx.arc(p.x,p.y-z,p.r*scale,0,Math.PI*2);
+      cx.fillStyle='#f0f0f0';
+      cx.fill();
+      cx.restore();
+      cx.beginPath();
+      cx.arc(p.x,p.y-z-1,p.r*0.45*scale,0,Math.PI*2);
+      cx.fillStyle='#cc0000';
+      cx.fill();
+      cx.beginPath();
+      cx.arc(p.x,p.y-z,p.r*scale,0,Math.PI*2);
+      cx.strokeStyle='rgba(200,200,200,0.5)';
+      cx.lineWidth=0.5;
+      cx.stroke();
     }else{
       cx.save();
-      cx.translate(p.x,p.y);
+      cx.translate(p.x,p.y-z);
       cx.rotate(p.rot+p.fellAngle);
+      cx.scale(scale,scale);
       const ellipseRatio=0.5;
+
       cx.save();
-      cx.shadowColor='rgba(255,255,255,0.1)';
-      cx.shadowBlur=2;
+      cx.shadowColor='rgba(0,0,0,0.4)';
+      cx.shadowBlur=2+z*0.3;
+      cx.shadowOffsetX=shadowOffset;
+      cx.shadowOffsetY=shadowOffset;
       cx.beginPath();
       cx.ellipse(0,0,p.r,p.r*ellipseRatio,0,0,Math.PI*2);
       cx.fillStyle='#e0e0e0';
       cx.fill();
       cx.restore();
+
       cx.beginPath();
       cx.arc(0,-1,p.r*0.35,0,Math.PI*2);
       cx.fillStyle='#aa2222';
@@ -634,10 +804,13 @@ function init(){
         G.pins[i].up=prog.pins[i].up;
         G.pins[i].x=prog.pins[i].x;
         G.pins[i].y=prog.pins[i].y;
-        G.pins[i].vx=0;G.pins[i].vy=0;
+        G.pins[i].vx=prog.pins[i].vx||0;
+        G.pins[i].vy=prog.pins[i].vy||0;
         G.pins[i].rot=prog.pins[i].rot||0;
         G.pins[i].rotV=0;
         G.pins[i].fellAngle=prog.pins[i].fellAngle!==undefined?prog.pins[i].fellAngle:Math.random()*Math.PI*2;
+        G.pins[i].z=prog.pins[i].z||0;
+        G.pins[i].vz=prog.pins[i].vz||0;
       }
     }
     G.pw=prog.pw||0;G.sv=prog.sv||0;G.px=prog.positionX||LC;
