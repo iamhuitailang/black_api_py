@@ -81,13 +81,11 @@ export function drawStickman(
   const baseY = GROUND_Y
   const f = p.facing
 
-  // 玩家标识色
   const playerColor = playerNum === 1 ? '#ff2d55' : '#00d4ff'
 
   ctx.save()
   ctx.translate(baseX, baseY)
 
-  // 脚下影子（玩家区分）
   ctx.save()
   const shadowGrad = ctx.createRadialGradient(0, -2, 0, 0, -2, 36)
   shadowGrad.addColorStop(0, playerColor + '55')
@@ -99,20 +97,12 @@ export function drawStickman(
   ctx.fill()
   ctx.restore()
 
-  // 被击倒时旋转
-  if (p.state === 'knockdown') {
-    ctx.rotate(f * Math.PI / 2.2)
-    ctx.translate(0, -15)
-  }
-
-  // 待机晃动
   let sway = 0
   if (isIdle && (p.state === 'idle' || p.state === 'walk')) {
     sway = Math.sin(p.idleAnimFrame * 0.06) * 1.2
   }
   ctx.translate(0, sway)
 
-  // 受伤闪烁
   const hurtFlash = p.hurtTimer > 0 && (p.hurtTimer % 4 < 2)
   const strokeColor = hurtFlash ? '#ffffff' : color
 
@@ -122,7 +112,6 @@ export function drawStickman(
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
 
-  // 蓄力光环
   if (p.state === 'charge') {
     ctx.save()
     const pulse = 25 + Math.sin(p.idleAnimFrame * 0.3) * 8
@@ -137,31 +126,35 @@ export function drawStickman(
     ctx.restore()
   }
 
-  // 防御光盾
+  ctx.save()
+  ctx.scale(f, 1)
+
+  if (p.state === 'knockdown') {
+    ctx.rotate(Math.PI / 2.2)
+    ctx.translate(0, -15)
+  }
+
   if (p.isBlocking) {
     ctx.save()
     ctx.strokeStyle = 'rgba(100,200,255,0.7)'
     ctx.lineWidth = 3
     ctx.beginPath()
-    ctx.arc(f * 16, -50, 30, -Math.PI / 2.5, Math.PI / 2.5)
+    ctx.arc(16, -50, 30, -Math.PI / 2.5, Math.PI / 2.5)
     ctx.stroke()
     ctx.restore()
   }
 
-  // 头
   const headR = 14
   const headY = -92
   ctx.beginPath()
   ctx.arc(0, headY, headR, 0, Math.PI * 2)
   ctx.stroke()
 
-  // 眼睛（方向）
   ctx.fillStyle = strokeColor
   ctx.beginPath()
-  ctx.arc(f * 5, headY - 2, 2.5, 0, Math.PI * 2)
+  ctx.arc(5, headY - 2, 2.5, 0, Math.PI * 2)
   ctx.fill()
 
-  // 待机动画：打哈欠
   if (isIdle && Math.sin(p.idleAnimFrame * 0.015) > 0.92 && p.state === 'idle') {
     ctx.save()
     ctx.fillStyle = '#111'
@@ -170,14 +163,12 @@ export function drawStickman(
     ctx.fill()
     ctx.restore()
   } else {
-    // 普通嘴
     ctx.beginPath()
     ctx.moveTo(-3, headY + 5)
     ctx.lineTo(3, headY + 5)
     ctx.stroke()
   }
 
-  // 身体
   const shoulderY = headY + headR
   const hipY = -35
   ctx.beginPath()
@@ -185,42 +176,33 @@ export function drawStickman(
   ctx.lineTo(0, hipY)
   ctx.stroke()
 
-  // 腿
   let legSwing = 0
   if (p.state === 'walk') {
     legSwing = Math.sin(p.idleAnimFrame * 0.35) * 12
   }
-  // 左腿
   ctx.beginPath()
   ctx.moveTo(0, hipY)
   ctx.lineTo(-10 + legSwing, 0)
   ctx.stroke()
-  // 右腿
   ctx.beginPath()
   ctx.moveTo(0, hipY)
   ctx.lineTo(10 - legSwing, 0)
   ctx.stroke()
 
-  // 手臂
   if (p.state === 'attack' && p.attackFrame <= 8 && p.attackFrame > 0) {
-    // 出拳
-    const punchExt = f * 42
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(punchExt, shoulderY + 2)
+    ctx.lineTo(42, shoulderY + 2)
     ctx.stroke()
-    // 拳头
     ctx.beginPath()
-    ctx.arc(punchExt, shoulderY + 2, 7, 0, Math.PI * 2)
+    ctx.arc(42, shoulderY + 2, 7, 0, Math.PI * 2)
     ctx.fill()
-    // 后臂
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(-f * 14, shoulderY + 16)
+    ctx.lineTo(-14, shoulderY + 16)
     ctx.stroke()
   } else if (p.state === 'special') {
-    // 必杀动作
-    const spExt = f * (48 + Math.sin(p.idleAnimFrame * 0.6) * 6)
+    const spExt = 48 + Math.sin(p.idleAnimFrame * 0.6) * 6
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
     ctx.lineTo(spExt, shoulderY - 6)
@@ -228,7 +210,6 @@ export function drawStickman(
     ctx.beginPath()
     ctx.arc(spExt, shoulderY - 6, 9, 0, Math.PI * 2)
     ctx.fill()
-    // 必杀轨迹
     ctx.save()
     ctx.strokeStyle = color
     ctx.globalAlpha = 0.5
@@ -236,52 +217,47 @@ export function drawStickman(
     for (let t = 0; t < 5; t++) {
       const off = t * 10
       ctx.beginPath()
-      ctx.arc(spExt - f * off, shoulderY - 6, 9 + t * 2, 0, Math.PI * 2)
+      ctx.arc(spExt - off, shoulderY - 6, 9 + t * 2, 0, Math.PI * 2)
       ctx.stroke()
     }
     ctx.restore()
-    // 另一只手
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(-f * 18, shoulderY + 20)
+    ctx.lineTo(-18, shoulderY + 20)
     ctx.stroke()
   } else if (p.state === 'hurt') {
-    // 受伤姿势
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(-f * 20, shoulderY - 8)
+    ctx.lineTo(-20, shoulderY - 8)
     ctx.stroke()
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(-f * 14, shoulderY + 22)
+    ctx.lineTo(-14, shoulderY + 22)
     ctx.stroke()
   } else if (p.isBlocking) {
-    // 防御姿势
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(f * 18, shoulderY - 10)
+    ctx.lineTo(18, shoulderY - 10)
     ctx.stroke()
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(f * 22, shoulderY + 14)
+    ctx.lineTo(22, shoulderY + 14)
     ctx.stroke()
   } else {
-    // 普通/待机手臂
     let armSwing = 0
     if (p.state === 'walk') armSwing = Math.sin(p.idleAnimFrame * 0.35) * 8
-    // 前臂
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(f * 16 - armSwing, shoulderY + 24)
+    ctx.lineTo(16 - armSwing, shoulderY + 24)
     ctx.stroke()
-    // 后臂
     ctx.beginPath()
     ctx.moveTo(0, shoulderY + 6)
-    ctx.lineTo(-f * 14 + armSwing, shoulderY + 22)
+    ctx.lineTo(-14 + armSwing, shoulderY + 22)
     ctx.stroke()
   }
 
-  // 角色名字（小标签）
+  ctx.restore()
+
   ctx.save()
   ctx.fillStyle = playerColor
   ctx.font = 'bold 10px VT323, monospace'
