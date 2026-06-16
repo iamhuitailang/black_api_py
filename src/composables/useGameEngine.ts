@@ -1,7 +1,7 @@
 
 import { ref, reactive, computed, watch } from 'vue'
 import { CHARACTERS, GAME_CONFIG } from '../data/characters'
-import { createPlayerState, getCharacter, canMove, canAttack, canUseSpecial, isDefending } from './useCharacter'
+import { createPlayerState, getCharacter, canMove, canAttack, canUseSpecial, isDefending, isControlLocked } from './useCharacter'
 import type { PlayerState } from './useCharacter'
 import { useInput } from './useInput'
 import type { InputState } from './useInput'
@@ -110,6 +110,22 @@ export function useGameEngine() {
       restorePlayer(gameState.p1, save.p1)
       restorePlayer(gameState.p2, save.p2)
     }
+    // 恢复倒计时小数部分
+    timerAccum = save.timerAccum || 0
+    // 时间补偿：根据存档真实经过的时间扣减
+    if (save.phase === 'battle' && save.savedAt) {
+      const elapsed = (Date.now() - save.savedAt) / 1000
+      if (elapsed > 0 && elapsed < GAME_CONFIG.ROUND_TIME) {
+        timerAccum += elapsed
+        while (timerAccum >= 1 && gameState.timer > 0) {
+          timerAccum -= 1
+          gameState.timer--
+        }
+        if (gameState.timer <= 0) {
+          gameState.timer = 0
+        }
+      }
+    }
     if (save.phase === 'battle') {
       startGameLoop()
     }
@@ -153,6 +169,7 @@ export function useGameEngine() {
       p1Score: gameState.p1Score,
       p2Score: gameState.p2Score,
       timer: gameState.timer,
+      timerAccum: timerAccum,
       p1: buildPlayerSave(gameState.p1),
       p2: buildPlayerSave(gameState.p2),
       winner: gameState.winner,
@@ -164,6 +181,7 @@ export function useGameEngine() {
   function startGameLoop() {
     stopGameLoop()
     saveIntervalId = window.setInterval(autoSave, 2000)
+    window.addEventListener('beforeunload', autoSave)
     const tick = () => {
       step()
       animFrameId = requestAnimationFrame(tick)
@@ -180,6 +198,7 @@ export function useGameEngine() {
       clearInterval(saveIntervalId)
       saveIntervalId = null
     }
+    window.removeEventListener('beforeunload', autoSave)
   }
 
   function addParticle(x: number, y: number, color: string, count = 8) {
@@ -213,15 +232,19 @@ export function useGameEngine() {
       }
     }
 
-    updatePlayer(gameState.p1, gameState.p2, p1Input.value, 1,
+    // ===== Phase 1: 先更新面向 + 双方的移动/防御状态 =====
+    autoFace()
+    updatePlayerPhase1(gameState.p1, p1Input.value)
+    updatePlayerPhase1(gameState.p2, p2Input.value)
+    clampPositions()
+
+    // ===== Phase 2: 再处理攻击/必杀输入与伤害判定 =====
+    // (此时对手的 isBlocking 已是最新值)
+    updatePlayerPhase2(gameState.p1, gameState.p2, p1Input.value,
       consumeP1Attack, consumeP1Special)
-    updatePlayer(gameState.p2, gameState.p1, p2Input.value, 2,
+    updatePlayerPhase2(gameState.p2, gameState.p1, p2Input.value,
       consumeP2Attack, consumeP2Special)
 
-    // 自动面向
-    autoFace()
-    // 边界约束
-    clampPositions()
     // 屏幕震动衰减
     if (gameState.screenShake > 0) gameState.screenShake *= 0.9
     // 闪光衰减
@@ -240,15 +263,12 @@ export function useGameEngine() {
     checkRoundEnd()
   }
 
-  function updatePlayer(
-    p: PlayerState, opponent: PlayerState,
-    input: InputState, playerNum: number,
-    consumeAttack: () => boolean, consumeSpecial: () => boolean
-  ) {
+  // Phase 1: 更新面向、计时器、防御状态、移动（双方先同步完成）
+  function updatePlayerPhase1(p: PlayerState, input: InputState) {
     const char = getCharacter(p.characterId)
     const backKey = p.facing === 1 ? input.left : input.right
 
-    // 防御状态
+    // 防御状态（用最新facing判断）
     p.isBlocking = isDefending(p, backKey)
 
     // 计时器递减
@@ -257,24 +277,53 @@ export function useGameEngine() {
     if (p.knockdownTimer > 0) p.knockdownTimer--
     if (p.stateTimer > 0) p.stateTimer--
     if (p.specialHitTimer > 0) p.specialHitTimer--
+    if (p.state === 'charge') p.chargeTimer--
 
     // 待机动画帧
     p.idleAnimFrame++
 
-    // 击倒状态恢复
+    // 击倒/受伤状态恢复
     if (p.knockdownTimer <= 0 && p.state === 'knockdown') {
       p.state = 'idle'
     }
     if (p.hurtTimer <= 0 && p.state === 'hurt') {
       p.state = 'idle'
     }
-
-    // 蓄力必杀
-    if (p.state === 'charge') {
-      p.chargeTimer--
-      if (p.chargeTimer <= 0) {
-        triggerSpecialEffect(p, opponent)
+    if (p.stateTimer <= 0) {
+      if (p.state === 'attack') {
+        p.state = 'idle'
+        p.attackCooldown = GAME_CONFIG.ATTACK_COOLDOWN
+      } else if (p.state === 'special') {
+        p.state = 'idle'
+        p.attackCooldown = 8
       }
+    }
+
+    // 移动（可控制时）
+    let moving = false
+    if (canMove(p)) {
+      const speed = char.speed
+      if (input.left) { p.x -= speed; moving = true }
+      if (input.right) { p.x += speed; moving = true }
+    }
+
+    // idle/walk 状态切换
+    if (p.state === 'idle' || p.state === 'walk') {
+      p.state = moving ? 'walk' : 'idle'
+    }
+  }
+
+  // Phase 2: 处理攻击/必杀的输入与伤害判定（对手的isBlocking已更新完毕）
+  function updatePlayerPhase2(
+    p: PlayerState, opponent: PlayerState,
+    input: InputState,
+    consumeAttack: () => boolean, consumeSpecial: () => boolean
+  ) {
+    const char = getCharacter(p.characterId)
+
+    // 蓄力必杀到达释放点
+    if (p.state === 'charge' && p.chargeTimer <= 0) {
+      triggerSpecialEffect(p, opponent)
       return
     }
 
@@ -286,18 +335,13 @@ export function useGameEngine() {
         p.specialHitTimer = 10
         applyDamage(p, opponent, sp.damage, true)
       }
-      if (p.stateTimer <= 0) {
-        p.state = 'idle'
-        p.attackCooldown = 8
-      }
       return
     }
 
-    // 攻击状态
+    // 普攻攻击判定帧
     if (p.state === 'attack') {
       if (p.attackFrame > 0) {
         p.attackFrame--
-        // 判定帧 1-8
         if (p.attackFrame <= 8 && p.attackFrame > 0 && !p.hitDealt) {
           if (inAttackRange(p, opponent)) {
             p.hitDealt = true
@@ -305,15 +349,11 @@ export function useGameEngine() {
           }
         }
       }
-      if (p.stateTimer <= 0) {
-        p.state = 'idle'
-        p.attackCooldown = GAME_CONFIG.ATTACK_COOLDOWN
-      }
       return
     }
 
-    // 输入处理
-    if (p.knockdownTimer > 0) return
+    // 无法输入时跳过
+    if (p.knockdownTimer > 0 || isControlLocked(p)) return
 
     // 必杀输入
     if (consumeSpecial() && canUseSpecial(p)) {
@@ -348,20 +388,6 @@ export function useGameEngine() {
       p.attackFrame = GAME_CONFIG.ATTACK_FRAMES + 4
       p.hitDealt = false
       playPunch()
-      return
-    }
-
-    // 移动
-    let moving = false
-    if (canMove(p)) {
-      const speed = char.speed
-      if (input.left) { p.x -= speed; moving = true }
-      if (input.right) { p.x += speed; moving = true }
-    }
-
-    // 状态切换
-    if (p.state === 'idle' || p.state === 'walk') {
-      p.state = moving ? 'walk' : 'idle'
     }
   }
 

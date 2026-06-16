@@ -17,6 +17,7 @@ export interface GameSaveData {
   p1Score: number
   p2Score: number
   timer: number
+  timerAccum: number
   p1: PlayerSaveData
   p2: PlayerSaveData
   winner: string | null
@@ -40,6 +41,7 @@ export function useStorage() {
       const raw = localStorage.getItem(GAME_CONFIG.STORAGE_KEY)
       if (!raw) return null
       const data = JSON.parse(raw) as GameSaveData
+      if (data.timerAccum === undefined) data.timerAccum = 0
       return data
     } catch (e) {
       console.warn('Load failed:', e)
@@ -58,7 +60,6 @@ export function useStorage() {
   function hasValidSave(): boolean {
     const data = loadGame()
     if (!data) return false
-    // 存档有效期：24小时内有效，或者处于战斗中/选择阶段
     const now = Date.now()
     return now - data.savedAt < 24 * 60 * 60 * 1000
   }
