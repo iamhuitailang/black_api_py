@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工厂自动化大亨 - Factory Automation Tycoon</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="top-bar">
+            <h1>🏭 工厂自动化大亨</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-icon">💰</span>
+                    <span class="stat-label">金币</span>
+                    <span class="stat-value" id="gold">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📦</span>
+                    <span class="stat-label">仓库</span>
+                    <span class="stat-value" id="storage-display">0/200</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🔬</span>
+                    <span class="stat-label">科技等级</span>
+                    <span class="stat-value" id="tech-level">0</span>
+                </div>
+            </div>
+            <div class="top-actions">
+                <button id="btn-save" class="btn btn-secondary">💾 保存</button>
+                <button id="btn-reset" class="btn btn-danger">🔄 重置</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="left-panel">
+                <div class="panel-section">
+                    <h3>🛠️ 建造工具</h3>
+                    <div class="tool-list" id="tool-list">
+                        <button class="tool-btn" data-tool="select">
+                            <span class="tool-icon">👆</span>
+                            <span class="tool-name">选择/删除</span>
+                            <span class="tool-desc">点击选择，右键删除</span>
+                        </button>
+                        <button class="tool-btn" data-tool="conveyor" data-cost="10">
+                            <span class="tool-icon">➡️</span>
+                            <span class="tool-name">传送带</span>
+                            <span class="tool-cost">💰 10/格</span>
+                        </button>
+                        <button class="tool-btn" data-tool="miner_iron" data-cost="100">
+                            <span class="tool-icon">⛏️</span>
+                            <span class="tool-name">铁矿机</span>
+                            <span class="tool-cost">💰 100</span>
+                        </button>
+                        <button class="tool-btn" data-tool="miner_copper" data-cost="100">
+                            <span class="tool-icon">⛏️</span>
+                            <span class="tool-name">铜矿机</span>
+                            <span class="tool-cost">💰 100</span>
+                        </button>
+                        <button class="tool-btn" data-tool="miner_coal" data-cost="100">
+                            <span class="tool-icon">⛏️</span>
+                            <span class="tool-name">煤矿机</span>
+                            <span class="tool-cost">💰 100</span>
+                        </button>
+                        <button class="tool-btn" data-tool="assembler_gear" data-cost="150">
+                            <span class="tool-icon">⚙️</span>
+                            <span class="tool-name">齿轮加工台</span>
+                            <span class="tool-cost">💰 150</span>
+                        </button>
+                        <button class="tool-btn" data-tool="assembler_circuit" data-cost="150">
+                            <span class="tool-icon">🔌</span>
+                            <span class="tool-name">电路加工台</span>
+                            <span class="tool-cost">💰 150</span>
+                        </button>
+                        <button class="tool-btn" data-tool="assembler_steel" data-cost="150">
+                            <span class="tool-icon">🔩</span>
+                            <span class="tool-name">钢材加工台</span>
+                            <span class="tool-cost">💰 150</span>
+                        </button>
+                        <button class="tool-btn" data-tool="warehouse" data-cost="80">
+                            <span class="tool-icon">📦</span>
+                            <span class="tool-name">仓库</span>
+                            <span class="tool-cost">💰 80</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>📋 资源与产品</h3>
+                    <div class="resource-list" id="resource-list">
+                        <div class="resource-item">
+                            <span class="res-icon">🪨</span>
+                            <span class="res-name">铁矿石</span>
+                            <span class="res-count" id="res-iron_ore">0</span>
+                        </div>
+                        <div class="resource-item">
+                            <span class="res-icon">🟠</span>
+                            <span class="res-name">铜矿石</span>
+                            <span class="res-count" id="res-copper_ore">0</span>
+                        </div>
+                        <div class="resource-item">
+                            <span class="res-icon">⬛</span>
+                            <span class="res-name">煤</span>
+                            <span class="res-count" id="res-coal">0</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="resource-item product">
+                            <span class="res-icon">⚙️</span>
+                            <span class="res-name">齿轮</span>
+                            <span class="res-count" id="res-gear">0</span>
+                            <button class="sell-btn" data-item="gear" data-price="20">卖 💰20</button>
+                        </div>
+                        <div class="resource-item product">
+                            <span class="res-icon">🔌</span>
+                            <span class="res-name">电路</span>
+                            <span class="res-count" id="res-circuit">0</span>
+                            <button class="sell-btn" data-item="circuit" data-price="50">卖 💰50</button>
+                        </div>
+                        <div class="resource-item product">
+                            <span class="res-icon">🔩</span>
+                            <span class="res-name">钢材</span>
+                            <span class="res-count" id="res-steel">0</span>
+                            <button class="sell-btn" data-item="steel" data-price="80">卖 💰80</button>
+                        </div>
+                    </div>
+                    <button id="sell-all" class="btn btn-primary btn-block">💰 一键出售全部产品</button>
+                </div>
+
+                <div class="panel-section">
+                    <h3>ℹ️ 操作说明</h3>
+                    <ul class="help-list">
+                        <li>点击左侧工具选择建筑</li>
+                        <li>在网格上点击放置建筑</li>
+                        <li>传送带：先点起点，再点终点（可转弯）</li>
+                        <li>选择工具下：左键选中，右键删除</li>
+                        <li>机器必须通过传送带连接</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <main class="center-panel">
+                <div class="canvas-container">
+                    <canvas id="factory-canvas" width="800" height="640"></canvas>
+                    <div class="canvas-overlay" id="canvas-overlay"></div>
+                </div>
+                <div class="build-info" id="build-info">
+                    <span>当前工具: <strong id="current-tool">选择</strong></span>
+                    <span id="selected-info"></span>
+                </div>
+            </main>
+
+            <aside class="right-panel">
+                <div class="panel-section">
+                    <h3>🔬 科技树</h3>
+                    <div class="tech-tree" id="tech-tree"></div>
+                    <div id="tech-progress" class="tech-progress"></div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>📊 生产统计</h3>
+                    <div class="stats-list" id="stats-list">
+                        <div class="stat-row">
+                            <span>矿机数量</span>
+                            <span id="stat-miners">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>传送带数量</span>
+                            <span id="stat-conveyors">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>加工台数量</span>
+                            <span id="stat-assemblers">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>仓库数量</span>
+                            <span id="stat-warehouses">0</span>
+                        </div>
+                        <div class="stat-row highlight">
+                            <span>总产出价值</span>
+                            <span id="stat-total-output">💰0</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="game.js"></script>
+</body>
+</html>
