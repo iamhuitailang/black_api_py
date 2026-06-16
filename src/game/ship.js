@@ -44,14 +44,20 @@ export class Ship {
     
     this.thrusting = true
     const accel = GAME_CONFIG.SHIP.acceleration
-    this.vx += Math.cos(this.angle) * accel
-    this.vy += Math.sin(this.angle) * accel
+    
+    this.targetVx = (this.targetVx || 0) + Math.cos(this.angle) * accel
+    this.targetVy = (this.targetVy || 0) + Math.sin(this.angle) * accel
+    
+    this.vx += (this.targetVx - this.vx) * 0.3
+    this.vy += (this.targetVy - this.vy) * 0.3
     
     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy)
     if (speed > this.maxSpeed) {
       const ratio = this.maxSpeed / speed
       this.vx *= ratio
       this.vy *= ratio
+      this.targetVx = this.vx
+      this.targetVy = this.vy
     }
   }
 
@@ -85,14 +91,25 @@ export class Ship {
       this.fuel -= GAME_CONFIG.SHIP.fuelConsumptionThrust
     } else {
       this.fuel -= GAME_CONFIG.SHIP.fuelConsumptionIdle
+      this.targetVx = (this.targetVx || 0) * 0.95
+      this.targetVy = (this.targetVy || 0) * 0.95
     }
     this.fuel = Math.max(0, this.fuel)
     
     this.applyGravity(planets, gravityCoeff)
     
     if (GAME_CONFIG.SHIP.drag) {
-      this.vx *= GAME_CONFIG.SHIP.drag
-      this.vy *= GAME_CONFIG.SHIP.drag
+      const drag = GAME_CONFIG.SHIP.drag
+      this.vx *= drag
+      this.vy *= drag
+      
+      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy)
+      if (speed < 0.02 && !isThrusting) {
+        this.vx = 0
+        this.vy = 0
+        this.targetVx = 0
+        this.targetVy = 0
+      }
     }
     
     this.x += this.vx

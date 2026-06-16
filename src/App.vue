@@ -116,6 +116,13 @@ function initGame() {
   
   soundManager.init()
   
+  console.log('[游戏] 初始化开始，当前存档数据:', {
+    money: gameState.state.money,
+    upgrades: gameState.state.upgrades,
+    system: gameState.state.progress.currentSystem,
+    zone: gameState.state.progress.currentZone
+  })
+  
   engine = new GameEngine(gameCanvas.value, gameState)
   
   const sys = SYSTEMS[gameState.state.progress.currentSystem]
@@ -126,6 +133,9 @@ function initGame() {
   
   updateStats()
   startStatsLoop()
+  
+  gameState.saveToStorage()
+  console.log('[游戏] 初始化完成并已保存初始状态')
 }
 
 function updateStats() {
