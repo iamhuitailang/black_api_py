@@ -115,6 +115,7 @@ export class GameEngine {
     this.stageStartTime = Date.now();
     this.lastTime = performance.now();
     this._bindBeforeUnload();
+    this.render();
     this.gameLoop();
   }
 
@@ -139,6 +140,20 @@ export class GameEngine {
     this.paused = false;
     this.lastTime = performance.now();
     this._bindBeforeUnload();
+    this.render();
+    this.gameLoop();
+  }
+
+  startFromStage(characterId, stageId) {
+    this.reset();
+    this.player = new Player(characterId, PLAYER_START_X, PLAYER_START_Y);
+    this.currentStage = stageId;
+    this.running = true;
+    this.paused = false;
+    this.stageStartTime = Date.now();
+    this.lastTime = performance.now();
+    this._bindBeforeUnload();
+    this.render();
     this.gameLoop();
   }
 

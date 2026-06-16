@@ -274,8 +274,16 @@ function continueGame() {
  startUpdateLoop();
 }
 function restartGame() {
- clearQuickSave();
- startGame();
+  const saveData = loadGameState();
+  audioManager.init();
+  audioManager.resume();
+  isNewHighScore.value = false;
+  clearQuickSave();
+  const stage = saveData ? saveData.currentStage : 1;
+  engine.value = new GameEngine(gameCanvas.value);
+  engine.value.startFromStage(selectedCharacter.value, Math.max(1, stage));
+  gameState.value = 'playing';
+  startUpdateLoop();
 }
 function togglePause() {
  if (!engine.value)
@@ -347,9 +355,13 @@ function autoContinueGame() {
   selectedCharacter.value = saveData.characterId;
   engine.value = new GameEngine(gameCanvas.value);
   engine.value.startFromSave(saveData);
-  engine.value.togglePause();
-  gameState.value = 'paused';
-  startUpdateLoop();
+  requestAnimationFrame(() => {
+    if (engine.value && !engine.value.gameOver) {
+      engine.value.togglePause();
+      gameState.value = 'paused';
+      startUpdateLoop();
+    }
+  });
 }
 onMounted(() => {
   loadSaveData();
