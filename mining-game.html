@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地心挖矿</title>
+    <link rel="stylesheet" href="mining-game.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="topBar">
+            <div class="stat-group">
+            <span class="stat-item">💰 金币: <span id="gold">0</span></span>
+            <span class="stat-item">⛏️ 镐子: <span id="pickaxe">木镐</span></span>
+            <span class="stat-item">⛽ 燃油: <span id="fuel">100</span>/<span id="maxFuel">100</span></span>
+            <span class="stat-item">📏 深度: <span id="depth">0</span>层</span>
+            <span class="stat-item">🎒 背包: 泥土<span id="dirtCount">0</span> 石头<span id="stoneCount">0</span> 金<span id="goldOreCount">0</span> 钻石<span id="diamondCount">0</span></span>
+            </div>
+            <div class="stat-group">
+            <span class="stat-item">🛡️ 护盾:<span id="shieldCount">0</span></span>
+            <span class="stat-item">💣 炸药:<span id="bombCount">0</span></span>
+            <span class="stat-item">💎 传送石:<span id="teleportCount">0</span></span>
+            </div>
+            <div class="button-group">
+                <button id="shopBtn">🏪 商店</button>
+                <button id="useBombBtn">💣 使用炸药</button>
+                <button id="useTeleportBtn">💎 传送回地表</button>
+                <button id="resetBtn">🔄 重新开始</button>
+            </div>
+        </div>
+        
+        <div id="canvasContainer">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+        
+        <div id="messageBox"></div>
+    </div>
+    
+    <div id="shopModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🏪 矿工商店</h2>
+            <div id="shopItems">
+                <div class="shop-section">
+                    <h3>出售矿物</h3>
+                    <button class="shop-btn" data-action="sellAll">💰 出售全部矿物</button>
+                </div>
+                <div class="shop-section">
+                    <h3>补给燃油</h3>
+                    <button class="shop-btn" data-action="refuel">⛽ 加满燃油 (50金币)</button>
+                </div>
+                <div class="shop-section">
+                    <h3>升级镐子</h3>
+                    <button class="shop-btn" data-action="upgradeIron">⚒️ 铁镐 (200金币) - 伤害2</button>
+                    <button class="shop-btn" data-action="upgradeSteel">🔨 钢镐 (800金币) - 伤害3</button>
+                    <button class="shop-btn" data-action="upgradeDiamond">💎 钻石镐 (3000金币) - 伤害5</button>
+                </div>
+                <div class="shop-section">
+                    <h3>升级油箱</h3>
+                    <button class="shop-btn" data-action="upgradeTank">🛢️ 油箱扩容+50 (150金币) 剩余升级次数:<span id="tankUpgrades">5</span></button>
+                </div>
+            </div>
+            <button id="closeShop">关闭商店</button>
+        </div>
+    </div>
+    
+    <div id="chestModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🎁 宝箱</h2>
+            <p id="chestReward"></p>
+            <button id="closeChest">领取</button>
+        </div>
+    </div>
+    
+    <div id="deathModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>💀 游戏结束</h2>
+            <p id="deathMessage"></p>
+            <button id="respawnBtn">重新开始</button>
+        </div>
+    </div>
+
+    <script src="mining-game.js"></script>
+</body>
+</html>
