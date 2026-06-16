@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Dict, Any, Optional
 from fastapi import Request, HTTPException, status
+from app.model.auth import TokenModel
 
 
 class Role(str, Enum):
@@ -50,14 +51,17 @@ class RolePermission:
         return False
 
 
-ROLE_TOKENS = {
-    "planner-token-123": Role.PLANNER,
-    "partner-token-456": Role.PARTNER,
-    "guest-token-789": Role.GUEST,
-}
+_token_model = None
 
 
-def get_role_from_request(request: Request) -> Role:
+def get_token_model():
+    global _token_model
+    if _token_model is None:
+        _token_model = TokenModel()
+    return _token_model
+
+
+def extract_token_from_request(request: Request) -> Optional[str]:
     token = None
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
@@ -66,15 +70,47 @@ def get_role_from_request(request: Request) -> Role:
         token = request.query_params.get("token")
     if not token:
         token = request.cookies.get("auth_token")
+    return token
 
-    if token and token in ROLE_TOKENS:
-        return ROLE_TOKENS[token]
 
-    return Role.PLANNER
+def get_role_from_request(request: Request) -> Optional[Role]:
+    token = extract_token_from_request(request)
+    if not token:
+        return None
+
+    token_model = get_token_model()
+    user = token_model.get_user_by_token(token)
+
+    if not user or user.get('status') != 1:
+        return None
+
+    role_str = user.get('role', 'guest')
+    try:
+        return Role(role_str)
+    except ValueError:
+        return Role.GUEST
+
+
+def get_user_from_request(request: Request) -> Optional[Dict[str, Any]]:
+    token = extract_token_from_request(request)
+    if not token:
+        return None
+
+    token_model = get_token_model()
+    user = token_model.get_user_by_token(token)
+
+    if not user or user.get('status') != 1:
+        return None
+
+    return user
 
 
 def require_role(role: Role, resource: str, action: str):
     def decorator(func):
+        import functools
+        import inspect
+
+        @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             request = kwargs.get("request")
             if not request:
@@ -82,7 +118,17 @@ def require_role(role: Role, resource: str, action: str):
                     if isinstance(arg, Request):
                         request = arg
                         break
-            current_role = get_role_from_request(request) if request else Role.PLANNER
+
+            current_role = get_role_from_request(request) if request else None
+            if current_role is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={
+                        "code": 401,
+                        "message": "请先登录",
+                        "data": None
+                    }
+                )
             if not RolePermission.has_permission(current_role, resource, action):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -92,17 +138,21 @@ def require_role(role: Role, resource: str, action: str):
                         "data": None
                     }
                 )
-            return await func(*args, **kwargs) if hasattr(func, '__await__') else func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        import functools
-        wrapper.__wrapped__ = func
+            if inspect.iscoroutinefunction(func):
+                return await func(*args, **kwargs)
+            else:
+                return func(*args, **kwargs)
         return wrapper
     return decorator
 
 
 def check_delete_permission(request: Request, resource: str) -> Dict[str, Any]:
     role = get_role_from_request(request)
+    if role is None:
+        return {
+            "allowed": False,
+            "message": "请先登录"
+        }
     if not RolePermission.can_delete_core(role, resource):
         return {
             "allowed": False,

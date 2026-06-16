@@ -13,9 +13,104 @@
             min-height: 100vh;
             color: #333;
         }
+
+        /* ========== 登录页 ========== */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #c06c84 100%);
+        }
+        .login-card {
+            background: white;
+            padding: 48px 40px;
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 420px;
+            animation: fadeInUp 0.5s;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #c06c84 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .login-subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .login-icon {
+            text-align: center;
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .login-tips {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #718096;
+            line-height: 1.8;
+        }
+        .login-tips strong { color: #4a5568; }
+
+        /* ========== 主应用 ========== */
         .app-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
-        /* Header */
         .header {
             background: linear-gradient(135deg, #e8a5b5 0%, #c06c84 100%);
             color: white;
@@ -31,23 +126,42 @@
         }
         .header h1 { font-size: 28px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
         .header .subtitle { opacity: 0.9; font-size: 14px; margin-top: 4px; }
-        .role-selector {
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             background: rgba(255,255,255,0.2);
-            padding: 10px 16px;
+            padding: 10px 18px;
             border-radius: 12px;
             backdrop-filter: blur(10px);
         }
-        .role-selector label { font-size: 13px; opacity: 0.9; margin-right: 8px; }
-        .role-selector select {
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
             background: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
+            color: #c06c84;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
         }
+        .user-details { font-size: 13px; }
+        .user-details .username { font-weight: 600; }
+        .user-details .role-tag { opacity: 0.85; font-size: 12px; }
+        .btn-logout {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.35); }
 
-        /* Countdown Card */
         .countdown-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -78,7 +192,6 @@
         }
         .countdown-card input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); }
 
-        /* Tabs */
         .tabs {
             display: flex;
             gap: 8px;
@@ -109,8 +222,8 @@
             color: white;
             box-shadow: 0 4px 12px rgba(192, 108, 132, 0.3);
         }
+        .tab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* Cards Grid */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -139,7 +252,6 @@
         .stat-card .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
         .stat-card .stat-sub { font-size: 12px; color: #aaa; margin-top: 4px; }
 
-        /* Section */
         .section {
             background: white;
             padding: 24px;
@@ -165,7 +277,6 @@
             font-weight: 500;
         }
 
-        /* Buttons */
         .btn {
             padding: 10px 18px;
             border: none;
@@ -195,7 +306,6 @@
         .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-        /* Filters */
         .filters {
             display: flex;
             gap: 10px;
@@ -229,7 +339,6 @@
         }
         select:focus, input:focus, textarea:focus { border-color: #a0aec0; box-shadow: 0 0 0 3px rgba(160,174,192,0.15); }
 
-        /* Tables */
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
         th { font-size: 13px; color: #718096; font-weight: 600; background: #fafafa; }
@@ -238,7 +347,6 @@
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: #fafbfc; }
 
-        /* Tags */
         .tag {
             display: inline-flex;
             align-items: center;
@@ -259,7 +367,6 @@
         .tag-group-同事 { background: #fef6e4; color: #b7791f; }
         .tag-group-长辈 { background: #f0e6ff; color: #6b46c1; }
 
-        /* Progress Bar */
         .progress-bar {
             height: 8px;
             background: #e2e8f0;
@@ -274,7 +381,6 @@
         }
         .progress-fill.over { background: linear-gradient(90deg, #f56565, #c53030); }
 
-        /* Budget Summary */
         .budget-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -307,7 +413,6 @@
         }
         .total-budget-bar .row.over .actual { color: #c53030; }
 
-        /* Task Item */
         .task-list { display: flex; flex-direction: column; gap: 10px; }
         .task-item {
             display: flex;
@@ -347,7 +452,6 @@
         .task-meta { display: flex; gap: 10px; align-items: center; font-size: 13px; color: #718096; }
         .task-overdue { color: #c53030; font-weight: 500; }
 
-        /* Urgent Banner */
         .urgent-banner {
             background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
             border: 1px solid #fc8181;
@@ -361,7 +465,6 @@
             font-weight: 500;
         }
 
-        /* Modal */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -383,13 +486,9 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #4a5568; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
 
-        /* Toast */
         .toast-container {
             position: fixed;
             top: 20px;
@@ -425,24 +524,55 @@
         .vendor-contact { font-size: 13px; color: #718096; }
         .text-over-budget { color: #c53030 !important; font-weight: 600; }
         .checkbox-wrapper { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 <div id="app">
-    <div class="app-container">
-        <!-- Header -->
+    <!-- ========== 登录页 ========== -->
+    <div v-if="!isLoggedIn" class="login-wrapper">
+        <div class="login-card">
+            <div class="login-icon">💍</div>
+            <h2 class="login-title">婚礼策划管理系统</h2>
+            <p class="login-subtitle">请登录后继续使用</p>
+
+            <form @submit.prevent="handleLogin">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" v-model="loginForm.username" placeholder="请输入用户名" autofocus />
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" v-model="loginForm.password" placeholder="请输入密码" />
+                </div>
+                <button type="submit" class="btn-login" :disabled="isLoggingIn">
+                    {{ isLoggingIn ? '登录中...' : '登 录' }}
+                </button>
+            </form>
+
+            <div class="login-tips">
+                <strong>测试账号：</strong><br/>
+                🎩 策划师：<code>admin</code> / <code>admin123</code><br/>
+                💕 伴侣：<code>partner</code> / <code>partner123</code><br/>
+                💌 宾客：<code>guest</code> / <code>guest123</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 主应用 ========== -->
+    <div v-else class="app-container">
         <div class="header">
             <div>
                 <h1>💍 婚礼策划管理系统</h1>
                 <div class="subtitle">轻松管理宾客、预算、供应商和待办事项</div>
             </div>
-            <div class="role-selector">
-                <label>当前身份：</label>
-                <select v-model="currentRole" @change="onRoleChange">
-                    <option value="planner-token-123">策划师（全部权限）</option>
-                    <option value="partner-token-456">伴侣（编辑不可删除核心）</option>
-                    <option value="guest-token-789">宾客（仅RSVP）</option>
-                </select>
+            <div class="user-info">
+                <div class="user-avatar">{{ currentUser.username ? currentUser.username.charAt(0).toUpperCase() : 'U' }}</div>
+                <div class="user-details">
+                    <div class="username">{{ currentUser.username }}</div>
+                    <div class="role-tag">{{ currentUser.roleName }}</div>
+                </div>
+                <button class="btn-logout" @click="handleLogout">退出</button>
             </div>
         </div>
 
@@ -501,7 +631,7 @@
             <button v-for="tab in tabs" :key="tab.key"
                     class="tab-btn" :class="{active: activeTab===tab.key}"
                     @click="activeTab = tab.key"
-                    :disabled="roleInfo && !hasTabAccess(tab.key)">
+                    :disabled="!hasTabAccess(tab.key)">
                 <span>{{ tab.icon }}</span>
                 {{ tab.label }}
             </button>
@@ -950,14 +1080,97 @@
 const { createApp, ref, computed, onMounted, watch } = Vue;
 
 const API = '/api';
+const TOKEN_KEY = 'wedding_auth_token';
+const USER_KEY = 'wedding_user_info';
 
 createApp({
     setup() {
-        // Role & Permissions
-        const currentRole = ref('planner-token-123');
-        const roleInfo = ref(null);
+        // Auth state
+        const isLoggedIn = ref(false);
+        const isLoggingIn = ref(false);
+        const loginForm = ref({ username: '', password: '' });
+        const currentUser = ref({ id: null, username: '', role: '', roleName: '' });
+        const authToken = ref('');
 
-        const getAuthHeader = () => ({ 'Authorization': `Bearer ${currentRole.value}` });
+        const getAuthHeader = () => ({ 'Authorization': `Bearer ${authToken.value}` });
+
+        const saveAuthToStorage = (token, user) => {
+            localStorage.setItem(TOKEN_KEY, token);
+            localStorage.setItem(USER_KEY, JSON.stringify(user));
+        };
+        const clearAuthStorage = () => {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+        };
+        const loadAuthFromStorage = () => {
+            const token = localStorage.getItem(TOKEN_KEY);
+            const userStr = localStorage.getItem(USER_KEY);
+            if (token && userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    authToken.value = token;
+                    currentUser.value = user;
+                    isLoggedIn.value = true;
+                    return true;
+                } catch (e) {
+                    clearAuthStorage();
+                }
+            }
+            return false;
+        };
+
+        const getRoleName = (role) => {
+            const names = { planner: '策划师', partner: '伴侣', guest: '宾客' };
+            return names[role] || '未知';
+        };
+
+        const handleLogin = async () => {
+            if (!loginForm.value.username.trim() || !loginForm.value.password.trim()) {
+                toast('请输入用户名和密码', 'error');
+                return;
+            }
+            isLoggingIn.value = true;
+            try {
+                const res = await fetch(API + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginForm.value)
+                });
+                const data = await res.json();
+                if (data.code === 0 && data.data?.token) {
+                    const token = data.data.token;
+                    const user = {
+                        id: data.data.user.id,
+                        username: data.data.user.username,
+                        role: data.data.user.role || 'guest',
+                        roleName: getRoleName(data.data.user.role)
+                    };
+                    authToken.value = token;
+                    currentUser.value = user;
+                    isLoggedIn.value = true;
+                    saveAuthToStorage(token, user);
+                    toast('登录成功！欢迎回来，' + user.username);
+                    loginForm.value = { username: '', password: '' };
+                    refreshAll();
+                } else {
+                    toast(data.message || '登录失败', 'error');
+                }
+            } catch (e) {
+                toast('网络错误: ' + e.message, 'error');
+            } finally {
+                isLoggingIn.value = false;
+            }
+        };
+
+        const handleLogout = () => {
+            if (!confirm('确定要退出登录吗？')) return;
+            clearAuthStorage();
+            authToken.value = '';
+            currentUser.value = { id: null, username: '', role: '', roleName: '' };
+            isLoggedIn.value = false;
+            roleInfo.value = null;
+            toast('已退出登录');
+        };
 
         // Tabs
         const tabs = [
@@ -967,6 +1180,7 @@ createApp({
             { key: 'tasks', label: '任务清单', icon: '✅' },
         ];
         const activeTab = ref('guests');
+        const roleInfo = ref(null);
 
         const hasTabAccess = (key) => {
             if (!roleInfo.value) return true;
@@ -1113,6 +1327,13 @@ createApp({
                     },
                     ...(options.body ? { body: JSON.stringify(options.body) } : {})
                 });
+
+                if (res.status === 401) {
+                    toast('登录已过期，请重新登录', 'error');
+                    handleLogout();
+                    return { code: 401, message: '未登录', data: null };
+                }
+
                 const data = await res.json();
                 if (data.code === 0) return data;
                 toast(data.message || '操作失败', 'error');
@@ -1126,7 +1347,13 @@ createApp({
         // Fetch Data
         const fetchRoleInfo = async () => {
             const res = await request('/role/get');
-            if (res.code === 0) roleInfo.value = res;
+            if (res.code === 0) {
+                roleInfo.value = res;
+                if (res.data?.role) {
+                    currentUser.value.role = res.data.role;
+                    currentUser.value.roleName = res.data.role_name || getRoleName(res.data.role);
+                }
+            }
         };
 
         const fetchCountdown = async () => {
@@ -1190,6 +1417,7 @@ createApp({
         };
 
         const refreshAll = () => {
+            if (!isLoggedIn.value) return;
             fetchRoleInfo();
             fetchCountdown();
             fetchGuests();
@@ -1374,19 +1602,17 @@ createApp({
             }
         };
 
-        // Role Change
-        const onRoleChange = () => {
-            refreshAll();
-            toast('已切换身份');
-        };
-
         onMounted(() => {
-            refreshAll();
+            const hasAuth = loadAuthFromStorage();
+            if (hasAuth) {
+                refreshAll();
+            }
         });
 
         return {
             // state
-            currentRole, roleInfo, tabs, activeTab,
+            isLoggedIn, isLoggingIn, loginForm, currentUser,
+            tabs, activeTab,
             countdown, weddingDateInput,
             guests, guestGroupFilter, guestStatusFilter, filteredGuests, guestStats,
             showGuestModal, editingGuest, guestForm,
@@ -1405,7 +1631,8 @@ createApp({
             canCreateTask, canEditTask, canDeleteTask,
             canEditSettings,
             // methods
-            onRoleChange, updateWeddingDate,
+            handleLogin, handleLogout,
+            updateWeddingDate,
             openGuestModal, saveGuest, quickRsvp, deleteGuest,
             openBudgetModal, saveBudgetItem, deleteBudgetItem,
             openVendorModal, saveVendor, deleteVendor,

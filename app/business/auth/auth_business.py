@@ -48,7 +48,9 @@ class AuthBusiness:
             'data': {
                 'user': {
                     'id': user.get('id'),
-                    'username': user.get('username')
+                    'username': user.get('username'),
+                    'role': user.get('role', 'guest'),
+                    'nickname': user.get('nickname', '')
                 },
                 'token': token
             }

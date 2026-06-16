@@ -24,6 +24,7 @@ class UserModel:
                 username TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 salt TEXT NOT NULL,
+                role TEXT DEFAULT 'guest',
                 status INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -33,7 +34,18 @@ class UserModel:
         
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_username ON {cls.TABLE_NAME}(username)"
         db.execute(index_sql)
-        
+
+        # Migration: add role column if not exists
+        try:
+            cols = db.fetch_all(f"PRAGMA table_info({cls.TABLE_NAME})")
+            col_names = [c['name'] for c in cols]
+            if 'role' not in col_names:
+                db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN role TEXT DEFAULT 'guest'")
+                db.execute(f"UPDATE {cls.TABLE_NAME} SET role = 'planner' WHERE username = 'admin'")
+                print(f"  - Migrated {cls.TABLE_NAME}: added role column")
+        except Exception as e:
+            print(f"  - Migration warning for {cls.TABLE_NAME}: {e}")
+
         admin_exists = db.fetch_one(f"SELECT id FROM {cls.TABLE_NAME} WHERE username = 'admin'")
         if not admin_exists:
             salt = secrets.token_hex(8)
@@ -41,8 +53,30 @@ class UserModel:
             password_hash = cls._hash_password(password, salt)
             now = datetime.now().isoformat()
             db.execute(
-                f"INSERT INTO {cls.TABLE_NAME} (username, password_hash, salt, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-                ('admin', password_hash, salt, 1, now, now)
+                f"INSERT INTO {cls.TABLE_NAME} (username, password_hash, salt, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ('admin', password_hash, salt, 'planner', 1, now, now)
+            )
+        
+        partner_exists = db.fetch_one(f"SELECT id FROM {cls.TABLE_NAME} WHERE username = 'partner'")
+        if not partner_exists:
+            salt = secrets.token_hex(8)
+            password = 'partner123'
+            password_hash = cls._hash_password(password, salt)
+            now = datetime.now().isoformat()
+            db.execute(
+                f"INSERT INTO {cls.TABLE_NAME} (username, password_hash, salt, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ('partner', password_hash, salt, 'partner', 1, now, now)
+            )
+        
+        guest_exists = db.fetch_one(f"SELECT id FROM {cls.TABLE_NAME} WHERE username = 'guest'")
+        if not guest_exists:
+            salt = secrets.token_hex(8)
+            password = 'guest123'
+            password_hash = cls._hash_password(password, salt)
+            now = datetime.now().isoformat()
+            db.execute(
+                f"INSERT INTO {cls.TABLE_NAME} (username, password_hash, salt, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ('guest', password_hash, salt, 'guest', 1, now, now)
             )
 
     @staticmethod
@@ -81,7 +115,8 @@ class UserModel:
             return {
                 'id': user.get('id'),
                 'username': user.get('username'),
-                'status': user.get('status')
+                'status': user.get('status'),
+                'role': user.get('role', 'guest')
             }
         return None
 

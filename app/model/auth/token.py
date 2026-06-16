@@ -91,7 +91,8 @@ class TokenModel:
             return {
                 'id': user.get('id'),
                 'username': user.get('username'),
-                'status': user.get('status')
+                'status': user.get('status'),
+                'role': user.get('role', 'guest')
             }
         return None
 

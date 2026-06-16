@@ -3,7 +3,7 @@ from fastapi import Request
 from app.model.wedding import (
     GuestModel, BudgetItemModel, VendorModel, TaskModel, WeddingSettingModel
 )
-from .auth_permission import RolePermission, get_role_from_request, Role
+from .auth_permission import RolePermission, get_role_from_request, Role, check_delete_permission
 
 
 class WeddingBusiness:
@@ -88,9 +88,9 @@ class WeddingBusiness:
             return {'code': 1, 'message': f'更新失败: {e}', 'data': None}
 
     def delete_guest(self, request: Request, guest_id: int) -> Dict[str, Any]:
-        perm_check = RolePermission.can_delete_core(get_role_from_request(request), "guests")
-        if not perm_check:
-            return {'code': 1, 'message': '仅策划师可删除宾客数据', 'data': None}
+        perm_check = check_delete_permission(request, "guests")
+        if not perm_check['allowed']:
+            return {'code': 1, 'message': perm_check['message'], 'data': None}
         guest = self.guest_model.get_by_id(guest_id)
         if not guest:
             return {'code': 1, 'message': '宾客不存在', 'data': None}
@@ -154,9 +154,9 @@ class WeddingBusiness:
             return {'code': 1, 'message': f'更新失败: {e}', 'data': None}
 
     def delete_budget_item(self, request: Request, item_id: int) -> Dict[str, Any]:
-        perm_check = RolePermission.can_delete_core(get_role_from_request(request), "budget_items")
-        if not perm_check:
-            return {'code': 1, 'message': '仅策划师可删除预算数据', 'data': None}
+        perm_check = check_delete_permission(request, "budget_items")
+        if not perm_check['allowed']:
+            return {'code': 1, 'message': perm_check['message'], 'data': None}
         item = self.budget_model.get_by_id(item_id)
         if not item:
             return {'code': 1, 'message': '预算项目不存在', 'data': None}
@@ -215,9 +215,9 @@ class WeddingBusiness:
             return {'code': 1, 'message': f'更新失败: {e}', 'data': None}
 
     def delete_vendor(self, request: Request, vendor_id: int) -> Dict[str, Any]:
-        perm_check = RolePermission.can_delete_core(get_role_from_request(request), "vendors")
-        if not perm_check:
-            return {'code': 1, 'message': '仅策划师可删除供应商数据', 'data': None}
+        perm_check = check_delete_permission(request, "vendors")
+        if not perm_check['allowed']:
+            return {'code': 1, 'message': perm_check['message'], 'data': None}
         vendor = self.vendor_model.get_by_id(vendor_id)
         if not vendor:
             return {'code': 1, 'message': '供应商不存在', 'data': None}
@@ -331,6 +331,12 @@ class WeddingBusiness:
     # ==================== Role Info ====================
     def get_role_info(self, request: Request) -> Dict[str, Any]:
         role = get_role_from_request(request)
+        if role is None:
+            return {
+                'code': 401,
+                'message': '请先登录',
+                'data': None
+            }
         role_names = {
             Role.PLANNER: '策划师',
             Role.PARTNER: '伴侣',

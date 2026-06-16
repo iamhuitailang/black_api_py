@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import sys
 import os
+import re
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -70,6 +71,63 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+PROTECTED_PATHS = [
+    r'^/api/guests(/.*)?$',
+    r'^/api/budget(/.*)?$',
+    r'^/api/vendors(/.*)?$',
+    r'^/api/tasks(/.*)?$',
+    r'^/api/countdown(/.*)?$',
+    r'^/api/settings(/.*)?$',
+    r'^/api/role(/.*)?$',
+]
+
+PUBLIC_PATHS = [
+    r'^/api/auth(/.*)?$',
+    r'^/static/.*$',
+    r'^/docs$',
+    r'^/openapi.json$',
+    r'^/redoc$',
+    r'^/$',
+    r'^/health$',
+    r'^/api/helloworld(/.*)?$',
+    r'^/api/mudan(/.*)?$',
+]
+
+
+def is_protected_path(path: str) -> bool:
+    for pattern in PUBLIC_PATHS:
+        if re.match(pattern, path):
+            return False
+    for pattern in PROTECTED_PATHS:
+        if re.match(pattern, path):
+            return True
+    return False
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+
+    if not is_protected_path(path):
+        return await call_next(request)
+
+    from app.business.wedding.auth_permission import get_role_from_request
+    role = get_role_from_request(request)
+
+    if role is None:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={
+                "code": 401,
+                "message": "请先登录",
+                "data": None
+            }
+        )
+
+    return await call_next(request)
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
