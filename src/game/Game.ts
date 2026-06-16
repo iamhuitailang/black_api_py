@@ -21,6 +21,7 @@ interface GameSnapshot {
     passed: boolean;
     isDouble: boolean;
     segments: Array<{ color: string; startAngle: number; endAngle: number }>;
+    hasStar: boolean;
     starCollected: boolean;
     starAngle: number;
   }>;
@@ -134,14 +135,13 @@ export class Game {
     this.audioManager = new AudioManager();
     this.saveTimer = 0;
     this.distanceSinceLastRing = 0;
-    this.currentSpacing = 0;
+    this.currentSpacing = CONFIG.RING_SPACING_MIN + Math.random() * (CONFIG.RING_SPACING_MAX - CONFIG.RING_SPACING_MIN);
 
     this.gravity = this.baseGravity;
     this.ringSpeed = CONFIG.RING_SPEED;
 
-    for (let i = 0; i < 4; i++) {
-      this.spawnRing(CONFIG.CANVAS_HEIGHT - 80 - i * 170);
-    }
+    this.spawnRing(CONFIG.CANVAS_HEIGHT + 50);
+    this.spawnRing(CONFIG.CANVAS_HEIGHT + 50 + 250);
 
     this.state.score = 0;
     this.state.lives = CONFIG.INITIAL_LIVES;
@@ -430,6 +430,7 @@ export class Game {
           passed: ring.passed,
           isDouble: ring.isDouble,
           segments: ring.segments.map(s => ({ ...s })),
+          hasStar: !!ring.star,
           starCollected: ring.star?.collected || false,
           starAngle,
         };
@@ -483,9 +484,10 @@ export class Game {
         ring.passed = r.passed;
         ring.segments = r.segments;
 
-        if (!r.starCollected && r.starAngle !== undefined) {
-          const starX = CONFIG.CANVAS_WIDTH / 2 + Math.cos(r.starAngle) * ring.radius;
-          const starY = ring.y + Math.sin(r.starAngle) * ring.radius;
+        if (r.hasStar && !r.starCollected) {
+          const starAngle = r.starAngle || 0;
+          const starX = CONFIG.CANVAS_WIDTH / 2 + Math.cos(starAngle) * ring.radius;
+          const starY = ring.y + Math.sin(starAngle) * ring.radius;
           ring.star = new Star(starX, starY);
         } else {
           ring.star = undefined;
@@ -495,13 +497,14 @@ export class Game {
       });
 
       this.distanceSinceLastRing = snapshot.distanceSinceLastRing || 0;
-      this.currentSpacing = snapshot.currentSpacing || 200;
+      this.currentSpacing = snapshot.currentSpacing || (CONFIG.RING_SPACING_MIN + CONFIG.RING_SPACING_MAX) / 2;
 
       this.state.status = 'playing';
       this.particleSystem = new ParticleSystem();
       this.audioManager = new AudioManager();
       this.saveTimer = 0;
 
+      this.render();
       this.notifyStateChange();
       this.lastTime = performance.now();
       this.gameLoop();

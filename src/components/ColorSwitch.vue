@@ -349,7 +349,7 @@ onUnmounted(() => {
         <h2 class="text-4xl font-black text-white mb-8" style="font-family: 'Orbitron', sans-serif;">暂停</h2>
         <div class="flex flex-col gap-4">
           <button
-            @click="resumeGame"
+            @click="resumePausedGame"
             class="px-10 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-lg font-bold rounded-full transition-all duration-300 hover:scale-105 flex items-center gap-2"
             style="font-family: 'Orbitron', sans-serif;"
           >
