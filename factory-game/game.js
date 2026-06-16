@@ -98,6 +98,9 @@ class FactoryGame {
         this.lastTime = performance.now();
         this.minerTimer = 0;
         this.conveyorTimer = 0;
+        this.stuckCheckTimer = 0;
+        this.stuckConveyors = new Set();
+        this.hasShownStuckWarning = false;
         
         this.effects = {
             minerSpeed: 0,
@@ -493,6 +496,7 @@ class FactoryGame {
     update(dt) {
         this.minerTimer += dt;
         this.conveyorTimer += dt;
+        this.stuckCheckTimer += dt;
         
         if (this.currentResearch) {
             this.researchProgress += dt;
@@ -514,27 +518,36 @@ class FactoryGame {
             this.tickAssemblers();
         }
         
+        if (this.stuckCheckTimer >= 2000) {
+            this.stuckCheckTimer = 0;
+            this.checkStuckConveyors();
+        }
+        
         this.updateItems(dt);
         this.updateUI();
     }
     
     tickMiners() {
         for (const miner of this.machines.filter(m => m.type === 'miner')) {
+            const outputConveyor = this.findAdjacentConveyor(miner.x, miner.y);
+            if (!outputConveyor) {
+                miner.active = false;
+                miner.statusMsg = '未连接传送带';
+                continue;
+            }
+            if (outputConveyor.items.length >= this.getConveyorCapacity()) {
+                miner.active = false;
+                miner.statusMsg = '传送带已满';
+                continue;
+            }
             if (this.getTotalStorage() >= this.getWarehouseCapacity()) {
                 miner.active = false;
+                miner.statusMsg = '仓库已满';
                 continue;
             }
             miner.active = true;
-            const outputConveyor = this.findAdjacentConveyor(miner.x, miner.y);
-            if (outputConveyor) {
-                if (outputConveyor.items.length < this.getConveyorCapacity()) {
-                    this.spawnItem(miner.resource, outputConveyor);
-                }
-            } else {
-                if (this.resources[miner.resource] !== undefined) {
-                    this.resources[miner.resource]++;
-                }
-            }
+            miner.statusMsg = null;
+            this.spawnItem(miner.resource, outputConveyor);
         }
     }
     
@@ -577,67 +590,189 @@ class FactoryGame {
         this.items.push(item);
     }
     
+    getAllAdjacentConveyors(x, y, excludeDir = null) {
+        const results = [];
+        const dirs = {
+            right: { dx: 1, dy: 0, entryFrom: 'left' },
+            left: { dx: -1, dy: 0, entryFrom: 'right' },
+            up: { dx: 0, dy: -1, entryFrom: 'down' },
+            down: { dx: 0, dy: 1, entryFrom: 'up' }
+        };
+        for (const [name, dir] of Object.entries(dirs)) {
+            if (excludeDir && name === excludeDir) continue;
+            const nx = x + dir.dx, ny = y + dir.dy;
+            if (nx >= 0 && nx < GRID_COLS && ny >= 0 && ny < GRID_ROWS) {
+                const cell = this.grid[ny][nx];
+                if (cell && cell.type === 'conveyor') {
+                    results.push({ conveyor: cell, direction: name, entryFrom: dir.entryFrom });
+                }
+            }
+        }
+        return results;
+    }
+    
+    getSplitTargets(conveyor) {
+        const dirMap = {
+            right: { dx: 1, dy: 0 },
+            left: { dx: -1, dy: 0 },
+            up: { dx: 0, dy: -1 },
+            down: { dx: 0, dy: 1 }
+        };
+        const [fdx, fdy] = dirMap[conveyor.direction] || [1, 0];
+        const fx = conveyor.x + fdx, fy = conveyor.y + fdy;
+        
+        const targets = [];
+        if (fx >= 0 && fx < GRID_COLS && fy >= 0 && fy < GRID_ROWS) {
+            const forward = this.grid[fy][fx];
+            if (forward) {
+                if (forward.type === 'conveyor') targets.push({ type: 'conveyor', obj: forward });
+                else if (forward.type === 'warehouse') targets.push({ type: 'warehouse', obj: forward });
+                else if (forward.type === 'assembler') targets.push({ type: 'assembler', obj: forward });
+            }
+        }
+        
+        const adjacent = this.getAllAdjacentConveyors(conveyor.x, conveyor.y);
+        for (const adj of adjacent) {
+            if (adj.direction === conveyor.direction) continue;
+            const backDirs = { right: 'left', left: 'right', up: 'down', down: 'up' };
+            if (adj.direction === backDirs[conveyor.direction]) continue;
+            if (!targets.find(t => t.type === 'conveyor' && t.obj.id === adj.conveyor.id)) {
+                targets.push({ type: 'conveyor', obj: adj.conveyor, isSplit: true, splitDir: adj.direction });
+            }
+        }
+        
+        return targets;
+    }
+    
     tickConveyors() {
         const maxCapacity = this.getConveyorCapacity();
         
         for (let i = this.conveyors.length - 1; i >= 0; i--) {
             const conveyor = this.conveyors[i];
-            if (conveyor.items.length === 0) continue;
+            if (conveyor.items.length === 0) {
+                conveyor.isStuck = false;
+                continue;
+            }
             
-            const nextConveyor = this.getNextConveyor(conveyor);
+            const targets = this.getSplitTargets(conveyor);
+            const forwardTargets = targets.filter(t => !t.isSplit);
+            const splitTargets = targets.filter(t => t.isSplit);
+            
+            const hasWarehouseForward = forwardTargets.some(t => t.type === 'warehouse');
+            const hasAssemblerForward = forwardTargets.some(t => t.type === 'assembler');
+            const hasConveyorForward = forwardTargets.some(t => t.type === 'conveyor');
+            
+            let anyMoved = false;
             
             while (conveyor.items.length > 0) {
                 const itemId = conveyor.items[conveyor.items.length - 1];
                 const item = this.items.find(it => it.id === itemId);
                 if (!item) {
-                    conveyor.items.shift();
+                    conveyor.items.pop();
                     continue;
                 }
                 
                 let delivered = false;
                 
-                const adjacentWarehouse = this.findAdjacentMachine(conveyor.x, conveyor.y, 'warehouse');
-                if (adjacentWarehouse && !nextConveyor) {
-                    if (this.getTotalStorage() < this.getWarehouseCapacity()) {
+                if (hasWarehouseForward) {
+                    const warehouseTarget = forwardTargets.find(t => t.type === 'warehouse');
+                    if (warehouseTarget && this.getTotalStorage() < this.getWarehouseCapacity()) {
                         this.resources[item.resource]++;
                         this.totalOutputValue += PRODUCT_PRICES[item.resource] || 0;
                         conveyor.items.pop();
                         const idx = this.items.findIndex(it => it.id === itemId);
                         if (idx >= 0) this.items.splice(idx, 1);
                         delivered = true;
+                        anyMoved = true;
+                        continue;
+                    } else {
+                        break;
                     }
-                    break;
                 }
                 
-                const adjacentAssembler = this.findAdjacentMachine(conveyor.x, conveyor.y, 'assembler');
-                if (adjacentAssembler && !nextConveyor) {
-                    const recipe = RECIPES[adjacentAssembler.recipe];
-                    if (recipe && recipe.inputs[item.resource] !== undefined) {
-                        if (adjacentAssembler.buffer[item.resource] < recipe.inputs[item.resource] * 2) {
-                            adjacentAssembler.buffer[item.resource]++;
-                            conveyor.items.pop();
-                            const idx = this.items.findIndex(it => it.id === itemId);
-                            if (idx >= 0) this.items.splice(idx, 1);
-                            delivered = true;
+                if (hasAssemblerForward) {
+                    const asmTarget = forwardTargets.find(t => t.type === 'assembler');
+                    if (asmTarget) {
+                        const recipe = RECIPES[asmTarget.obj.recipe];
+                        if (recipe && recipe.inputs[item.resource] !== undefined) {
+                            if (asmTarget.obj.buffer[item.resource] < recipe.inputs[item.resource] * 3) {
+                                asmTarget.obj.buffer[item.resource]++;
+                                conveyor.items.pop();
+                                const idx = this.items.findIndex(it => it.id === itemId);
+                                if (idx >= 0) this.items.splice(idx, 1);
+                                delivered = true;
+                                anyMoved = true;
+                                continue;
+                            }
                         }
+                        if (!delivered) break;
                     }
-                    if (!delivered) break;
-                    continue;
                 }
                 
-                if (nextConveyor && nextConveyor.items.length < maxCapacity) {
-                    const itemToMove = conveyor.items.pop();
-                    nextConveyor.items.unshift(itemToMove);
-                    const itm = this.items.find(it => it.id === itemToMove);
-                    if (itm) {
-                        itm.currentConveyor = nextConveyor.id;
-                        itm.progress = 0;
+                if (hasConveyorForward) {
+                    const convTarget = forwardTargets.find(t => t.type === 'conveyor');
+                    if (convTarget && convTarget.obj.items.length < maxCapacity) {
+                        const movedId = conveyor.items.pop();
+                        convTarget.obj.items.unshift(movedId);
+                        const itm = this.items.find(it => it.id === movedId);
+                        if (itm) {
+                            itm.currentConveyor = convTarget.obj.id;
+                            itm.progress = 0;
+                        }
+                        delivered = true;
+                        anyMoved = true;
+                        continue;
                     }
-                    delivered = true;
-                } else {
-                    break;
                 }
+                
+                if (splitTargets.length > 0) {
+                    const availableSplits = splitTargets.filter(t => t.obj.items.length < maxCapacity);
+                    if (availableSplits.length > 0) {
+                        conveyor._splitCounter = (conveyor._splitCounter || 0) + 1;
+                        const splitTarget = availableSplits[conveyor._splitCounter % availableSplits.length];
+                        const movedId = conveyor.items.pop();
+                        splitTarget.obj.items.unshift(movedId);
+                        const itm = this.items.find(it => it.id === movedId);
+                        if (itm) {
+                            itm.currentConveyor = splitTarget.obj.id;
+                            itm.progress = 0;
+                        }
+                        delivered = true;
+                        anyMoved = true;
+                        continue;
+                    }
+                }
+                
+                break;
             }
+            
+            if (!anyMoved && conveyor.items.length > 0) {
+                conveyor.stuckCounter = (conveyor.stuckCounter || 0) + 1;
+                if (conveyor.stuckCounter >= 3) {
+                    if (!this.stuckConveyors.has(conveyor.id)) {
+                        this.stuckConveyors.add(conveyor.id);
+                    }
+                    conveyor.isStuck = true;
+                }
+            } else {
+                conveyor.stuckCounter = 0;
+                conveyor.isStuck = false;
+                this.stuckConveyors.delete(conveyor.id);
+            }
+        }
+    }
+    
+    checkStuckConveyors() {
+        if (this.stuckConveyors.size > 0 && !this.hasShownStuckWarning) {
+            const firstStuckId = Array.from(this.stuckConveyors)[0];
+            const stuckConv = this.conveyors.find(c => c.id === firstStuckId);
+            if (stuckConv) {
+                this.showToast(`⚠️ 传送带(${stuckConv.x},${stuckConv.y})末端堵塞！请连接仓库或加工台`, 'warning');
+                this.hasShownStuckWarning = true;
+            }
+        }
+        if (this.stuckConveyors.size === 0) {
+            this.hasShownStuckWarning = false;
         }
     }
     
@@ -666,6 +801,8 @@ class FactoryGame {
             const recipe = RECIPES[assembler.recipe];
             if (!recipe) continue;
             
+            const outputConveyor = this.findAdjacentConveyor(assembler.x, assembler.y);
+            
             let hasAllInputs = true;
             for (const [res, count] of Object.entries(recipe.inputs)) {
                 if ((assembler.buffer[res] || 0) < count) {
@@ -674,12 +811,27 @@ class FactoryGame {
                 }
             }
             
+            if (!outputConveyor && !assembler._warnedNoConveyor) {
+                assembler._warnedNoConveyor = true;
+            }
+            
             if (hasAllInputs && assembler.progress === 0) {
+                if (!outputConveyor) {
+                    assembler.active = false;
+                    assembler.statusMsg = '未连接输出传送带';
+                    continue;
+                }
+                if (outputConveyor.items.length >= this.getConveyorCapacity()) {
+                    assembler.active = false;
+                    assembler.statusMsg = '输出传送带已满';
+                    continue;
+                }
                 for (const [res, count] of Object.entries(recipe.inputs)) {
                     assembler.buffer[res] -= count;
                 }
                 assembler.progress = 0.001;
                 assembler.active = true;
+                assembler.statusMsg = null;
             }
             
             if (assembler.progress > 0) {
@@ -687,15 +839,16 @@ class FactoryGame {
                 assembler.progress += 500 / speed;
                 
                 if (assembler.progress >= 1) {
-                    assembler.progress = 0;
-                    const outputConveyor = this.findAdjacentConveyor(assembler.x, assembler.y);
                     if (outputConveyor && outputConveyor.items.length < this.getConveyorCapacity()) {
+                        assembler.progress = 0;
                         this.spawnItem(recipe.output, outputConveyor);
-                    } else if (this.getTotalStorage() < this.getWarehouseCapacity()) {
-                        this.resources[recipe.output]++;
-                        this.totalOutputValue += PRODUCT_PRICES[recipe.output] || 0;
+                    } else {
+                        assembler.active = false;
+                        assembler.statusMsg = outputConveyor ? '输出传送带已满' : '未连接输出传送带';
                     }
                 }
+            } else if (!hasAllInputs) {
+                assembler.statusMsg = '等待原料';
             }
         }
     }
@@ -780,15 +933,60 @@ class FactoryGame {
             const x = conveyor.x * CELL_SIZE;
             const y = conveyor.y * CELL_SIZE;
             
-            const gradient = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
-            gradient.addColorStop(0, '#3b4f66');
-            gradient.addColorStop(1, '#2a3d52');
-            ctx.fillStyle = gradient;
+            let isStuck = conveyor.isStuck;
+            let hasSplit = this.getSplitTargets(conveyor).some(t => t.isSplit);
+            
+            if (isStuck) {
+                const blink = Math.sin(performance.now() / 150) * 0.5 + 0.5;
+                const g1 = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
+                g1.addColorStop(0, `rgba(239, 68, 68, ${0.5 + blink * 0.3})`);
+                g1.addColorStop(1, `rgba(185, 28, 28, ${0.4 + blink * 0.3})`);
+                ctx.fillStyle = g1;
+            } else if (hasSplit) {
+                const g1 = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
+                g1.addColorStop(0, '#5b4a66');
+                g1.addColorStop(1, '#4a3d52');
+                ctx.fillStyle = g1;
+            } else {
+                const gradient = ctx.createLinearGradient(x, y, x + CELL_SIZE, y + CELL_SIZE);
+                gradient.addColorStop(0, '#3b4f66');
+                gradient.addColorStop(1, '#2a3d52');
+                ctx.fillStyle = gradient;
+            }
             ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
             
-            ctx.strokeStyle = '#4a6fa5';
-            ctx.lineWidth = 2;
+            if (isStuck) {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#ef4444';
+                ctx.shadowBlur = 10;
+            } else if (hasSplit) {
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 2.5;
+            } else {
+                ctx.strokeStyle = '#4a6fa5';
+                ctx.lineWidth = 2;
+            }
             ctx.strokeRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+            ctx.shadowBlur = 0;
+            
+            if (hasSplit && !isStuck) {
+                const splits = this.getSplitTargets(conveyor).filter(t => t.isSplit);
+                for (const split of splits) {
+                    const dirMap = {
+                        right: [1, 0], left: [-1, 0], up: [0, -1], down: [0, 1]
+                    };
+                    const [dx, dy] = dirMap[split.splitDir] || [0, 0];
+                    ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+                    ctx.lineTo(x + CELL_SIZE / 2 + dx * 30, y + CELL_SIZE / 2 + dy * 30);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
             
             ctx.save();
             ctx.translate(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
@@ -796,7 +994,8 @@ class FactoryGame {
             const rotations = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
             ctx.rotate(rotations[conveyor.direction] || 0);
             
-            ctx.fillStyle = '#5a7a9a';
+            const arrowColor = isStuck ? '#fca5a5' : (hasSplit ? '#c084fc' : '#5a7a9a');
+            ctx.fillStyle = arrowColor;
             ctx.beginPath();
             ctx.moveTo(15, -8);
             ctx.lineTo(25, 0);
@@ -804,10 +1003,26 @@ class FactoryGame {
             ctx.closePath();
             ctx.fill();
             
-            ctx.fillStyle = 'rgba(90, 122, 154, 0.5)';
+            ctx.fillStyle = `rgba(${isStuck ? '252, 165, 165' : (hasSplit ? '192, 132, 252' : '90, 122, 154')}, 0.5)`;
             ctx.fillRect(-20, -2, 30, 4);
             
             ctx.restore();
+            
+            if (isStuck) {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('⚠', x + CELL_SIZE - 18, y + 18);
+            }
+            
+            if (hasSplit && !isStuck) {
+                ctx.fillStyle = '#a855f7';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('◇分流', x + CELL_SIZE - 22, y + 16);
+            }
         }
     }
     
@@ -836,28 +1051,43 @@ class FactoryGame {
         };
         const [c1, c2] = colors[machine.resource] || colors.iron_ore;
         
+        const hasConveyor = this.findAdjacentConveyor(machine.x, machine.y);
+        const isWorking = machine.active && hasConveyor;
+        
+        if (!hasConveyor) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+            ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+        
         const gradient = ctx.createLinearGradient(x, y, x, y + CELL_SIZE);
-        gradient.addColorStop(0, c2);
-        gradient.addColorStop(1, c1);
+        if (!hasConveyor) {
+            gradient.addColorStop(0, '#7c5a5a');
+            gradient.addColorStop(1, '#5a4343');
+        } else {
+            gradient.addColorStop(0, c2);
+            gradient.addColorStop(1, c1);
+        }
         ctx.fillStyle = gradient;
         ctx.fillRect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12);
         
-        ctx.strokeStyle = c2;
+        ctx.strokeStyle = !hasConveyor ? '#ef4444' : c2;
         ctx.lineWidth = 3;
+        if (!hasConveyor) ctx.shadowColor = '#ef4444', ctx.shadowBlur = 8;
         ctx.strokeRect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12);
+        ctx.shadowBlur = 0;
         
-        ctx.fillStyle = machine.active ? '#22c55e' : '#6b7280';
+        ctx.fillStyle = isWorking ? '#22c55e' : (!hasConveyor ? '#ef4444' : '#f59e0b');
         ctx.beginPath();
         ctx.arc(x + CELL_SIZE / 2, y + CELL_SIZE / 2, 12, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = c2;
+        ctx.fillStyle = !hasConveyor ? '#fca5a5' : c2;
         ctx.font = 'bold 20px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(RESOURCE_ICONS[machine.resource] || '⛏️', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
         
-        if (machine.active) {
+        if (isWorking) {
             ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
             ctx.lineWidth = 2;
             const t = performance.now() / 200;
@@ -870,6 +1100,39 @@ class FactoryGame {
             }
             ctx.globalAlpha = 1;
         }
+        
+        if (machine.statusMsg) {
+            const blink = Math.sin(performance.now() / 300) * 0.5 + 0.5;
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.8 + blink * 0.2})`;
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            const msgLines = this.wrapText(machine.statusMsg, 10);
+            msgLines.forEach((line, idx) => {
+                ctx.fillText(line, x + CELL_SIZE / 2, y + 12 + idx * 12);
+            });
+        }
+    }
+    
+    wrapText(text, fontSize) {
+        const maxWidth = CELL_SIZE - 20;
+        if (!text) return [''];
+        const testCtx = this.ctx;
+        testCtx.font = `bold ${fontSize}px sans-serif`;
+        const chars = text.split('');
+        const lines = [];
+        let currentLine = '';
+        for (const char of chars) {
+            const testLine = currentLine + char;
+            const width = testCtx.measureText(testLine).width;
+            if (width > maxWidth && currentLine.length > 0) {
+                lines.push(currentLine);
+                currentLine = char;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
     }
     
     drawAssembler(ctx, x, y, machine) {
@@ -880,36 +1143,84 @@ class FactoryGame {
         };
         const [c1, c2] = colors[machine.recipe] || colors.gear;
         
-        ctx.fillStyle = '#1f2937';
+        const hasOutputConveyor = this.findAdjacentConveyor(machine.x, machine.y);
+        const recipe = RECIPES[machine.recipe];
+        
+        const allAdjacent = this.getAllAdjacentConveyors(machine.x, machine.y);
+        const bufferStatus = [];
+        if (recipe) {
+            for (const [res, count] of Object.entries(recipe.inputs)) {
+                const has = machine.buffer[res] || 0;
+                bufferStatus.push(`${RESOURCE_ICONS[res] || ''}${has}/${count}`);
+            }
+        }
+        
+        if (!hasOutputConveyor) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+            ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+        
+        ctx.fillStyle = !hasOutputConveyor ? '#3d1f1f' : '#1f2937';
         ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
         
         const gradient = ctx.createLinearGradient(x + 10, y + 10, x + CELL_SIZE - 10, y + CELL_SIZE - 10);
-        gradient.addColorStop(0, c2);
-        gradient.addColorStop(1, c1);
+        if (!hasOutputConveyor) {
+            gradient.addColorStop(0, '#7c3a3a');
+            gradient.addColorStop(1, '#5c2a2a');
+        } else {
+            gradient.addColorStop(0, c2);
+            gradient.addColorStop(1, c1);
+        }
         ctx.fillStyle = gradient;
         ctx.fillRect(x + 10, y + 10, CELL_SIZE - 20, CELL_SIZE - 20);
         
-        ctx.strokeStyle = c2;
+        ctx.strokeStyle = !hasOutputConveyor ? '#ef4444' : c2;
         ctx.lineWidth = 2;
+        if (!hasOutputConveyor) ctx.shadowColor = '#ef4444', ctx.shadowBlur = 6;
         ctx.strokeRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
         ctx.strokeRect(x + 10, y + 10, CELL_SIZE - 20, CELL_SIZE - 20);
+        ctx.shadowBlur = 0;
         
-        ctx.fillStyle = '#fff';
+        const displayStatus = machine.statusMsg;
+        if (machine.progress > 0.5) {
+            ctx.fillStyle = '#fff';
+        } else if (!hasOutputConveyor) {
+            ctx.fillStyle = '#fca5a5';
+        } else {
+            ctx.fillStyle = '#fff';
+        }
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const icons = { gear: '⚙️', circuit: '🔌', steel: '🔩' };
-        ctx.fillText(icons[machine.recipe] || '🔧', x + CELL_SIZE / 2, y + CELL_SIZE / 2 - 5);
+        ctx.fillText(icons[machine.recipe] || '🔧', x + CELL_SIZE / 2, y + CELL_SIZE / 2 - 3);
+        
+        if (bufferStatus.length > 0 && !displayStatus) {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.fillText(bufferStatus.join(' '), x + CELL_SIZE / 2, y + CELL_SIZE - 20);
+        }
         
         if (machine.progress > 0) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(x + 10, y + CELL_SIZE - 18, CELL_SIZE - 20, 10);
+            ctx.fillRect(x + 10, y + CELL_SIZE - 14, CELL_SIZE - 20, 8);
             
             const progGradient = ctx.createLinearGradient(x + 10, 0, x + CELL_SIZE - 10, 0);
-            progGradient.addColorStop(0, c2);
+            progGradient.addColorStop(0, !hasOutputConveyor ? '#ef4444' : c2);
             progGradient.addColorStop(1, '#22c55e');
             ctx.fillStyle = progGradient;
-            ctx.fillRect(x + 11, y + CELL_SIZE - 17, (CELL_SIZE - 22) * machine.progress, 8);
+            ctx.fillRect(x + 11, y + CELL_SIZE - 13, (CELL_SIZE - 22) * machine.progress, 6);
+        }
+        
+        if (displayStatus) {
+            const blink = Math.sin(performance.now() / 300) * 0.5 + 0.5;
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.85 + blink * 0.15})`;
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            const msgLines = this.wrapText(displayStatus, 10);
+            msgLines.forEach((line, idx) => {
+                ctx.fillText(line, x + CELL_SIZE / 2, y + 12 + idx * 12);
+            });
         }
     }
     
@@ -1183,16 +1494,23 @@ class FactoryGame {
         }
         
         if (cell.type === 'conveyor') {
-            const dirNames = { right: '右', left: '左', up: '上', down: '下' };
-            info.textContent = ` | 位置: (${x}, ${y}) - 传送带 (${dirNames[cell.direction]})`;
+            const dirNames = { right: '右→', left: '←左', up: '↑上', down: '下↓' };
+            const stuck = cell.isStuck ? ' ⚠️堵塞' : '';
+            const split = this.getSplitTargets(cell).some(t => t.isSplit) ? ' 🟣分流' : '';
+            info.textContent = ` | 位置: (${x}, ${y}) - 传送带 (${dirNames[cell.direction] || cell.direction}) 物品:${cell.items.length}${stuck}${split}`;
         } else if (cell.type === 'miner') {
             const resNames = { iron_ore: '铁矿', copper_ore: '铜矿', coal: '煤矿' };
-            info.textContent = ` | 位置: (${x}, ${y}) - ${resNames[cell.resource] || '矿机'}`;
+            const status = cell.statusMsg ? ` [${cell.statusMsg}]` : ' [正常]';
+            info.textContent = ` | 位置: (${x}, ${y}) - ${resNames[cell.resource] || '矿机'}${status}`;
         } else if (cell.type === 'assembler') {
             const recipeNames = { gear: '齿轮', circuit: '电路', steel: '钢材' };
-            info.textContent = ` | 位置: (${x}, ${y}) - ${recipeNames[cell.recipe]}加工台`;
+            const recipe = RECIPES[cell.recipe];
+            const buffer = recipe ? Object.entries(cell.buffer || {}).map(([r, c]) => `${RESOURCE_ICONS[r] || ''}${c}/${recipe.inputs[r]}`).join(' ') : '';
+            const status = cell.statusMsg ? ` [${cell.statusMsg}]` : cell.progress > 0 ? ` [生产中${Math.floor(cell.progress * 100)}%]` : ' [就绪]';
+            info.textContent = ` | 位置: (${x}, ${y}) - ${recipeNames[cell.recipe] || '加工台'}${status} 原料:${buffer}`;
         } else if (cell.type === 'warehouse') {
-            info.textContent = ` | 位置: (${x}, ${y}) - 仓库`;
+            const ratio = (this.getTotalStorage() / this.getWarehouseCapacity() * 100).toFixed(0);
+            info.textContent = ` | 位置: (${x}, ${y}) - 仓库 (${this.getTotalStorage()}/${this.getWarehouseCapacity()}, ${ratio}%)`;
         }
     }
     
