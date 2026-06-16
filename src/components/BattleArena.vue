@@ -91,10 +91,10 @@ watch(() => props.isIdle, (val) => {
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span>
         <span><kbd>J</kbd> 攻击</span>
         <span><kbd>K</kbd> 必杀</span>
-        <span class="block-tip">← 按 <kbd>A</kbd> 防御</span>
+        <span class="block-tip">按住 <kbd>{{ p1.facing === 1 ? 'A' : 'D' }}</kbd> 防御</span>
       </div>
       <div class="tip p2-tip">
-        <span class="block-tip">按 <kbd>←</kbd> 防御 →</span>
+        <span class="block-tip">按住 <kbd>{{ p2.facing === 1 ? '←' : '→' }}</kbd> 防御</span>
         <span><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> 移动</span>
         <span><kbd>1</kbd> 攻击</span>
         <span><kbd>2</kbd> 必杀</span>

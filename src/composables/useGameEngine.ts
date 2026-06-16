@@ -299,9 +299,9 @@ export function useGameEngine() {
       }
     }
 
-    // 移动（可控制时）
+    // 移动（可控制且不在防御时）
     let moving = false
-    if (canMove(p)) {
+    if (canMove(p) && !p.isBlocking) {
       const speed = char.speed
       if (input.left) { p.x -= speed; moving = true }
       if (input.right) { p.x += speed; moving = true }
@@ -309,7 +309,7 @@ export function useGameEngine() {
 
     // idle/walk 状态切换
     if (p.state === 'idle' || p.state === 'walk') {
-      p.state = moving ? 'walk' : 'idle'
+      p.state = p.isBlocking ? 'idle' : (moving ? 'walk' : 'idle')
     }
   }
 
