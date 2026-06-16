@@ -29,6 +29,16 @@ const SAVE_KEY = 'mining_game_save_v1';
 // ==================== 游戏状态 ====================
 let gameState = null;
 
+let animationState = {
+    miningDirection: null,
+    miningStartTime: 0,
+    miningDuration: 250,
+    particles: [],
+    lastMoveTime: 0,
+    moveDirection: null,
+    shakeTime: 0
+};
+
 function createInitialState() {
     return {
         gold: 0,
@@ -414,6 +424,14 @@ function movePlayer(col, row) {
         return false;
     }
     
+    const pc = gameState.player.col;
+    const pr = gameState.player.row;
+    if (col < pc) animationState.moveDirection = 'left';
+    else if (col > pc) animationState.moveDirection = 'right';
+    else if (row < pr) animationState.moveDirection = 'up';
+    else animationState.moveDirection = 'down';
+    animationState.lastMoveTime = Date.now();
+    
     gameState.player.col = col;
     gameState.player.row = row;
     
@@ -492,6 +510,18 @@ function mineBlock(col, row) {
         return;
     }
     
+    const pc = gameState.player.col;
+    const pr = gameState.player.row;
+    let dir = 'right';
+    if (col > pc) dir = 'right';
+    else if (col < pc) dir = 'left';
+    else if (row > pr) dir = 'down';
+    else if (row < pr) dir = 'up';
+    
+    triggerMiningAnimation(dir);
+    spawnParticles(col, row, getBlockTypeById(block.type).color);
+    animationState.shakeTime = Date.now();
+    
     const damage = PICKAXE_TYPES[gameState.pickaxe].damage;
     block.hp -= damage;
     
@@ -519,6 +549,57 @@ function mineBlock(col, row) {
     
     updateUI();
     saveGame();
+}
+
+function triggerMiningAnimation(direction) {
+    animationState.miningDirection = direction;
+    animationState.miningStartTime = Date.now();
+}
+
+function spawnParticles(col, row, color) {
+    const count = 6 + Math.floor(Math.random() * 4);
+    const playerRow = gameState.player.row;
+    const startRow = playerRow - Math.floor(VISIBLE_ROWS / 2);
+    const centerX = col * BLOCK_SIZE + BLOCK_SIZE / 2;
+    const centerY = (row - startRow) * BLOCK_SIZE + BLOCK_SIZE / 2;
+    
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+        const speed = 2 + Math.random() * 3;
+        animationState.particles.push({
+            x: centerX,
+            y: centerY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2,
+            size: 3 + Math.random() * 4,
+            color: color || '#8B4513',
+            life: 1.0,
+            decay: 0.02 + Math.random() * 0.02
+        });
+    }
+}
+
+function updateParticles() {
+    for (let i = animationState.particles.length - 1; i >= 0; i--) {
+        const p = animationState.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.2;
+        p.life -= p.decay;
+        if (p.life <= 0) {
+            animationState.particles.splice(i, 1);
+        }
+    }
+}
+
+function drawParticles() {
+    updateParticles();
+    animationState.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    });
+    ctx.globalAlpha = 1;
 }
 
 function collectBlock(col, row, blockType) {
@@ -781,6 +862,17 @@ function upgradeTank() {
 
 // ==================== 渲染系统 ====================
 function render() {
+    const now = Date.now();
+    
+    ctx.save();
+    if (animationState.shakeTime && now - animationState.shakeTime < 150) {
+        const elapsed = now - animationState.shakeTime;
+        const intensity = (1 - elapsed / 150) * 3;
+        const shakeX = (Math.random() - 0.5) * intensity;
+        const shakeY = (Math.random() - 0.5) * intensity;
+        ctx.translate(shakeX, shakeY);
+    }
+    
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
@@ -818,6 +910,9 @@ function render() {
     drawPlayer(playerScreenX, playerScreenY);
     
     drawGridOverlay();
+    drawParticles();
+    
+    ctx.restore();
 }
 
 function getUndergroundColor(row) {
@@ -960,24 +1055,50 @@ function drawBlock(x, y, block, blockType, row) {
 }
 
 function drawPlayer(x, y) {
+    const now = Date.now();
+    const timeSinceMove = now - animationState.lastMoveTime;
+    const walkBob = timeSinceMove < 200 ? Math.sin((timeSinceMove / 200) * Math.PI) * 2 : 0;
+    const footOffset = timeSinceMove < 200 ? Math.sin((timeSinceMove / 200) * Math.PI * 2) * 2 : 0;
+    
+    const bodyY = y + walkBob;
+    
+    let swingAngle = 0;
+    let swingProgress = 0;
+    if (animationState.miningDirection) {
+        const elapsed = now - animationState.miningStartTime;
+        if (elapsed < animationState.miningDuration) {
+            swingProgress = elapsed / animationState.miningDuration;
+            swingAngle = Math.sin(swingProgress * Math.PI) * 1.2;
+        } else {
+            animationState.miningDirection = null;
+        }
+    }
+    
+    const eyeBlink = Math.sin(now / 3000) > 0.95 ? 0 : 1;
+    
     ctx.fillStyle = '#4169E1';
-    ctx.fillRect(x + 10, y + 16, 20, 18);
+    ctx.fillRect(x + 10, bodyY + 16, 20, 18);
     
     ctx.fillStyle = '#FFDAB9';
-    ctx.fillRect(x + 12, y + 6, 16, 12);
+    ctx.fillRect(x + 12, bodyY + 6, 16, 12);
     
     ctx.fillStyle = '#000';
-    ctx.fillRect(x + 15, y + 10, 3, 3);
-    ctx.fillRect(x + 22, y + 10, 3, 3);
+    if (eyeBlink) {
+        ctx.fillRect(x + 15, bodyY + 10, 3, 3);
+        ctx.fillRect(x + 22, bodyY + 10, 3, 3);
+    } else {
+        ctx.fillRect(x + 15, bodyY + 11, 3, 1);
+        ctx.fillRect(x + 22, bodyY + 11, 3, 1);
+    }
     
     ctx.fillStyle = '#FF6347';
-    ctx.fillRect(x + 11, y + 2, 18, 6);
+    ctx.fillRect(x + 11, bodyY + 2, 18, 6);
     ctx.fillStyle = '#FF4500';
-    ctx.fillRect(x + 9, y + 6, 22, 2);
+    ctx.fillRect(x + 9, bodyY + 6, 22, 2);
     
     ctx.fillStyle = '#2F4F8F';
-    ctx.fillRect(x + 12, y + 34, 6, 6);
-    ctx.fillRect(x + 22, y + 34, 6, 6);
+    ctx.fillRect(x + 12, y + 34 + (footOffset > 0 ? -footOffset : 0), 6, 6 + (footOffset > 0 ? footOffset : 0));
+    ctx.fillRect(x + 22, y + 34 + (footOffset < 0 ? footOffset : 0), 6, 6 + (footOffset < 0 ? -footOffset : 0));
     
     const pickaxe = gameState.pickaxe;
     let handleColor = '#8B4513';
@@ -986,11 +1107,48 @@ function drawPlayer(x, y) {
     else if (pickaxe === 'STEEL') headColor = '#708090';
     else if (pickaxe === 'DIAMOND') headColor = '#00CED1';
     
+    ctx.save();
+    let pivotX = x + 24;
+    let pivotY = bodyY + 22;
+    let dirX = 1, dirY = 0;
+    
+    if (animationState.miningDirection === 'up') {
+        pivotX = x + 20;
+        pivotY = bodyY + 14;
+        dirX = 0; dirY = -1;
+    } else if (animationState.miningDirection === 'down') {
+        pivotX = x + 20;
+        pivotY = bodyY + 30;
+        dirX = 0; dirY = 1;
+    } else if (animationState.miningDirection === 'left') {
+        pivotX = x + 12;
+        pivotY = bodyY + 22;
+        dirX = -1; dirY = 0;
+    } else {
+        pivotX = x + 28;
+        pivotY = bodyY + 22;
+        dirX = 1; dirY = 0;
+    }
+    
+    ctx.translate(pivotX, pivotY);
+    const baseAngle = Math.atan2(dirY, dirX);
+    ctx.rotate(baseAngle + swingAngle * (animationState.miningDirection === 'left' ? -1 : 1));
+    
+    const handleLen = 16;
     ctx.fillStyle = handleColor;
-    ctx.fillRect(x + 30, y + 14, 4, 18);
+    ctx.fillRect(-2, -2, handleLen, 4);
+    
     ctx.fillStyle = headColor;
-    ctx.fillRect(x + 26, y + 8, 12, 8);
-    ctx.fillRect(x + 24, y + 10, 4, 6);
+    ctx.fillRect(handleLen - 2, -8, 10, 6);
+    ctx.fillRect(handleLen - 2, 2, 10, 6);
+    ctx.fillRect(handleLen + 2, -10, 4, 20);
+    
+    if (swingProgress > 0.3 && swingProgress < 0.7) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${(0.5 - Math.abs(swingProgress - 0.5)) * 1.5})`;
+        ctx.fillRect(handleLen + 2, -10, 4, 20);
+    }
+    
+    ctx.restore();
 }
 
 function drawGridOverlay() {
@@ -1048,8 +1206,84 @@ canvas.addEventListener('click', (e) => {
     }
 });
 
+// ==================== 按钮事件 ====================
+document.getElementById('shopBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openShop();
+});
+document.getElementById('useBombBtn').addEventListener('click', useBomb);
+document.getElementById('useTeleportBtn').addEventListener('click', useTeleport);
+document.getElementById('resetBtn').addEventListener('click', () => {
+    if (confirm('确定要重新开始吗？所有进度将丢失！')) {
+        deleteSave();
+        resetGame();
+    }
+});
+
+document.getElementById('closeShop').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('shopModal').classList.add('hidden');
+});
+
+document.getElementById('shopModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('shopModal')) {
+        document.getElementById('shopModal').classList.add('hidden');
+    }
+});
+
+document.getElementById('shopModal').querySelector('.modal-content').addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+
+document.getElementById('closeChest').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('chestModal').classList.add('hidden');
+    updateUI();
+    saveGame();
+});
+
+document.getElementById('chestModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('chestModal')) {
+        document.getElementById('chestModal').classList.add('hidden');
+        updateUI();
+        saveGame();
+    }
+});
+
+document.getElementById('respawnBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('deathModal').classList.add('hidden');
+    deleteSave();
+    resetGame();
+});
+
+document.querySelectorAll('.shop-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        switch (action) {
+            case 'sellAll': sellAll(); break;
+            case 'refuel': refuel(); break;
+            case 'upgradeIron': upgradePickaxe('IRON'); break;
+            case 'upgradeSteel': upgradePickaxe('STEEL'); break;
+            case 'upgradeDiamond': upgradePickaxe('DIAMOND'); break;
+            case 'upgradeTank': upgradeTank(); break;
+        }
+    });
+});
+
 document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.getElementById('shopModal').classList.add('hidden');
+        document.getElementById('chestModal').classList.add('hidden');
+        return;
+    }
+    
     if (gameState.isDead) return;
+    
+    const shopVisible = !document.getElementById('shopModal').classList.contains('hidden');
+    const chestVisible = !document.getElementById('chestModal').classList.contains('hidden');
+    if (shopVisible || chestVisible) return;
     
     const pc = gameState.player.col;
     const pr = gameState.player.row;
@@ -1112,47 +1346,6 @@ document.addEventListener('keydown', (e) => {
             openShop();
             break;
     }
-});
-
-// ==================== 按钮事件 ====================
-document.getElementById('shopBtn').addEventListener('click', openShop);
-document.getElementById('useBombBtn').addEventListener('click', useBomb);
-document.getElementById('useTeleportBtn').addEventListener('click', useTeleport);
-document.getElementById('resetBtn').addEventListener('click', () => {
-    if (confirm('确定要重新开始吗？所有进度将丢失！')) {
-        deleteSave();
-        resetGame();
-    }
-});
-
-document.getElementById('closeShop').addEventListener('click', () => {
-    document.getElementById('shopModal').classList.add('hidden');
-});
-
-document.getElementById('closeChest').addEventListener('click', () => {
-    document.getElementById('chestModal').classList.add('hidden');
-    updateUI();
-    saveGame();
-});
-
-document.getElementById('respawnBtn').addEventListener('click', () => {
-    document.getElementById('deathModal').classList.add('hidden');
-    deleteSave();
-    resetGame();
-});
-
-document.querySelectorAll('.shop-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const action = btn.dataset.action;
-        switch (action) {
-            case 'sellAll': sellAll(); break;
-            case 'refuel': refuel(); break;
-            case 'upgradeIron': upgradePickaxe('IRON'); break;
-            case 'upgradeSteel': upgradePickaxe('STEEL'); break;
-            case 'upgradeDiamond': upgradePickaxe('DIAMOND'); break;
-            case 'upgradeTank': upgradeTank(); break;
-        }
-    });
 });
 
 // ==================== 游戏初始化 ====================
