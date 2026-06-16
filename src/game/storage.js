@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'space_cleaner_save_v1'
+const SCENE_KEY = 'space_cleaner_scene_v1'
 
 const DEFAULT_SAVE = {
   money: 0,
@@ -118,23 +119,56 @@ export function saveGame(gameState) {
       savedAt: Date.now()
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
-    console.log('[存档] 保存成功:', {
-      money: toSave.money,
-      system: toSave.progress.currentSystem,
-      zone: toSave.progress.currentZone,
-      time: new Date(toSave.savedAt).toLocaleString()
-    })
     return true
   } catch (e) {
     console.error('[存档] 保存失败:', e)
-    alert('存档保存失败！请检查浏览器存储设置')
     return false
   }
 }
 
+export function saveScene(sceneData) {
+  try {
+    if (!sceneData || !sceneData.ship) return false
+    const data = {
+      ...sceneData,
+      savedAt: Date.now()
+    }
+    localStorage.setItem(SCENE_KEY, JSON.stringify(data))
+    return true
+  } catch (e) {
+    console.error('[场景存档] 保存失败:', e)
+    return false
+  }
+}
+
+export function loadScene() {
+  try {
+    const raw = localStorage.getItem(SCENE_KEY)
+    if (raw) {
+      const data = JSON.parse(raw)
+      if (data && data.ship && typeof data.ship.x === 'number') {
+        console.log('[场景存档] 加载成功: 飞船(', data.ship.x.toFixed(0), ',', data.ship.y.toFixed(0), ') 碎片', (data.debris || []).length, '个 燃料', data.ship.fuel.toFixed(0), '保存时间', data.savedAt ? new Date(data.savedAt).toLocaleString() : '未知')
+        return data
+      } else {
+        console.warn('[场景存档] 数据无效，丢弃')
+        localStorage.removeItem(SCENE_KEY)
+      }
+    }
+  } catch (e) {
+    console.error('[场景存档] 加载失败:', e)
+    localStorage.removeItem(SCENE_KEY)
+  }
+  return null
+}
+
+export function clearScene() {
+  localStorage.removeItem(SCENE_KEY)
+}
+
 export function resetGame() {
   localStorage.removeItem(STORAGE_KEY)
-  console.log('[存档] 已清除')
+  localStorage.removeItem(SCENE_KEY)
+  console.log('[存档] 已清除所有数据')
   return deepClone(DEFAULT_SAVE)
 }
 

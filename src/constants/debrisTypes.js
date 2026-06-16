@@ -51,6 +51,15 @@ export const DEBRIS_TYPES = {
 
 export const DEBRIS_LIST = Object.values(DEBRIS_TYPES)
 
+const DEBRIS_BY_ID = {}
+for (const dt of DEBRIS_LIST) {
+  DEBRIS_BY_ID[dt.id] = dt
+}
+
+export function getDebrisTypeById(id) {
+  return DEBRIS_BY_ID[id] || DEBRIS_TYPES.SMALL_SCREW
+}
+
 export function getRandomDebrisType() {
   const totalWeight = DEBRIS_LIST.reduce((sum, d) => sum + d.spawnWeight, 0)
   let random = Math.random() * totalWeight

@@ -68,6 +68,7 @@ import { createGameState } from './game/gameState.js'
 import { GameEngine } from './game/gameEngine.js'
 import { soundManager } from './game/soundManager.js'
 import { SYSTEMS } from './constants/systems.js'
+import { saveScene, loadScene, clearScene } from './game/storage.js'
 
 import HudPanel from './components/HudPanel.vue'
 import MenuButtons from './components/MenuButtons.vue'
@@ -126,8 +127,23 @@ function initGame() {
   engine = new GameEngine(gameCanvas.value, gameState)
   
   const sys = SYSTEMS[gameState.state.progress.currentSystem]
-  const zone = sys.zones[gameState.state.progress.currentZone]
-  engine.initZone(sys, zone)
+  
+  const savedScene = loadScene()
+  if (savedScene) {
+    const restored = engine.restoreFromSave(savedScene, sys)
+    if (restored) {
+      console.log('[游戏] 从场景存档恢复成功')
+    } else {
+      console.log('[游戏] 场景存档恢复失败，重新初始化')
+      clearScene()
+      const zone = sys.zones[gameState.state.progress.currentZone]
+      engine.initZone(sys, zone)
+    }
+  } else {
+    console.log('[游戏] 无场景存档，全新初始化')
+    const zone = sys.zones[gameState.state.progress.currentZone]
+    engine.initZone(sys, zone)
+  }
   
   engine.start()
   
@@ -135,7 +151,8 @@ function initGame() {
   startStatsLoop()
   
   gameState.saveToStorage()
-  console.log('[游戏] 初始化完成并已保存初始状态')
+  saveFullScene()
+  console.log('[游戏] 初始化完成')
 }
 
 function updateStats() {
@@ -154,6 +171,15 @@ function updateStats() {
   zoneCompleted.value = engine?.zoneCompleted || false
 }
 
+function saveFullScene() {
+  if (engine) {
+    const sceneData = engine.serialize()
+    if (sceneData) {
+      saveScene(sceneData)
+    }
+  }
+}
+
 function startStatsLoop() {
   function loop() {
     updateStats()
@@ -161,6 +187,7 @@ function startStatsLoop() {
     const now = Date.now()
     if (now - lastSaveTime > 2000) {
       gameState.saveToStorage()
+      saveFullScene()
       lastSaveTime = now
     }
     
@@ -172,6 +199,7 @@ function startStatsLoop() {
 function restartGame() {
   if (!engine) return
   
+  clearScene()
   gameState.resetSession()
   
   const sys = SYSTEMS[gameState.state.progress.currentSystem]
@@ -179,6 +207,7 @@ function restartGame() {
   engine.initZone(sys, zone)
   
   gameState.saveToStorage()
+  saveFullScene()
 }
 
 function openUpgrade() {
@@ -215,11 +244,13 @@ function closeMission() {
 function handleSelectZone({ systemId, zoneId }) {
   const success = gameState.selectZone(systemId, zoneId)
   if (success && engine) {
+    clearScene()
     gameState.resetSession()
     const sys = SYSTEMS[systemId]
     const zone = sys.zones[zoneId]
     engine.initZone(sys, zone)
     engine.bgColor = sys.bgColor
+    saveFullScene()
   }
   gameState.closePanels()
 }
@@ -264,6 +295,7 @@ watch(() => gameState.state.isGameOver, (newVal) => {
 
 function handleBeforeUnload() {
   gameState.saveToStorage()
+  saveFullScene()
 }
 
 onMounted(() => {

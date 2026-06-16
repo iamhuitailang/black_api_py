@@ -1,8 +1,9 @@
 import { Ship } from './ship.js'
-import { createDebris, wrapPosition } from './debris.js'
+import { createDebris, wrapPosition, Debris } from './debris.js'
 import { GameRenderer } from './renderer.js'
 import { checkPlanetCollision } from './gravity.js'
 import { soundManager } from './soundManager.js'
+import { getDebrisTypeById } from '../constants/debrisTypes.js'
 import { GAME_CONFIG } from '../constants/gameConfig.js'
 
 export class GameEngine {
@@ -288,5 +289,105 @@ export class GameEngine {
 
   getCollectedValue() {
     return this.collectedValue
+  }
+
+  serialize() {
+    if (!this.ship) return null
+    
+    const shipData = {
+      x: this.ship.x,
+      y: this.ship.y,
+      vx: this.ship.vx,
+      vy: this.ship.vy,
+      angle: this.ship.angle,
+      fuel: this.ship.fuel,
+      hp: this.ship.hp,
+      targetVx: this.ship.targetVx || 0,
+      targetVy: this.ship.targetVy || 0
+    }
+    
+    const debrisData = this.debris.map(d => ({
+      typeId: d.type.id,
+      x: d.x,
+      y: d.y,
+      vx: d.vx,
+      vy: d.vy,
+      rotation: d.rotation,
+      rotationSpeed: d.rotationSpeed,
+      blinkPhase: d.blinkPhase,
+      collected: d.collected
+    }))
+    
+    return {
+      ship: shipData,
+      debris: debrisData,
+      collectedValue: this.collectedValue,
+      time: this.time,
+      bgColor: this.bgColor,
+      width: this.width,
+      height: this.height
+    }
+  }
+
+  restoreFromSave(sceneData, systemData) {
+    if (!sceneData || !sceneData.ship) return false
+    
+    const baseWidth = 900
+    const baseHeight = 600
+    const scaleX = this.width / baseWidth
+    const scaleY = this.height / baseHeight
+    
+    this.planets = systemData.planets.map(p => ({
+      ...p,
+      x: p.x * scaleX,
+      y: p.y * scaleY,
+      radius: p.radius * Math.min(scaleX, scaleY)
+    }))
+    
+    this.bgColor = systemData.bgColor
+    
+    const savedScaleX = sceneData.width ? this.width / sceneData.width : 1
+    const savedScaleY = sceneData.height ? this.height / sceneData.height : 1
+    
+    this.ship = new Ship(0, 0, this.gameState.state.upgrades)
+    this.ship.x = sceneData.ship.x * savedScaleX
+    this.ship.y = sceneData.ship.y * savedScaleY
+    this.ship.vx = sceneData.ship.vx * savedScaleX
+    this.ship.vy = sceneData.ship.vy * savedScaleY
+    this.ship.angle = sceneData.ship.angle
+    this.ship.fuel = sceneData.ship.fuel
+    this.ship.hp = sceneData.ship.hp
+    this.ship.targetVx = sceneData.ship.targetVx || 0
+    this.ship.targetVy = sceneData.ship.targetVy || 0
+    this.ship.thrusting = false
+    
+    this.debris = []
+    if (Array.isArray(sceneData.debris)) {
+      for (const dd of sceneData.debris) {
+        if (dd.collected) continue
+        const type = getDebrisTypeById(dd.typeId)
+        const d = new Debris(
+          dd.x * savedScaleX,
+          dd.y * savedScaleY,
+          type,
+          dd.vx * savedScaleX,
+          dd.vy * savedScaleY
+        )
+        d.rotation = dd.rotation || 0
+        d.rotationSpeed = dd.rotationSpeed || 0
+        d.blinkPhase = dd.blinkPhase || 0
+        this.debris.push(d)
+      }
+    }
+    
+    this.collectedValue = sceneData.collectedValue || 0
+    this.time = sceneData.time || 0
+    this.zoneCompleted = false
+    this.pickupEffects = []
+    this.damageFlash = 0
+    
+    console.log('[场景] 恢复成功: 飞船(', this.ship.x.toFixed(0), ',', this.ship.y.toFixed(0), ') 碎片', this.debris.length, '个 燃料', this.ship.fuel.toFixed(0), 'HP', this.ship.hp.toFixed(0))
+    
+    return true
   }
 }
