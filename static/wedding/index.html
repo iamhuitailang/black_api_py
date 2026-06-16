@@ -1078,6 +1078,7 @@ const TOKEN_KEY = 'wedding_auth_token';
 const USER_KEY = 'wedding_user_info';
 const UI_STATE_KEY = 'wedding_ui_state';
 const DATA_CACHE_KEY = 'wedding_data_cache';
+const DRAFT_KEY = 'wedding_form_drafts';
 
 createApp({
     setup() {
@@ -1185,6 +1186,43 @@ createApp({
             localStorage.removeItem(DATA_CACHE_KEY);
         };
 
+        const _readAllDrafts = () => {
+            try {
+                const str = localStorage.getItem(DRAFT_KEY);
+                return str ? JSON.parse(str) : {};
+            } catch (e) { return {}; }
+        };
+
+        const _writeAllDrafts = (all) => {
+            try {
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(all));
+            } catch (e) {}
+        };
+
+        const saveDraft = (formName, data) => {
+            if (!isLoggedIn.value) return;
+            const all = _readAllDrafts();
+            all[formName] = data;
+            _writeAllDrafts(all);
+        };
+
+        const loadDraft = (formName) => {
+            const all = _readAllDrafts();
+            return all[formName] || null;
+        };
+
+        const clearDraft = (formName) => {
+            const all = _readAllDrafts();
+            if (formName in all) {
+                delete all[formName];
+                _writeAllDrafts(all);
+            }
+        };
+
+        const clearAllDrafts = () => {
+            localStorage.removeItem(DRAFT_KEY);
+        };
+
         const getRoleName = (role) => {
             const names = { planner: '策划师', partner: '伴侣', guest: '宾客' };
             return names[role] || '未知';
@@ -1233,6 +1271,7 @@ createApp({
             clearAuthStorage();
             clearUIState();
             clearDataCache();
+            clearAllDrafts();
             authToken.value = '';
             currentUser.value = { id: null, username: '', role: '', roleName: '' };
             isLoggedIn.value = false;
@@ -1514,10 +1553,17 @@ createApp({
             if (g) {
                 guestForm.value = { ...g };
             } else {
-                guestForm.value = { name: '', group_tag: '亲友', rsvp_status: '待回复', meal_preference: '' };
+                const draft = loadDraft('guest');
+                guestForm.value = draft || { name: '', group_tag: '亲友', rsvp_status: '待回复', meal_preference: '' };
             }
             showGuestModal.value = true;
         };
+
+        watch(guestForm, (val) => {
+            if (!editingGuest.value && showGuestModal.value) {
+                saveDraft('guest', { ...val });
+            }
+        }, { deep: true });
 
         const saveGuest = async () => {
             if (!guestForm.value.name?.trim()) {
@@ -1535,6 +1581,7 @@ createApp({
             if (res.code === 0) {
                 toast(editingGuest.value ? '已更新' : '已添加');
                 showGuestModal.value = false;
+                clearDraft('guest');
                 fetchGuests();
             }
         };
@@ -1565,10 +1612,17 @@ createApp({
             if (b) {
                 budgetForm.value = { ...b };
             } else {
-                budgetForm.value = { category: '场地', item_name: '', estimated_cost: 0, actual_cost: 0, paid: 0 };
+                const draft = loadDraft('budget');
+                budgetForm.value = draft || { category: '场地', item_name: '', estimated_cost: 0, actual_cost: 0, paid: 0 };
             }
             showBudgetModal.value = true;
         };
+
+        watch(budgetForm, (val) => {
+            if (!editingBudget.value && showBudgetModal.value) {
+                saveDraft('budget', { ...val });
+            }
+        }, { deep: true });
 
         const saveBudgetItem = async () => {
             if (!budgetForm.value.item_name?.trim()) {
@@ -1586,6 +1640,7 @@ createApp({
             if (res.code === 0) {
                 toast(editingBudget.value ? '已更新' : '已添加');
                 showBudgetModal.value = false;
+                clearDraft('budget');
                 fetchBudget();
             }
         };
@@ -1605,10 +1660,17 @@ createApp({
             if (v) {
                 vendorForm.value = { ...v };
             } else {
-                vendorForm.value = { name: '', service: '', contact: '', contract_deadline: '' };
+                const draft = loadDraft('vendor');
+                vendorForm.value = draft || { name: '', service: '', contact: '', contract_deadline: '' };
             }
             showVendorModal.value = true;
         };
+
+        watch(vendorForm, (val) => {
+            if (!editingVendor.value && showVendorModal.value) {
+                saveDraft('vendor', { ...val });
+            }
+        }, { deep: true });
 
         const saveVendor = async () => {
             if (!vendorForm.value.name?.trim() || !vendorForm.value.service?.trim()) {
@@ -1626,6 +1688,7 @@ createApp({
             if (res.code === 0) {
                 toast(editingVendor.value ? '已更新' : '已添加');
                 showVendorModal.value = false;
+                clearDraft('vendor');
                 fetchVendors();
             }
         };
@@ -1645,10 +1708,17 @@ createApp({
             if (t) {
                 taskForm.value = { title: t.title, deadline: t.deadline || '', priority: t.priority };
             } else {
-                taskForm.value = { title: '', deadline: '', priority: 2 };
+                const draft = loadDraft('task');
+                taskForm.value = draft || { title: '', deadline: '', priority: 2 };
             }
             showTaskModal.value = true;
         };
+
+        watch(taskForm, (val) => {
+            if (!editingTask.value && showTaskModal.value) {
+                saveDraft('task', { ...val });
+            }
+        }, { deep: true });
 
         const saveTask = async () => {
             if (!taskForm.value.title?.trim()) {
@@ -1666,6 +1736,7 @@ createApp({
             if (res.code === 0) {
                 toast(editingTask.value ? '已更新' : '已添加');
                 showTaskModal.value = false;
+                clearDraft('task');
                 fetchTasks();
             }
         };
