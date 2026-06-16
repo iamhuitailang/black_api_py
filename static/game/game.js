@@ -171,6 +171,68 @@ class Knife {
 
         ctx.restore();
     }
+
+    drawAt(ctx) {
+        const primary = this.skin.color_primary;
+        const secondary = this.skin.color_secondary || '#D2691E';
+        const effectType = this.skin.effect_type;
+
+        if (effectType === 'rainbow') {
+            const hue = (Date.now() / 5) % 360;
+            ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+            ctx.shadowBlur = 15;
+        } else if (effectType === 'fire') {
+            ctx.shadowColor = '#FF4500';
+            ctx.shadowBlur = 6;
+        } else if (effectType === 'ice') {
+            ctx.shadowColor = '#00CED1';
+            ctx.shadowBlur = 6;
+        }
+
+        ctx.fillStyle = '#4A4A4A';
+        ctx.fillRect(-this.width / 2, 0, this.width, this.length * 0.55);
+
+        const bladeGradient = ctx.createLinearGradient(-this.width / 2, 0, this.width / 2, 0);
+        bladeGradient.addColorStop(0, '#666');
+        bladeGradient.addColorStop(0.3, '#C0C0C0');
+        bladeGradient.addColorStop(0.5, '#F5F5F5');
+        bladeGradient.addColorStop(0.7, '#C0C0C0');
+        bladeGradient.addColorStop(1, '#666');
+        ctx.fillStyle = bladeGradient;
+        ctx.beginPath();
+        ctx.moveTo(-this.width / 2, 0);
+        ctx.lineTo(-this.width / 3, -this.length * 0.35);
+        ctx.lineTo(0, -this.length * 0.45);
+        ctx.lineTo(this.width / 3, -this.length * 0.35);
+        ctx.lineTo(this.width / 2, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = effectType === 'rainbow' 
+            ? `hsl(${(Date.now() / 5) % 360}, 70%, 50%)` 
+            : primary;
+        ctx.fillRect(-this.width / 2 - 2, this.length * 0.5, this.width + 4, this.length * 0.1);
+
+        const handleGradient = ctx.createLinearGradient(-this.width / 2, 0, this.width / 2, 0);
+        handleGradient.addColorStop(0, primary);
+        handleGradient.addColorStop(0.5, secondary);
+        handleGradient.addColorStop(1, primary);
+        ctx.fillStyle = handleGradient;
+        ctx.fillRect(-this.width / 2 + 2, this.length * 0.6, this.width - 4, this.length * 0.4);
+
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+            const yPos = this.length * (0.65 + i * 0.1);
+            ctx.beginPath();
+            ctx.moveTo(-this.width / 2 + 3, yPos);
+            ctx.lineTo(this.width / 2 - 3, yPos);
+            ctx.stroke();
+        }
+
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+    }
 }
 
 class Target {
@@ -283,7 +345,7 @@ class Target {
             ctx.save();
             ctx.translate(knifeX, knifeY);
             ctx.rotate(knifeRotate);
-            knife.draw(ctx);
+            knife.drawAt(ctx);
             ctx.restore();
         });
 
@@ -449,6 +511,34 @@ class KnifeGame {
             localStorage.removeItem('knife_max_level');
             localStorage.removeItem('knife_skin');
         }
+
+        const levelProgress = {
+            level: this.currentLevel,
+            knivesLeft: this.knivesLeft,
+            knivesTotal: this.knivesTotal,
+            targetAngle: this.target ? this.target.angle : 0,
+            stuckAngles: this.target ? this.target.knives.map(k => k.stuckAngle) : []
+        };
+        localStorage.setItem('knife_level_progress', JSON.stringify(levelProgress));
+    }
+
+    clearLevelProgress() {
+        localStorage.removeItem('knife_level_progress');
+    }
+
+    loadLevelProgress(levelNum) {
+        try {
+            const saved = localStorage.getItem('knife_level_progress');
+            if (!saved) return null;
+            const progress = JSON.parse(saved);
+            if (progress.level !== levelNum) {
+                this.clearLevelProgress();
+                return null;
+            }
+            return progress;
+        } catch (e) {
+            return null;
+        }
     }
 
     async handleLogin() {
@@ -541,7 +631,7 @@ class KnifeGame {
         }
     }
 
-    startLevel(levelNum) {
+    startLevel(levelNum, forceRestart = false) {
         this.showScreen('game-screen');
         
         setTimeout(() => {
@@ -559,6 +649,25 @@ class KnifeGame {
                     this.levelConfig.target_speed,
                     this.levelConfig.direction_change
                 );
+
+                if (!forceRestart) {
+                    const savedProgress = this.loadLevelProgress(levelNum);
+                    if (savedProgress && savedProgress.stuckAngles && savedProgress.stuckAngles.length > 0) {
+                        this.knivesLeft = savedProgress.knivesLeft;
+                        this.knivesTotal = savedProgress.knivesTotal;
+                        this.target.angle = savedProgress.targetAngle || 0;
+                        
+                        savedProgress.stuckAngles.forEach(angle => {
+                            const stuckKnife = new Knife(0, 0, 0, this.currentSkin);
+                            stuckKnife.isStuck = true;
+                            stuckKnife.stuckAngle = angle;
+                            this.target.knives.push(stuckKnife);
+                        });
+                    }
+                } else {
+                    this.clearLevelProgress();
+                }
+
                 this.flyingKnife = null;
                 this.state = GameState.PLAYING;
                 this.hideOverlay();
@@ -650,7 +759,7 @@ class KnifeGame {
         const knife = this.flyingKnife;
         const target = this.target;
 
-        let stuckAngle = Math.PI + target.angle;
+        let stuckAngle = Math.PI - target.angle;
         while (stuckAngle < 0) stuckAngle += Math.PI * 2;
         stuckAngle = stuckAngle % (Math.PI * 2);
 
@@ -694,11 +803,12 @@ class KnifeGame {
                 newSkins = result.data.newly_unlocked_skins || [];
             }
         } else {
-            const nextLevel = this.currentLevel + 1;
-            if (nextLevel > this.maxLevel) {
-                this.maxLevel = nextLevel;
+            const nextLevelNum = this.currentLevel + 1;
+            if (nextLevelNum > this.maxLevel) {
+                this.maxLevel = nextLevelNum;
             }
         }
+        this.clearLevelProgress();
         this.saveState();
         this.showWinOverlay(newSkins);
     }
@@ -752,7 +862,7 @@ class KnifeGame {
     }
 
     retryLevel() {
-        this.startLevel(this.currentLevel);
+        this.startLevel(this.currentLevel, true);
     }
 
     nextLevel() {
@@ -760,7 +870,8 @@ class KnifeGame {
         if (!this.isGuest && next > this.maxLevel) {
             this.maxLevel = next;
         }
-        this.startLevel(next);
+        this.clearLevelProgress();
+        this.startLevel(next, true);
     }
 
     async showSkins() {
@@ -851,8 +962,8 @@ class KnifeGame {
                     if (!this.isGuest) {
                         await API.selectLevel(level.level_num);
                     }
-                    this.startLevel(level.level_num);
-                    this.showScreen('game-screen');
+                    this.clearLevelProgress();
+                    this.startLevel(level.level_num, true);
                 });
             }
 
