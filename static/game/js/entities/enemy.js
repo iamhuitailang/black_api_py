@@ -1,43 +1,43 @@
 var ENEMY_TYPES = {
   normal: {
     name: '普通虫',
-    hp: 100,
-    speed: 50,
+    hp: 70,
+    speed: 55,
     armor: 0,
-    reward: 15,
+    reward: 12,
     glowColor: '#39ff14',
     bodyColor: '#1a3a0a'
   },
   acid: {
     name: '酸液虫',
-    hp: 80,
-    speed: 45,
+    hp: 55,
+    speed: 50,
     armor: 0,
-    reward: 20,
+    reward: 18,
     glowColor: '#a8ff00',
     bodyColor: '#2a3a0a',
-    acidRadius: 60,
-    acidFactor: 0.3,
-    acidDuration: 5
+    acidRadius: 70,
+    acidFactor: 0.25,
+    acidDuration: 4
   },
   shell: {
     name: '甲壳虫',
-    hp: 60,
-    speed: 30,
-    armor: 50,
-    reward: 25,
+    hp: 50,
+    speed: 35,
+    armor: 30,
+    reward: 22,
     glowColor: '#ff8c00',
     bodyColor: '#3a2a0a'
   },
   mother: {
     name: '母虫',
-    hp: 200,
-    speed: 25,
-    armor: 10,
-    reward: 40,
+    hp: 150,
+    speed: 30,
+    armor: 5,
+    reward: 45,
     glowColor: '#bf40ff',
     bodyColor: '#2a0a3a',
-    spawnInterval: 5,
+    spawnInterval: 6,
     spawnCount: 1,
     deathSpawnCount: 2
   }

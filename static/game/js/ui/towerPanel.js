@@ -211,6 +211,7 @@ class TowerPanel {
       return n;
     });
     this.hideDeployPanel();
+    if (this.app.onTowerChange) this.app.onTowerChange();
   }
 
   onUpgrade() {
@@ -221,6 +222,7 @@ class TowerPanel {
     this.app.samples -= cost;
     this.app.upgradeSystem.upgradeTower(this.selectedTower);
     this.showUpgradePanel(this.selectedTower);
+    if (this.app.onTowerChange) this.app.onTowerChange();
   }
 
   onSell() {
@@ -250,5 +252,6 @@ class TowerPanel {
     });
 
     this.hideUpgradePanel();
+    if (this.app.onTowerChange) this.app.onTowerChange();
   }
 }

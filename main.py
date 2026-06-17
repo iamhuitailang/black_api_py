@@ -44,9 +44,84 @@ def seed_game_data():
                 {"wave_index":4,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":400,"spawn_delay":0},{"type":"acid","count":5,"entry_index":1,"spawn_interval":600,"spawn_delay":0},{"type":"shell","count":5,"entry_index":0,"spawn_interval":800,"spawn_delay":2000},{"type":"mother","count":2,"entry_index":1,"spawn_interval":3000,"spawn_delay":3000}]}
             ]
         })
+        grid_2 = [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],
+            [0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],
+            [0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ]
+        waves_2 = [
+            {"wave_index":0,"enemies":[{"type":"normal","count":6,"entry_index":0,"spawn_interval":1000},{"type":"normal","count":6,"entry_index":1,"spawn_interval":1000}]},
+            {"wave_index":1,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":700},{"type":"acid","count":4,"entry_index":1,"spawn_interval":1200}]},
+            {"wave_index":2,"enemies":[{"type":"normal","count":8,"entry_index":0,"spawn_interval":600},{"type":"shell","count":5,"entry_index":1,"spawn_interval":1000},{"type":"acid","count":4,"entry_index":0,"spawn_interval":1000,"spawn_delay":3000}]},
+            {"wave_index":3,"enemies":[{"type":"acid","count":8,"entry_index":0,"spawn_interval":600},{"type":"shell","count":6,"entry_index":1,"spawn_interval":800}]},
+            {"wave_index":4,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":400},{"type":"acid","count":6,"entry_index":1,"spawn_interval":600},{"type":"mother","count":1,"entry_index":0,"spawn_interval":0,"spawn_delay":4000}]},
+            {"wave_index":5,"enemies":[{"type":"shell","count":10,"entry_index":0,"spawn_interval":600},{"type":"mother","count":2,"entry_index":1,"spawn_interval":3000}]},
+            {"wave_index":6,"enemies":[{"type":"normal","count":20,"entry_index":0,"spawn_interval":300},{"type":"acid","count":10,"entry_index":1,"spawn_interval":400},{"type":"shell","count":8,"entry_index":0,"spawn_interval":700,"spawn_delay":2000},{"type":"mother","count":3,"entry_index":1,"spawn_interval":2500,"spawn_delay":3000}]}
+        ]
+        map_config_2 = json.dumps({
+            "width": 20,
+            "height": 15,
+            "grid": grid_2,
+            "deploy_nodes": [{"x":4,"y":1},{"x":7,"y":1},{"x":10,"y":4},{"x":13,"y":1},{"x":16,"y":1},{"x":4,"y":6},{"x":10,"y":6},{"x":4,"y":9},{"x":8,"y":10},{"x":11,"y":10},{"x":15,"y":9},{"x":18,"y":10}],
+            "entry_points": [{"x":0,"y":2},{"x":19,"y":8}],
+            "exit_point": {"x":6,"y":11},
+            "waves": waves_2
+        })
+
+        grid_3 = [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1],
+            [0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,1,1,1,1,0,0,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1],
+            [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ]
+        waves_3 = [
+            {"wave_index":0,"enemies":[{"type":"normal","count":8,"entry_index":0,"spawn_interval":900},{"type":"normal","count":8,"entry_index":1,"spawn_interval":900}]},
+            {"wave_index":1,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":600},{"type":"acid","count":6,"entry_index":1,"spawn_interval":900}]},
+            {"wave_index":2,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":500},{"type":"shell","count":6,"entry_index":1,"spawn_interval":900},{"type":"acid","count":5,"entry_index":0,"spawn_interval":800,"spawn_delay":2000}]},
+            {"wave_index":3,"enemies":[{"type":"acid","count":10,"entry_index":0,"spawn_interval":500},{"type":"shell","count":8,"entry_index":1,"spawn_interval":700}]},
+            {"wave_index":4,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":350},{"type":"acid","count":8,"entry_index":1,"spawn_interval":500},{"type":"mother","count":2,"entry_index":0,"spawn_interval":2500,"spawn_delay":3000}]},
+            {"wave_index":5,"enemies":[{"type":"shell","count":12,"entry_index":0,"spawn_interval":500},{"type":"mother","count":3,"entry_index":1,"spawn_interval":2500}]},
+            {"wave_index":6,"enemies":[{"type":"acid","count":12,"entry_index":0,"spawn_interval":400},{"type":"shell","count":10,"entry_index":1,"spawn_interval":500},{"type":"mother","count":2,"entry_index":0,"spawn_interval":2000,"spawn_delay":2000}]},
+            {"wave_index":7,"enemies":[{"type":"normal","count":25,"entry_index":0,"spawn_interval":250},{"type":"shell","count":10,"entry_index":1,"spawn_interval":500}]},
+            {"wave_index":8,"enemies":[{"type":"acid","count":15,"entry_index":0,"spawn_interval":350},{"type":"mother","count":4,"entry_index":1,"spawn_interval":2000},{"type":"shell","count":10,"entry_index":0,"spawn_interval":500,"spawn_delay":2000}]},
+            {"wave_index":9,"enemies":[{"type":"normal","count":30,"entry_index":0,"spawn_interval":200},{"type":"acid","count":15,"entry_index":1,"spawn_interval":300},{"type":"shell","count":12,"entry_index":0,"spawn_interval":400,"spawn_delay":2000},{"type":"mother","count":5,"entry_index":1,"spawn_interval":1500,"spawn_delay":3000}]}
+        ]
+        map_config_3 = json.dumps({
+            "width": 20,
+            "height": 15,
+            "grid": grid_3,
+            "deploy_nodes": [{"x":2,"y":0},{"x":3,"y":2},{"x":9,"y":2},{"x":12,"y":2},{"x":17,"y":0},{"x":3,"y":5},{"x":8,"y":5},{"x":13,"y":5},{"x":3,"y":7},{"x":10,"y":8},{"x":16,"y":7},{"x":3,"y":10},{"x":9,"y":10},{"x":16,"y":10}],
+            "entry_points": [{"x":0,"y":1},{"x":19,"y":6}],
+            "exit_point": {"x":0,"y":12},
+            "waves": waves_3
+        })
+
         level_model.create(name='研发区走廊', difficulty=1, wave_count=5, map_config=map_config_1)
-        level_model.create(name='实验区通道', difficulty=2, wave_count=7, map_config='')
-        level_model.create(name='核心反应堆', difficulty=3, wave_count=10, map_config='')
+        level_model.create(name='实验区通道', difficulty=2, wave_count=7, map_config=map_config_2)
+        level_model.create(name='核心反应堆', difficulty=3, wave_count=10, map_config=map_config_3)
 
     UpgradeModel.seed_data()
     ProgressModel.seed_data()

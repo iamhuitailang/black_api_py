@@ -64,9 +64,11 @@ var MOCK_LEVEL = {
       reward: 100
     }
   ],
-  startingSamples: 200,
-  startingLives: 20
+  startingSamples: 350,
+  startingLives: 30
 };
+
+var SAVE_KEY = 'deepspace_towerdefense_save';
 
 class App {
   constructor() {
@@ -84,6 +86,7 @@ class App {
     this.samples = 0;
     this.lives = 0;
     this.waveSystem = null;
+    this.saveTimer = null;
 
     this.bindCanvasEvents();
     this.bindHUDEvents();
@@ -94,6 +97,59 @@ class App {
     this.levelSelect.show();
   }
 
+  getSaveKeyForLevel(levelId) {
+    return SAVE_KEY + '_level_' + levelId;
+  }
+
+  saveProgress() {
+    if (!this.levelMap) {
+      return;
+    }
+    try {
+      var towerData = [];
+      for (var i = 0; i < this.towers.length; i++) {
+        var t = this.towers[i];
+        towerData.push({
+          type: t.type,
+          gx: t.gx,
+          gy: t.gy,
+          level: t.level,
+          totalInvested: t.totalInvested
+        });
+      }
+      var save = {
+        levelId: this.levelMap.id,
+        samples: this.samples,
+        lives: this.lives,
+        currentWave: this.waveSystem ? this.waveSystem.currentWaveIndex : -1,
+        towers: towerData,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(this.getSaveKeyForLevel(this.levelMap.id), JSON.stringify(save));
+      localStorage.setItem(SAVE_KEY + '_global', JSON.stringify({
+        currentLevelId: this.levelMap.id
+      }));
+    } catch (e) {
+      console.error('Save failed:', e);
+    }
+  }
+
+  loadProgress(levelId) {
+    try {
+      var raw = localStorage.getItem(this.getSaveKeyForLevel(levelId));
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  clearProgress(levelId) {
+    try {
+      localStorage.removeItem(this.getSaveKeyForLevel(levelId));
+    } catch (e) {}
+  }
+
   startLevel(levelData) {
     this.levelMap = new LevelMap(levelData);
     this.waveSystem = new WaveSystem(this.levelMap.waves);
@@ -102,11 +158,27 @@ class App {
     this.samples = this.levelMap.startingSamples;
     this.lives = this.levelMap.startingLives;
 
+    var saved = this.loadProgress(levelData.id);
+    if (saved && saved.samples > 0 && saved.towers && saved.towers.length > 0) {
+      this.samples = saved.samples;
+      this.lives = saved.lives;
+      if (saved.currentWave >= 0) {
+        this.waveSystem.currentWaveIndex = saved.currentWave;
+      }
+      for (var i = 0; i < saved.towers.length; i++) {
+        var td = saved.towers[i];
+        var tower = new Tower(td.type, td.gx, td.gy);
+        tower.level = td.level || 1;
+        tower.totalInvested = td.totalInvested || TOWER_TYPES[td.type].cost;
+        this.towers.push(tower);
+      }
+    }
+
     this.renderer.resize(this.levelMap.getCanvasWidth(), this.levelMap.getCanvasHeight());
     this.gameLoop.setState(GAME_STATE.PREP);
 
     this.hud.update({
-      wave: 0,
+      wave: Math.max(0, this.waveSystem.currentWaveIndex + 1),
       totalWaves: this.waveSystem.getTotalWaves(),
       lives: this.lives,
       samples: this.samples,
@@ -232,6 +304,16 @@ class App {
 
   onWaveComplete() {
     this.towerPanel.updateTowerCardStates();
+    this.saveProgress();
+    this.syncProgressToServer();
+  }
+
+  onTowerChange() {
+    this.saveProgress();
+  }
+
+  onSamplesChange() {
+    this.saveProgress();
   }
 
   onGameEnd(victory) {
@@ -250,7 +332,29 @@ class App {
 
     if (victory && this.levelMap) {
       this.levelSelect.unlockLevel(this.levelMap.id + 1);
+      this.clearProgress(this.levelMap.id);
     }
+    this.saveProgress();
+    this.syncProgressToServer();
+  }
+
+  syncProgressToServer() {
+    try {
+      var completedLevels = [];
+      try {
+        var raw = localStorage.getItem('deepspace_towerdefense_save_completed');
+        if (raw) completedLevels = JSON.parse(raw);
+      } catch (e) {}
+      fetch('/api/game/progress/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bio_samples: this.samples,
+          completed_levels: completedLevels,
+          tower_upgrades: {}
+        })
+      });
+    } catch (e) {}
   }
 
   hideGameOverlay() {

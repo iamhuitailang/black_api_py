@@ -11,8 +11,8 @@ class LevelMap {
     this.exitPoint = levelData.exitPoint;
     this.deployNodes = levelData.deployNodes;
     this.waves = levelData.waves;
-    this.startingSamples = levelData.startingSamples || 200;
-    this.startingLives = levelData.startingLives || 20;
+    this.startingSamples = levelData.startingSamples || 350;
+    this.startingLives = levelData.startingLives || 30;
     this.pathfinder = new Pathfinder(this.grid, this.width, this.height);
     this.paths = this.pathfinder.precomputePaths(this.entryPoints, this.exitPoint);
   }
