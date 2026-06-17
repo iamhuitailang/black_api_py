@@ -12,6 +12,8 @@ class Board {
         this.onParticlesCallback = null;
         this.onMoveCallback = null;
         this.container = null;
+        this.cellSize = 60;
+        this.gap = 5;
         this.init();
     }
 
@@ -26,14 +28,12 @@ class Board {
     }
 
     fillBoard() {
-        do {
-            this.init();
-            for (let row = 0; row < this.rows; row++) {
-                for (let col = 0; col < this.cols; col++) {
-                    this.createGearAt(row, col);
-                }
+        this.init();
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                this.createGearAtAvoidingMatches(row, col);
             }
-        } while (this.findMatches().length > 0);
+        }
     }
 
     createGearAt(row, col) {
@@ -56,8 +56,8 @@ class Board {
             const colors = Object.values(GearColor);
             for (const color of colors) {
                 gear = new Gear(row, col, color, GearType.NORMAL);
+                this.grid[row][col] = gear;
                 if (!this.hasMatchAt(row, col)) {
-                    this.grid[row][col] = gear;
                     break;
                 }
             }
@@ -114,13 +114,13 @@ class Board {
             }
         }
 
-        if (this.selectedGear && this.selectedGear.element) {
+        if (this.selectedGear) {
             const selRow = this.selectedGear.row;
             const selCol = this.selectedGear.col;
-            const gears = container.querySelectorAll('.gear-cell');
-            gears.forEach(g => {
-                if (parseInt(g.dataset.row) === selRow && parseInt(g.dataset.col) === selCol) {
-                    g.classList.add('selected');
+            const cells = container.querySelectorAll('.gear-cell');
+            cells.forEach(cell => {
+                if (parseInt(cell.dataset.row) === selRow && parseInt(cell.dataset.col) === selCol) {
+                    cell.classList.add('selected');
                 }
             });
         }
@@ -177,6 +177,8 @@ class Board {
         const row2 = gear2.row;
         const col2 = gear2.col;
 
+        await this.animateSwap(row1, col1, row2, col2);
+
         this.swapGears(gear1, gear2);
         this.rerender();
 
@@ -189,7 +191,7 @@ class Board {
                 this.onMoveCallback();
             }
         } else {
-            await this.delay(200);
+            await this.animateSwap(row2, col2, row1, col1);
             this.swapGears(gear1, gear2);
             this.selectedGear = null;
             this.rerender();
@@ -199,6 +201,35 @@ class Board {
 
         this.isAnimating = false;
         return true;
+    }
+
+    async animateSwap(r1, c1, r2, c2) {
+        if (!this.container) return;
+
+        const cell1 = this.container.querySelector(`.gear-cell[data-row="${r1}"][data-col="${c1}"]`);
+        const cell2 = this.container.querySelector(`.gear-cell[data-row="${r2}"][data-col="${c2}"]`);
+
+        if (!cell1 || !cell2) return;
+
+        const dx = (c2 - c1) * (this.cellSize + this.gap);
+        const dy = (r2 - r1) * (this.cellSize + this.gap);
+
+        cell1.style.zIndex = '30';
+        cell2.style.zIndex = '30';
+        cell1.style.transition = 'transform 0.25s ease-in-out';
+        cell2.style.transition = 'transform 0.25s ease-in-out';
+
+        cell1.style.transform = `translate(${dx}px, ${dy}px)`;
+        cell2.style.transform = `translate(${-dx}px, ${-dy}px)`;
+
+        await this.delay(260);
+
+        cell1.style.transition = '';
+        cell2.style.transition = '';
+        cell1.style.transform = '';
+        cell2.style.transform = '';
+        cell1.style.zIndex = '';
+        cell2.style.zIndex = '';
     }
 
     swapGears(gear1, gear2) {
@@ -219,23 +250,35 @@ class Board {
         const matched = new Set();
 
         for (let row = 0; row < this.rows; row++) {
-            for (let col = 0; col < this.cols - 2; col++) {
+            let col = 0;
+            while (col < this.cols - 2) {
                 const match = this.findHorizontalMatch(row, col);
                 if (match.length >= 3) {
-                    match.forEach(g => matched.add(`${g.row}-${g.col}`));
-                    matches.push(match);
-                    col += match.length - 1;
+                    const key = match.map(g => `${g.row}-${g.col}`).join('|');
+                    if (!matched.has(key)) {
+                        match.forEach(g => matched.add(`${g.row}-${g.col}`));
+                        matches.push(match);
+                    }
+                    col += match.length;
+                } else {
+                    col++;
                 }
             }
         }
 
         for (let col = 0; col < this.cols; col++) {
-            for (let row = 0; row < this.rows - 2; row++) {
+            let row = 0;
+            while (row < this.rows - 2) {
                 const match = this.findVerticalMatch(row, col);
                 if (match.length >= 3) {
-                    match.forEach(g => matched.add(`${g.row}-${g.col}`));
-                    matches.push(match);
-                    row += match.length - 1;
+                    const key = match.map(g => `${g.row}-${g.col}`).join('|');
+                    if (!matched.has(key)) {
+                        match.forEach(g => matched.add(`${g.row}-${g.col}`));
+                        matches.push(match);
+                    }
+                    row += match.length;
+                } else {
+                    row++;
                 }
             }
         }
@@ -347,6 +390,8 @@ class Board {
                 }
             }
 
+            await this.animateRemoval(toRemove);
+
             for (const key of toRemove) {
                 const [row, col] = key.split('-').map(Number);
                 this.grid[row][col] = null;
@@ -359,18 +404,72 @@ class Board {
             }
 
             this.rerender();
-            await this.delay(300);
+            await this.delay(100);
 
-            this.applyGravitySync();
+            await this.animateGravity();
             this.rerender();
-            await this.delay(200);
+            await this.delay(150);
 
             this.fillEmptySpacesSync();
             this.rerender();
-            await this.delay(300);
+            await this.delay(200);
         }
 
         return { score: totalScore, combo };
+    }
+
+    async animateRemoval(toRemove) {
+        if (!this.container) return;
+
+        for (const key of toRemove) {
+            const [row, col] = key.split('-').map(Number);
+            const cell = this.container.querySelector(`.gear-cell[data-row="${row}"][data-col="${col}"]`);
+            if (cell) {
+                const gearEl = cell.querySelector('.gear');
+                if (gearEl) {
+                    gearEl.style.transition = 'transform 0.25s ease-in, opacity 0.25s ease-in';
+                    gearEl.style.transform = 'scale(1.3)';
+                    gearEl.style.opacity = '0';
+                }
+            }
+        }
+
+        await this.delay(280);
+    }
+
+    async animateGravity() {
+        if (!this.container) return;
+
+        for (let col = 0; col < this.cols; col++) {
+            for (let row = this.rows - 1; row >= 0; row--) {
+                if (!this.grid[row][col]) {
+                    for (let aboveRow = row - 1; aboveRow >= 0; aboveRow--) {
+                        if (this.grid[aboveRow][col]) {
+                            const gear = this.grid[aboveRow][col];
+                            const fallDistance = row - aboveRow;
+                            const cell = this.container.querySelector(
+                                `.gear-cell[data-row="${aboveRow}"][data-col="${col}"]`
+                            );
+                            if (cell) {
+                                const gearEl = cell.querySelector('.gear');
+                                if (gearEl) {
+                                    const fallPx = fallDistance * (this.cellSize + this.gap);
+                                    gearEl.style.transition = `transform ${0.15 * fallDistance}s ease-in`;
+                                    gearEl.style.transform = `translateY(${fallPx}px)`;
+                                }
+                            }
+
+                            this.grid[row][col] = gear;
+                            this.grid[aboveRow][col] = null;
+                            gear.updatePosition(row, col);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        await this.delay(200);
     }
 
     explodeAround(gear, combo) {
@@ -433,24 +532,6 @@ class Board {
         }
     }
 
-    applyGravitySync() {
-        for (let col = 0; col < this.cols; col++) {
-            for (let row = this.rows - 1; row >= 0; row--) {
-                if (!this.grid[row][col]) {
-                    for (let aboveRow = row - 1; aboveRow >= 0; aboveRow--) {
-                        if (this.grid[aboveRow][col]) {
-                            const gear = this.grid[aboveRow][col];
-                            this.grid[row][col] = gear;
-                            this.grid[aboveRow][col] = null;
-                            gear.updatePosition(row, col);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     fillEmptySpacesSync() {
         for (let col = 0; col < this.cols; col++) {
             for (let row = this.rows - 1; row >= 0; row--) {
@@ -458,6 +539,34 @@ class Board {
                     this.createGearAtAvoidingMatches(row, col);
                 }
             }
+        }
+    }
+
+    async processInitialMatches() {
+        let hasMatches = this.findMatches().length > 0;
+        while (hasMatches) {
+            const matches = this.findMatches();
+            if (matches.length === 0) break;
+
+            const toRemove = new Set();
+            for (const match of matches) {
+                for (const gear of match) {
+                    const key = `${gear.row}-${gear.col}`;
+                    toRemove.add(key);
+                }
+            }
+
+            for (const key of toRemove) {
+                const [row, col] = key.split('-').map(Number);
+                this.grid[row][col] = null;
+            }
+
+            this.applyGravitySync();
+            this.fillEmptySpacesSync();
+            this.rerender();
+            await this.delay(200);
+
+            hasMatches = this.findMatches().length > 0;
         }
     }
 

@@ -113,9 +113,19 @@ class Gear {
             return true;
         }
         
-        return this.color === other.color && 
-               this.type !== GearType.RUST && 
-               other.type !== GearType.RUST;
+        if (this.type === GearType.COPPER && other.type === GearType.COPPER) {
+            return true;
+        }
+        
+        if (this.type === GearType.COPPER) {
+            return this.color === other.color;
+        }
+        
+        if (other.type === GearType.COPPER) {
+            return this.color === other.color;
+        }
+        
+        return this.color === other.color;
     }
 
     getColor() {

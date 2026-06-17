@@ -74,7 +74,7 @@ class Game {
         document.body.dataset.theme = themeIndex;
     }
 
-    newGame() {
+    async newGame() {
         const config = LevelConfig.getConfig(this.level);
         this.target = config.target;
         this.steps = config.steps;
@@ -90,6 +90,9 @@ class Game {
 
         this.updateUI();
         this.hideModal();
+        this.saveGameState();
+
+        await this.board.processInitialMatches();
         this.saveGameState();
     }
 
