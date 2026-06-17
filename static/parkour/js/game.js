@@ -73,20 +73,38 @@
     var keys = {};
     var jumpPressTime = 0;
     var jumpHeld = false;
+    var cachedEls = {};
+
+    function $(id) {
+        if (!cachedEls[id]) {
+            cachedEls[id] = document.getElementById(id);
+        }
+        return cachedEls[id];
+    }
 
     function init() {
         canvas = document.getElementById('game-canvas');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
         ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('Canvas 2D context not supported');
+            return;
+        }
         resize();
         window.addEventListener('resize', resize);
         setupInput();
         setupUI();
         initBgLayers();
         initNeonSigns();
+        showOverlay('main-menu');
         requestAnimationFrame(loop);
     }
 
     function resize() {
+        if (!canvas) return;
         W = canvas.width = window.innerWidth;
         H = canvas.height = window.innerHeight;
     }
@@ -123,30 +141,33 @@
 
         var btnJump = document.getElementById('btn-jump');
         var btnSlide = document.getElementById('btn-slide');
-
-        btnJump.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            keys.space = true;
-            jumpPressTime = Date.now();
-            jumpHeld = true;
-        });
-        btnJump.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            keys.space = false;
-            if (jumpHeld && gameState === STATE.PLAYING) {
-                var holdTime = Date.now() - jumpPressTime;
-                playerJump(holdTime);
-                jumpHeld = false;
-            }
-        });
-        btnSlide.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            keys.s = true;
-        });
-        btnSlide.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            keys.s = false;
-        });
+        if (btnJump) {
+            btnJump.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                keys.space = true;
+                jumpPressTime = Date.now();
+                jumpHeld = true;
+            }, { passive: false });
+            btnJump.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                keys.space = false;
+                if (jumpHeld && gameState === STATE.PLAYING) {
+                    var holdTime = Date.now() - jumpPressTime;
+                    playerJump(holdTime);
+                    jumpHeld = false;
+                }
+            }, { passive: false });
+        }
+        if (btnSlide) {
+            btnSlide.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                keys.s = true;
+            }, { passive: false });
+            btnSlide.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                keys.s = false;
+            }, { passive: false });
+        }
     }
 
     function playerJump(holdTime) {
@@ -160,27 +181,48 @@
     }
 
     function setupUI() {
-        document.getElementById('btn-start').addEventListener('click', startGame);
-        document.getElementById('btn-leaderboard').addEventListener('click', showLeaderboard);
-        document.getElementById('btn-letters').addEventListener('click', showLetters);
-        document.getElementById('btn-restart').addEventListener('click', startGame);
-        document.getElementById('btn-back-menu').addEventListener('click', showMenu);
-        document.getElementById('btn-lb-back').addEventListener('click', function() {
+        var btn;
+        btn = document.getElementById('btn-start');
+        if (btn) btn.addEventListener('click', startGame);
+        btn = document.getElementById('btn-leaderboard');
+        if (btn) btn.addEventListener('click', showLeaderboard);
+        btn = document.getElementById('btn-letters');
+        if (btn) btn.addEventListener('click', showLetters);
+        btn = document.getElementById('btn-restart');
+        if (btn) btn.addEventListener('click', startGame);
+        btn = document.getElementById('btn-back-menu');
+        if (btn) btn.addEventListener('click', showMenu);
+        btn = document.getElementById('btn-lb-back');
+        if (btn) btn.addEventListener('click', function() {
             showOverlay('main-menu');
         });
-        document.getElementById('btn-let-back').addEventListener('click', function() {
+        btn = document.getElementById('btn-let-back');
+        if (btn) btn.addEventListener('click', function() {
             showOverlay('main-menu');
         });
-        document.getElementById('btn-letter-close').addEventListener('click', function() {
-            document.getElementById('letter-popup').classList.remove('active');
+        btn = document.getElementById('btn-letter-close');
+        if (btn) btn.addEventListener('click', function() {
+            var popup = document.getElementById('letter-popup');
+            if (popup) popup.classList.remove('active');
         });
     }
 
     function showOverlay(id) {
         var overlays = document.querySelectorAll('.overlay');
         overlays.forEach(function(o) { o.classList.remove('active'); });
+        var mobileControls = $('mobile-controls');
+        if (mobileControls) {
+            if (id === 'hud') {
+                mobileControls.style.zIndex = '15';
+                mobileControls.style.opacity = '1';
+            } else {
+                mobileControls.style.zIndex = '5';
+                mobileControls.style.opacity = '0';
+            }
+        }
         if (id) {
-            document.getElementById(id).classList.add('active');
+            var el = $(id);
+            if (el) el.classList.add('active');
         }
     }
 
@@ -190,9 +232,9 @@
     }
 
     function startGame() {
-        var nameInput = document.getElementById('player-name');
-        playerName = nameInput.value.trim() || ('Runner' + Math.floor(Math.random() * 9999));
-        nameInput.value = playerName;
+        var nameInput = $('player-name');
+        playerName = (nameInput && nameInput.value.trim()) || ('Runner' + Math.floor(Math.random() * 9999));
+        if (nameInput) nameInput.value = playerName;
 
         resetGame();
         gameState = STATE.COUNTDOWN;
@@ -201,7 +243,8 @@
     }
 
     function runCountdown(n) {
-        var el = document.getElementById('countdown-text');
+        var el = $('countdown-text');
+        if (!el) return;
         if (n <= 0) {
             el.textContent = 'GO!';
             setTimeout(function() {
@@ -349,8 +392,10 @@
 
         player.runFrame += 0.15;
 
-        document.getElementById('hud-dist').textContent = Math.floor(distance);
-        document.getElementById('hud-letters').textContent = collectedLettersThisRun.length;
+        var hudDist = $('hud-dist');
+        var hudLetters = $('hud-letters');
+        if (hudDist) hudDist.textContent = Math.floor(distance);
+        if (hudLetters) hudLetters.textContent = collectedLettersThisRun.length;
     }
 
     function updatePlayer() {
@@ -584,7 +629,8 @@
     }
 
     function showCollectToast() {
-        var toast = document.getElementById('collect-toast');
+        var toast = $('collect-toast');
+        if (!toast) return;
         toast.classList.remove('show');
         toast.offsetHeight;
         toast.classList.add('show');
@@ -595,14 +641,19 @@
         gameState = STATE.GAMEOVER;
 
         var dist = Math.floor(distance);
-        document.getElementById('result-distance').textContent = dist + 'm';
-        document.getElementById('result-letters').textContent = collectedLettersThisRun.length;
+        var el;
+        el = $('result-distance');
+        if (el) el.textContent = dist + 'm';
+        el = $('result-letters');
+        if (el) el.textContent = collectedLettersThisRun.length;
 
         submitScore(dist, collectedLettersThisRun.length).then(function(data) {
             if (data) {
-                document.getElementById('result-best').textContent = (data.best_distance || 0) + 'm';
+                el = $('result-best');
+                if (el) el.textContent = (data.best_distance || 0) + 'm';
                 var isNewRecord = data.is_new_record;
-                document.getElementById('new-record').classList.toggle('show', isNewRecord);
+                el = $('new-record');
+                if (el) el.classList.toggle('show', isNewRecord);
             }
         });
 
@@ -982,7 +1033,8 @@
         fetch('/api/parkour/score/getleaderboard')
         .then(function(r) { return r.json(); })
         .then(function(d) {
-            var list = document.getElementById('leaderboard-list');
+            var list = $('leaderboard-list');
+            if (!list) return;
             list.innerHTML = '';
             if (d.code === 0 && d.data && d.data.length > 0) {
                 d.data.forEach(function(item, idx) {
@@ -1000,15 +1052,18 @@
             showOverlay('leaderboard-panel');
         })
         .catch(function() {
-            document.getElementById('leaderboard-list').innerHTML = '<p style="color:#888;text-align:center;padding:2rem;">无法连接服务器</p>';
+            var list = $('leaderboard-list');
+            if (list) list.innerHTML = '<p style="color:#888;text-align:center;padding:2rem;">无法连接服务器</p>';
             showOverlay('leaderboard-panel');
         });
     }
 
     function showLetters() {
-        var name = document.getElementById('player-name').value.trim();
+        var nameInput = $('player-name');
+        var name = (nameInput && nameInput.value.trim()) || '';
         if (!name) {
-            document.getElementById('letters-grid').innerHTML = '<p style="color:#888;text-align:center;padding:2rem;grid-column:1/-1;">请先输入昵称</p>';
+            var grid = $('letters-grid');
+            if (grid) grid.innerHTML = '<p style="color:#888;text-align:center;padding:2rem;grid-column:1/-1;">请先输入昵称</p>';
             showOverlay('letters-panel');
             return;
         }
@@ -1016,7 +1071,8 @@
         fetch('/api/parkour/letter/getstatus?player_name=' + encodeURIComponent(name))
         .then(function(r) { return r.json(); })
         .then(function(d) {
-            var grid = document.getElementById('letters-grid');
+            var grid = $('letters-grid');
+            if (!grid) return;
             grid.innerHTML = '';
 
             var collectedMap = {};
@@ -1051,10 +1107,13 @@
 
                 if (isUnlocked) {
                     card.addEventListener('click', function() {
-                        document.getElementById('letter-popup-title').textContent = story.title;
+                        var titleEl = $('letter-popup-title');
+                        var contentEl = $('letter-popup-content');
+                        var popup = $('letter-popup');
                         var content = unlockedIds[story.id] ? unlockedIds[story.id].content : story.content;
-                        document.getElementById('letter-popup-content').textContent = content;
-                        document.getElementById('letter-popup').classList.add('active');
+                        if (titleEl) titleEl.textContent = story.title;
+                        if (contentEl) contentEl.textContent = content;
+                        if (popup) popup.classList.add('active');
                     });
                 }
 
@@ -1064,7 +1123,8 @@
             showOverlay('letters-panel');
         })
         .catch(function() {
-            document.getElementById('letters-grid').innerHTML = '<p style="color:#888;text-align:center;padding:2rem;grid-column:1/-1;">无法连接服务器</p>';
+            var grid = $('letters-grid');
+            if (grid) grid.innerHTML = '<p style="color:#888;text-align:center;padding:2rem;grid-column:1/-1;">无法连接服务器</p>';
             showOverlay('letters-panel');
         });
     }

@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -87,9 +87,12 @@ app.include_router(api_router)
 
 
 @app.get("/")
-async def root():
+async def root(response: Response):
     html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "parkour", "index.html")
-    return FileResponse(html_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return FileResponse(html_path, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"})
 
 
 @app.get("/health")

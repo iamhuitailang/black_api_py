@@ -41,7 +41,7 @@ html, body {
 
 .overlay.active {
     display: flex;
-    pointer-events: auto;
+    pointer-events: auto !important;
 }
 
 .menu-content {
@@ -469,8 +469,10 @@ html, body {
     right: 0;
     justify-content: space-between;
     padding: 0 30px;
-    z-index: 15;
+    z-index: 5;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
 .mobile-btn {
