@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>温暖家 · 小区宠物登记与寻宠平台</title>
-<link rel="stylesheet" href="/static/css/style.css?v=20260617b" />
+<link rel="stylesheet" href="/static/css/style.css?v=20260617c" />
 </head>
 <body>
 <div class="app">
@@ -169,7 +169,7 @@
             <div class="form-item form-item-full">
               <label>宠物照片</label>
               <div class="upload-box" onclick="document.getElementById('foundPhoto').click()">
-                <input type="file" id="foundPhoto" name="photo" accept="image/*" style="display:none" onchange="previewImage(this, 'foundPhotoPreview')" />
+                <input type="file" id="foundPhoto" name="photo" accept="image/*" style="display:none" onchange="savePhotoPreview(this, 'foundPhotoPreview', 'found_photo_preview')" />
                 <div class="upload-preview" id="foundPhotoPreview">
                   <span>📷 点击上传照片</span>
                 </div>
@@ -339,7 +339,7 @@
         <div class="form-item form-item-full">
           <label>宠物照片</label>
           <div class="upload-box" onclick="document.getElementById('petPhoto').click()">
-            <input type="file" id="petPhoto" name="photo" accept="image/*" style="display:none" onchange="previewImage(this, 'petPhotoPreview')" />
+            <input type="file" id="petPhoto" name="photo" accept="image/*" style="display:none" onchange="savePhotoPreview(this, 'petPhotoPreview', 'pet_photo_preview')" />
             <div class="upload-preview" id="petPhotoPreview">
               <span>📷 点击上传宠物照片（建议清晰正脸）</span>
             </div>
@@ -403,6 +403,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/static/js/app.js?v=20260617b"></script>
+<script src="/static/js/app.js?v=20260617c"></script>
 </body>
 </html>

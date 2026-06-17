@@ -8,13 +8,25 @@ const FORM_CACHE_KEYS = {
   pet: 'pet_form_cache',
   lost: 'lost_form_cache',
   found: 'found_form_cache',
+  pet_photo: 'pet_photo_preview',
+  found_photo: 'found_photo_preview',
+  open_modal: 'open_modal_state',
 };
+const formBound = {};
 
 function $(id) { return document.getElementById(id); }
 
 function bindFormCache(formId, cacheKey) {
   const form = document.getElementById(formId);
-  if (!form) return;
+  if (!form || formBound[formId]) return;
+  formBound[formId] = true;
+  const restorePreview = (previewId, cacheKey) => {
+    const previewEl = $(previewId);
+    const saved = localStorage.getItem(cacheKey);
+    if (saved && previewEl) {
+      previewEl.innerHTML = `<img src="${saved}" alt="预览">`;
+    }
+  };
   try {
     const saved = localStorage.getItem(cacheKey);
     if (saved) {
@@ -31,6 +43,8 @@ function bindFormCache(formId, cacheKey) {
       });
     }
   } catch (_) {}
+  if (formId === 'petForm') restorePreview('petPhotoPreview', FORM_CACHE_KEYS.pet_photo);
+  if (formId === 'foundForm') restorePreview('foundPhotoPreview', FORM_CACHE_KEYS.found_photo);
   form.addEventListener('input', () => {
     const data = {};
     Array.from(form.elements).forEach(el => {
@@ -45,14 +59,32 @@ function bindFormCache(formId, cacheKey) {
   });
 }
 
+function savePhotoPreview(input, previewId, cacheKey) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    localStorage.setItem(cacheKey, e.target.result);
+    $(previewId).innerHTML = `<img src="${e.target.result}" alt="预览">`;
+  };
+  reader.readAsDataURL(file);
+}
+
 function clearFormCache(cacheKey) {
   localStorage.removeItem(cacheKey);
 }
 
 function showModal(id) {
   $(id).classList.remove('hidden');
-  if (id === 'petModal') bindFormCache('petForm', FORM_CACHE_KEYS.pet);
-  if (id === 'lostModal') bindFormCache('lostForm', FORM_CACHE_KEYS.lost);
+  localStorage.setItem(FORM_CACHE_KEYS.open_modal, id);
+}
+
+function hideModal(id) {
+  $(id).classList.add('hidden');
+  const currentOpen = localStorage.getItem(FORM_CACHE_KEYS.open_modal);
+  if (currentOpen === id) {
+    localStorage.removeItem(FORM_CACHE_KEYS.open_modal);
+  }
 }
 
 function getAuthHeader() {
@@ -350,6 +382,13 @@ async function submitPet(e) {
   const photoInput = $('petPhoto');
   if (photoInput.files[0]) {
     data.set('photo', photoInput.files[0]);
+  } else {
+    const cachedPhoto = localStorage.getItem(FORM_CACHE_KEYS.pet_photo);
+    if (cachedPhoto) {
+      const res = await fetch(cachedPhoto);
+      const blob = await res.blob();
+      data.set('photo', blob, 'cached_photo.jpg');
+    }
   }
   if (data.get('is_neutered')) {
     data.set('is_neutered', data.get('is_neutered') === 'true' ? 'true' : 'false');
@@ -360,6 +399,7 @@ async function submitPet(e) {
     hideModal('petModal');
     form.reset();
     clearFormCache(FORM_CACHE_KEYS.pet);
+    localStorage.removeItem(FORM_CACHE_KEYS.pet_photo);
     $('petPhotoPreview').innerHTML = '<span>📷 点击上传宠物照片（建议清晰正脸）</span>';
     loadMyPets();
   } catch (_) {}
@@ -557,10 +597,19 @@ async function submitFound(e) {
   const photoInput = $('foundPhoto');
   if (photoInput.files[0]) {
     data.set('photo', photoInput.files[0]);
+  } else {
+    const cachedPhoto = localStorage.getItem(FORM_CACHE_KEYS.found_photo);
+    if (cachedPhoto) {
+      const res = await fetch(cachedPhoto);
+      const blob = await res.blob();
+      data.set('photo', blob, 'cached_photo.jpg');
+    }
   }
   try {
     const matches = await apiRequest('/api/found', { method: 'POST', body: data });
     clearFormCache(FORM_CACHE_KEYS.found);
+    localStorage.removeItem(FORM_CACHE_KEYS.found_photo);
+    $('foundPhotoPreview').innerHTML = '<span>📷 点击上传捡到宠物的照片</span>';
     if (!matches || !matches.length) {
       toast('已记录！暂未匹配到相似走失记录，信息已保存供后续比对', '');
       $('matchResultWrap').classList.add('hidden');
@@ -688,6 +737,14 @@ function exportExcel(type) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  bindFormCache('petForm', FORM_CACHE_KEYS.pet);
+  bindFormCache('lostForm', FORM_CACHE_KEYS.lost);
   bindFormCache('foundForm', FORM_CACHE_KEYS.found);
-  initAuth().then(() => loadHomeData());
+  initAuth().then(() => {
+    loadHomeData();
+    const openModal = localStorage.getItem(FORM_CACHE_KEYS.open_modal);
+    if (openModal && $(openModal)) {
+      $(openModal).classList.remove('hidden');
+    }
+  });
 });
