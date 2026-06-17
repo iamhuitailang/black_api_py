@@ -4,21 +4,27 @@ const ctx = canvas.getContext('2d');
 const API_BASE = '/api/cloud/runner';
 
 let gameState = 'start';
+const STORAGE_KEY = 'cloud_runner_save';
+const SAVE_INTERVAL = 1000;
+
 let score = 0;
 let distance = 0;
 let essenceCount = 0;
 let playerName = '';
 let cameraX = 0;
+let lastSaveTime = 0;
 
 const GRAVITY = 0.45;
 const JUMP_POWER_MIN = 9;
-const JUMP_POWER_MAX = 16;
-const CHARGE_SPEED = 0.025;
+const JUMP_POWER_MAX = 15;
+const CHARGE_SPEED = 0.035;
 const MOVE_SPEED_BASE = 2.5;
 const MOVE_SPEED_MAX = 5;
 const FLY_DURATION = 3500;
 const FLY_GRAVITY = 0.08;
 const STUN_DURATION = 2000;
+const COYOTE_TIME = 150;
+const JUMP_BUFFER_TIME = 100;
 
 let isCharging = false;
 let chargePower = 0;
@@ -26,6 +32,9 @@ let isFlying = false;
 let flyEndTime = 0;
 let isStunned = false;
 let stunEndTime = 0;
+let lastGroundTime = 0;
+let jumpBufferTime = 0;
+let jumpPressed = false;
 
 const player = {
     x: 200,
@@ -466,9 +475,20 @@ function update() {
         }
     }
     
-    if (isCharging && !isStunned) {
+    const canJump = (player.onCloud || (now - lastGroundTime < COYOTE_TIME)) && !isStunned;
+    
+    if (isCharging && !isStunned && canJump) {
         chargePower = Math.min(chargePower + CHARGE_SPEED, 1);
         document.getElementById('powerFill').style.width = (chargePower * 100) + '%';
+    }
+    
+    if (jumpBufferTime > 0 && canJump) {
+        performJump();
+        jumpBufferTime = 0;
+    }
+    
+    if (jumpBufferTime > 0) {
+        jumpBufferTime -= 16;
     }
     
     const gravity = isFlying ? FLY_GRAVITY : GRAVITY;
@@ -494,6 +514,7 @@ function update() {
     
     score = distance + essenceCount * 100;
     
+    const wasOnCloud = player.onCloud;
     player.onCloud = false;
     let currentCloud = null;
     
@@ -511,13 +532,14 @@ function update() {
         const isHorizontalOverlap = playerRight > cloudLeft && playerLeft < cloudRight;
         
         if (isHorizontalOverlap && player.vy >= 0) {
-            if (playerBottom >= cloudTop - 5 && playerBottom <= cloudTop + 25) {
+            if (playerBottom >= cloudTop - 10 && playerBottom <= cloudTop + 30) {
                 player.y = cloudTop;
                 player.vy = 0;
                 player.onCloud = true;
                 currentCloud = cloud;
+                lastGroundTime = now;
                 
-                if (player.squash < 1.3) {
+                if (!wasOnCloud) {
                     player.squash = 1.3;
                     player.stretch = 0.7;
                     cloud.squish = 15;
@@ -606,6 +628,8 @@ function update() {
     if (player.y > canvas.height + 100) {
         gameOver();
     }
+    
+    saveGameState();
     
     updateUI();
 }
@@ -737,25 +761,212 @@ function updateUI() {
     document.getElementById('essence').textContent = essenceCount;
 }
 
-function jump() {
-    if (!player.onCloud || isStunned) return;
-    
+function performJump() {
     const power = JUMP_POWER_MIN + (JUMP_POWER_MAX - JUMP_POWER_MIN) * chargePower;
     player.vy = -power;
     player.onCloud = false;
+    lastGroundTime = 0;
     
-    player.stretch = 1.3;
-    player.squash = 0.7;
+    player.stretch = 1.25;
+    player.squash = 0.75;
     
     isCharging = false;
     chargePower = 0;
+    jumpPressed = false;
     document.getElementById('powerBarContainer').style.display = 'none';
+}
+
+function jump() {
+    const now = Date.now();
+    const canJumpNow = (player.onCloud || (now - lastGroundTime < COYOTE_TIME)) && !isStunned;
+    
+    if (canJumpNow) {
+        performJump();
+    }
 }
 
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
+}
+
+function saveGameState() {
+    if (gameState !== 'playing') return;
+    
+    const now = Date.now();
+    if (now - lastSaveTime < SAVE_INTERVAL) return;
+    lastSaveTime = now;
+    
+    const saveData = {
+        playerName: playerName,
+        score: score,
+        distance: distance,
+        essenceCount: essenceCount,
+        player: {
+            x: player.x,
+            y: player.y,
+            vx: player.vx,
+            vy: player.vy,
+            onCloud: player.onCloud
+        },
+        cameraX: cameraX,
+        skyProgress: skyProgress,
+        clouds: clouds.map(c => ({
+            x: c.x,
+            y: c.y,
+            width: c.width,
+            height: c.height,
+            life: c.life,
+            maxLife: c.maxLife,
+            fadeSpeed: c.fadeSpeed
+        })),
+        essences: essences.map(e => ({
+            x: e.x,
+            y: e.y,
+            collected: e.collected
+        })),
+        thunderClouds: thunderClouds.map(t => ({
+            x: t.x,
+            y: t.y,
+            width: t.width,
+            height: t.height,
+            active: t.active
+        })),
+        isFlying: isFlying,
+        flyEndTime: flyEndTime,
+        isStunned: isStunned,
+        stunEndTime: stunEndTime,
+        lastGroundTime: lastGroundTime,
+        savedAt: now
+    };
+    
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+    } catch (e) {
+        console.warn('Failed to save game state:', e);
+    }
+}
+
+function loadGameState() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return false;
+        
+        const data = JSON.parse(saved);
+        
+        if (!data.playerName || !data.distance) return false;
+        
+        playerName = data.playerName;
+        score = data.score;
+        distance = data.distance;
+        essenceCount = data.essenceCount;
+        
+        player.x = data.player.x;
+        player.y = data.player.y;
+        player.vx = data.player.vx;
+        player.vy = data.player.vy;
+        player.onCloud = data.player.onCloud;
+        
+        cameraX = data.cameraX;
+        skyProgress = data.skyProgress;
+        
+        clouds = data.clouds.map(c => ({
+            ...c,
+            squish: 0
+        }));
+        
+        essences = data.essences.map(e => ({
+            ...e,
+            bobOffset: Math.random() * Math.PI * 2
+        }));
+        
+        thunderClouds = data.thunderClouds.map(t => ({
+            ...t,
+            pulsePhase: Math.random() * Math.PI * 2
+        }));
+        
+        isFlying = data.isFlying;
+        flyEndTime = data.flyEndTime;
+        isStunned = data.isStunned;
+        stunEndTime = data.stunEndTime;
+        lastGroundTime = data.lastGroundTime || Date.now();
+        
+        if (isFlying) {
+            document.getElementById('flyIndicator').style.display = 'flex';
+        }
+        if (isStunned) {
+            document.getElementById('stunIndicator').style.display = 'block';
+        }
+        
+        return true;
+    } catch (e) {
+        console.warn('Failed to load game state:', e);
+        return false;
+    }
+}
+
+function clearGameSave() {
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+        console.warn('Failed to clear game save:', e);
+    }
+}
+
+function checkSavedGame() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return null;
+        
+        const data = JSON.parse(saved);
+        if (!data.playerName || !data.distance) return null;
+        
+        return {
+            playerName: data.playerName,
+            score: data.score,
+            distance: data.distance,
+            savedAt: data.savedAt
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+function showStartScreen() {
+    const savedGame = checkSavedGame();
+    
+    if (savedGame) {
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('continueBtn').style.display = 'block';
+        document.getElementById('newGameBtn').style.display = 'block';
+        document.getElementById('savedGameInfo').classList.add('show');
+        document.getElementById('savedDistance').textContent = Math.floor(savedGame.distance) + ' m';
+        document.getElementById('savedScore').textContent = Math.floor(savedGame.score);
+        document.getElementById('playerName').value = savedGame.playerName;
+    } else {
+        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('continueBtn').style.display = 'none';
+        document.getElementById('newGameBtn').style.display = 'none';
+        document.getElementById('savedGameInfo').classList.remove('show');
+    }
+    
+    gameState = 'start';
+    document.getElementById('startScreen').style.display = 'flex';
+    document.getElementById('gameOverScreen').style.display = 'none';
+}
+
+function continueGame() {
+    if (!loadGameState()) {
+        startGame();
+        return;
+    }
+    
+    gameState = 'playing';
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('gameOverScreen').style.display = 'none';
+    
+    updateUI();
 }
 
 function startGame() {
@@ -784,14 +995,18 @@ function startGame() {
     nameInput.style.borderColor = '#d4a574';
     nameInput.style.boxShadow = 'none';
     
+    clearGameSave();
     initGame();
     gameState = 'playing';
+    lastSaveTime = 0;
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
 }
 
 function gameOver() {
     gameState = 'gameover';
+    clearGameSave();
+    
     document.getElementById('finalDistance').textContent = Math.floor(distance) + ' m';
     document.getElementById('finalScore').textContent = Math.floor(score);
     document.getElementById('gameOverScreen').style.display = 'flex';
@@ -859,11 +1074,17 @@ document.addEventListener('keydown', (e) => {
             return;
         }
         
-        if (gameState === 'playing') {
-            if (!isCharging && player.onCloud && !isStunned) {
+        if (gameState === 'playing' && !isStunned && !jumpPressed) {
+            jumpPressed = true;
+            const now = Date.now();
+            const canJumpNow = player.onCloud || (now - lastGroundTime < COYOTE_TIME);
+            
+            if (canJumpNow) {
                 isCharging = true;
                 chargePower = 0;
                 document.getElementById('powerBarContainer').style.display = 'flex';
+            } else {
+                jumpBufferTime = JUMP_BUFFER_TIME;
             }
         }
     }
@@ -872,14 +1093,28 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
     if (e.code === 'Space' && gameState === 'playing') {
         e.preventDefault();
+        
         if (isCharging) {
-            jump();
+            performJump();
+        } else if (jumpBufferTime > 0) {
+            jumpBufferTime = 0;
         }
+        
+        jumpPressed = false;
     }
 });
 
 document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('restartBtn').addEventListener('click', () => {
+    const nameInput = document.getElementById('playerName');
+    nameInput.value = playerName;
+    showStartScreen();
+});
+document.getElementById('continueBtn').addEventListener('click', continueGame);
+document.getElementById('newGameBtn').addEventListener('click', () => {
+    clearGameSave();
+    showStartScreen();
+});
 
 document.getElementById('playerName').addEventListener('input', (e) => {
     e.target.style.borderColor = '#d4a574';
@@ -887,5 +1122,6 @@ document.getElementById('playerName').addEventListener('input', (e) => {
 });
 
 initGame();
+showStartScreen();
 loadLeaderboard();
 gameLoop();

@@ -60,6 +60,21 @@
                 <input type="text" id="playerName" maxlength="20" placeholder="输入名字">
             </div>
             <button class="start-btn" id="startBtn">开始游戏</button>
+            <button class="continue-btn" id="continueBtn" style="display: none;">继续游戏</button>
+            <button class="new-game-btn" id="newGameBtn" style="display: none;">重新开始</button>
+            <div class="saved-game-info" id="savedGameInfo">
+                <span>发现未完成的游戏</span>
+                <div class="saved-stats">
+                    <div class="saved-stat">
+                        <span class="value" id="savedDistance">0 m</span>
+                        <span class="label">距离</span>
+                    </div>
+                    <div class="saved-stat">
+                        <span class="value" id="savedScore">0</span>
+                        <span class="label">分数</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="game-over-screen" id="gameOverScreen" style="display: none;">
