@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>温暖家 · 小区宠物登记与寻宠平台</title>
+<link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo" onclick="showPage('home')">
+        <span class="paw">🐾</span>
+        <h1>温暖家 · 宠物之家</h1>
+      </div>
+      <nav class="nav" id="nav">
+        <a class="nav-item active" data-page="home" onclick="showPage('home')">首页</a>
+        <a class="nav-item" data-page="pets" onclick="showPage('pets')">我的宠物</a>
+        <a class="nav-item" data-page="lost" onclick="showPage('lost')">寻宠广场</a>
+        <a class="nav-item" data-page="found" onclick="showPage('found')">捡到登记</a>
+        <a class="nav-item" data-page="reunited" onclick="showPage('reunited')">团圆墙</a>
+        <a class="nav-item" data-page="admin" id="adminNav" style="display:none" onclick="showPage('admin')">管理后台</a>
+      </nav>
+      <div class="auth-box" id="authBox">
+        <button class="btn btn-outline" onclick="showModal('loginModal')">登录</button>
+        <button class="btn btn-primary" onclick="showModal('registerModal')">注册</button>
+      </div>
+      <div class="user-box" id="userBox" style="display:none">
+        <span class="user-name" id="userName">用户</span>
+        <button class="btn btn-danger" onclick="logout()">退出</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <section class="page" id="page-home">
+      <div class="hero">
+        <div class="hero-inner">
+          <h2>🐾 每一只毛孩子，都值得被温柔以待 🐾</h2>
+          <p>小区宠物登记 · 走失寻回 · 爱心认领 · 团圆记录</p>
+        </div>
+      </div>
+
+      <div class="carousel-section">
+        <div class="section-title">
+          <span class="title-icon">🔔</span>
+          <h3>紧急寻宠中 · 请多留意</h3>
+        </div>
+        <div class="carousel" id="carousel">
+          <div class="carousel-track" id="carouselTrack"></div>
+          <button class="carousel-btn prev" onclick="carouselPrev()">❮</button>
+          <button class="carousel-btn next" onclick="carouselNext()">❯</button>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <div class="action-card" onclick="checkAuthAndGo('pets')">
+          <div class="action-icon">📝</div>
+          <h4>登记我的宠物</h4>
+          <p>建立宠物档案，一键发布寻宠</p>
+        </div>
+        <div class="action-card" onclick="checkAuthAndGo('lost')">
+          <div class="action-icon">📣</div>
+          <h4>发布寻宠启事</h4>
+          <p>走失了别慌，全小区帮你找</p>
+        </div>
+        <div class="action-card" onclick="showPage('found')">
+          <div class="action-icon">🤝</div>
+          <h4>我捡到了宠物</h4>
+          <p>上传信息，智能匹配走失记录</p>
+        </div>
+        <div class="action-card" onclick="showPage('reunited')">
+          <div class="action-icon">💚</div>
+          <h4>团圆故事墙</h4>
+          <p>看看那些回家的毛孩子们</p>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <div class="stat-item">
+          <div class="stat-num" id="statPets">0</div>
+          <div class="stat-label">已登记宠物</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="statLost">0</div>
+          <div class="stat-label">寻宠记录</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="statReunited">0</div>
+          <div class="stat-label">成功团圆</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="statMatch">0</div>
+          <div class="stat-label">爱心认领</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page hidden" id="page-pets">
+      <div class="page-header">
+        <h2>🐕 我的宠物档案</h2>
+        <button class="btn btn-primary" onclick="showModal('petModal')">+ 录入新宠物</button>
+      </div>
+      <div class="pet-list" id="petList">
+        <div class="empty-state">
+          <div class="empty-icon">🐾</div>
+          <p>还没有登记宠物哦，点击上方按钮添加你家的毛孩子吧～</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page hidden" id="page-lost">
+      <div class="page-header">
+        <h2>🔍 寻宠广场</h2>
+        <button class="btn btn-primary" onclick="checkAuthAndOpenLost()">+ 发布寻宠启事</button>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterLost('all', this)">全部</button>
+        <button class="filter-btn" onclick="filterLost('lost', this)">走失中</button>
+        <button class="filter-btn" onclick="filterLost('reunited', this)">已回家 ✅</button>
+      </div>
+      <div class="lost-list" id="lostList"></div>
+    </section>
+
+    <section class="page hidden" id="page-found">
+      <div class="page-header">
+        <h2>🤝 捡到宠物 · 认领匹配</h2>
+        <p class="page-desc">请填写捡到宠物的信息，系统会智能匹配附近3公里内的走失记录</p>
+      </div>
+      <div class="found-form-wrap">
+        <form class="form-card" id="foundForm" onsubmit="submitFound(event)">
+          <div class="form-grid">
+            <div class="form-item">
+              <label>您的称呼 *</label>
+              <input type="text" name="finder_name" required placeholder="如：李阿姨" />
+            </div>
+            <div class="form-item">
+              <label>联系电话 *</label>
+              <input type="tel" name="finder_phone" required placeholder="方便主人联系您" />
+            </div>
+            <div class="form-item">
+              <label>物种 *</label>
+              <select name="species" required>
+                <option value="">请选择</option>
+                <option value="狗">狗狗</option>
+                <option value="猫">猫咪</option>
+                <option value="鸟">鸟类</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label>品种（尽量准确）*</label>
+              <input type="text" name="breed" required placeholder="如：金毛、中华田园猫、泰迪" />
+            </div>
+            <div class="form-item">
+              <label>毛色 *</label>
+              <input type="text" name="color" required placeholder="如：黄白、纯黑、三花" />
+            </div>
+            <div class="form-item">
+              <label>捡到地点 *</label>
+              <input type="text" name="found_location" required placeholder="如：3号楼单元门口、小区花园" />
+            </div>
+            <div class="form-item form-item-full">
+              <label>特征描述</label>
+              <textarea name="features" rows="3" placeholder="体型大小、是否有项圈、性格特点等"></textarea>
+            </div>
+            <div class="form-item form-item-full">
+              <label>宠物照片</label>
+              <div class="upload-box" onclick="document.getElementById('foundPhoto').click()">
+                <input type="file" id="foundPhoto" name="photo" accept="image/*" style="display:none" onchange="previewImage(this, 'foundPhotoPreview')" />
+                <div class="upload-preview" id="foundPhotoPreview">
+                  <span>📷 点击上传照片</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">🔍 智能匹配走失记录</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="match-result-wrap hidden" id="matchResultWrap">
+        <div class="section-title">
+          <span class="title-icon">🎯</span>
+          <h3>匹配结果（按相似度排序）</h3>
+        </div>
+        <div class="match-list" id="matchList"></div>
+      </div>
+    </section>
+
+    <section class="page hidden" id="page-reunited">
+      <div class="page-header">
+        <h2>💚 团圆故事墙</h2>
+        <p class="page-desc">每一个团圆故事，都是爱的见证</p>
+      </div>
+      <div class="reunited-list" id="reunitedList"></div>
+    </section>
+
+    <section class="page hidden" id="page-admin">
+      <div class="page-header">
+        <h2>⚙️ 管理后台</h2>
+      </div>
+      <div class="admin-actions">
+        <div class="admin-card">
+          <div class="admin-icon">📋</div>
+          <h4>宠物档案报表</h4>
+          <p>导出全部宠物登记信息 Excel 表格</p>
+          <button class="btn btn-primary" onclick="exportExcel('pets')">导出宠物档案</button>
+        </div>
+        <div class="admin-card">
+          <div class="admin-icon">🔍</div>
+          <h4>寻宠记录报表</h4>
+          <p>导出全部寻宠与团圆记录 Excel 表格</p>
+          <button class="btn btn-primary" onclick="exportExcel('lost')">导出寻宠记录</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>🐾 温暖家 · 小区宠物登记与寻宠平台 · 毛孩子的守护者 🐾</p>
+  </footer>
+</div>
+
+<div class="modal hidden" id="loginModal">
+  <div class="modal-mask" onclick="hideModal('loginModal')"></div>
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h3>🔑 用户登录</h3>
+      <button class="modal-close" onclick="hideModal('loginModal')">×</button>
+    </div>
+    <form class="form-card" onsubmit="submitLogin(event)">
+      <div class="form-item">
+        <label>用户名</label>
+        <input type="text" name="username" required placeholder="请输入用户名" />
+      </div>
+      <div class="form-item">
+        <label>密码</label>
+        <input type="password" name="password" required placeholder="请输入密码" />
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">登录</button>
+      </div>
+      <p class="form-tip">还没有账号？<a onclick="hideModal('loginModal');showModal('registerModal')" style="color:#e67e22;cursor:pointer">立即注册</a></p>
+    </form>
+  </div>
+</div>
+
+<div class="modal hidden" id="registerModal">
+  <div class="modal-mask" onclick="hideModal('registerModal')"></div>
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h3>🎉 新用户注册</h3>
+      <button class="modal-close" onclick="hideModal('registerModal')">×</button>
+    </div>
+    <form class="form-card" onsubmit="submitRegister(event)">
+      <div class="form-item">
+        <label>用户名 *</label>
+        <input type="text" name="username" required placeholder="请设置用户名" />
+      </div>
+      <div class="form-item">
+        <label>邮箱 *</label>
+        <input type="email" name="email" required placeholder="your@email.com" />
+      </div>
+      <div class="form-item">
+        <label>密码 *</label>
+        <input type="password" name="password" required minlength="6" placeholder="至少6位" />
+      </div>
+      <div class="form-item">
+        <label>联系电话</label>
+        <input type="tel" name="phone" placeholder="方便联系您" />
+      </div>
+      <div class="form-item">
+        <label>住址</label>
+        <input type="text" name="address" placeholder="如：阳光小区3号楼502" />
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">注册</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal hidden" id="petModal">
+  <div class="modal-mask" onclick="hideModal('petModal')"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🐾 录入宠物信息</h3>
+      <button class="modal-close" onclick="hideModal('petModal')">×</button>
+    </div>
+    <form class="form-card" id="petForm" onsubmit="submitPet(event)">
+      <div class="form-grid">
+        <div class="form-item">
+          <label>宠物名字 *</label>
+          <input type="text" name="name" required placeholder="如：旺财、咪咪" />
+        </div>
+        <div class="form-item">
+          <label>物种 *</label>
+          <select name="species" required>
+            <option value="">请选择</option>
+            <option value="狗">狗狗</option>
+            <option value="猫">猫咪</option>
+            <option value="鸟">鸟类</option>
+            <option value="兔">兔子</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label>品种 *</label>
+          <input type="text" name="breed" required placeholder="如：金毛、布偶、中华田园犬" />
+        </div>
+        <div class="form-item">
+          <label>毛色 *</label>
+          <input type="text" name="color" required placeholder="如：黄白、纯黑、三花" />
+        </div>
+        <div class="form-item">
+          <label>芯片号</label>
+          <input type="text" name="chip_number" placeholder="如有植入芯片请填写" />
+        </div>
+        <div class="form-item">
+          <label>是否绝育</label>
+          <select name="is_neutered">
+            <option value="false">未绝育</option>
+            <option value="true">已绝育</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label>主人联系电话 *</label>
+          <input type="tel" name="contact_phone" required placeholder="走失时用于联系" />
+        </div>
+        <div class="form-item form-item-full">
+          <label>特征描述</label>
+          <textarea name="description" rows="2" placeholder="体型、性格、习惯、特殊标记等"></textarea>
+        </div>
+        <div class="form-item form-item-full">
+          <label>宠物照片</label>
+          <div class="upload-box" onclick="document.getElementById('petPhoto').click()">
+            <input type="file" id="petPhoto" name="photo" accept="image/*" style="display:none" onchange="previewImage(this, 'petPhotoPreview')" />
+            <div class="upload-preview" id="petPhotoPreview">
+              <span>📷 点击上传宠物照片（建议清晰正脸）</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">保存宠物档案</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal hidden" id="lostModal">
+  <div class="modal-mask" onclick="hideModal('lostModal')"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📣 发布寻宠启事</h3>
+      <button class="modal-close" onclick="hideModal('lostModal')">×</button>
+    </div>
+    <form class="form-card" id="lostForm" onsubmit="submitLost(event)">
+      <div class="form-grid">
+        <div class="form-item form-item-full">
+          <label>选择走失宠物 *</label>
+          <select name="pet_id" id="lostPetSelect" required></select>
+        </div>
+        <div class="form-item">
+          <label>走失时间 *</label>
+          <input type="datetime-local" name="lost_time" required />
+        </div>
+        <div class="form-item">
+          <label>走失地点 *</label>
+          <input type="text" name="lost_location" required placeholder="如：3号楼附近、小区东门" />
+        </div>
+        <div class="form-item">
+          <label>悬赏金额（元）</label>
+          <input type="number" name="reward" value="0" min="0" step="100" />
+        </div>
+        <div class="form-item form-item-full">
+          <label>详细特征描述 *</label>
+          <textarea name="features" rows="4" required placeholder="走失时佩戴什么？是否有项圈/铃铛？性情胆小亲人？请尽可能多写特征方便好心人辨认"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">发布到首页轮播 📢</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal hidden" id="lostDetailModal">
+  <div class="modal-mask" onclick="hideModal('lostDetailModal')"></div>
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3 id="lostDetailTitle">寻宠详情</h3>
+      <button class="modal-close" onclick="hideModal('lostDetailModal')">×</button>
+    </div>
+    <div id="lostDetailContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
