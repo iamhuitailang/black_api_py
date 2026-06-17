@@ -6,6 +6,26 @@ let filterRange = '';
 
 function initApp() {
     currentRole = Storage.getRole();
+    const rawFarmer = localStorage.getItem('farm_farmer');
+    const rawConsumer = localStorage.getItem('farm_consumer');
+    if (rawFarmer) {
+        try {
+            const obj = JSON.parse(rawFarmer);
+            if (obj && obj.password) {
+                delete obj.password;
+                localStorage.setItem('farm_farmer', JSON.stringify(obj));
+            }
+        } catch (e) {}
+    }
+    if (rawConsumer) {
+        try {
+            const obj = JSON.parse(rawConsumer);
+            if (obj && obj.password) {
+                delete obj.password;
+                localStorage.setItem('farm_consumer', JSON.stringify(obj));
+            }
+        } catch (e) {}
+    }
     currentFarmer = Storage.getFarmer();
     currentConsumer = Storage.getConsumer();
 
@@ -48,6 +68,7 @@ function renderNavbar() {
             tabsHtml = `
                 <button class="nav-tab active" onclick="showPage('home')">🛒 产品市场</button>
                 <button class="nav-tab" onclick="showPage('orders')">📦 我的订单</button>
+                <button class="nav-tab" onclick="showPage('profile')">👤 个人中心</button>
             `;
         } else if (currentRole === 'admin') {
             tabsHtml = `
@@ -109,6 +130,7 @@ function showPage(page) {
     else if (page === 'products') loadFarmerProducts();
     else if (page === 'orders') loadOrdersPage();
     else if (page === 'shop') loadShopPage();
+    else if (page === 'profile') loadProfilePage();
     else if (page === 'audit') loadAuditPage();
     else if (page === 'stats') loadStatsPage();
 }
@@ -598,8 +620,23 @@ function openAddProduct() {
 
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    if (!document.getElementById('p-harvest').value) document.getElementById('p-harvest').value = today;
-    if (!document.getElementById('p-expected').value) document.getElementById('p-expected').value = tomorrow;
+    let draftChanged = false;
+    const curDraft = Storage.getProductDraft() || {};
+    if (!document.getElementById('p-harvest').value) {
+        document.getElementById('p-harvest').value = today;
+        curDraft.harvest_date = today;
+        draftChanged = true;
+    }
+    if (!document.getElementById('p-expected').value) {
+        document.getElementById('p-expected').value = tomorrow;
+        curDraft.expected_delivery = tomorrow;
+        draftChanged = true;
+    }
+    if (!curDraft.unit) {
+        curDraft.unit = document.getElementById('p-unit').value;
+        draftChanged = true;
+    }
+    if (draftChanged) Storage.setProductDraft(curDraft);
 
     const fields = ['p-name', 'p-category', 'p-price', 'p-unit', 'p-stock', 'p-harvest', 'p-range', 'p-expected', 'p-desc', 'p-image'];
     const fieldMap = {
@@ -960,4 +997,34 @@ async function submitChangePassword(role) {
     } else {
         showToast(res.message, true);
     }
+}
+
+function loadProfilePage() {
+    const container = document.getElementById('page-profile-content');
+    if (!container || !currentConsumer) return;
+    container.innerHTML = `
+        <h2 class="page-title">👤 个人中心</h2>
+        <div class="card">
+            <h3 class="section-title">基本信息</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">姓名</label>
+                    <input type="text" class="form-input" value="${esc(currentConsumer.name)}" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">手机号</label>
+                    <input type="text" class="form-input" value="${esc(currentConsumer.phone)}" disabled>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">配送地址</label>
+                <input type="text" class="form-input" value="${esc(currentConsumer.address)}" disabled>
+            </div>
+        </div>
+        <div class="card">
+            <h3 class="section-title">安全设置</h3>
+            <p style="color:#666;margin-bottom:14px;font-size:14px;">密码已加密存储，定期修改可保护账户安全</p>
+            <button class="btn btn-brown" onclick="openChangePassword('consumer')">🔐 修改密码</button>
+        </div>
+    `;
 }
