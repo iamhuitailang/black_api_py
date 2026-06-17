@@ -1,10 +1,14 @@
 const { createApp, ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } = Vue;
 
+const STORAGE_KEY_CURRENT_SAVE = 'antgame_current_save';
+const STORAGE_KEY_TUTORIAL_SHOWN = 'antgame_tutorial_shown';
+
 const App = {
     setup() {
         const saves = ref([]);
         const currentSave = ref(null);
         const newSaveName = ref('');
+        const showTutorial = ref(false);
         const gameState = reactive({
             save: null,
             ants: [],
@@ -77,6 +81,8 @@ const App = {
                     currentSave.value = saveId;
                     updateGameState(result.data);
                     
+                    localStorage.setItem(STORAGE_KEY_CURRENT_SAVE, saveId);
+                    
                     await nextTick();
                     if (!renderer.value) {
                         renderer.value = new GameRenderer('gameCanvas');
@@ -85,6 +91,11 @@ const App = {
                     renderer.value.start();
                     
                     startGameLoop();
+                    
+                    const tutorialShown = localStorage.getItem(STORAGE_KEY_TUTORIAL_SHOWN);
+                    if (!tutorialShown) {
+                        showTutorial.value = true;
+                    }
                 } else {
                     showMessage(result.message, 'error');
                 }
@@ -92,6 +103,15 @@ const App = {
                 console.error('加载存档失败:', e);
                 showMessage('加载存档失败', 'error');
             }
+        }
+
+        function closeTutorial() {
+            showTutorial.value = false;
+            localStorage.setItem(STORAGE_KEY_TUTORIAL_SHOWN, '1');
+        }
+
+        function openTutorial() {
+            showTutorial.value = true;
         }
 
         function updateGameState(data) {
@@ -113,11 +133,25 @@ const App = {
         }
 
         async function createNewGame() {
-            const name = newSaveName.value.trim() || '新存档';
+            const name = newSaveName.value.trim();
+            
+            if (!name) {
+                showMessage('请输入存档名称！', 'error');
+                return;
+            }
+            
+            if (name.length < 2) {
+                showMessage('存档名称至少2个字符', 'error');
+                return;
+            }
+            
             try {
                 const result = await api.createNewGame(name);
                 if (result.code === 0) {
                     showMessage('游戏创建成功！');
+                    
+                    localStorage.removeItem(STORAGE_KEY_TUTORIAL_SHOWN);
+                    
                     loadSave(result.data.save.id);
                 } else {
                     showMessage(result.message, 'error');
@@ -135,6 +169,12 @@ const App = {
                 const result = await api.deleteSave(saveId);
                 if (result.code === 0) {
                     showMessage('存档已删除');
+                    
+                    const currentId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
+                    if (currentId && parseInt(currentId) === saveId) {
+                        localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+                    }
+                    
                     loadSaveList();
                 } else {
                     showMessage(result.message, 'error');
@@ -152,6 +192,8 @@ const App = {
             }
             currentSave.value = null;
             selectedTool.value = null;
+            showTutorial.value = false;
+            localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
             loadSaveList();
         }
 
@@ -292,8 +334,30 @@ const App = {
             }
         }
 
-        onMounted(() => {
-            loadSaveList();
+        async function tryRestoreSave() {
+            const savedId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
+            if (savedId) {
+                const saveId = parseInt(savedId);
+                if (saveId) {
+                    await loadSaveList();
+                    
+                    const saveExists = saves.value.some(s => s.id === saveId);
+                    if (saveExists) {
+                        loadSave(saveId);
+                        return true;
+                    } else {
+                        localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+                    }
+                }
+            }
+            return false;
+        }
+
+        onMounted(async () => {
+            const restored = await tryRestoreSave();
+            if (!restored) {
+                loadSaveList();
+            }
         });
 
         onUnmounted(() => {
@@ -316,6 +380,7 @@ const App = {
             saves,
             currentSave,
             newSaveName,
+            showTutorial,
             gameState,
             selectedTool,
             gameSpeed,
@@ -333,6 +398,8 @@ const App = {
             selectTool,
             onCanvasClick,
             spawnAnt,
+            closeTutorial,
+            openTutorial,
         };
     },
 };

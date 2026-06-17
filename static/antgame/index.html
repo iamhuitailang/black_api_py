@@ -57,6 +57,7 @@
                     <span class="day-of-season">第 {{ gameState.save?.season_day }} 天</span>
                 </div>
                 <div class="header-right">
+                    <button class="help-btn" @click="openTutorial">❓ 帮助</button>
                     <button class="btn-pause" @click="togglePause">
                         {{ gameState.save?.is_paused ? '▶ 继续' : '⏸ 暂停' }}
                     </button>
@@ -229,6 +230,50 @@
 
         <div v-if="message" class="message-toast" :class="{ error: messageType === 'error' }">
             {{ message }}
+        </div>
+
+        <div v-if="showTutorial" class="tutorial-overlay" @click="closeTutorial">
+            <div class="tutorial-modal" @click.stop>
+                <h2>🐜 欢迎来到蚂蚁模拟器！</h2>
+                <div class="tutorial-content">
+                    <div class="tutorial-step">
+                        <div class="step-icon">⛏️</div>
+                        <div class="step-text">
+                            <h4>挖掘扩展</h4>
+                            <p>选择右侧的「挖掘」工具，点击泥土格子来扩展你的地下巢穴。</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">🏗️</div>
+                        <div class="step-text">
+                            <h4>建造房间</h4>
+                            <p>建造真菌农场生产食物，储藏室储存资源，蚁后室孵化更多蚂蚁。</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">🐣</div>
+                        <div class="step-text">
+                            <h4>孵化蚁群</h4>
+                            <p>消耗食物孵化工蚁、兵蚁和侦查蚁，壮大你的蚁群。</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">⚔️</div>
+                        <div class="step-text">
+                            <h4>抵御敌袭</h4>
+                            <p>威胁值过高时会触发敌袭，多培养兵蚁来保护蚁巢。</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">❄️</div>
+                        <div class="step-text">
+                            <h4>四季更替</h4>
+                            <p>冬天食物短缺，记得在夏天和秋天多储备食物过冬！</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="tutorial-close" @click="closeTutorial">开始游戏</button>
+            </div>
         </div>
     </div>
 

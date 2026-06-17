@@ -5,13 +5,15 @@ class GameRenderer {
         this.cellSize = 40;
         this.gridWidth = 20;
         this.gridHeight = 15;
-        this.ants = [];
+        this.ants = new Map();
+        this.antRenderList = [];
         this.cells = [];
         this.cellMap = {};
         this.season = 'spring';
         this.animationFrame = 0;
         this.lastTime = 0;
         this.isRunning = false;
+        this.smoothingFactor = 0.1;
         
         this.cellColors = {
             dirt: { fill: '#5d4e37', border: '#4a3f2c' },
@@ -38,7 +40,6 @@ class GameRenderer {
         this.gridHeight = gameData.grid_height || 15;
         this.cellSize = gameData.cell_size || 40;
         this.cells = gameData.cells || [];
-        this.ants = gameData.ants || [];
         
         if (gameData.save) {
             this.season = gameData.save.season || 'spring';
@@ -49,7 +50,58 @@ class GameRenderer {
             this.cellMap[`${cell.grid_x},${cell.grid_y}`] = cell;
         }
         
+        this._updateAnts(gameData.ants || []);
+        
         this.resize();
+    }
+
+    _updateAnts(serverAnts) {
+        const seenIds = new Set();
+        
+        for (const serverAnt of serverAnts) {
+            seenIds.add(serverAnt.id);
+            
+            if (this.ants.has(serverAnt.id)) {
+                const localAnt = this.ants.get(serverAnt.id);
+                localAnt.targetX = serverAnt.x;
+                localAnt.targetY = serverAnt.y;
+                localAnt.targetTargetX = serverAnt.target_x;
+                localAnt.targetTargetY = serverAnt.target_y;
+                localAnt.ant_type = serverAnt.ant_type;
+                localAnt.state = serverAnt.state;
+                localAnt.health = serverAnt.health;
+                localAnt.energy = serverAnt.energy;
+                localAnt.carrying = serverAnt.carrying;
+                localAnt.carrying_amount = serverAnt.carrying_amount;
+                localAnt.speed = serverAnt.speed;
+            } else {
+                this.ants.set(serverAnt.id, {
+                    id: serverAnt.id,
+                    x: serverAnt.x,
+                    y: serverAnt.y,
+                    targetX: serverAnt.x,
+                    targetY: serverAnt.y,
+                    targetTargetX: serverAnt.target_x,
+                    targetTargetY: serverAnt.target_y,
+                    ant_type: serverAnt.ant_type,
+                    state: serverAnt.state,
+                    health: serverAnt.health,
+                    energy: serverAnt.energy,
+                    carrying: serverAnt.carrying,
+                    carrying_amount: serverAnt.carrying_amount,
+                    speed: serverAnt.speed,
+                    legPhase: Math.random() * 10,
+                });
+            }
+        }
+        
+        for (const [id, ant] of this.ants) {
+            if (!seenIds.has(id)) {
+                this.ants.delete(id);
+            }
+        }
+        
+        this.antRenderList = Array.from(this.ants.values());
     }
 
     resize() {
@@ -84,20 +136,23 @@ class GameRenderer {
     }
 
     updateAnts(deltaTime) {
-        for (const ant of this.ants) {
-            if (ant.target_x !== null && ant.target_y !== null) {
-                const dx = ant.target_x - ant.x;
-                const dy = ant.target_y - ant.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist > 1) {
-                    const speed = (ant.speed || 1) * 20 * deltaTime;
-                    ant.x += (dx / dist) * Math.min(speed, dist);
-                    ant.y += (dy / dist) * Math.min(speed, dist);
-                }
-            }
+        const lerpFactor = Math.min(1, deltaTime * 8);
+        
+        for (const ant of this.antRenderList) {
+            const dx = ant.targetX - ant.x;
+            const dy = ant.targetY - ant.y;
             
-            ant.legPhase = (ant.legPhase || 0) + deltaTime * 8 * (ant.speed || 1);
+            ant.x += dx * lerpFactor;
+            ant.y += dy * lerpFactor;
+            
+            const speed = ant.speed || 1;
+            const isMoving = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
+            
+            if (isMoving) {
+                ant.legPhase += deltaTime * 10 * speed;
+            } else {
+                ant.legPhase += deltaTime * 2;
+            }
         }
     }
 
@@ -285,7 +340,7 @@ class GameRenderer {
     drawAnts() {
         const ctx = this.ctx;
         
-        const sortedAnts = [...this.ants].sort((a, b) => {
+        const sortedAnts = [...this.antRenderList].sort((a, b) => {
             if (a.ant_type === 'queen') return 1;
             if (b.ant_type === 'queen') return -1;
             return a.y - b.y;
@@ -305,10 +360,16 @@ class GameRenderer {
         const scale = ant.ant_type === 'queen' ? 1.8 : (ant.ant_type === 'soldier' ? 1.3 : 1);
         
         let angle = 0;
-        if (ant.target_x !== null && ant.target_y !== null) {
-            const dx = ant.target_x - ant.x;
-            const dy = ant.target_y - ant.y;
-            if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        if (ant.targetTargetX !== null && ant.targetTargetY !== null) {
+            const dx = ant.targetTargetX - ant.x;
+            const dy = ant.targetTargetY - ant.y;
+            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+                angle = Math.atan2(dy, dx);
+            }
+        } else {
+            const dx = ant.targetX - ant.x;
+            const dy = ant.targetY - ant.y;
+            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
                 angle = Math.atan2(dy, dx);
             }
         }
@@ -327,7 +388,7 @@ class GameRenderer {
         const legPositions = [-4, 0, 4];
         for (let i = 0; i < 3; i++) {
             const lx = legPositions[i];
-            const legSwing = Math.sin(legPhase + i * 1.5) * 3;
+            const legSwing = Math.sin(legPhase + i * 2.1) * 2.5;
             
             ctx.beginPath();
             ctx.moveTo(lx, -2);
