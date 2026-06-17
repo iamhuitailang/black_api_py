@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import io
 import uuid
@@ -318,6 +319,18 @@ def haversine_distance(lat1, lng1, lat2, lng2):
     return R * c
 
 
+PHONE_RE = re.compile(r"^1[3-9]\d{9}$")
+
+
+def validate_phone(phone: str, field_name: str = "联系电话"):
+    if not phone:
+        raise HTTPException(status_code=400, detail=f"{field_name}不能为空")
+    digits = re.sub(r"\D", "", phone)
+    if not PHONE_RE.match(digits):
+        raise HTTPException(status_code=400, detail=f"{field_name}格式不正确，请输入11位有效的手机号码")
+    return digits
+
+
 app = FastAPI(title="小区宠物登记与寻宠平台")
 
 app.add_middleware(
@@ -354,10 +367,11 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter((User.username == user_data.username) | (User.email == user_data.email)).first()
     if existing:
         raise HTTPException(status_code=400, detail="用户名或邮箱已存在")
+    phone = validate_phone(user_data.phone, "联系电话") if user_data.phone else None
     user = User(
         username=user_data.username,
         email=user_data.email,
-        phone=user_data.phone,
+        phone=phone,
         address=user_data.address,
         hashed_password=get_password_hash(user_data.password),
         is_admin=False,
@@ -401,6 +415,7 @@ async def create_pet(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    contact_phone = validate_phone(contact_phone)
     photo_path = save_upload_file(photo) if photo else None
     pet = Pet(
         owner_id=current_user.id,
@@ -463,6 +478,12 @@ def create_lost_record(data: LostRecordCreate, db: Session = Depends(get_db), cu
     pet = db.query(Pet).filter(Pet.id == data.pet_id, Pet.owner_id == current_user.id).first()
     if not pet:
         raise HTTPException(status_code=404, detail="宠物不存在或无权操作")
+    existing = db.query(LostRecord).filter(
+        LostRecord.pet_id == data.pet_id,
+        LostRecord.status == "lost"
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"{pet.name} 已有正在进行的寻宠启事，请先标记已回家或联系管理员")
     try:
         lost_time = datetime.fromisoformat(data.lost_time.replace("Z", "+00:00"))
     except Exception:
@@ -567,6 +588,7 @@ async def create_found_match(
     photo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
+    finder_phone = validate_phone(finder_phone, "认领人联系电话")
     photo_path = save_upload_file(photo) if photo else None
 
     lost_records = db.query(LostRecord).filter(LostRecord.status == "lost").all()

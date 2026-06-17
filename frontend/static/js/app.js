@@ -4,8 +4,56 @@ let carouselIndex = 0;
 let carouselTimer = null;
 let carouselItems = [];
 let currentLostFilter = 'all';
+const FORM_CACHE_KEYS = {
+  pet: 'pet_form_cache',
+  lost: 'lost_form_cache',
+  found: 'found_form_cache',
+};
 
 function $(id) { return document.getElementById(id); }
+
+function bindFormCache(formId, cacheKey) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  try {
+    const saved = localStorage.getItem(cacheKey);
+    if (saved) {
+      const data = JSON.parse(saved);
+      Object.keys(data).forEach(name => {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (!el) return;
+        if (el.type === 'file') return;
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          el.checked = !!data[name];
+        } else {
+          el.value = data[name];
+        }
+      });
+    }
+  } catch (_) {}
+  form.addEventListener('input', () => {
+    const data = {};
+    Array.from(form.elements).forEach(el => {
+      if (!el.name || el.type === 'file') return;
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        data[el.name] = el.checked;
+      } else {
+        data[el.name] = el.value;
+      }
+    });
+    localStorage.setItem(cacheKey, JSON.stringify(data));
+  });
+}
+
+function clearFormCache(cacheKey) {
+  localStorage.removeItem(cacheKey);
+}
+
+function showModal(id) {
+  $(id).classList.remove('hidden');
+  if (id === 'petModal') bindFormCache('petForm', FORM_CACHE_KEYS.pet);
+  if (id === 'lostModal') bindFormCache('lostForm', FORM_CACHE_KEYS.lost);
+}
 
 function getAuthHeader() {
   const token = localStorage.getItem('token');
@@ -311,6 +359,7 @@ async function submitPet(e) {
     toast('宠物档案保存成功！', 'success');
     hideModal('petModal');
     form.reset();
+    clearFormCache(FORM_CACHE_KEYS.pet);
     $('petPhotoPreview').innerHTML = '<span>📷 点击上传宠物照片（建议清晰正脸）</span>';
     loadMyPets();
   } catch (_) {}
@@ -352,6 +401,7 @@ async function submitLost(e) {
     toast('寻宠启事发布成功！已推送到首页轮播 📢', 'success');
     hideModal('lostModal');
     form.reset();
+    clearFormCache(FORM_CACHE_KEYS.lost);
     showPage('lost');
   } catch (_) {}
 }
@@ -510,6 +560,7 @@ async function submitFound(e) {
   }
   try {
     const matches = await apiRequest('/api/found', { method: 'POST', body: data });
+    clearFormCache(FORM_CACHE_KEYS.found);
     if (!matches || !matches.length) {
       toast('已记录！暂未匹配到相似走失记录，信息已保存供后续比对', '');
       $('matchResultWrap').classList.add('hidden');
@@ -637,5 +688,6 @@ function exportExcel(type) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  bindFormCache('foundForm', FORM_CACHE_KEYS.found);
   initAuth().then(() => loadHomeData());
 });

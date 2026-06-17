@@ -267,14 +267,14 @@ body::before {
 .carousel {
   position: relative;
   border-radius: var(--radius);
-  overflow: hidden;
+  padding: 0 34px;
 }
 
 .carousel-track {
   display: flex;
   gap: 20px;
   overflow-x: auto;
-  padding: 4px 4px 16px;
+  padding: 8px 10px 20px;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
 }
@@ -287,8 +287,8 @@ body::before {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--white);
   border: 3px solid var(--primary-light);
@@ -297,13 +297,13 @@ body::before {
   font-weight: bold;
   cursor: pointer;
   box-shadow: var(--shadow);
-  z-index: 5;
+  z-index: 10;
   transition: all 0.25s;
 }
 
 .carousel-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-.carousel-btn.prev { left: 8px; }
-.carousel-btn.next { right: 8px; }
+.carousel-btn.prev { left: -8px; }
+.carousel-btn.next { right: -8px; }
 
 .lost-card {
   flex: 0 0 320px;
