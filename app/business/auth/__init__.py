@@ -1,3 +1,5 @@
 from .auth_business import AuthBusiness
 
-__all__ = ['AuthBusiness']
+auth_business = AuthBusiness()
+
+__all__ = ['AuthBusiness', 'auth_business']

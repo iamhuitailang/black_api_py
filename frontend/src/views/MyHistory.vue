@@ -3,7 +3,7 @@
     <div class="card">
       <div class="card-title">
         <span>历史绩效趋势</span>
-        <div class="flex">
+        <div class="flex" v-if="props.user?.role === 'admin'">
           <select class="form-select" style="width:200px;" v-model="targetEmployeeId" @change="loadTrend">
             <option v-for="e in employees" :key="e.id" :value="e.id">{{ e.name }} - {{ e.department }}</option>
           </select>
@@ -133,12 +133,12 @@ const renderChart = () => {
         return `${p.axisValue}<br/>得分：<strong>${p.value || '-'}</strong><br/>等级：${g ? `<span style="color:${gradeColor[g]}">${g}</span>` : '-'}`
       }
     },
-    grid: { left: 40, right: 30, top: 40, bottom: 40 },
+    grid: { left: 50, right: 50, top: 50, bottom: 70 },
     xAxis: {
       type: 'category',
       data: trendData.value.x_labels.length ? trendData.value.x_labels : ['暂无数据'],
       axisLine: { lineStyle: { color: '#dce1e8' } },
-      axisLabel: { color: '#5e6c84' }
+      axisLabel: { color: '#5e6c84', interval: 0, rotate: 25, fontSize: 12, padding: [8, 0, 0, 0] }
     },
     yAxis: {
       type: 'value', min: 0, max: 10,

@@ -50,12 +50,16 @@ def init_database():
 
 
 def _init_default_users(db):
+    from app.model.kpi import EmployeeModel
     user_model = UserModel()
-    for i in range(2, 11):
-        username = f"user{i}"
-        existing = user_model.get_by_username(username)
+    emp_model = EmployeeModel()
+    employees = emp_model.get_all()
+    for emp in employees:
+        emp_id = emp.get('id')
+        username = f"user{emp_id}"
+        existing = user_model.get_by_id(emp_id)
         if not existing:
-            user_model.create(username, f"user{i}123")
+            user_model.create_with_id(emp_id, username, f"user{emp_id}123")
 
 
 @asynccontextmanager

@@ -33,17 +33,6 @@ class UserModel:
         
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_username ON {cls.TABLE_NAME}(username)"
         db.execute(index_sql)
-        
-        admin_exists = db.fetch_one(f"SELECT id FROM {cls.TABLE_NAME} WHERE username = 'admin'")
-        if not admin_exists:
-            salt = secrets.token_hex(8)
-            password = 'admin123'
-            password_hash = cls._hash_password(password, salt)
-            now = datetime.now().isoformat()
-            db.execute(
-                f"INSERT INTO {cls.TABLE_NAME} (username, password_hash, salt, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-                ('admin', password_hash, salt, 1, now, now)
-            )
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:
@@ -62,6 +51,17 @@ class UserModel:
             'updated_at': now
         }
         return self.exec.insert(data)
+
+    def create_with_id(self, user_id: int, username: str, password: str) -> int:
+        salt = secrets.token_hex(8)
+        password_hash = self._hash_password(password, salt)
+        now = datetime.now().isoformat()
+        sql = f"""
+            INSERT INTO {self.TABLE_NAME} (id, username, password_hash, salt, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """
+        self.db.execute(sql, (user_id, username, password_hash, salt, 1, now, now))
+        return user_id
 
     def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
         return self.query.find_by_id(record_id)

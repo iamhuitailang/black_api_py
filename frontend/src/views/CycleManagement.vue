@@ -39,11 +39,11 @@
       </table>
     </div>
 
-    <div v-if="showModal" class="modal-mask" @click.self="showModal = false">
+    <div v-if="showModal" class="modal-mask" @click.self="showModal = false; clearDraft()">
       <div class="modal">
         <div class="modal-header">
           <div class="modal-title">{{ editingId ? '编辑考核周期' : '新建考核周期' }}</div>
-          <button class="modal-close" @click="showModal = false">×</button>
+          <button class="modal-close" @click="showModal = false; clearDraft()">×</button>
         </div>
         <div class="modal-body">
           <div class="form-row-inline">
@@ -108,7 +108,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn" @click="showModal = false">取消</button>
+          <button class="btn" @click="showModal = false; clearDraft()">取消</button>
           <button class="btn btn-primary" @click="saveCycle">保存</button>
         </div>
       </div>
@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '../utils/api'
 
 const cycles = ref([])
@@ -153,22 +153,58 @@ const loadCycles = async () => {
 
 onMounted(loadCycles)
 
+const STORAGE_KEY = 'kpi_cycle_form_draft'
+
+const loadDraft = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const data = JSON.parse(saved)
+      if (data.editingId === editingId.value) {
+        return data.form
+      }
+    }
+  } catch (e) {}
+  return null
+}
+
+const saveDraft = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      editingId: editingId.value,
+      form: form.value
+    }))
+  } catch (e) {}
+}
+
+const clearDraft = () => {
+  localStorage.removeItem(STORAGE_KEY)
+}
+
+watch(form, saveDraft, { deep: true })
+
 const openCreateModal = () => {
   editingId.value = null
-  form.value = defaultForm()
+  const draft = loadDraft()
+  form.value = draft || defaultForm()
   showModal.value = true
 }
 
 const editCycle = (c) => {
   editingId.value = c.id
-  form.value = {
-    name: c.name,
-    year: c.year,
-    quarter: c.quarter,
-    start_date: c.start_date,
-    end_date: c.end_date,
-    status: c.status,
-    dimensions: (c.dimensions || []).map(d => ({ name: d.name, description: d.description || '', weight: d.weight }))
+  const draft = loadDraft()
+  if (draft) {
+    form.value = draft
+  } else {
+    form.value = {
+      name: c.name,
+      year: c.year,
+      quarter: c.quarter,
+      start_date: c.start_date,
+      end_date: c.end_date,
+      status: c.status,
+      dimensions: (c.dimensions || []).map(d => ({ name: d.name, description: d.description || '', weight: d.weight }))
+    }
   }
   showModal.value = true
 }
@@ -208,6 +244,7 @@ const saveCycle = async () => {
     } else {
       await api.createCycle(form.value)
     }
+    clearDraft()
     showModal.value = false
     loadCycles()
   } catch (e) { alert('保存失败') }

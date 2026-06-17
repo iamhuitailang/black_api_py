@@ -1,9 +1,23 @@
 import axios from 'axios'
+import router from '../router'
 
 const request = axios.create({
   baseURL: '/api',
   timeout: 30000
 })
+
+request.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('kpi_token')
+    if (token) {
+      config.headers.Authorization = 'Bearer ' + token
+    }
+    return config
+  },
+  error => {
+    return Promise.reject(error)
+  }
+)
 
 request.interceptors.response.use(
   response => {
@@ -11,11 +25,23 @@ request.interceptors.response.use(
   },
   error => {
     console.error('API Error:', error)
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('kpi_token')
+      localStorage.removeItem('kpi_user')
+      router.push('/login')
+    }
+    if (error.response && error.response.status === 403) {
+      alert('权限不足：' + (error.response.data?.detail || '您没有此操作权限'))
+    }
     return Promise.reject(error)
   }
 )
 
 export default {
+  login: (username, password) => request.post('/auth/login', { username, password }),
+  logout: () => request.post('/auth/logout'),
+  getCurrentUser: () => request.get('/auth/current/user/get'),
+
   getEmployees: () => request.get('/kpi/employees'),
   getEmployeeByUser: (userId) => request.get(`/kpi/employees/user/${userId}`),
   getDepartments: () => request.get('/kpi/departments'),

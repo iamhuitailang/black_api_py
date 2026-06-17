@@ -283,6 +283,12 @@ body, html {
 .tag-status-draft { background: #e8ebf0; color: #5e6c84; }
 .tag-status-active { background: #e7f1ff; color: #1c71d8; }
 
+.tag-role-admin { background: #fbe9e7; color: #c62828; border: 1px solid #ffccbc; }
+.tag-role-manager { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+.tag-role-employee { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
+
+.user-name { margin-right: 10px; font-weight: 500; color: var(--text-primary); }
+
 .form-row {
   margin-bottom: 16px;
 }
