@@ -87,10 +87,9 @@ body {
 }
 
 .game-board {
-    display: grid;
-    grid-template-columns: repeat(8, 60px);
-    grid-template-rows: repeat(8, 60px);
-    gap: 5px;
+    position: relative;
+    width: calc(60px * 8 + 5px * 7 + 30px);
+    height: calc(60px * 8 + 5px * 7 + 30px);
     padding: 15px;
     background: rgba(0, 0, 0, 0.4);
     border-radius: 15px;
@@ -120,8 +119,13 @@ body {
 .gear-cell {
     width: 60px;
     height: 60px;
-    position: relative;
+    position: absolute;
     cursor: pointer;
+    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+}
+
+.gear-cell.hidden-gear {
+    display: none;
 }
 
 .gear-cell:hover {
@@ -505,8 +509,8 @@ body {
     }
     
     .game-board {
-        grid-template-columns: repeat(8, 50px);
-        grid-template-rows: repeat(8, 50px);
+        width: calc(50px * 8 + 5px * 7 + 30px);
+        height: calc(50px * 8 + 5px * 7 + 30px);
     }
     
     .gear-cell {

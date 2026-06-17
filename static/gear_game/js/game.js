@@ -62,7 +62,7 @@ class Game {
         this.gameBoardElement = document.getElementById(containerId);
         this.particleContainer = document.getElementById('particles-container');
         this.animateParticles();
-        
+
         if (!this.loadGame()) {
             this.applyTheme();
             this.newGame();
@@ -94,6 +94,7 @@ class Game {
 
         await this.board.processInitialMatches();
         this.saveGameState();
+        this.loadHighScores();
     }
 
     addScore(points) {
@@ -116,33 +117,14 @@ class Game {
         this.updateUI();
     }
 
-    async makeMove(gear1, gear2) {
-        if (this.isGameOver || this.steps <= 0) return false;
-        if (this.board.isAnimating) return false;
-
-        this.clearHintHighlight();
-        const success = await this.board.trySwap(gear1, gear2);
-        
-        if (success) {
-            this.steps--;
-            this.stepsUsed++;
-            this.resetCombo();
-            this.updateUI();
-            this.saveGameState();
-            this.checkGameOver();
-        }
-
-        return success;
-    }
-
     shakeBoard(combo) {
         if (!this.gameBoardElement) return;
 
         const intensity = Math.min(combo, 5);
         this.gameBoardElement.classList.remove('shake');
-        
+
         void this.gameBoardElement.offsetWidth;
-        
+
         this.gameBoardElement.style.animationDuration = `${0.2 + intensity * 0.1}s`;
         this.gameBoardElement.classList.add('shake');
 
@@ -156,9 +138,9 @@ class Game {
 
         const particle = document.createElement('div');
         particle.className = 'particle';
-        
+
         const { x, y, color, angle, speed, size, combo } = particleData;
-        
+
         particle.style.left = `${x}px`;
         particle.style.top = `${y}px`;
         particle.style.width = `${size}px`;
@@ -188,7 +170,7 @@ class Game {
         const animate = () => {
             for (let i = this.particles.length - 1; i >= 0; i--) {
                 const p = this.particles[i];
-                
+
                 p.velocity.y += p.gravity;
                 p.x += p.velocity.x;
                 p.y += p.velocity.y;
@@ -230,7 +212,7 @@ class Game {
     showWinModal() {
         this.saveGame(true);
         this.clearSavedState();
-        
+
         const modal = document.getElementById('modal-overlay');
         const title = document.getElementById('modal-title');
         const message = document.getElementById('modal-message');
@@ -250,7 +232,7 @@ class Game {
     showLoseModal() {
         this.saveGame(false);
         this.clearSavedState();
-        
+
         const modal = document.getElementById('modal-overlay');
         const title = document.getElementById('modal-title');
         const message = document.getElementById('modal-message');
@@ -324,15 +306,15 @@ class Game {
     showHint() {
         this.clearHintHighlight();
         const moves = this.board.findPossibleMoves();
-        
+
         if (moves.length > 0 && this.gameBoardElement) {
             const [[r1, c1], [r2, c2]] = moves[0];
-            
+
             const allCells = this.gameBoardElement.querySelectorAll('.gear-cell');
             allCells.forEach(cell => {
                 const row = parseInt(cell.dataset.row);
                 const col = parseInt(cell.dataset.col);
-                
+
                 if ((row === r1 && col === c1) || (row === r2 && col === c2)) {
                     cell.classList.add('hint');
                     this.highlightedCells.push(cell);
@@ -384,13 +366,13 @@ class Game {
         }
     }
 
-    loadGame() {
+    async loadGame() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (!saved) return false;
 
             const state = JSON.parse(saved);
-            
+
             this.level = state.level;
             this.score = state.score;
             this.target = state.target;
@@ -407,6 +389,9 @@ class Game {
 
             this.updateUI();
             this.hideModal();
+
+            await this.board.processInitialMatches();
+            this.saveGameState();
             this.loadHighScores();
 
             console.log('游戏状态已恢复');
