@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星域射击 - Space Shooter</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="/static/game/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div v-if="gameState === 'menu'" class="menu-screen">
+            <div class="menu-container">
+                <h1 class="game-title">星域射击</h1>
+                <p class="game-subtitle">SPACE SHOOTER</p>
+                
+                <div class="input-group">
+                    <label>玩家名称</label>
+                    <input type="text" v-model="playerName" maxlength="20" placeholder="请输入您的名称">
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" @click="startGame">开始游戏</button>
+                    <button class="btn btn-secondary" @click="showLeaderboard">排行榜</button>
+                </div>
+                
+                <div class="controls-info">
+                    <h3>操作说明</h3>
+                    <div class="control-item">
+                        <span class="key">W A S D</span>
+                        <span class="desc">或方向键移动飞船</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">鼠标</span>
+                        <span class="desc">瞄准方向</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">左键</span>
+                        <span class="desc">射击</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">空格</span>
+                        <span class="desc">释放大招（能量满时）</span>
+                    </div>
+                </div>
+                
+                <div v-if="playerProgress && !playerProgress.is_new" class="player-stats">
+                    <h3>我的记录</h3>
+                    <div class="stat-row">
+                        <span>最高波次</span>
+                        <span class="stat-value">{{ playerProgress.highest_wave }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>最高得分</span>
+                        <span class="stat-value">{{ playerProgress.highest_score }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>总击杀</span>
+                        <span class="stat-value">{{ playerProgress.total_kills }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="gameState === 'leaderboard'" class="menu-screen">
+            <div class="menu-container leaderboard-container">
+                <h2 class="game-title">排行榜</h2>
+                <div class="leaderboard-list">
+                    <div v-for="(score, index) in topScores" :key="score.id" class="leaderboard-item">
+                        <span class="rank" :class="'rank-' + (index + 1)">{{ index + 1 }}</span>
+                        <span class="player-name">{{ score.player_name }}</span>
+                        <span class="score-value">{{ score.score }}</span>
+                        <span class="wave-info">波次 {{ score.wave }}</span>
+                    </div>
+                    <div v-if="topScores.length === 0" class="no-data">
+                        暂无记录
+                    </div>
+                </div>
+                <button class="btn btn-primary" @click="backToMenu">返回</button>
+            </div>
+        </div>
+        
+        <div v-if="gameState === 'playing' || gameState === 'paused'" class="game-container">
+            <canvas id="gameCanvas"></canvas>
+            
+            <div class="hud">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="label">得分</span>
+                        <span class="value">{{ score }}</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">波次</span>
+                        <span class="value">{{ wave }}</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="label">击杀</span>
+                        <span class="value">{{ kills }}</span>
+                    </div>
+                </div>
+                
+                <div class="hud-center">
+                    <div v-if="waveAnnouncement" class="wave-announcement">
+                        {{ waveAnnouncement }}
+                    </div>
+                </div>
+                
+                <div class="hud-right">
+                    <div class="health-bar-container">
+                        <div class="hud-label">生命值</div>
+                        <div class="health-bar">
+                            <div class="health-fill" :style="{ width: health + '%' }"></div>
+                        </div>
+                        <span class="health-text">{{ health }}/100</span>
+                    </div>
+                    
+                    <div class="energy-bar-container">
+                        <div class="hud-label">
+                            能量
+                            <span v-if="energy >= 100" class="energy-ready"> [空格键释放大招]</span>
+                        </div>
+                        <div class="energy-bar">
+                            <div class="energy-fill" :style="{ width: energy + '%' }"></div>
+                        </div>
+                        <span class="energy-text">{{ Math.floor(energy) }}/100</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-if="gameState === 'paused'" class="pause-overlay">
+                <div class="pause-menu">
+                    <h2>游戏暂停</h2>
+                    <button class="btn btn-primary" @click="resumeGame">继续游戏</button>
+                    <button class="btn btn-secondary" @click="quitToMenu">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="gameState === 'gameover'" class="gameover-screen">
+            <div class="gameover-container">
+                <h2 class="gameover-title">游戏结束</h2>
+                
+                <div class="final-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">最终得分</span>
+                        <span class="stat-value big">{{ score }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">到达波次</span>
+                        <span class="stat-value">{{ wave }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">击杀数</span>
+                        <span class="stat-value">{{ kills }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">收集能量</span>
+                        <span class="stat-value">{{ energyCollected }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">击杀Boss</span>
+                        <span class="stat-value">{{ bossKilled }}</span>
+                    </div>
+                </div>
+                
+                <div v-if="isNewHighScore" class="new-record">
+                    🎉 新纪录！
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" @click="startGame">再来一局</button>
+                    <button class="btn btn-secondary" @click="backToMenu">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/game/js/api.js"></script>
+    <script src="/static/game/js/particleSystem.js"></script>
+    <script src="/static/game/js/entities.js"></script>
+    <script src="/static/game/js/gameEngine.js"></script>
+    <script src="/static/game/js/app.js"></script>
+</body>
+</html>
