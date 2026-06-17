@@ -472,6 +472,7 @@ function update() {
         if (now >= flyEndTime) {
             isFlying = false;
             document.getElementById('flyIndicator').style.display = 'none';
+            lastGroundTime = 0;
         } else {
             const remaining = flyEndTime - now;
             const fillPercent = (remaining / FLY_DURATION) * 100;
@@ -479,10 +480,14 @@ function update() {
         }
     }
     
-    const canJump = (player.onCloud || (now - lastGroundTime < COYOTE_TIME)) && !isStunned;
+    const canJump = (player.onCloud || (now - lastGroundTime < COYOTE_TIME) || isFlying) && !isStunned;
     
     if (jumpBufferTime > 0 && canJump) {
-        performJump();
+        if (isFlying) {
+            performFlyBoost();
+        } else {
+            performJump();
+        }
         jumpBufferTime = 0;
     }
     
@@ -491,8 +496,16 @@ function update() {
     }
     
     let gravity = isFlying ? FLY_GRAVITY : GRAVITY;
+    let lift = 0;
     
-    if (isJumping && jumpPressed && now < jumpHoldEndTime && player.vy < 0) {
+    if (isFlying && jumpPressed) {
+        lift = -0.6;
+        if (player.vy > 0) {
+            player.vy *= 0.9;
+        }
+    }
+    
+    if (isJumping && !isFlying && jumpPressed && now < jumpHoldEndTime && player.vy < 0) {
         const holdProgress = (jumpHoldEndTime - now) / JUMP_HOLD_TIME;
         gravity = gravity * (0.3 + holdProgress * 0.3);
     }
@@ -501,7 +514,7 @@ function update() {
         isJumping = false;
     }
     
-    player.vy += gravity;
+    player.vy += gravity + lift;
     
     const speedProgress = Math.min(distance / 3000, 1);
     const currentMoveSpeed = MOVE_SPEED_BASE + (MOVE_SPEED_MAX - MOVE_SPEED_BASE) * speedProgress;
@@ -647,8 +660,21 @@ function update() {
 function activateFly() {
     isFlying = true;
     flyEndTime = Date.now() + FLY_DURATION;
-    player.vy = -5;
+    player.vy = -7;
+    isJumping = false;
     document.getElementById('flyIndicator').style.display = 'flex';
+    
+    for (let i = 0; i < 20; i++) {
+        particles.push({
+            x: player.x + (Math.random() - 0.5) * 40,
+            y: player.y - player.height / 2 + (Math.random() - 0.5) * 40,
+            vx: (Math.random() - 0.5) * 3,
+            vy: Math.random() * 2 - 1,
+            size: 4 + Math.random() * 4,
+            life: 1,
+            color: '#87ceeb'
+        });
+    }
 }
 
 function triggerStun() {
@@ -787,6 +813,16 @@ function performJump() {
     isCharging = false;
     chargePower = 0;
     document.getElementById('powerBarContainer').style.display = 'none';
+}
+
+function performFlyBoost() {
+    if (player.vy > -2) {
+        player.vy = -6;
+    } else {
+        player.vy = Math.min(player.vy - 3, -8);
+    }
+    
+    createLandingParticles(player.x, player.y - player.height / 2);
 }
 
 function jump() {
@@ -1091,15 +1127,24 @@ document.addEventListener('keydown', (e) => {
             return;
         }
         
-        if (gameState === 'playing' && !isStunned && !jumpPressed) {
-            jumpPressed = true;
+        if (gameState === 'playing' && !isStunned) {
             const now = Date.now();
-            const canJumpNow = player.onCloud || (now - lastGroundTime < COYOTE_TIME);
             
-            if (canJumpNow) {
-                performJump();
-            } else {
-                jumpBufferTime = JUMP_BUFFER_TIME;
+            if (isFlying) {
+                jumpPressed = true;
+                performFlyBoost();
+                return;
+            }
+            
+            if (!jumpPressed) {
+                jumpPressed = true;
+                const canJumpNow = player.onCloud || (now - lastGroundTime < COYOTE_TIME);
+                
+                if (canJumpNow) {
+                    performJump();
+                } else {
+                    jumpBufferTime = JUMP_BUFFER_TIME;
+                }
             }
         }
     }
@@ -1110,7 +1155,7 @@ document.addEventListener('keyup', (e) => {
         e.preventDefault();
         jumpPressed = false;
         
-        if (gameState === 'playing' && isJumping && player.vy < -JUMP_POWER_MIN * 0.5) {
+        if (gameState === 'playing' && isJumping && !isFlying && player.vy < -JUMP_POWER_MIN * 0.5) {
             player.vy = -JUMP_POWER_MIN * 0.5;
         }
     }
