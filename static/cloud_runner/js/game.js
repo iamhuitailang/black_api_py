@@ -4,8 +4,8 @@ const ctx = canvas.getContext('2d');
 const API_BASE = '/api/cloud/runner';
 
 let gameState = 'start';
-const STORAGE_KEY = 'cloud_runner_save';
-const SAVE_INTERVAL = 1000;
+const STORAGE_KEY = 'cloud_runner_save_v1';
+const SAVE_INTERVAL = 500;
 
 let score = 0;
 let distance = 0;
@@ -14,17 +14,18 @@ let playerName = '';
 let cameraX = 0;
 let lastSaveTime = 0;
 
-const GRAVITY = 0.45;
-const JUMP_POWER_MIN = 9;
-const JUMP_POWER_MAX = 15;
-const CHARGE_SPEED = 0.035;
-const MOVE_SPEED_BASE = 2.5;
-const MOVE_SPEED_MAX = 5;
+const GRAVITY = 0.5;
+const JUMP_POWER_MIN = 10;
+const JUMP_POWER_MAX = 16;
+const JUMP_HOLD_TIME = 250;
+const CHARGE_SPEED = 0.04;
+const MOVE_SPEED_BASE = 2.8;
+const MOVE_SPEED_MAX = 5.5;
 const FLY_DURATION = 3500;
 const FLY_GRAVITY = 0.08;
 const STUN_DURATION = 2000;
-const COYOTE_TIME = 150;
-const JUMP_BUFFER_TIME = 100;
+const COYOTE_TIME = 180;
+const JUMP_BUFFER_TIME = 120;
 
 let isCharging = false;
 let chargePower = 0;
@@ -35,6 +36,9 @@ let stunEndTime = 0;
 let lastGroundTime = 0;
 let jumpBufferTime = 0;
 let jumpPressed = false;
+let isJumping = false;
+let jumpHoldEndTime = 0;
+let jumpStartVy = 0;
 
 const player = {
     x: 200,
@@ -477,11 +481,6 @@ function update() {
     
     const canJump = (player.onCloud || (now - lastGroundTime < COYOTE_TIME)) && !isStunned;
     
-    if (isCharging && !isStunned && canJump) {
-        chargePower = Math.min(chargePower + CHARGE_SPEED, 1);
-        document.getElementById('powerFill').style.width = (chargePower * 100) + '%';
-    }
-    
     if (jumpBufferTime > 0 && canJump) {
         performJump();
         jumpBufferTime = 0;
@@ -491,7 +490,17 @@ function update() {
         jumpBufferTime -= 16;
     }
     
-    const gravity = isFlying ? FLY_GRAVITY : GRAVITY;
+    let gravity = isFlying ? FLY_GRAVITY : GRAVITY;
+    
+    if (isJumping && jumpPressed && now < jumpHoldEndTime && player.vy < 0) {
+        const holdProgress = (jumpHoldEndTime - now) / JUMP_HOLD_TIME;
+        gravity = gravity * (0.3 + holdProgress * 0.3);
+    }
+    
+    if (isJumping && player.vy >= 0) {
+        isJumping = false;
+    }
+    
     player.vy += gravity;
     
     const speedProgress = Math.min(distance / 3000, 1);
@@ -532,12 +541,13 @@ function update() {
         const isHorizontalOverlap = playerRight > cloudLeft && playerLeft < cloudRight;
         
         if (isHorizontalOverlap && player.vy >= 0) {
-            if (playerBottom >= cloudTop - 10 && playerBottom <= cloudTop + 30) {
+            if (playerBottom >= cloudTop - 15 && playerBottom <= cloudTop + 35) {
                 player.y = cloudTop;
                 player.vy = 0;
                 player.onCloud = true;
                 currentCloud = cloud;
                 lastGroundTime = now;
+                isJumping = false;
                 
                 if (!wasOnCloud) {
                     player.squash = 1.3;
@@ -762,17 +772,20 @@ function updateUI() {
 }
 
 function performJump() {
-    const power = JUMP_POWER_MIN + (JUMP_POWER_MAX - JUMP_POWER_MIN) * chargePower;
-    player.vy = -power;
+    const now = Date.now();
+    
+    player.vy = -JUMP_POWER_MIN;
     player.onCloud = false;
     lastGroundTime = 0;
+    isJumping = true;
+    jumpHoldEndTime = now + JUMP_HOLD_TIME;
+    jumpStartVy = player.vy;
     
-    player.stretch = 1.25;
-    player.squash = 0.75;
+    player.stretch = 1.2;
+    player.squash = 0.8;
     
     isCharging = false;
     chargePower = 0;
-    jumpPressed = false;
     document.getElementById('powerBarContainer').style.display = 'none';
 }
 
@@ -791,11 +804,11 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-function saveGameState() {
+function saveGameState(force = false) {
     if (gameState !== 'playing') return;
     
     const now = Date.now();
-    if (now - lastSaveTime < SAVE_INTERVAL) return;
+    if (!force && now - lastSaveTime < SAVE_INTERVAL) return;
     lastSaveTime = now;
     
     const saveData = {
@@ -966,6 +979,8 @@ function continueGame() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
     
+    lastSaveTime = 0;
+    saveGameState(true);
     updateUI();
 }
 
@@ -1001,6 +1016,8 @@ function startGame() {
     lastSaveTime = 0;
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
+    
+    saveGameState(true);
 }
 
 function gameOver() {
@@ -1080,9 +1097,7 @@ document.addEventListener('keydown', (e) => {
             const canJumpNow = player.onCloud || (now - lastGroundTime < COYOTE_TIME);
             
             if (canJumpNow) {
-                isCharging = true;
-                chargePower = 0;
-                document.getElementById('powerBarContainer').style.display = 'flex';
+                performJump();
             } else {
                 jumpBufferTime = JUMP_BUFFER_TIME;
             }
@@ -1091,16 +1106,13 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('keyup', (e) => {
-    if (e.code === 'Space' && gameState === 'playing') {
+    if (e.code === 'Space') {
         e.preventDefault();
-        
-        if (isCharging) {
-            performJump();
-        } else if (jumpBufferTime > 0) {
-            jumpBufferTime = 0;
-        }
-        
         jumpPressed = false;
+        
+        if (gameState === 'playing' && isJumping && player.vy < -JUMP_POWER_MIN * 0.5) {
+            player.vy = -JUMP_POWER_MIN * 0.5;
+        }
     }
 });
 
@@ -1119,6 +1131,20 @@ document.getElementById('newGameBtn').addEventListener('click', () => {
 document.getElementById('playerName').addEventListener('input', (e) => {
     e.target.style.borderColor = '#d4a574';
     e.target.style.boxShadow = 'none';
+});
+
+window.addEventListener('beforeunload', () => {
+    saveGameState(true);
+});
+
+window.addEventListener('pagehide', () => {
+    saveGameState(true);
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        saveGameState(true);
+    }
 });
 
 initGame();
