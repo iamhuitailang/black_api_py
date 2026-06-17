@@ -75,6 +75,23 @@
     var jumpHeld = false;
     var cachedEls = {};
 
+    var STORAGE_KEY = 'skyline_runner_save';
+
+    function saveToStorage(key, value) {
+        try {
+            var data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            data[key] = value;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {}
+    }
+
+    function loadFromStorage(key) {
+        try {
+            var data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            return data[key];
+        } catch (e) { return null; }
+    }
+
     function $(id) {
         if (!cachedEls[id]) {
             cachedEls[id] = document.getElementById(id);
@@ -94,11 +111,27 @@
             return;
         }
         resize();
-        window.addEventListener('resize', resize);
+        window.addEventListener('resize', function() {
+            resize();
+            initBgLayers();
+            initNeonSigns();
+            if (gameState === STATE.MENU) {
+                resetGame();
+            }
+        });
         setupInput();
         setupUI();
         initBgLayers();
         initNeonSigns();
+        resetGame();
+
+        var savedName = loadFromStorage('playerName');
+        if (savedName) {
+            playerName = savedName;
+            var nameInput = $('player-name');
+            if (nameInput) nameInput.value = savedName;
+        }
+
         showOverlay('main-menu');
         requestAnimationFrame(loop);
     }
@@ -233,8 +266,14 @@
 
     function startGame() {
         var nameInput = $('player-name');
-        playerName = (nameInput && nameInput.value.trim()) || ('Runner' + Math.floor(Math.random() * 9999));
+        playerName = (nameInput && nameInput.value.trim()) || '';
+        if (!playerName) {
+            alert('请先输入昵称再开始游戏！');
+            if (nameInput) nameInput.focus();
+            return;
+        }
         if (nameInput) nameInput.value = playerName;
+        saveToStorage('playerName', playerName);
 
         resetGame();
         gameState = STATE.COUNTDOWN;
@@ -272,7 +311,7 @@
         particles = [];
 
         player = {
-            x: W * 0.15,
+            x: 100,
             y: 0,
             vy: 0,
             vx: 0,
@@ -293,19 +332,36 @@
 
         roofs = [];
         var startX = 0;
-        var roofY = H * 0.7;
-        while (startX < W + 600) {
+        var firstRoofY = H * 0.72;
+        var firstRoofW = Math.max(W * 0.4, 500);
+        roofs.push({
+            x: startX,
+            y: firstRoofY,
+            w: firstRoofW,
+            h: 35,
+            roofY: firstRoofY
+        });
+        startX += firstRoofW + C.ROOF_GAP_MIN;
+
+        var prevRoofY = firstRoofY;
+        var safeCount = 3;
+        while (startX < W + 800) {
             var rw = C.ROOF_MIN_W + Math.random() * (C.ROOF_MAX_W - C.ROOF_MIN_W);
-            var rh = 30 + Math.random() * 20;
+            var yVariation = safeCount > 0 ? 0.03 : 0.08;
+            var roofY = prevRoofY + (Math.random() - 0.5) * H * yVariation;
+            roofY = Math.max(H * 0.5, Math.min(H * 0.82, roofY));
             roofs.push({
                 x: startX,
                 y: roofY,
                 w: rw,
-                h: rh,
+                h: 30 + Math.random() * 20,
                 roofY: roofY
             });
-            startX += rw + C.ROOF_GAP_MIN + Math.random() * (C.ROOF_GAP_MAX - C.ROOF_GAP_MIN);
-            roofY = H * 0.65 + Math.random() * H * 0.12;
+            var gap = C.ROOF_GAP_MIN + Math.random() * (C.ROOF_GAP_MAX - C.ROOF_GAP_MIN);
+            if (safeCount > 0) gap = C.ROOF_GAP_MIN + 10;
+            startX += rw + gap;
+            prevRoofY = roofY;
+            safeCount--;
         }
 
         player.y = roofs[0].y - C.PLAYER_H;
@@ -402,6 +458,23 @@
         if (player.falling) {
             player.fallSpeed += C.GRAVITY;
             player.y += player.fallSpeed;
+
+            for (var i = 0; i < roofs.length; i++) {
+                var r = roofs[i];
+                if (player.fallSpeed > 0 &&
+                    player.x + player.w > r.x + 5 &&
+                    player.x < r.x + r.w - 5 &&
+                    player.y + player.h >= r.y &&
+                    player.y + player.h <= r.y + player.fallSpeed + 5) {
+                    player.y = r.y - player.h;
+                    player.falling = false;
+                    player.fallSpeed = 0;
+                    player.onGround = true;
+                    player.currentRoof = r;
+                    break;
+                }
+            }
+
             if (player.y > H + 100) {
                 gameOver();
             }
@@ -417,20 +490,21 @@
                 player.extraVx *= 0.95;
             }
 
-            for (var i = 0; i < roofs.length; i++) {
-                var r = roofs[i];
-                if (player.vy > 0 &&
-                    player.x + player.w > r.x + 5 &&
-                    player.x < r.x + r.w - 5 &&
-                    player.y + player.h >= r.y &&
-                    player.y + player.h <= r.y + 20) {
-                    player.y = r.y - player.h;
-                    player.vy = 0;
-                    player.jumping = false;
-                    player.extraVx = 0;
-                    player.onGround = true;
-                    player.currentRoof = r;
-                    break;
+            if (player.vy > 0) {
+                for (var j = 0; j < roofs.length; j++) {
+                    var jr = roofs[j];
+                    if (player.x + player.w > jr.x + 5 &&
+                        player.x < jr.x + jr.w - 5 &&
+                        player.y + player.h >= jr.y &&
+                        player.y + player.h <= jr.y + player.vy + 5) {
+                        player.y = jr.y - player.h;
+                        player.vy = 0;
+                        player.jumping = false;
+                        player.extraVx = 0;
+                        player.onGround = true;
+                        player.currentRoof = jr;
+                        break;
+                    }
                 }
             }
 
