@@ -167,7 +167,7 @@
                 </div>
             </div>
 
-            <div class="end-screen" v-if="gameStatus === 'won'">
+            <div class="end-screen" v-if="gameStarted && gameStatus === 'won'">
                 <div class="end-content win">
                     <h2>你逃出了庄园！</h2>
                     <p>你找到了逃生钥匙，冲出了这座可怕的庄园。</p>
@@ -176,7 +176,7 @@
                 </div>
             </div>
 
-            <div class="end-screen" v-if="gameStatus === 'lost'">
+            <div class="end-screen" v-if="gameStarted && gameStatus === 'lost'">
                 <div class="end-content lose">
                     <h2>你被幽灵抓住了……</h2>
                     <p>布莱克威尔夫人的幽灵抓住了你，你永远留在了这座庄园里。</p>

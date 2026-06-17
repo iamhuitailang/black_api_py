@@ -40,6 +40,7 @@ createApp({
         const playerName = ref('');
         const nameError = ref('');
         const gameStarted = ref(false);
+        const isRestoring = ref(false);
         const gameStatus = ref('playing');
         const currentRoom = ref(null);
         const currentRoomId = ref('entrance_hall');
@@ -144,6 +145,12 @@ createApp({
             }
         }
 
+        function clearPlayerName() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (e) {}
+        }
+
         async function startGame() {
             const name = playerName.value.trim();
             if (!name) {
@@ -163,21 +170,18 @@ createApp({
                 if (result.code === 0) {
                     const data = result.data;
                     savePlayerName(name);
+                    applyGameState(data);
+                    
+                    const mapResp = await fetch(`${API_BASE}/manor/map/get?player_name=${encodeURIComponent(name)}`);
+                    const mapResult = await mapResp.json();
+                    if (mapResult.code === 0 && mapResult.data) {
+                        mapRooms.value = mapResult.data.rooms;
+                    }
+                    
                     gameStarted.value = true;
-                    gameStatus.value = data.game_state.game_status;
-                    currentRoom.value = data.current_room;
-                    currentRoomId.value = data.current_room.room_id;
-                    roomItems.value = data.room_items || [];
-                    lives.value = data.game_state.lives;
-                    flashlightBattery.value = data.game_state.flashlight_battery;
-                    inventoryItems.value = data.game_state.collected_items || [];
-                    unlockedRooms.value = data.game_state.unlocked_rooms || [];
-                    ghostPosition.value = data.game_state.ghost_position;
                     
                     addMessage('你推开了庄园沉重的大门，一股霉味扑面而来……', 'info');
                     addMessage('手电筒的光束在黑暗中摇曳，四周一片寂静。', 'info');
-                    
-                    loadMap();
                 }
             } catch (e) {
                 console.error('Start game error:', e);
@@ -185,42 +189,59 @@ createApp({
             }
         }
 
+        function applyGameState(data) {
+            gameStatus.value = data.game_state.game_status;
+            currentRoom.value = data.current_room;
+            currentRoomId.value = data.current_room.room_id;
+            roomItems.value = data.room_items || [];
+            lives.value = data.game_state.lives;
+            flashlightBattery.value = data.game_state.flashlight_battery;
+            inventoryItems.value = data.game_state.collected_items || [];
+            unlockedRooms.value = data.game_state.unlocked_rooms || [];
+            ghostPosition.value = data.game_state.ghost_position;
+        }
+
         async function restoreGame() {
             const savedName = loadPlayerName();
             if (!savedName) return;
             
+            isRestoring.value = true;
             playerName.value = savedName;
             
             try {
-                const response = await fetch(`${API_BASE}/manor/state?player_name=${encodeURIComponent(savedName)}`);
-                const result = await response.json();
+                const [stateResult, mapResult] = await Promise.all([
+                    fetch(`${API_BASE}/manor/state/get?player_name=${encodeURIComponent(savedName)}`).then(r => r.json()),
+                    fetch(`${API_BASE}/manor/map/get?player_name=${encodeURIComponent(savedName)}`).then(r => r.json())
+                ]);
                 
-                if (result.code === 0 && result.data) {
-                    const data = result.data;
+                if (stateResult.code === 0 && stateResult.data) {
+                    const data = stateResult.data;
                     if (data.game_state.game_status === 'playing') {
+                        applyGameState(data);
                         gameStarted.value = true;
-                        gameStatus.value = data.game_state.game_status;
-                        currentRoom.value = data.current_room;
-                        currentRoomId.value = data.current_room.room_id;
-                        roomItems.value = data.room_items || [];
-                        lives.value = data.game_state.lives;
-                        flashlightBattery.value = data.game_state.flashlight_battery;
-                        inventoryItems.value = data.game_state.collected_items || [];
-                        unlockedRooms.value = data.game_state.unlocked_rooms || [];
-                        ghostPosition.value = data.game_state.ghost_position;
+                        
+                        if (mapResult.code === 0 && mapResult.data) {
+                            mapRooms.value = mapResult.data.rooms;
+                        }
                         
                         addMessage('你从上次的进度继续探索……', 'info');
-                        loadMap();
+                    } else {
+                        clearPlayerName();
                     }
+                } else {
+                    clearPlayerName();
                 }
             } catch (e) {
                 console.error('Restore game error:', e);
+                clearPlayerName();
+            } finally {
+                isRestoring.value = false;
             }
         }
 
         async function loadMap() {
             try {
-                const response = await fetch(`${API_BASE}/manor/map?player_name=${encodeURIComponent(playerName.value)}`);
+                const response = await fetch(`${API_BASE}/manor/map/get?player_name=${encodeURIComponent(playerName.value)}`);
                 const result = await response.json();
                 if (result.code === 0) {
                     mapRooms.value = result.data.rooms;
@@ -384,9 +405,7 @@ createApp({
             ghostPosition.value = 'basement';
             messages.value = [];
             showEncounter.value = false;
-            try {
-                localStorage.removeItem(STORAGE_KEY);
-            } catch (e) {}
+            clearPlayerName();
         }
 
         function handleMouseMove(e) {
@@ -403,6 +422,7 @@ createApp({
             playerName,
             nameError,
             gameStarted,
+            isRestoring,
             gameStatus,
             currentRoom,
             currentRoomId,

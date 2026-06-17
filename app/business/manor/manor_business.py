@@ -288,6 +288,26 @@ class ManorBusiness:
         for ghost in ghosts:
             self.ghost_model.create(ghost)
 
+    def _reset_world_state(self):
+        all_items = self.item_model.get_all()
+        for item in all_items:
+            self.item_model.update(item['item_id'], {'collected': 0})
+
+        all_rooms = self.room_model.get_all()
+        for room in all_rooms:
+            if room['room_id'] == 'study':
+                self.room_model.update(room['room_id'], {'locked': 1, 'puzzle_solved': 0})
+            elif room['room_id'] == 'basement_stairs':
+                self.room_model.update(room['room_id'], {'locked': 1})
+            elif room['room_id'] == 'secret_room':
+                self.room_model.update(room['room_id'], {'locked': 1})
+            elif room['has_puzzle'] == 1:
+                self.room_model.update(room['room_id'], {'puzzle_solved': 0})
+
+        all_ghosts = self.ghost_model.get_all()
+        for ghost in all_ghosts:
+            self.ghost_model.update(ghost['ghost_id'], {'position': 'basement', 'is_chasing': 0})
+
     def start_new_game(self, player_name: str = 'player') -> Dict[str, Any]:
         self._init_rooms_if_empty()
         self._init_items_if_empty()
@@ -296,6 +316,8 @@ class ManorBusiness:
         existing = self.game_state_model.get_by_player_name(player_name)
         if existing:
             self.game_state_model.delete(existing['id'])
+
+        self._reset_world_state()
 
         game_id = self.game_state_model.create(player_name)
         game_state = self.game_state_model.get_by_id(game_id)
