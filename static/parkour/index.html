@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYLINE RUNNER - 屋顶跑酷</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    
+    <div id="main-menu" class="overlay active">
+        <div class="menu-content">
+            <h1 class="game-title">SKYLINE<br><span>RUNNER</span></h1>
+            <p class="subtitle">屋顶跑酷</p>
+            
+            <div class="controls-info">
+                <div class="control-item">
+                    <kbd>SPACE</kbd>
+                    <span>跳跃 / 长按远跳</span>
+                </div>
+                <div class="control-item">
+                    <kbd>S</kbd>
+                    <span>滑铲通过低矮障碍</span>
+                </div>
+            </div>
+            
+            <div class="player-name-input">
+                <input type="text" id="player-name" placeholder="输入你的昵称" maxlength="20" autocomplete="off">
+            </div>
+            
+            <button id="btn-start" class="neon-btn">开始奔跑</button>
+            <button id="btn-leaderboard" class="neon-btn secondary">排行榜</button>
+            <button id="btn-letters" class="neon-btn secondary">信件收集</button>
+        </div>
+    </div>
+    
+    <div id="countdown-overlay" class="overlay">
+        <div class="countdown-number" id="countdown-text">3</div>
+    </div>
+    
+    <div id="hud" class="overlay">
+        <div class="hud-left">
+            <div class="hud-distance"><span id="hud-dist">0</span>m</div>
+        </div>
+        <div class="hud-right">
+            <div class="hud-letters">✉ <span id="hud-letters">0</span></div>
+        </div>
+    </div>
+    
+    <div id="game-over" class="overlay">
+        <div class="game-over-content">
+            <h2>游戏结束</h2>
+            <div class="result-card">
+                <div class="result-row">
+                    <span class="result-label">距离</span>
+                    <span class="result-value" id="result-distance">0m</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">信件碎片</span>
+                    <span class="result-value" id="result-letters">0</span>
+                </div>
+                <div class="result-row best-record">
+                    <span class="result-label">最佳纪录</span>
+                    <span class="result-value" id="result-best">0m</span>
+                </div>
+                <div id="new-record" class="new-record">🏆 新纪录！</div>
+            </div>
+            <button id="btn-restart" class="neon-btn">再来一次</button>
+            <button id="btn-back-menu" class="neon-btn secondary">返回主页</button>
+        </div>
+    </div>
+    
+    <div id="leaderboard-panel" class="overlay">
+        <div class="panel-content">
+            <h2>排行榜</h2>
+            <div class="leaderboard-list" id="leaderboard-list"></div>
+            <button id="btn-lb-back" class="neon-btn secondary">返回</button>
+        </div>
+    </div>
+    
+    <div id="letters-panel" class="overlay">
+        <div class="panel-content letters-panel-content">
+            <h2>信件收集</h2>
+            <div class="letters-grid" id="letters-grid"></div>
+            <button id="btn-let-back" class="neon-btn secondary">返回</button>
+        </div>
+    </div>
+
+    <div id="letter-popup" class="overlay">
+        <div class="letter-popup-content">
+            <h3 id="letter-popup-title"></h3>
+            <p id="letter-popup-content"></p>
+            <button id="btn-letter-close" class="neon-btn secondary">关闭</button>
+        </div>
+    </div>
+
+    <div id="collect-toast" class="collect-toast">+1 信件碎片</div>
+    
+    <div id="mobile-controls" class="mobile-controls">
+        <button id="btn-slide" class="mobile-btn">滑铲</button>
+        <button id="btn-jump" class="mobile-btn">跳跃</button>
+    </div>
+</div>
+
+<script src="js/game.js"></script>
+</body>
+</html>
