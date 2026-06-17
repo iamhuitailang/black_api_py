@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>齿轮消除 - Gear Match</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1 class="game-title">⚙️ 齿轮消除 ⚙️</h1>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">关卡</span>
+                    <span class="stat-value" id="level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">分数</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">目标</span>
+                    <span class="stat-value" id="target">1000</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">步数</span>
+                    <span class="stat-value" id="steps">20</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">连击</span>
+                    <span class="stat-value" id="combo">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">最高连击</span>
+                    <span class="stat-value" id="max-combo">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div class="game-board-wrapper">
+                <div class="game-board" id="game-board"></div>
+                <div class="particles-container" id="particles-container"></div>
+            </div>
+
+            <aside class="game-sidebar">
+                <div class="legend">
+                    <h3>齿轮说明</h3>
+                    <div class="legend-item">
+                        <div class="gear-preview gear-normal gear-red"></div>
+                        <span>普通齿轮</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="gear-preview gear-copper"></div>
+                        <span>铜色齿轮 - 消除时炸开周围</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="gear-preview gear-gold"></div>
+                        <span>金色齿轮 - 万能匹配</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="gear-preview gear-rust"></div>
+                        <span>锈齿轮 - 需要消除两次</span>
+                    </div>
+                </div>
+
+                <div class="high-scores">
+                    <h3>最高记录</h3>
+                    <div class="score-item">
+                        <span>最高分</span>
+                        <span id="high-score">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span>最高连击</span>
+                        <span id="high-combo">0</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="restart-btn" class="btn btn-primary">重新开始</button>
+                    <button id="hint-btn" class="btn btn-secondary">提示</button>
+                </div>
+            </aside>
+        </main>
+
+        <div class="modal-overlay" id="modal-overlay">
+            <div class="modal" id="game-modal">
+                <h2 id="modal-title">🎉 恭喜过关！</h2>
+                <div class="modal-content">
+                    <p id="modal-message">你已达到目标分数！</p>
+                    <div class="modal-stats">
+                        <div class="modal-stat">
+                            <span>本局分数</span>
+                            <span id="final-score">0</span>
+                        </div>
+                        <div class="modal-stat">
+                            <span>最高连击</span>
+                            <span id="final-combo">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="next-level-btn" class="btn btn-primary">下一关</button>
+                    <button id="retry-btn" class="btn btn-secondary">重试本关</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/gear.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
