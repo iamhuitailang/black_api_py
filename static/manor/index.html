@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>废弃庄园 - 恐怖探索</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container" :class="{ 'game-over': gameStatus !== 'playing' }">
+            
+            <div class="fog-overlay" v-if="gameStarted">
+                <div class="flashlight-beam" :style="flashlightStyle"></div>
+            </div>
+
+            <div class="start-screen" v-if="!gameStarted">
+                <div class="title-container">
+                    <h1 class="game-title">废弃庄园</h1>
+                    <p class="game-subtitle">维多利亚时代的恐怖传说</p>
+                </div>
+                <div class="start-form">
+                    <input type="text" v-model="playerName" placeholder="输入你的名字" class="name-input">
+                    <button @click="startGame" class="start-btn">
+                        开始探索
+                    </button>
+                </div>
+                <div class="intro-text">
+                    <p>深夜，你误入了一座废弃已久的维多利亚庄园。</p>
+                    <p>手电筒只能照亮前方一小片区域，四周漆黑中传来脚步声……</p>
+                    <p>找到三块钥匙碎片，合成主钥匙，找到逃生之路。</p>
+                    <p class="warning">小心！黑暗中有什么东西在追踪你……</p>
+                </div>
+            </div>
+
+            <div class="game-screen" v-if="gameStarted">
+                
+                <div class="status-bar">
+                    <div class="status-item lives">
+                        <span class="status-label">生命</span>
+                        <span class="status-value">
+                            <span v-for="i in 3" :key="i" class="heart" :class="{ 'empty': i > lives }">❤</span>
+                        </span>
+                    </div>
+                    <div class="status-item battery">
+                        <span class="status-label">手电筒</span>
+                        <div class="battery-bar">
+                            <div class="battery-level" :style="{ width: flashlightBattery + '%' }"></div>
+                        </div>
+                        <span class="battery-text">{{ flashlightBattery.toFixed(0) }}%</span>
+                    </div>
+                    <div class="status-item room">
+                        <span class="status-label">位置</span>
+                        <span class="status-value">{{ currentRoom?.name || '未知' }}</span>
+                    </div>
+                </div>
+
+                <div class="main-area">
+                    
+                    <div class="room-view">
+                        <div class="room-scene" :class="'room-' + currentRoomId">
+                            <div class="room-interior">
+                                <div class="decor decor-left"></div>
+                                <div class="decor decor-right"></div>
+                                <div class="decor decor-back"></div>
+                                
+                                <div class="room-name-plate">{{ currentRoom?.name }}</div>
+                                
+                                <div class="room-items" v-if="roomItems.length > 0">
+                                    <div 
+                                        v-for="item in roomItems" 
+                                        :key="item.item_id"
+                                        class="room-item"
+                                        @click="collectItem(item.item_id)"
+                                        :title="item.description"
+                                    >
+                                        <span class="item-icon">{{ getItemIcon(item.item_type) }}</span>
+                                        <span class="item-name">{{ item.name }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="puzzle-area" v-if="currentRoom?.has_puzzle && !currentRoom?.puzzle_solved">
+                                    <button @click="solvePuzzle" class="puzzle-btn">
+                                        {{ getPuzzleButtonText() }}
+                                    </button>
+                                </div>
+
+                                <div class="ghost-prompt" v-if="ghostInRoom">
+                                    <div class="ghost-warning">
+                                        <span class="ghost-icon">👻</span>
+                                        <span>幽灵在这里！快跑！</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="room-description">
+                            <p>{{ currentRoom?.description }}</p>
+                        </div>
+                    </div>
+
+                    <div class="side-panel">
+                        
+                        <div class="inventory-panel">
+                            <h3>物品栏</h3>
+                            <div class="inventory-grid">
+                                <div 
+                                    v-for="item in inventoryItems" 
+                                    :key="item"
+                                    class="inventory-slot filled"
+                                    :title="getItemName(item)"
+                                >
+                                    <span class="slot-icon">{{ getItemIcon(getItemType(item)) }}</span>
+                                </div>
+                                <div 
+                                    v-for="i in emptySlots" 
+                                    :key="'empty-' + i"
+                                    class="inventory-slot empty"
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div class="map-panel">
+                            <h3>庄园地图</h3>
+                            <div class="minimap">
+                                <div class="map-rooms">
+                                    <div 
+                                        v-for="room in mapRooms" 
+                                        :key="room.room_id"
+                                        class="map-room"
+                                        :class="{ 
+                                            'current': room.room_id === currentRoomId,
+                                            'unlocked': room.unlocked,
+                                            'locked': room.locked && !room.unlocked,
+                                            'ghost': room.room_id === ghostPosition
+                                        }"
+                                    >
+                                        <span class="map-room-name">{{ room.name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="navigation-panel">
+                            <h3>可前往</h3>
+                            <div class="nav-buttons">
+                                <button 
+                                    v-for="conn in connections" 
+                                    :key="conn"
+                                    @click="moveToRoom(conn)"
+                                    class="nav-btn"
+                                    :disabled="isMoving"
+                                >
+                                    {{ getRoomName(conn) }}
+                                    <span v-if="isRoomLocked(conn)" class="lock-icon">🔒</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="message-log">
+                    <div v-for="(msg, idx) in messages" :key="idx" class="log-message" :class="msg.type">
+                        {{ msg.text }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="end-screen" v-if="gameStatus === 'won'">
+                <div class="end-content win">
+                    <h2>你逃出了庄园！</h2>
+                    <p>你找到了逃生钥匙，冲出了这座可怕的庄园。</p>
+                    <p>黎明的阳光照在你身上，噩梦终于结束了。</p>
+                    <button @click="restartGame" class="restart-btn">再玩一次</button>
+                </div>
+            </div>
+
+            <div class="end-screen" v-if="gameStatus === 'lost'">
+                <div class="end-content lose">
+                    <h2>你被幽灵抓住了……</h2>
+                    <p>布莱克威尔夫人的幽灵抓住了你，你永远留在了这座庄园里。</p>
+                    <button @click="restartGame" class="restart-btn">重新开始</button>
+                </div>
+            </div>
+
+            <div class="encounter-overlay" v-if="showEncounter">
+                <div class="encounter-content">
+                    <div class="ghost-appear">👻</div>
+                    <h2>幽灵出现了！</h2>
+                    <p>你失去了一条命，被吓回了另一个房间。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
