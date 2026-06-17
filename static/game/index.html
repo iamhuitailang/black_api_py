@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深空研究站 - 塔防</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="hudBar">
+      <div class="hud-item">
+        <span class="hud-label">波次</span>
+        <span class="hud-value" id="hudWave">0/0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">生命</span>
+        <span class="hud-value lives" id="hudLives">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">样本</span>
+        <span class="hud-value samples" id="hudSamples">0</span>
+      </div>
+      <div class="hud-item">
+        <span id="hudState"></span>
+      </div>
+      <div class="hud-controls">
+        <button class="speed-btn active" data-speed="1">1x</button>
+        <button class="speed-btn" data-speed="2">2x</button>
+        <button class="speed-btn" data-speed="3">3x</button>
+        <button id="pauseBtn">⏸</button>
+        <button id="startWaveBtn">▶ 开始下一波</button>
+      </div>
+    </div>
+
+    <div id="gameArea">
+      <div id="canvasWrapper">
+        <canvas id="gameCanvas"></canvas>
+      </div>
+
+      <div id="towerPanel">
+        <h3>炮塔选择</h3>
+        <div id="towerCards"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="deployPanel">
+    <button class="panel-close" id="closeDeployPanel">✕</button>
+    <div class="panel-title">部署炮塔</div>
+    <div id="deployTowerList"></div>
+  </div>
+
+  <div id="upgradePanel">
+    <button class="panel-close" id="closeUpgradePanel">✕</button>
+    <div class="panel-title" id="upgradeTowerName">炮塔</div>
+    <div class="upgrade-stats">
+      <div class="upgrade-stat">等级: <span id="upgradeTowerLevel">1</span></div>
+      <div class="upgrade-stat">伤害: <span id="upgradeTowerDamage">0</span></div>
+      <div class="upgrade-stat">射程: <span id="upgradeTowerRange">0</span></div>
+      <div class="upgrade-stat">攻速: <span id="upgradeTowerSpeed">0</span></div>
+    </div>
+    <button id="upgradeBtn">升级 (<span id="upgradeCostValue">0</span> 样本)</button>
+    <button id="sellBtn">出售 (+<span id="sellValue">0</span> 样本)</button>
+  </div>
+
+  <div id="levelSelectOverlay">
+    <div class="overlay-title">深空研究站</div>
+    <div class="overlay-subtitle">DEEP SPACE RESEARCH STATION</div>
+    <div id="levelGrid"></div>
+  </div>
+
+  <div id="gameOverlay">
+    <div id="overlayTitle"></div>
+    <div id="overlayMessage"></div>
+    <div class="overlay-buttons">
+      <button class="overlay-btn" id="restartBtn">重新选择关卡</button>
+      <button class="overlay-btn secondary" id="menuBtn">返回主菜单</button>
+    </div>
+  </div>
+
+  <div id="pauseOverlay">
+    <div class="overlay-title" style="font-size:28px">已暂停</div>
+    <div class="overlay-buttons" style="margin-top:20px">
+      <button class="overlay-btn" id="resumeBtn">继续</button>
+    </div>
+  </div>
+
+  <script src="js/engine/pathfinder.js"></script>
+  <script src="js/map/level.js"></script>
+  <script src="js/entities/tower.js"></script>
+  <script src="js/entities/enemy.js"></script>
+  <script src="js/systems/combat.js"></script>
+  <script src="js/systems/wave.js"></script>
+  <script src="js/systems/upgrade.js"></script>
+  <script src="js/engine/renderer.js"></script>
+  <script src="js/engine/gameLoop.js"></script>
+  <script src="js/ui/hud.js"></script>
+  <script src="js/ui/towerPanel.js"></script>
+  <script src="js/ui/levelSelect.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
