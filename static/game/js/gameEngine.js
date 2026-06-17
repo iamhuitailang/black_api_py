@@ -53,6 +53,9 @@ class GameEngine {
         this.onWaveAnnouncement = null;
         this.onGameOver = null;
         
+        this.autoSaveInterval = 3;
+        this.autoSaveTimer = 0;
+        
         this.setupEventListeners();
         this.resize();
     }
@@ -110,6 +113,159 @@ class GameEngine {
         particleSystem.initStars(this.width, this.height);
     }
 
+    saveState() {
+        if (!this.player || !this.player.isActive()) return;
+        
+        const state = {
+            player: {
+                x: this.player.x,
+                y: this.player.y,
+                health: this.player.health,
+                energy: this.player.energy,
+                maxHealth: this.player.maxHealth,
+                maxEnergy: this.player.maxEnergy
+            },
+            score: this.score,
+            wave: this.wave,
+            kills: this.kills,
+            energyCollected: this.energyCollected,
+            bossKilled: this.bossKilled,
+            waveEnemiesRemaining: this.waveEnemiesRemaining,
+            waveInProgress: this.waveInProgress,
+            enemySpawnTimer: this.enemySpawnTimer,
+            enemySpawnInterval: this.enemySpawnInterval,
+            enemies: this.enemies.filter(e => e.isActive()).map(e => this.serializeEnemy(e)),
+            energyFragments: this.energyFragments.filter(f => f.isActive()).map(f => ({
+                x: f.x,
+                y: f.y,
+                vx: f.vx,
+                vy: f.vy,
+                lifetime: f.lifetime,
+                rotationAngle: f.rotationAngle,
+                pulsePhase: f.pulsePhase
+            })),
+            timestamp: Date.now()
+        };
+        
+        try {
+            localStorage.setItem('spaceShooterSaveState', JSON.stringify(state));
+        } catch (e) {
+            console.warn('Failed to save game state:', e);
+        }
+    }
+
+    serializeEnemy(enemy) {
+        const data = {
+            type: enemy.type,
+            x: enemy.x,
+            y: enemy.y,
+            vx: enemy.vx,
+            vy: enemy.vy,
+            health: enemy.health,
+            maxHealth: enemy.maxHealth,
+            wave: enemy.wave,
+            width: enemy.width,
+            height: enemy.height,
+            angle: enemy.angle,
+            rotationAngle: enemy.rotationAngle || 0
+        };
+        
+        if (enemy.type === 'asteroid') {
+            data.size = enemy.size;
+            data.rotationSpeed = enemy.rotationSpeed;
+            data.speed = enemy.speed;
+            data.vertices = enemy.vertices;
+        } else if (enemy.type === 'alien') {
+            data.movePattern = enemy.movePattern;
+            data.patternTime = enemy.patternTime;
+            data.circleAngle = enemy.circleAngle;
+            data.circleRadius = enemy.circleRadius;
+            data.fireRate = enemy.fireRate;
+            data.damage = enemy.damage;
+            data.bulletSpeed = enemy.bulletSpeed;
+            data.speed = enemy.speed;
+            data.lastFireTime = enemy.lastFireTime;
+        } else if (enemy.type === 'boss') {
+            data.bossLevel = enemy.bossLevel;
+            data.phase = enemy.phase;
+            data.phaseTimer = enemy.phaseTimer;
+            data.fireRate = enemy.fireRate;
+            data.damage = enemy.damage;
+            data.bulletSpeed = enemy.bulletSpeed;
+            data.speed = enemy.speed;
+            data.lastFireTime = enemy.lastFireTime;
+            data.targetX = enemy.targetX;
+            data.targetY = enemy.targetY;
+            data.moveTimer = enemy.moveTimer;
+        }
+        
+        return data;
+    }
+
+    deserializeEnemy(data) {
+        let enemy;
+        
+        if (data.type === 'asteroid') {
+            enemy = new Asteroid(data.x, data.y, data.wave, data.size);
+            enemy.health = data.health;
+            enemy.maxHealth = data.maxHealth;
+            enemy.vx = data.vx;
+            enemy.vy = data.vy;
+            enemy.rotationAngle = data.rotationAngle;
+            enemy.rotationSpeed = data.rotationSpeed;
+            enemy.vertices = data.vertices;
+        } else if (data.type === 'alien') {
+            enemy = new Alien(data.x, data.y, data.wave);
+            enemy.health = data.health;
+            enemy.maxHealth = data.maxHealth;
+            enemy.vx = data.vx;
+            enemy.vy = data.vy;
+            enemy.movePattern = data.movePattern;
+            enemy.patternTime = data.patternTime;
+            enemy.circleAngle = data.circleAngle;
+            enemy.circleRadius = data.circleRadius;
+            enemy.fireRate = data.fireRate;
+            enemy.damage = data.damage;
+            enemy.bulletSpeed = data.bulletSpeed;
+            enemy.speed = data.speed;
+            enemy.lastFireTime = data.lastFireTime;
+        } else if (data.type === 'boss') {
+            enemy = new Boss(data.x, data.y, data.wave);
+            enemy.health = data.health;
+            enemy.maxHealth = data.maxHealth;
+            enemy.vx = data.vx;
+            enemy.vy = data.vy;
+            enemy.bossLevel = data.bossLevel;
+            enemy.phase = data.phase;
+            enemy.phaseTimer = data.phaseTimer;
+            enemy.fireRate = data.fireRate;
+            enemy.damage = data.damage;
+            enemy.bulletSpeed = data.bulletSpeed;
+            enemy.speed = data.speed;
+            enemy.lastFireTime = data.lastFireTime;
+            enemy.targetX = data.targetX;
+            enemy.targetY = data.targetY;
+            enemy.moveTimer = data.moveTimer;
+        }
+        
+        return enemy;
+    }
+
+    hasSavedState() {
+        const saved = localStorage.getItem('spaceShooterSaveState');
+        if (!saved) return false;
+        try {
+            const state = JSON.parse(saved);
+            return state && state.player && state.player.health > 0;
+        } catch {
+            return false;
+        }
+    }
+
+    clearSavedState() {
+        localStorage.removeItem('spaceShooterSaveState');
+    }
+
     start() {
         this.running = true;
         this.paused = false;
@@ -130,6 +286,57 @@ class GameEngine {
         this.player = new Player(this.width / 2, this.height / 2);
         
         this.startWave();
+        this.updateUI();
+        
+        requestAnimationFrame((time) => this.gameLoop(time));
+    }
+
+    startFromState(savedState) {
+        const state = typeof savedState === 'string' ? JSON.parse(savedState) : savedState;
+        
+        this.running = true;
+        this.paused = false;
+        this.lastTime = performance.now();
+        this.gameTime = 0;
+        
+        this.bullets = [];
+        particleSystem.clear();
+        
+        this.player = new Player(state.player.x, state.player.y);
+        this.player.health = state.player.health;
+        this.player.energy = state.player.energy;
+        
+        this.score = state.score;
+        this.wave = state.wave;
+        this.kills = state.kills;
+        this.energyCollected = state.energyCollected;
+        this.bossKilled = state.bossKilled;
+        this.waveEnemiesRemaining = state.waveEnemiesRemaining;
+        this.waveInProgress = state.waveInProgress;
+        this.enemySpawnTimer = state.enemySpawnTimer;
+        this.enemySpawnInterval = state.enemySpawnInterval;
+        
+        this.enemies = [];
+        for (const ed of state.enemies) {
+            const enemy = this.deserializeEnemy(ed);
+            if (enemy) this.enemies.push(enemy);
+        }
+        
+        this.energyFragments = [];
+        for (const fd of state.energyFragments) {
+            const fragment = new EnergyFragment(fd.x, fd.y);
+            fragment.vx = fd.vx;
+            fragment.vy = fd.vy;
+            fragment.lifetime = fd.lifetime;
+            fragment.rotationAngle = fd.rotationAngle;
+            fragment.pulsePhase = fd.pulsePhase;
+            this.energyFragments.push(fragment);
+        }
+        
+        this.waveAnnouncement = '';
+        this.waveAnnouncementTimer = 0;
+        
+        this.clearSavedState();
         this.updateUI();
         
         requestAnimationFrame((time) => this.gameLoop(time));
@@ -302,6 +509,12 @@ class GameEngine {
             if (this.waveAnnouncementTimer <= 0 && this.onWaveAnnouncement) {
                 this.onWaveAnnouncement('');
             }
+        }
+
+        this.autoSaveTimer += deltaTime;
+        if (this.autoSaveTimer >= this.autoSaveInterval) {
+            this.autoSaveTimer = 0;
+            this.saveState();
         }
 
         if (this.ultimateActive) {
@@ -477,7 +690,7 @@ class GameEngine {
                 const dy = this.player.y - fragment.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                if (dist < 60 && !fragment.collecting) {
+                if (dist < 30 && !fragment.collecting) {
                     fragment.startCollecting({ x: this.player.x, y: this.player.y });
                 }
                 
@@ -578,6 +791,7 @@ class GameEngine {
     gameOver() {
         this.running = false;
         this.paused = false;
+        this.clearSavedState();
         
         if (this.onGameOver) {
             this.onGameOver({

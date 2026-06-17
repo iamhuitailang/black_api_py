@@ -22,7 +22,21 @@
                 
                 <div class="button-group">
                     <button class="btn btn-primary" @click="startGame">开始游戏</button>
+                    <button v-if="hasResumeData && savedGameInfo" class="btn btn-resume" @click="resumeFromSave">继续游戏</button>
                     <button class="btn btn-secondary" @click="showLeaderboard">排行榜</button>
+                </div>
+                
+                <div v-if="hasResumeData && savedGameInfo" class="resume-info">
+                    <div class="resume-header">
+                        <span>检测到未完成的游戏</span>
+                        <button class="btn-discard" @click="discardSave" title="丢弃存档">×</button>
+                    </div>
+                    <div class="resume-stats">
+                        <span>波次 {{ savedGameInfo.wave }}</span>
+                        <span>得分 {{ savedGameInfo.score }}</span>
+                        <span>生命 {{ savedGameInfo.health }}</span>
+                        <span>敌人 {{ savedGameInfo.enemyCount }}</span>
+                    </div>
                 </div>
                 
                 <div class="controls-info">
