@@ -3,6 +3,7 @@ const Storage = {
     KEY_FARMER: 'farm_farmer',
     KEY_CONSUMER: 'farm_consumer',
     KEY_PRODUCT_DRAFT: 'farm_product_draft',
+    KEY_CURRENT_PAGE: 'farm_current_page',
 
     _sanitize(data) {
         if (!data || typeof data !== 'object') return data;
@@ -18,6 +19,13 @@ const Storage = {
     },
     setRole(role) {
         localStorage.setItem(this.KEY_ROLE, role);
+    },
+
+    getCurrentPage() {
+        return localStorage.getItem(this.KEY_CURRENT_PAGE) || 'home';
+    },
+    setCurrentPage(page) {
+        if (page) localStorage.setItem(this.KEY_CURRENT_PAGE, page);
     },
 
     getFarmer() {

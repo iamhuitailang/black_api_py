@@ -34,6 +34,20 @@ function initApp() {
     if (!currentFarmer && !currentConsumer) {
         showAuthPage();
     } else {
+        const savedPage = Storage.getCurrentPage();
+        if (savedPage && savedPage !== 'home') {
+            const farmerPages = ['products', 'orders', 'shop'];
+            const consumerPages = ['orders', 'profile'];
+            const adminPages = ['audit', 'orders', 'stats'];
+            let valid = false;
+            if (currentRole === 'farmer') valid = farmerPages.includes(savedPage);
+            else if (currentRole === 'consumer') valid = consumerPages.includes(savedPage);
+            else if (currentRole === 'admin') valid = adminPages.includes(savedPage);
+            if (valid) {
+                showPage(savedPage);
+                return;
+            }
+        }
         showPage('home');
     }
 }
@@ -124,7 +138,10 @@ function showPage(page) {
     if (el) el.classList.add('active');
 
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    event && event.target && event.target.classList && event.target.classList.add('active');
+    const tabBtn = document.querySelector(`.nav-tab[onclick="showPage('${page}')"]`);
+    if (tabBtn) tabBtn.classList.add('active');
+
+    Storage.setCurrentPage(page);
 
     if (page === 'home') loadHomePage();
     else if (page === 'products') loadFarmerProducts();
