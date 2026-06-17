@@ -179,7 +179,10 @@ async def submit_self_review(record_id: int, body: SelfReviewSubmit, current_use
     detail = kpi_business.get_assessment_record_detail(record_id)
     if not emp or not detail or emp.get('id') != detail.get('employee_id'):
         raise HTTPException(status_code=403, detail="仅可提交本人的自评")
-    kpi_business.submit_self_review(record_id, body.model_dump())
+    try:
+        kpi_business.submit_self_review(record_id, body.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"code": 0, "message": "success", "data": None}
 
 
@@ -187,9 +190,12 @@ async def submit_self_review(record_id: int, body: SelfReviewSubmit, current_use
 async def submit_supervisor_review(record_id: int, body: SupervisorReviewSubmit, current_user: Dict[str, Any] = Depends(get_current_user)):
     emp = kpi_business.get_employee_by_user_id(current_user.get('id'))
     detail = kpi_business.get_assessment_record_detail(record_id)
-    if not emp or not detail or emp.get('id') != detail.get('supervisor_id'):
+    if not emp or not detail or emp.get('id') != detail.get('employee', {}).get('supervisor_id'):
         raise HTTPException(status_code=403, detail="仅直属上级可提交评分")
-    kpi_business.submit_supervisor_review(record_id, body.model_dump())
+    try:
+        kpi_business.submit_supervisor_review(record_id, body.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"code": 0, "message": "success", "data": None}
 
 

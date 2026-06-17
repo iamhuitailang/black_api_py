@@ -20,15 +20,6 @@
           {{ loading ? '登录中...' : '登 录' }}
         </button>
       </form>
-      <div class="login-tips">
-        <div class="tips-title">测试账号（密码均为 用户名+123）：</div>
-        <ul>
-          <li><strong>管理员：</strong>user1 / user1123（张三，技术总监）</li>
-          <li><strong>管理员：</strong>user8 / user8123（吴十，产品总监）</li>
-          <li><strong>组长：</strong>user2 / user2123（李四，前端组长）</li>
-          <li><strong>员工：</strong>user4 / user4123（赵六，前端工程师）</li>
-        </ul>
-      </div>
     </div>
   </div>
 </template>

@@ -162,6 +162,12 @@ class KPIBusiness:
         return record
 
     def submit_self_review(self, record_id: int, data: Dict[str, Any]) -> bool:
+        record = self.record_model.get_by_id(record_id)
+        if not record:
+            raise ValueError('考核记录不存在')
+        if record.get('status') != 'pending':
+            raise ValueError('仅待自评状态的记录可提交自评')
+
         scores = data.get('scores', [])
         for s in scores:
             score_id = s.get('id')
@@ -187,6 +193,12 @@ class KPIBusiness:
         return self.record_model.get_by_supervisor_id(supervisor_id, cycle_id)
 
     def submit_supervisor_review(self, record_id: int, data: Dict[str, Any]) -> bool:
+        record = self.record_model.get_by_id(record_id)
+        if not record:
+            raise ValueError('考核记录不存在')
+        if record.get('status') != 'self_reviewed':
+            raise ValueError('仅待上级评状态的记录可提交上级评分')
+
         scores = data.get('scores', [])
         for s in scores:
             score_id = s.get('id')
