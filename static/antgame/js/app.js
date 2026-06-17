@@ -2,6 +2,7 @@ const { createApp, ref, reactive, computed, onMounted, onUnmounted, nextTick, wa
 
 const STORAGE_KEY_CURRENT_SAVE = 'antgame_current_save';
 const STORAGE_KEY_TUTORIAL_SHOWN = 'antgame_tutorial_shown';
+const STORAGE_KEY_GAME_SPEED = 'antgame_game_speed';
 
 const App = {
     setup() {
@@ -9,6 +10,7 @@ const App = {
         const currentSave = ref(null);
         const newSaveName = ref('');
         const showTutorial = ref(false);
+        const showFirstTip = ref(false);
         const gameState = reactive({
             save: null,
             ants: [],
@@ -21,9 +23,12 @@ const App = {
         const message = ref('');
         const messageType = ref('info');
         const renderer = ref(null);
+        const isLoading = ref(false);
         
-        let gameLoop = null;
+        let gameLoopTimer = null;
         let messageTimer = null;
+        let lastTickTime = 0;
+        const TICK_INTERVAL = 1000;
 
         const antCounts = computed(() => gameState.ant_counts || {});
 
@@ -68,20 +73,29 @@ const App = {
                 const result = await api.getSaveList();
                 if (result.code === 0) {
                     saves.value = result.data.saves || [];
+                    return true;
                 }
             } catch (e) {
                 console.error('加载存档列表失败:', e);
             }
+            return false;
         }
 
         async function loadSave(saveId) {
+            if (isLoading.value) return;
+            isLoading.value = true;
+            
             try {
                 const result = await api.getGameState(saveId);
                 if (result.code === 0) {
                     currentSave.value = saveId;
                     updateGameState(result.data);
                     
-                    localStorage.setItem(STORAGE_KEY_CURRENT_SAVE, saveId);
+                    try {
+                        localStorage.setItem(STORAGE_KEY_CURRENT_SAVE, saveId.toString());
+                    } catch (e) {
+                        console.warn('无法保存到localStorage:', e);
+                    }
                     
                     await nextTick();
                     if (!renderer.value) {
@@ -92,10 +106,19 @@ const App = {
                     
                     startGameLoop();
                     
-                    const tutorialShown = localStorage.getItem(STORAGE_KEY_TUTORIAL_SHOWN);
-                    if (!tutorialShown) {
+                    try {
+                        const tutorialShown = localStorage.getItem(STORAGE_KEY_TUTORIAL_SHOWN);
+                        if (!tutorialShown) {
+                            setTimeout(() => {
+                                showTutorial.value = true;
+                            }, 500);
+                        }
+                    } catch (e) {
                         showTutorial.value = true;
                     }
+                    
+                    isLoading.value = false;
+                    return true;
                 } else {
                     showMessage(result.message, 'error');
                 }
@@ -103,11 +126,21 @@ const App = {
                 console.error('加载存档失败:', e);
                 showMessage('加载存档失败', 'error');
             }
+            
+            isLoading.value = false;
+            return false;
         }
 
         function closeTutorial() {
             showTutorial.value = false;
-            localStorage.setItem(STORAGE_KEY_TUTORIAL_SHOWN, '1');
+            try {
+                localStorage.setItem(STORAGE_KEY_TUTORIAL_SHOWN, '1');
+            } catch (e) {}
+            
+            showFirstTip.value = true;
+            setTimeout(() => {
+                showFirstTip.value = false;
+            }, 5000);
         }
 
         function openTutorial() {
@@ -145,20 +178,28 @@ const App = {
                 return;
             }
             
+            if (isLoading.value) return;
+            isLoading.value = true;
+            
             try {
                 const result = await api.createNewGame(name);
                 if (result.code === 0) {
                     showMessage('游戏创建成功！');
                     
-                    localStorage.removeItem(STORAGE_KEY_TUTORIAL_SHOWN);
+                    try {
+                        localStorage.removeItem(STORAGE_KEY_TUTORIAL_SHOWN);
+                    } catch (e) {}
                     
+                    isLoading.value = false;
                     loadSave(result.data.save.id);
                 } else {
                     showMessage(result.message, 'error');
+                    isLoading.value = false;
                 }
             } catch (e) {
                 console.error('创建游戏失败:', e);
                 showMessage('创建游戏失败', 'error');
+                isLoading.value = false;
             }
         }
 
@@ -170,10 +211,12 @@ const App = {
                 if (result.code === 0) {
                     showMessage('存档已删除');
                     
-                    const currentId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
-                    if (currentId && parseInt(currentId) === saveId) {
-                        localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
-                    }
+                    try {
+                        const currentId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
+                        if (currentId && parseInt(currentId) === saveId) {
+                            localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+                        }
+                    } catch (e) {}
                     
                     loadSaveList();
                 } else {
@@ -193,20 +236,26 @@ const App = {
             currentSave.value = null;
             selectedTool.value = null;
             showTutorial.value = false;
-            localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+            showFirstTip.value = false;
+            
+            try {
+                localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+            } catch (e) {}
+            
             loadSaveList();
         }
 
         function startGameLoop() {
-            if (gameLoop) {
-                clearInterval(gameLoop);
-            }
+            stopGameLoop();
             
-            const tickInterval = 1000 / gameSpeed.value;
+            const tickMs = TICK_INTERVAL / gameSpeed.value;
             
-            gameLoop = setInterval(async () => {
+            async function gameTick() {
                 if (!currentSave.value) return;
-                if (gameState.save?.is_paused) return;
+                if (gameState.save?.is_paused) {
+                    gameLoopTimer = setTimeout(gameTick, tickMs);
+                    return;
+                }
                 
                 try {
                     const result = await api.tick(currentSave.value);
@@ -219,13 +268,17 @@ const App = {
                 } catch (e) {
                     console.error('游戏推进失败:', e);
                 }
-            }, tickInterval);
+                
+                gameLoopTimer = setTimeout(gameTick, tickMs);
+            }
+            
+            gameLoopTimer = setTimeout(gameTick, tickMs);
         }
 
         function stopGameLoop() {
-            if (gameLoop) {
-                clearInterval(gameLoop);
-                gameLoop = null;
+            if (gameLoopTimer) {
+                clearTimeout(gameLoopTimer);
+                gameLoopTimer = null;
             }
         }
 
@@ -233,6 +286,10 @@ const App = {
             const speeds = [1, 2, 3, 5];
             const currentIndex = speeds.indexOf(gameSpeed.value);
             gameSpeed.value = speeds[(currentIndex + 1) % speeds.length];
+            
+            try {
+                localStorage.setItem(STORAGE_KEY_GAME_SPEED, gameSpeed.value.toString());
+            } catch (e) {}
             
             if (currentSave.value && !gameState.save?.is_paused) {
                 startGameLoop();
@@ -260,6 +317,7 @@ const App = {
                 selectedTool.value = null;
             } else {
                 selectedTool.value = tool;
+                showMessage(`已选择${getToolName(tool)}工具，点击地图使用`);
             }
         }
 
@@ -335,20 +393,32 @@ const App = {
         }
 
         async function tryRestoreSave() {
-            const savedId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
-            if (savedId) {
+            try {
+                const savedId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
+                if (!savedId) return false;
+                
                 const saveId = parseInt(savedId);
-                if (saveId) {
-                    await loadSaveList();
-                    
-                    const saveExists = saves.value.some(s => s.id === saveId);
-                    if (saveExists) {
-                        loadSave(saveId);
-                        return true;
-                    } else {
-                        localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+                if (!saveId) return false;
+                
+                await loadSaveList();
+                
+                const saveExists = saves.value.some(s => s.id === saveId);
+                if (saveExists) {
+                    const savedSpeed = localStorage.getItem(STORAGE_KEY_GAME_SPEED);
+                    if (savedSpeed) {
+                        const speed = parseInt(savedSpeed);
+                        if ([1, 2, 3, 5].includes(speed)) {
+                            gameSpeed.value = speed;
+                        }
                     }
+                    
+                    await loadSave(saveId);
+                    return true;
+                } else {
+                    localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
                 }
+            } catch (e) {
+                console.warn('恢复存档失败:', e);
             }
             return false;
         }
@@ -381,11 +451,13 @@ const App = {
             currentSave,
             newSaveName,
             showTutorial,
+            showFirstTip,
             gameState,
             selectedTool,
             gameSpeed,
             message,
             messageType,
+            isLoading,
             antCounts,
             getSeasonName,
             getToolName,

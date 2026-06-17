@@ -13,7 +13,8 @@ class GameRenderer {
         this.animationFrame = 0;
         this.lastTime = 0;
         this.isRunning = false;
-        this.smoothingFactor = 0.1;
+        this.positionSmooth = 0.12;
+        this.angleSmooth = 0.15;
         
         this.cellColors = {
             dirt: { fill: '#5d4e37', border: '#4a3f2c' },
@@ -50,23 +51,31 @@ class GameRenderer {
             this.cellMap[`${cell.grid_x},${cell.grid_y}`] = cell;
         }
         
-        this._updateAnts(gameData.ants || []);
+        this._syncAnts(gameData.ants || []);
         
         this.resize();
     }
 
-    _updateAnts(serverAnts) {
+    _syncAnts(serverAnts) {
         const seenIds = new Set();
+        const serverAntMap = new Map();
         
         for (const serverAnt of serverAnts) {
             seenIds.add(serverAnt.id);
+            serverAntMap.set(serverAnt.id, serverAnt);
             
             if (this.ants.has(serverAnt.id)) {
                 const localAnt = this.ants.get(serverAnt.id);
-                localAnt.targetX = serverAnt.x;
-                localAnt.targetY = serverAnt.y;
-                localAnt.targetTargetX = serverAnt.target_x;
-                localAnt.targetTargetY = serverAnt.target_y;
+                
+                localAnt.targetX = serverAnt.target_x !== null && serverAnt.target_x !== undefined 
+                    ? serverAnt.target_x 
+                    : serverAnt.x;
+                localAnt.targetY = serverAnt.target_y !== null && serverAnt.target_y !== undefined 
+                    ? serverAnt.target_y 
+                    : serverAnt.y;
+                
+                localAnt.serverX = serverAnt.x;
+                localAnt.serverY = serverAnt.y;
                 localAnt.ant_type = serverAnt.ant_type;
                 localAnt.state = serverAnt.state;
                 localAnt.health = serverAnt.health;
@@ -74,15 +83,20 @@ class GameRenderer {
                 localAnt.carrying = serverAnt.carrying;
                 localAnt.carrying_amount = serverAnt.carrying_amount;
                 localAnt.speed = serverAnt.speed;
+                localAnt.rest_time = serverAnt.rest_time;
             } else {
                 this.ants.set(serverAnt.id, {
                     id: serverAnt.id,
                     x: serverAnt.x,
                     y: serverAnt.y,
-                    targetX: serverAnt.x,
-                    targetY: serverAnt.y,
-                    targetTargetX: serverAnt.target_x,
-                    targetTargetY: serverAnt.target_y,
+                    targetX: serverAnt.target_x !== null && serverAnt.target_x !== undefined 
+                        ? serverAnt.target_x 
+                        : serverAnt.x,
+                    targetY: serverAnt.target_y !== null && serverAnt.target_y !== undefined 
+                        ? serverAnt.target_y 
+                        : serverAnt.y,
+                    serverX: serverAnt.x,
+                    serverY: serverAnt.y,
                     ant_type: serverAnt.ant_type,
                     state: serverAnt.state,
                     health: serverAnt.health,
@@ -90,7 +104,10 @@ class GameRenderer {
                     carrying: serverAnt.carrying,
                     carrying_amount: serverAnt.carrying_amount,
                     speed: serverAnt.speed,
-                    legPhase: Math.random() * 10,
+                    rest_time: serverAnt.rest_time,
+                    legPhase: Math.random() * Math.PI * 2,
+                    angle: 0,
+                    targetAngle: 0,
                 });
             }
         }
@@ -124,7 +141,7 @@ class GameRenderer {
         if (!this.isRunning) return;
         
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastTime) / 1000;
+        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1);
         this.lastTime = currentTime;
         
         this.animationFrame += deltaTime * 60;
@@ -136,20 +153,29 @@ class GameRenderer {
     }
 
     updateAnts(deltaTime) {
-        const lerpFactor = Math.min(1, deltaTime * 8);
-        
         for (const ant of this.antRenderList) {
             const dx = ant.targetX - ant.x;
             const dy = ant.targetY - ant.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
             
-            ant.x += dx * lerpFactor;
-            ant.y += dy * lerpFactor;
+            const moveSpeed = (ant.speed || 1) * 25 * deltaTime;
             
-            const speed = ant.speed || 1;
-            const isMoving = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
-            
-            if (isMoving) {
-                ant.legPhase += deltaTime * 10 * speed;
+            if (dist > 1) {
+                const lerpAmount = Math.min(1, moveSpeed / dist);
+                ant.x += dx * lerpAmount;
+                ant.y += dy * lerpAmount;
+                
+                ant.targetAngle = Math.atan2(dy, dx);
+                
+                let angleDiff = ant.targetAngle - ant.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                ant.angle += angleDiff * this.angleSmooth;
+                
+                const isMoving = dist > 2;
+                if (isMoving) {
+                    ant.legPhase += deltaTime * 12 * (ant.speed || 1);
+                }
             } else {
                 ant.legPhase += deltaTime * 2;
             }
@@ -359,20 +385,7 @@ class GameRenderer {
         const color = this.antColors[ant.ant_type] || '#8b4513';
         const scale = ant.ant_type === 'queen' ? 1.8 : (ant.ant_type === 'soldier' ? 1.3 : 1);
         
-        let angle = 0;
-        if (ant.targetTargetX !== null && ant.targetTargetY !== null) {
-            const dx = ant.targetTargetX - ant.x;
-            const dy = ant.targetTargetY - ant.y;
-            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-                angle = Math.atan2(dy, dx);
-            }
-        } else {
-            const dx = ant.targetX - ant.x;
-            const dy = ant.targetY - ant.y;
-            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-                angle = Math.atan2(dy, dx);
-            }
-        }
+        const angle = ant.angle || 0;
         
         ctx.save();
         ctx.translate(x, y);

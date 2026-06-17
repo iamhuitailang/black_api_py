@@ -31,6 +31,7 @@ class AntModel:
                 carrying TEXT,
                 carrying_amount INTEGER DEFAULT 0,
                 speed REAL DEFAULT 1.0,
+                rest_time INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -39,6 +40,15 @@ class AntModel:
         
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_save_id ON {cls.TABLE_NAME}(save_id)"
         db.execute(index_sql)
+
+    @classmethod
+    def migrate_add_rest_time(cls):
+        db = get_db()
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN rest_time INTEGER DEFAULT 0")
+            return True
+        except Exception:
+            return False
 
     def create(self, save_id: int, ant_type: str, x: float, y: float, 
                state: str = 'idle', health: int = 100, speed: float = 1.0) -> int:

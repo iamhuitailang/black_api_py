@@ -25,6 +25,13 @@ def migrate_database():
             print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
     except Exception:
         pass
+    
+    try:
+        migrated = AntModel.migrate_add_rest_time()
+        if migrated:
+            print("  - Migrated ant_game_ant: added rest_time column")
+    except Exception:
+        pass
 
 
 def init_database():

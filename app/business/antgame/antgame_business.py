@@ -28,7 +28,13 @@ class AntGameBusiness:
         self.cell_model = NestCellModel()
 
     def create_new_game(self, save_name: str = "新存档") -> Dict[str, Any]:
-        save_id = self.save_model.create(save_name)
+        if not save_name or not save_name.strip():
+            return {'code': 1, 'message': '存档名称不能为空', 'data': None}
+        
+        if len(save_name.strip()) < 2:
+            return {'code': 1, 'message': '存档名称至少2个字符', 'data': None}
+        
+        save_id = self.save_model.create(save_name.strip())
         
         self._init_nest(save_id)
         self._init_ants(save_id)
@@ -173,10 +179,14 @@ class AntGameBusiness:
     def _update_ant_ai(self, ant: Dict[str, Any], cell_map: Dict[Tuple[int, int], Dict[str, Any]]):
         ant_type = ant['ant_type']
         state = ant['state']
-        speed = ant['speed'] * 2
+        speed = ant['speed'] * 0.6
         
         if state == 'idle':
-            self._ant_idle_behavior(ant, cell_map)
+            rest_time = ant.get('rest_time', 0)
+            if rest_time > 0:
+                ant['rest_time'] = rest_time - 1
+            else:
+                self._ant_idle_behavior(ant, cell_map)
         elif state in ['moving', 'digging', 'carrying', 'returning', 'exploring']:
             self._ant_move(ant, speed)
         
@@ -188,6 +198,7 @@ class AntGameBusiness:
             'target_y': ant.get('target_y'),
             'carrying': ant.get('carrying'),
             'carrying_amount': ant.get('carrying_amount', 0),
+            'rest_time': ant.get('rest_time', 0),
         })
 
     def _ant_idle_behavior(self, ant: Dict[str, Any], cell_map: Dict[Tuple[int, int], Dict[str, Any]]):
@@ -305,6 +316,7 @@ class AntGameBusiness:
                 self._dig_cell(ant, cell)
             else:
                 ant['state'] = 'idle'
+                ant['rest_time'] = random.randint(2, 5)
         
         elif state == 'returning':
             if ant.get('carrying') == 'dirt':
@@ -314,15 +326,18 @@ class AntGameBusiness:
                 ant['carrying'] = None
                 ant['carrying_amount'] = 0
             ant['state'] = 'idle'
+            ant['rest_time'] = random.randint(1, 3)
         
         elif state == 'exploring':
             if random.random() < 0.4 and ant['y'] < 2 * CELL_SIZE:
                 ant['carrying'] = 'food'
                 ant['carrying_amount'] = random.randint(3, 8)
             ant['state'] = 'idle'
+            ant['rest_time'] = random.randint(2, 4)
         
         else:
             ant['state'] = 'idle'
+            ant['rest_time'] = random.randint(2, 5)
 
     def _dig_cell(self, ant: Dict[str, Any], cell: Dict[str, Any]):
         ant['state'] = 'digging'

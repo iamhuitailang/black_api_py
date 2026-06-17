@@ -53,7 +53,7 @@ class AntGameController:
         POST /api/antgame/new
         请求体: { save_name: "存档名称" }
         """
-        result = self.business.create_new_game(body.save_name or "新存档")
+        result = self.business.create_new_game(body.save_name)
         return result
 
     def ActionAntgameTickPost(self, request: Request, save_id: int = Query(..., ge=1)):

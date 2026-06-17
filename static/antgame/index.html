@@ -136,6 +136,10 @@
                     <div class="canvas-hint" v-if="selectedTool">
                         选中工具: {{ getToolName(selectedTool) }} - 点击地图使用
                     </div>
+                    <div class="canvas-tip" v-if="showFirstTip">
+                        <h4>👆 点击右侧「挖掘」工具</h4>
+                        <p>然后点击泥土来扩展你的蚁巢</p>
+                    </div>
                 </div>
 
                 <div class="right-panel">
