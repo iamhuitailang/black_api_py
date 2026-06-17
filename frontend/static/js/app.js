@@ -179,15 +179,15 @@ async function loadHomeData() {
     ]);
     carouselItems = lostList;
     renderCarousel();
-    let pets = 0;
+    let stats = { pets: 0, lost: allList.length, reunited: reunitedList.length, matches: 0 };
     try {
-      const petList = await apiRequest('/api/pets/all', { method: 'GET' });
-      pets = petList.length;
+      const s = await apiRequest('/api/stats', { method: 'GET' });
+      stats = s;
     } catch (_) {}
-    $('statPets').textContent = pets;
-    $('statLost').textContent = allList.length;
-    $('statReunited').textContent = reunitedList.length;
-    $('statMatch').textContent = Math.floor(allList.length * 0.7 + 3);
+    $('statPets').textContent = stats.pets;
+    $('statLost').textContent = stats.lost;
+    $('statReunited').textContent = stats.reunited;
+    $('statMatch').textContent = stats.matches || Math.floor(stats.lost * 0.7 + 3);
   } catch (_) {}
 }
 

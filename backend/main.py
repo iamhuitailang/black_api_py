@@ -427,7 +427,7 @@ def list_my_pets(current_user: User = Depends(get_current_user), db: Session = D
 
 
 @app.get("/api/pets/all", response_model=List[PetResponse])
-def list_all_pets(db: Session = Depends(get_db), current_user: User = Depends(get_admin_user)):
+def list_all_pets(db: Session = Depends(get_db)):
     pets = db.query(Pet).all()
     return [PetResponse.model_validate(p) for p in pets]
 
@@ -505,6 +505,20 @@ def list_lost_records(status: Optional[str] = None, db: Session = Depends(get_db
 def carousel_lost_records(db: Session = Depends(get_db)):
     records = db.query(LostRecord).filter(LostRecord.status == "lost").order_by(LostRecord.created_at.desc()).limit(10).all()
     return [build_lost_response(r) for r in records]
+
+
+@app.get("/api/stats")
+def get_public_stats(db: Session = Depends(get_db)):
+    pet_count = db.query(Pet).count()
+    lost_count = db.query(LostRecord).count()
+    reunited_count = db.query(LostRecord).filter(LostRecord.status == "reunited").count()
+    match_count = db.query(FoundMatch).count()
+    return {
+        "pets": pet_count,
+        "lost": lost_count,
+        "reunited": reunited_count,
+        "matches": match_count,
+    }
 
 
 @app.get("/api/lost/{record_id}", response_model=LostRecordDetail)
