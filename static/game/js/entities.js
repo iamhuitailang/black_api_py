@@ -873,12 +873,12 @@ class EnergyFragment extends Entity {
             const dy = this.collectTarget.y - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < 20) {
+            if (dist < 25) {
                 this.destroy();
                 return true;
             }
             
-            const speed = 600;
+            const speed = 500;
             this.vx = (dx / dist) * speed;
             this.vy = (dy / dist) * speed;
         } else {
@@ -889,8 +889,8 @@ class EnergyFragment extends Entity {
             const dy = playerY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < 100) {
-                const attractForce = 150 * (1 - dist / 100);
+            if (dist < 50) {
+                const attractForce = 100 * (1 - dist / 50);
                 this.vx += (dx / dist) * attractForce * deltaTime;
                 this.vy += (dy / dist) * attractForce * deltaTime;
             }

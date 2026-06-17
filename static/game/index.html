@@ -16,7 +16,8 @@
                 
                 <div class="input-group">
                     <label>玩家名称</label>
-                    <input type="text" v-model="playerName" maxlength="20" placeholder="请输入您的名称">
+                    <input type="text" v-model="playerName" maxlength="20" placeholder="请输入您的名称" :class="{ 'input-error': nameError }">
+                    <div v-if="nameError" class="error-message">{{ nameError }}</div>
                 </div>
                 
                 <div class="button-group">

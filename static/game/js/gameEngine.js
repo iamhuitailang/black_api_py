@@ -477,7 +477,7 @@ class GameEngine {
                 const dy = this.player.y - fragment.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                if (dist < 150 && !fragment.collecting) {
+                if (dist < 60 && !fragment.collecting) {
                     fragment.startCollecting({ x: this.player.x, y: this.player.y });
                 }
                 

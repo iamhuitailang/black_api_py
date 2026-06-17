@@ -15,6 +15,7 @@ const app = createApp({
         const isNewHighScore = ref(false);
         const topScores = ref([]);
         const playerProgress = ref(null);
+        const nameError = ref('');
 
         let gameEngine = null;
         let gameOverData = null;
@@ -39,8 +40,14 @@ const app = createApp({
 
         const startGame = async () => {
             if (!playerName.value.trim()) {
-                playerName.value = '无名英雄';
+                nameError.value = '请输入您的昵称';
+                return;
             }
+            if (playerName.value.trim().length < 2) {
+                nameError.value = '昵称至少需要2个字符';
+                return;
+            }
+            nameError.value = '';
             
             gameState.value = 'playing';
             
@@ -134,17 +141,30 @@ const app = createApp({
             }
         };
 
+        const handleBeforeUnload = (e) => {
+            if (gameState.value === 'playing') {
+                e.preventDefault();
+                e.returnValue = '游戏正在进行中，刷新页面将丢失当前进度，确定要刷新吗？';
+                return e.returnValue;
+            }
+        };
+
         onMounted(() => {
             const savedName = localStorage.getItem('spaceShooterPlayerName');
             if (savedName) {
                 playerName.value = savedName;
                 loadPlayerProgress();
             }
+
+            window.addEventListener('beforeunload', handleBeforeUnload);
         });
 
         watch(playerName, (newName) => {
             if (newName.trim()) {
                 localStorage.setItem('spaceShooterPlayerName', newName.trim());
+                if (nameError.value) {
+                    nameError.value = '';
+                }
             }
         });
 
@@ -152,6 +172,7 @@ const app = createApp({
             if (gameEngine) {
                 gameEngine.stop();
             }
+            window.removeEventListener('beforeunload', handleBeforeUnload);
         });
 
         return {
@@ -168,6 +189,7 @@ const app = createApp({
             isNewHighScore,
             topScores,
             playerProgress,
+            nameError,
             startGame,
             resumeGame,
             quitToMenu,
