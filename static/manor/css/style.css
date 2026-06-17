@@ -33,7 +33,7 @@ body {
     height: 100%;
     pointer-events: none;
     z-index: 100;
-    background: radial-gradient(circle at center, transparent 0%, transparent 15%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.95) 100%);
+    background: radial-gradient(circle at center, transparent 0%, transparent 35%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.4) 100%);
 }
 
 .flashlight-beam {
@@ -41,16 +41,16 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(255,240,200,0.15) 0%, rgba(255,230,180,0.05) 30%, transparent 70%);
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(255,240,200,0.08) 0%, rgba(255,230,180,0.03) 40%, transparent 70%);
     border-radius: 50%;
     animation: flicker 4s infinite;
 }
 
 @keyframes flicker {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.85; }
+    50% { opacity: 0.9; }
     75% { opacity: 0.95; }
 }
 
@@ -92,9 +92,16 @@ body {
 .start-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
     align-items: center;
     margin-bottom: 40px;
+}
+
+.name-error {
+    color: #ff6b6b;
+    font-size: 14px;
+    min-height: 20px;
+    letter-spacing: 1px;
 }
 
 .name-input {
@@ -165,20 +172,22 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    gap: 15px;
+    padding: 12px;
+    gap: 10px;
     position: relative;
     z-index: 1;
+    overflow: hidden;
 }
 
 .status-bar {
     display: flex;
     gap: 30px;
-    padding: 15px 25px;
+    padding: 10px 25px;
     background: linear-gradient(180deg, rgba(40, 30, 20, 0.95) 0%, rgba(25, 18, 12, 0.95) 100%);
     border: 2px solid #5c4a32;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .status-item {
@@ -238,16 +247,19 @@ body {
 .main-area {
     flex: 1;
     display: flex;
-    gap: 15px;
+    gap: 12px;
     min-height: 0;
+    overflow: hidden;
 }
 
 .room-view {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .room-scene {
@@ -256,7 +268,7 @@ body {
     border: 3px solid #5c4a32;
     background: linear-gradient(180deg, #1a120a 0%, #0d0a06 100%);
     overflow: hidden;
-    min-height: 400px;
+    min-height: 200px;
 }
 
 .room-interior {
@@ -424,21 +436,37 @@ body {
 }
 
 .room-description {
-    padding: 15px 20px;
+    padding: 10px 15px;
     background: rgba(20, 15, 10, 0.9);
     border: 1px solid #5c4a32;
-    line-height: 1.8;
+    line-height: 1.6;
     color: #a89678;
     font-style: italic;
-    font-size: 15px;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
 .side-panel {
-    width: 280px;
+    width: 260px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
     flex-shrink: 0;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.side-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.side-panel::-webkit-scrollbar-track {
+    background: #1a120a;
+}
+
+.side-panel::-webkit-scrollbar-thumb {
+    background: #5c4a32;
+    border-radius: 2px;
 }
 
 .inventory-panel,
@@ -446,25 +474,26 @@ body {
 .navigation-panel {
     background: linear-gradient(180deg, rgba(35, 25, 18, 0.95) 0%, rgba(20, 14, 10, 0.95) 100%);
     border: 2px solid #5c4a32;
-    padding: 15px;
+    padding: 10px 12px;
+    flex-shrink: 0;
 }
 
 .inventory-panel h3,
 .map-panel h3,
 .navigation-panel h3 {
     color: #d4af37;
-    font-size: 16px;
-    margin-bottom: 12px;
+    font-size: 14px;
+    margin-bottom: 8px;
     letter-spacing: 3px;
     border-bottom: 1px solid #5c4a32;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     font-weight: normal;
 }
 
 .inventory-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 6px;
 }
 
 .inventory-slot {
@@ -474,7 +503,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     transition: all 0.3s;
 }
 
@@ -493,26 +522,33 @@ body {
 }
 
 .slot-icon {
-    font-size: 22px;
+    font-size: 18px;
 }
 
 .minimap {
     background: #1a120a;
     border: 1px solid #4a3828;
-    padding: 10px;
-    height: 200px;
-    overflow: hidden;
-    position: relative;
+    padding: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.minimap::-webkit-scrollbar {
+    width: 3px;
+}
+
+.minimap::-webkit-scrollbar-thumb {
+    background: #5c4a32;
 }
 
 .map-rooms {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
+    gap: 4px;
 }
 
 .map-room {
-    padding: 8px 5px;
+    padding: 5px 3px;
     background: #2a1f14;
     border: 1px solid #4a3828;
     text-align: center;
@@ -551,17 +587,17 @@ body {
 .nav-buttons {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .nav-btn {
-    padding: 10px 15px;
+    padding: 8px 12px;
     background: linear-gradient(180deg, #3d2817 0%, #2a1a0f 100%);
     border: 1px solid #6b5035;
     color: #c9b896;
     cursor: pointer;
     font-family: 'Georgia', serif;
-    font-size: 14px;
+    font-size: 13px;
     text-align: left;
     transition: all 0.3s;
     display: flex;
@@ -586,17 +622,26 @@ body {
 }
 
 .message-log {
-    height: 100px;
+    height: 80px;
     background: rgba(10, 8, 5, 0.95);
     border: 1px solid #3d2817;
-    padding: 10px 15px;
+    padding: 8px 12px;
     overflow-y: auto;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
+    flex-shrink: 0;
+}
+
+.message-log::-webkit-scrollbar {
+    width: 4px;
+}
+
+.message-log::-webkit-scrollbar-thumb {
+    background: #5c4a32;
 }
 
 .log-message {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
     color: #8b7355;
 }
 
@@ -787,11 +832,14 @@ body {
     .side-panel {
         width: 100%;
         flex-direction: row;
+        overflow-y: visible;
+        overflow-x: auto;
     }
     
     .inventory-panel,
     .map-panel,
     .navigation-panel {
         flex: 1;
+        min-width: 200px;
     }
 }

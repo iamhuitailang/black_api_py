@@ -20,7 +20,8 @@
                     <p class="game-subtitle">维多利亚时代的恐怖传说</p>
                 </div>
                 <div class="start-form">
-                    <input type="text" v-model="playerName" placeholder="输入你的名字" class="name-input">
+                    <input type="text" v-model="playerName" placeholder="输入你的名字" class="name-input" @keyup.enter="startGame">
+                    <div class="name-error" v-if="nameError">{{ nameError }}</div>
                     <button @click="startGame" class="start-btn">
                         开始探索
                     </button>

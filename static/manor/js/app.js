@@ -33,9 +33,12 @@ const roomNames = {
     'secret_room': '密室'
 };
 
+const STORAGE_KEY = 'manor_game_player';
+
 createApp({
     setup() {
         const playerName = ref('');
+        const nameError = ref('');
         const gameStarted = ref(false);
         const gameStatus = ref('playing');
         const currentRoom = ref(null);
@@ -127,8 +130,28 @@ createApp({
             return texts[puzzleType] || '查看机关';
         }
 
+        function savePlayerName(name) {
+            try {
+                localStorage.setItem(STORAGE_KEY, name);
+            } catch (e) {}
+        }
+
+        function loadPlayerName() {
+            try {
+                return localStorage.getItem(STORAGE_KEY) || '';
+            } catch (e) {
+                return '';
+            }
+        }
+
         async function startGame() {
-            const name = playerName.value.trim() || 'player';
+            const name = playerName.value.trim();
+            if (!name) {
+                nameError.value = '请输入你的名字才能进入庄园';
+                return;
+            }
+            nameError.value = '';
+            
             try {
                 const response = await fetch(`${API_BASE}/manor/start`, {
                     method: 'POST',
@@ -139,6 +162,7 @@ createApp({
                 
                 if (result.code === 0) {
                     const data = result.data;
+                    savePlayerName(name);
                     gameStarted.value = true;
                     gameStatus.value = data.game_state.game_status;
                     currentRoom.value = data.current_room;
@@ -161,9 +185,42 @@ createApp({
             }
         }
 
+        async function restoreGame() {
+            const savedName = loadPlayerName();
+            if (!savedName) return;
+            
+            playerName.value = savedName;
+            
+            try {
+                const response = await fetch(`${API_BASE}/manor/state?player_name=${encodeURIComponent(savedName)}`);
+                const result = await response.json();
+                
+                if (result.code === 0 && result.data) {
+                    const data = result.data;
+                    if (data.game_state.game_status === 'playing') {
+                        gameStarted.value = true;
+                        gameStatus.value = data.game_state.game_status;
+                        currentRoom.value = data.current_room;
+                        currentRoomId.value = data.current_room.room_id;
+                        roomItems.value = data.room_items || [];
+                        lives.value = data.game_state.lives;
+                        flashlightBattery.value = data.game_state.flashlight_battery;
+                        inventoryItems.value = data.game_state.collected_items || [];
+                        unlockedRooms.value = data.game_state.unlocked_rooms || [];
+                        ghostPosition.value = data.game_state.ghost_position;
+                        
+                        addMessage('你从上次的进度继续探索……', 'info');
+                        loadMap();
+                    }
+                }
+            } catch (e) {
+                console.error('Restore game error:', e);
+            }
+        }
+
         async function loadMap() {
             try {
-                const response = await fetch(`${API_BASE}/manor/map?player_name=${encodeURIComponent(playerName.value || 'player')}`);
+                const response = await fetch(`${API_BASE}/manor/map?player_name=${encodeURIComponent(playerName.value)}`);
                 const result = await response.json();
                 if (result.code === 0) {
                     mapRooms.value = result.data.rooms;
@@ -183,7 +240,7 @@ createApp({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        player_name: playerName.value || 'player',
+                        player_name: playerName.value,
                         target_room: targetRoom
                     })
                 });
@@ -235,7 +292,7 @@ createApp({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        player_name: playerName.value || 'player',
+                        player_name: playerName.value,
                         item_id: itemId
                     })
                 });
@@ -285,7 +342,7 @@ createApp({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        player_name: playerName.value || 'player',
+                        player_name: playerName.value,
                         puzzle_type: puzzleType
                     })
                 });
@@ -327,6 +384,9 @@ createApp({
             ghostPosition.value = 'basement';
             messages.value = [];
             showEncounter.value = false;
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (e) {}
         }
 
         function handleMouseMove(e) {
@@ -336,10 +396,12 @@ createApp({
 
         onMounted(() => {
             document.addEventListener('mousemove', handleMouseMove);
+            restoreGame();
         });
 
         return {
             playerName,
+            nameError,
             gameStarted,
             gameStatus,
             currentRoom,
