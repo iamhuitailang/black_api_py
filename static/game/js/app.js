@@ -28,7 +28,7 @@ class App {
     var globalSave = this.getGlobalSave();
     if (globalSave && globalSave.currentLevelId) {
       var levelSave = this.loadProgress(globalSave.currentLevelId);
-      if (levelSave && levelSave.lives > 0 && levelSave.towers && levelSave.towers.length > 0) {
+      if (levelSave && levelSave.lives > 0) {
         this._isRestoring = true;
         this.levelSelect.selectLevel(globalSave.currentLevelId);
         return;
@@ -57,6 +57,18 @@ class App {
     } catch (e) {}
   }
 
+  _findEntryIndexForPath(path) {
+    if (!this.levelMap || !path || path.length === 0) return 0;
+    var startPt = path[0];
+    var entries = this.levelMap.entryPoints || [];
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].x === startPt.x && entries[i].y === startPt.y) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
   saveProgress() {
     if (!this.levelMap || !this.waveSystem) return;
     if (this.gameLoop.state === GAME_STATE.ENDED) return;
@@ -70,23 +82,52 @@ class App {
           gx: t.gx,
           gy: t.gy,
           level: t.level,
-          totalInvested: t.totalInvested
+          totalInvested: t.totalInvested,
+          acidFactor: t.acidFactor || 0,
+          acidTimer: t.acidTimer || 0
         });
       }
 
-      var completedWaveIndex = this.waveSystem.currentWaveIndex;
-      if (this.waveSystem.state === WAVE_STATE.SPAWNING || this.waveSystem.state === WAVE_STATE.ACTIVE) {
-        completedWaveIndex = this.waveSystem.currentWaveIndex - 1;
-      } else if (this.waveSystem.state === WAVE_STATE.WAITING) {
-        completedWaveIndex = -1;
+      var enemyData = [];
+      for (var j = 0; j < this.enemies.length; j++) {
+        var e = this.enemies[j];
+        if (e.dead || e.reachedExit) continue;
+        var entryIndex = this._findEntryIndexForPath(e.path);
+        enemyData.push({
+          type: e.type,
+          entryIndex: entryIndex,
+          hp: e.hp,
+          x: e.x,
+          y: e.y,
+          pathIndex: e.pathIndex,
+          pathProgress: e.pathProgress,
+          slowFactor: e.slowFactor,
+          slowTimer: e.slowTimer,
+          burnDps: e.burnDps,
+          burnTimer: e.burnTimer,
+          spawnTimer: e.spawnTimer || 0,
+          spawnQueue: e.spawnQueue ? e.spawnQueue.slice() : [],
+          pulsePhase: e.pulsePhase || 0,
+          legPhase: e.legPhase || 0
+        });
       }
+
+      var waveState = {
+        currentWaveIndex: this.waveSystem.currentWaveIndex,
+        state: this.waveSystem.state,
+        spawnQueue: this.waveSystem.spawnQueue ? this.waveSystem.spawnQueue.slice() : [],
+        waveTimer: this.waveSystem.waveTimer || 0,
+        enemiesAlive: this.waveSystem.enemiesAlive || 0
+      };
 
       var save = {
         levelId: this.levelMap.id,
         samples: this.samples,
         lives: this.lives,
-        nextWaveIndex: completedWaveIndex,
+        gameLoopState: this.gameLoop.state,
         towers: towerData,
+        enemies: enemyData,
+        wave: waveState,
         timestamp: Date.now()
       };
       localStorage.setItem(this.getSaveKeyForLevel(this.levelMap.id), JSON.stringify(save));
@@ -125,47 +166,97 @@ class App {
     this.lives = this.levelMap.startingLives;
 
     var saved = this.loadProgress(levelData.id);
-    if (saved && saved.lives > 0 && saved.towers && saved.towers.length > 0) {
+    var savedGameLoopState = null;
+
+    if (saved && saved.lives > 0) {
       this.samples = saved.samples;
       this.lives = saved.lives;
-      if (saved.nextWaveIndex != null && saved.nextWaveIndex >= -1) {
+      savedGameLoopState = saved.gameLoopState;
+
+      if (saved.towers && saved.towers.length > 0) {
+        for (var i = 0; i < saved.towers.length; i++) {
+          var td = saved.towers[i];
+          var tower = new Tower(td.type, td.gx, td.gy);
+          tower.level = td.level || 1;
+          tower.totalInvested = td.totalInvested || TOWER_TYPES[td.type].cost;
+          if (td.acidFactor) tower.applyAcid(td.acidFactor, td.acidTimer || 0);
+          this.towers.push(tower);
+        }
+
+        for (var k = 0; k < this.towers.length; k++) {
+          var tk = this.towers[k];
+          this.levelMap.deployNodes = this.levelMap.deployNodes.map(function (n) {
+            if (n.x === tk.gx && n.y === tk.gy) {
+              return { x: n.x, y: n.y, tower: tk };
+            }
+            return n;
+          });
+        }
+      }
+
+      if (saved.wave) {
+        this.waveSystem.currentWaveIndex = saved.wave.currentWaveIndex != null ? saved.wave.currentWaveIndex : -1;
+        this.waveSystem.state = saved.wave.state || WAVE_STATE.WAITING;
+        this.waveSystem.spawnQueue = saved.wave.spawnQueue ? saved.wave.spawnQueue.slice() : [];
+        this.waveSystem.waveTimer = saved.wave.waveTimer || 0;
+        this.waveSystem.enemiesAlive = saved.wave.enemiesAlive || 0;
+      } else if (saved.nextWaveIndex != null && saved.nextWaveIndex >= -1) {
         this.waveSystem.currentWaveIndex = saved.nextWaveIndex;
       } else if (saved.currentWave != null && saved.currentWave >= -1) {
         this.waveSystem.currentWaveIndex = saved.currentWave;
       }
-      for (var i = 0; i < saved.towers.length; i++) {
-        var td = saved.towers[i];
-        var tower = new Tower(td.type, td.gx, td.gy);
-        tower.level = td.level || 1;
-        tower.totalInvested = td.totalInvested || TOWER_TYPES[td.type].cost;
-        this.towers.push(tower);
-      }
 
-      for (var i = 0; i < this.towers.length; i++) {
-        var t = this.towers[i];
-        this.levelMap.deployNodes = this.levelMap.deployNodes.map(function (n) {
-          if (n.x === t.gx && n.y === t.gy) {
-            return { x: n.x, y: n.y, tower: t };
-          }
-          return n;
-        });
+      if (saved.enemies && saved.enemies.length > 0) {
+        for (var m = 0; m < saved.enemies.length; m++) {
+          var ed = saved.enemies[m];
+          var path = this.levelMap.getPathForEntry(ed.entryIndex);
+          if (!path || path.length === 0) continue;
+          var enemy = new Enemy(ed.type, path);
+          enemy.hp = ed.hp;
+          enemy.x = ed.x;
+          enemy.y = ed.y;
+          enemy.pathIndex = ed.pathIndex || 0;
+          enemy.pathProgress = ed.pathProgress || 0;
+          enemy.slowFactor = ed.slowFactor || 0;
+          enemy.slowTimer = ed.slowTimer || 0;
+          enemy.burnDps = ed.burnDps || 0;
+          enemy.burnTimer = ed.burnTimer || 0;
+          enemy.spawnTimer = ed.spawnTimer || 0;
+          enemy.spawnQueue = ed.spawnQueue ? ed.spawnQueue.slice() : [];
+          enemy.pulsePhase = ed.pulsePhase || 0;
+          enemy.legPhase = ed.legPhase || 0;
+          enemy.dead = false;
+          enemy.reachedExit = false;
+          this.enemies.push(enemy);
+        }
+        if (this.waveSystem.enemiesAlive < this.enemies.length) {
+          this.waveSystem.enemiesAlive = this.enemies.length;
+        }
       }
     }
 
     this.renderer.resize(this.levelMap.getCanvasWidth(), this.levelMap.getCanvasHeight());
-    this.gameLoop.setState(GAME_STATE.PREP);
 
-    var displayWave = Math.max(0, this.waveSystem.currentWaveIndex + 1);
-    if (this.waveSystem.state === WAVE_STATE.COMPLETE) {
-      displayWave = this.waveSystem.currentWaveIndex + 2;
+    var initialState = GAME_STATE.PREP;
+    if (savedGameLoopState === GAME_STATE.COMBAT
+        && (this.waveSystem.state === WAVE_STATE.SPAWNING
+            || this.waveSystem.state === WAVE_STATE.ACTIVE)
+        && this.waveSystem.currentWaveIndex >= 0
+        && this.waveSystem.currentWaveIndex < this.waveSystem.waves.length) {
+      initialState = GAME_STATE.COMBAT;
     }
+    this.gameLoop.setState(initialState);
+
+    var displayWave = this.waveSystem.currentWaveIndex + 1;
+    if (displayWave < 1) displayWave = 1;
+    if (displayWave > this.waveSystem.getTotalWaves()) displayWave = this.waveSystem.getTotalWaves();
 
     this.hud.update({
       wave: displayWave,
       totalWaves: this.waveSystem.getTotalWaves(),
       lives: this.lives,
       samples: this.samples,
-      state: GAME_STATE.PREP
+      state: initialState
     });
 
     if (!this.gameLoop.running) {
@@ -178,7 +269,7 @@ class App {
       if (self.levelMap && self.waveSystem && self.gameLoop && self.gameLoop.state !== GAME_STATE.ENDED) {
         self.saveProgress();
       }
-    }, 3000);
+    }, 2000);
 
     this.towerPanel.updateTowerCardStates();
     this._isRestoring = false;
