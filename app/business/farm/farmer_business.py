@@ -22,14 +22,31 @@ class FarmerBusiness:
         return {'code': 0, 'message': '注册成功，等待管理员审核', 'data': farmer}
 
     def login(self, phone: str, password: str) -> Dict[str, Any]:
-        farmer = self.farmer_model.get_by_phone(phone)
-        if not farmer:
+        farmer_with_pwd = self.farmer_model.get_by_phone(phone, include_password=True)
+        if not farmer_with_pwd:
             return {'code': 404, 'message': '农户不存在', 'data': None}
-        if farmer.get('password') and farmer.get('password') != password:
-            return {'code': 401, 'message': '密码错误', 'data': None}
-        if farmer.get('status') != FarmerModel.STATUS_APPROVED:
-            return {'code': 403, 'message': '店铺尚未通过审核', 'data': farmer}
-        return {'code': 0, 'message': '登录成功', 'data': farmer}
+
+        stored_pwd = farmer_with_pwd.get('password', '')
+        if not self.farmer_model.verify_password(farmer_with_pwd['id'], password):
+            if stored_pwd and stored_pwd == password:
+                pass
+            else:
+                return {'code': 401, 'message': '密码错误', 'data': None}
+
+        if farmer_with_pwd.get('status') != FarmerModel.STATUS_APPROVED:
+            farmer_safe = self.farmer_model.get_by_id(farmer_with_pwd['id'])
+            return {'code': 403, 'message': '店铺尚未通过审核', 'data': farmer_safe}
+
+        farmer_safe = self.farmer_model.get_by_id(farmer_with_pwd['id'])
+        return {'code': 0, 'message': '登录成功', 'data': farmer_safe}
+
+    def change_password(self, farmer_id: int, old_password: str, new_password: str) -> Dict[str, Any]:
+        if not self.farmer_model.verify_password(farmer_id, old_password):
+            return {'code': 401, 'message': '原密码错误', 'data': None}
+        if not new_password or len(new_password) < 4:
+            return {'code': 400, 'message': '新密码至少4位', 'data': None}
+        self.farmer_model.update_password(farmer_id, new_password)
+        return {'code': 0, 'message': '密码修改成功', 'data': None}
 
     def get_farmer(self, farmer_id: int) -> Dict[str, Any]:
         farmer = self.farmer_model.get_by_id(farmer_id)

@@ -533,68 +533,100 @@ async function loadFarmerProducts() {
 }
 
 function openAddProduct() {
+    const draft = Storage.getProductDraft() || {};
+
     showModal(`
+        <div style="margin-bottom:12px;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:13px;color:#8d6e63;">
+            💡 表单内容会自动保存，刷新页面不会丢失
+        </div>
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">产品名称</label>
-                <input type="text" class="form-input" id="p-name" placeholder="如：有机西红柿">
+                <input type="text" class="form-input" id="p-name" placeholder="如：有机西红柿" value="${esc(draft.name || '')}">
             </div>
             <div class="form-group">
                 <label class="form-label">品类</label>
-                <input type="text" class="form-input" id="p-category" placeholder="如：蔬菜、水果">
+                <input type="text" class="form-input" id="p-category" placeholder="如：蔬菜、水果" value="${esc(draft.category || '')}">
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">单价</label>
-                <input type="number" step="0.01" class="form-input" id="p-price" placeholder="0.00">
+                <input type="number" step="0.01" class="form-input" id="p-price" placeholder="0.00" value="${draft.price || ''}">
             </div>
             <div class="form-group">
                 <label class="form-label">计价单位</label>
                 <select class="form-select" id="p-unit">
-                    <option value="jin">按斤</option>
-                    <option value="portion">按份</option>
+                    <option value="jin" ${draft.unit === 'jin' ? 'selected' : ''}>按斤</option>
+                    <option value="portion" ${draft.unit === 'portion' ? 'selected' : ''}>按份</option>
                 </select>
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">库存量</label>
-                <input type="number" class="form-input" id="p-stock" placeholder="0">
+                <input type="number" class="form-input" id="p-stock" placeholder="0" value="${draft.stock || ''}">
             </div>
             <div class="form-group">
                 <label class="form-label">采摘日期</label>
-                <input type="date" class="form-input" id="p-harvest">
+                <input type="date" class="form-input" id="p-harvest" value="${esc(draft.harvest_date || '')}">
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">配送范围</label>
-                <input type="text" class="form-input" id="p-range" placeholder="如：朝阳区,海淀区（逗号分隔）">
+                <input type="text" class="form-input" id="p-range" placeholder="如：朝阳区,海淀区（逗号分隔）" value="${esc(draft.delivery_range || '')}">
             </div>
             <div class="form-group">
                 <label class="form-label">预计送达</label>
-                <input type="date" class="form-input" id="p-expected">
+                <input type="date" class="form-input" id="p-expected" value="${esc(draft.expected_delivery || '')}">
             </div>
         </div>
         <div class="form-group">
             <label class="form-label">产品描述</label>
-            <textarea class="form-textarea" id="p-desc" placeholder="产品特色、口感等"></textarea>
+            <textarea class="form-textarea" id="p-desc" placeholder="产品特色、口感等">${esc(draft.description || '')}</textarea>
         </div>
         <div class="form-group">
             <label class="form-label">产品图片URL（选填）</label>
-            <input type="text" class="form-input" id="p-image" placeholder="https://...">
+            <input type="text" class="form-input" id="p-image" placeholder="https://..." value="${esc(draft.image_url || '')}">
         </div>
         <div class="modal-footer">
-            <button class="btn btn-outline" onclick="closeModal()">取消</button>
+            <button class="btn btn-outline" onclick="clearProductDraft();closeModal();">清除草稿并关闭</button>
             <button class="btn btn-primary" onclick="submitProduct()">发布产品</button>
         </div>
     `, '发布新产品');
 
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    document.getElementById('p-harvest').value = today;
-    document.getElementById('p-expected').value = tomorrow;
+    if (!document.getElementById('p-harvest').value) document.getElementById('p-harvest').value = today;
+    if (!document.getElementById('p-expected').value) document.getElementById('p-expected').value = tomorrow;
+
+    const fields = ['p-name', 'p-category', 'p-price', 'p-unit', 'p-stock', 'p-harvest', 'p-range', 'p-expected', 'p-desc', 'p-image'];
+    const fieldMap = {
+        'p-name': 'name', 'p-category': 'category', 'p-price': 'price', 'p-unit': 'unit',
+        'p-stock': 'stock', 'p-harvest': 'harvest_date', 'p-range': 'delivery_range',
+        'p-expected': 'expected_delivery', 'p-desc': 'description', 'p-image': 'image_url'
+    };
+    fields.forEach(fid => {
+        const el = document.getElementById(fid);
+        if (el) {
+            el.addEventListener('input', () => {
+                const cur = Storage.getProductDraft() || {};
+                cur[fieldMap[fid]] = el.type === 'number' ? (el.value === '' ? '' : parseFloat(el.value)) : el.value;
+                Storage.setProductDraft(cur);
+            });
+            el.addEventListener('change', () => {
+                const cur = Storage.getProductDraft() || {};
+                cur[fieldMap[fid]] = el.type === 'number' ? (el.value === '' ? '' : parseFloat(el.value)) : el.value;
+                Storage.setProductDraft(cur);
+            });
+        }
+    });
+}
+
+function clearProductDraft() {
+    Storage.clearProductDraft();
+    showToast('草稿已清除');
 }
 
 async function submitProduct() {
@@ -615,6 +647,7 @@ async function submitProduct() {
 
     const res = await ProductAPI.add(data);
     if (res.code === 0) {
+        Storage.clearProductDraft();
         closeModal();
         showToast('发布成功');
         loadFarmerProducts();
@@ -739,6 +772,11 @@ async function loadShopPage() {
                 <textarea class="form-textarea" id="shop-desc" placeholder="介绍一下您的店铺和种植理念">${esc(currentFarmer.shop_description || '')}</textarea>
             </div>
             <button class="btn btn-primary" onclick="saveShop()">保存设置</button>
+        </div>
+        <div class="card">
+            <h3 class="section-title">安全设置</h3>
+            <p style="color:#666;margin-bottom:14px;font-size:14px;">密码已加密存储，定期修改可保护账户安全</p>
+            <button class="btn btn-brown" onclick="openChangePassword('farmer')">🔐 修改密码</button>
         </div>
     `;
 }
@@ -871,5 +909,55 @@ async function loadStatsPage() {
                 <div class="rank-rate">${r.on_time_rate}%</div>
             </li>
         `).join('');
+    }
+}
+
+function openChangePassword(role) {
+    showModal(`
+        <div class="form-group">
+            <label class="form-label">原密码</label>
+            <input type="password" class="form-input" id="cp-old" placeholder="请输入原密码">
+        </div>
+        <div class="form-group">
+            <label class="form-label">新密码</label>
+            <input type="password" class="form-input" id="cp-new" placeholder="至少4位">
+        </div>
+        <div class="form-group">
+            <label class="form-label">确认新密码</label>
+            <input type="password" class="form-input" id="cp-confirm" placeholder="再次输入新密码">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitChangePassword('${role}')">确认修改</button>
+        </div>
+    `, '修改密码');
+}
+
+async function submitChangePassword(role) {
+    const oldPwd = document.getElementById('cp-old').value;
+    const newPwd = document.getElementById('cp-new').value;
+    const confirmPwd = document.getElementById('cp-confirm').value;
+
+    if (!oldPwd) return showToast('请输入原密码', true);
+    if (!newPwd || newPwd.length < 4) return showToast('新密码至少4位', true);
+    if (newPwd !== confirmPwd) return showToast('两次输入的新密码不一致', true);
+    if (oldPwd === newPwd) return showToast('新密码不能与原密码相同', true);
+
+    const user = role === 'farmer' ? currentFarmer : currentConsumer;
+    const api = role === 'farmer' ? FarmerAPI : ConsumerAPI;
+    const res = await api.changePassword({
+        user_id: user.id,
+        old_password: oldPwd,
+        new_password: newPwd
+    });
+
+    if (res.code === 0) {
+        closeModal();
+        showToast('密码修改成功，请重新登录');
+        setTimeout(() => {
+            logout();
+        }, 1200);
+    } else {
+        showToast(res.message, true);
     }
 }

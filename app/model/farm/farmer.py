@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from app.common.sqlite.db import get_db
 from app.common.sqlite.orm_query import ORMQuery
 from app.common.sqlite.orm_exec import ORMExec
+from app.common.security import hash_password, verify_password
 
 
 class FarmerModel:
@@ -51,14 +52,25 @@ class FarmerModel:
         index_sql2 = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_phone ON {cls.TABLE_NAME}(phone)"
         db.execute(index_sql2)
 
+    @staticmethod
+    def _sanitize(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if record and 'password' in record:
+            del record['password']
+        return record
+
+    @staticmethod
+    def _sanitize_list(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [FarmerModel._sanitize(r) for r in records]
+
     def create(self, name: str, phone: str, address: str, categories: str = '',
                certification: str = 'none', certification_desc: str = '',
                password: str = '') -> int:
         now = datetime.now().isoformat()
+        hashed_pwd = hash_password(password) if password else ''
         data = {
             'name': name,
             'phone': phone,
-            'password': password,
+            'password': hashed_pwd,
             'address': address,
             'categories': categories,
             'certification': certification,
@@ -69,22 +81,36 @@ class FarmerModel:
         }
         return self.exec.insert(data)
 
-    def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
-        return self.query.find_by_id(record_id)
+    def verify_password(self, record_id: int, password: str) -> bool:
+        sql = f"SELECT password FROM {self.TABLE_NAME} WHERE id = ?"
+        row = self.db.fetch_one(sql, (record_id,))
+        if not row:
+            return False
+        return verify_password(password, row.get('password', ''))
 
-    def get_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
-        return self.query.find_one({'phone': phone})
+    def update_password(self, record_id: int, new_password: str) -> int:
+        hashed = hash_password(new_password)
+        return self.update(record_id, password=hashed)
+
+    def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
+        return self._sanitize(self.query.find_by_id(record_id))
+
+    def get_by_phone(self, phone: str, include_password: bool = False) -> Optional[Dict[str, Any]]:
+        row = self.query.find_one({'phone': phone})
+        if not include_password:
+            return self._sanitize(row)
+        return row
 
     def get_all(self, status: str = None) -> List[Dict[str, Any]]:
         conditions = {}
         if status:
             conditions['status'] = status
         if conditions:
-            return self.query.find_all(conditions, order_by='id DESC')
-        return self.query.find_all(order_by='id DESC')
+            return self._sanitize_list(self.query.find_all(conditions, order_by='id DESC'))
+        return self._sanitize_list(self.query.find_all(order_by='id DESC'))
 
     def get_approved(self) -> List[Dict[str, Any]]:
-        return self.query.find_all({'status': self.STATUS_APPROVED}, order_by='id DESC')
+        return self._sanitize_list(self.query.find_all({'status': self.STATUS_APPROVED}, order_by='id DESC'))
 
     def update(self, record_id: int, **kwargs) -> int:
         now = datetime.now().isoformat()

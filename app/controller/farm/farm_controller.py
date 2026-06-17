@@ -25,6 +25,12 @@ class FarmerShopUpdateRequest(BaseModel):
     shop_description: Optional[str] = Field(default=None, description="店铺描述")
 
 
+class ChangePasswordRequest(BaseModel):
+    user_id: int = Field(..., ge=1, description="用户ID")
+    old_password: str = Field(..., description="原密码")
+    new_password: str = Field(..., min_length=4, description="新密码（至少4位）")
+
+
 class ConsumerRegisterRequest(BaseModel):
     name: str = Field(..., description="姓名")
     phone: str = Field(..., description="手机号")
@@ -110,6 +116,18 @@ class FarmController:
         """
         return self.farmer_business.get_farmer(farmer_id)
 
+    def ActionFarmFarmerPasswordChangePost(self, request: Request, body: ChangePasswordRequest):
+        """
+        农户修改密码接口
+        POST /api/farm/farmer/password/change
+        需要原密码和新密码（至少4位）
+        """
+        return self.farmer_business.change_password(
+            farmer_id=body.user_id,
+            old_password=body.old_password,
+            new_password=body.new_password
+        )
+
     def ActionFarmFarmerShopUpdatePost(self, request: Request, body: FarmerShopUpdateRequest):
         """
         更新农户店铺信息接口
@@ -164,6 +182,18 @@ class FarmController:
         GET /api/farm/consumer/get
         """
         return self.consumer_business.get_consumer(consumer_id)
+
+    def ActionFarmConsumerPasswordChangePost(self, request: Request, body: ChangePasswordRequest):
+        """
+        消费者修改密码接口
+        POST /api/farm/consumer/password/change
+        需要原密码和新密码（至少4位）
+        """
+        return self.consumer_business.change_password(
+            consumer_id=body.user_id,
+            old_password=body.old_password,
+            new_password=body.new_password
+        )
 
     def ActionFarmProductAddPost(self, request: Request, body: ProductCreateRequest):
         """

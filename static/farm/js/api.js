@@ -33,6 +33,7 @@ const FarmerAPI = {
     login: (data) => apiRequest('/farm/farmer/login', 'POST', data),
     get: (farmer_id) => apiRequest('/farm/farmer/get', 'GET', null, { farmer_id }),
     updateShop: (data) => apiRequest('/farm/farmer/shop/update', 'POST', data),
+    changePassword: (data) => apiRequest('/farm/farmer/password/change', 'POST', data),
     list: (status) => apiRequest('/farm/farmer/list/get', 'GET', null, { status }),
     approve: (farmer_id) => apiRequest('/farm/farmer/approve', 'POST', null, { farmer_id }),
     reject: (farmer_id) => apiRequest('/farm/farmer/reject', 'POST', null, { farmer_id }),
@@ -42,6 +43,7 @@ const ConsumerAPI = {
     register: (data) => apiRequest('/farm/consumer/register', 'POST', data),
     login: (data) => apiRequest('/farm/consumer/login', 'POST', data),
     get: (consumer_id) => apiRequest('/farm/consumer/get', 'GET', null, { consumer_id }),
+    changePassword: (data) => apiRequest('/farm/consumer/password/change', 'POST', data),
 };
 
 const ProductAPI = {
