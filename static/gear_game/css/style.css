@@ -121,11 +121,12 @@ body {
     height: 60px;
     position: absolute;
     cursor: pointer;
-    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+    will-change: transform;
+    transition: transform 0.22s ease-in-out;
 }
 
-.gear-cell.hidden-gear {
-    display: none;
+.gear-cell.no-transition {
+    transition: none !important;
 }
 
 .gear-cell:hover {
@@ -180,7 +181,8 @@ body {
     height: 85%;
     border-radius: 50%;
     background: inherit;
-    filter: brightness(1.2);
+    opacity: 0.3;
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .gear::after {
@@ -197,28 +199,23 @@ body {
     position: absolute;
     width: 100%;
     height: 100%;
-    animation: rotate 4s linear infinite;
 }
 
 .gear-spokes span {
     position: absolute;
-    width: 8%;
+    width: 10%;
     height: 35%;
     background: inherit;
-    left: 46%;
+    left: 45%;
     top: 0;
     transform-origin: 50% 150%;
     border-radius: 2px;
 }
 
 .gear-spokes span:nth-child(1) { transform: rotate(0deg); }
-.gear-spokes span:nth-child(2) { transform: rotate(45deg); }
-.gear-spokes span:nth-child(3) { transform: rotate(90deg); }
-.gear-spokes span:nth-child(4) { transform: rotate(135deg); }
-.gear-spokes span:nth-child(5) { transform: rotate(180deg); }
-.gear-spokes span:nth-child(6) { transform: rotate(225deg); }
-.gear-spokes span:nth-child(7) { transform: rotate(270deg); }
-.gear-spokes span:nth-child(8) { transform: rotate(315deg); }
+.gear-spokes span:nth-child(2) { transform: rotate(90deg); }
+.gear-spokes span:nth-child(3) { transform: rotate(180deg); }
+.gear-spokes span:nth-child(4) { transform: rotate(270deg); }
 
 @keyframes rotate {
     from { transform: rotate(0deg); }
@@ -262,7 +259,6 @@ body {
 .gear-gold {
     background: linear-gradient(135deg, #ffd700, #ffb347);
     box-shadow: 0 4px 20px rgba(255, 215, 0, 0.7);
-    animation: glow 2s ease-in-out infinite;
 }
 
 @keyframes glow {

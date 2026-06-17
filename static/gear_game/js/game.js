@@ -8,7 +8,6 @@ const LevelConfig = {
             specialGearChance: Math.min(0.15 + level * 0.02, 0.35)
         };
     },
-
     getTheme(level) {
         const themes = [
             { name: '工业暗黑', bg: 'rgba(0, 0, 0, 0.4)' },
@@ -33,9 +32,11 @@ class Game {
         this.isGameOver = false;
         this.board = new Board(8, 8, this.level);
         this.particles = [];
-        this.particleContainer = null;
+        this.particleCanvas = null;
+        this.particleCtx = null;
         this.gameBoardElement = null;
         this.highlightedCells = [];
+        this.saveTimer = null;
         this.setupCallbacks();
     }
 
@@ -43,7 +44,7 @@ class Game {
         this.board.onScoreCallback = (points) => this.addScore(points);
         this.board.onComboCallback = (combo) => this.updateCombo(combo);
         this.board.onShakeCallback = (combo) => this.shakeBoard(combo);
-        this.board.onParticlesCallback = (particle) => this.spawnParticle(particle);
+        this.board.onParticlesCallback = (p) => this.spawnParticle(p);
         this.board.onMoveCallback = () => this.handleMoveMade();
     }
 
@@ -53,20 +54,41 @@ class Game {
             this.stepsUsed++;
             this.resetCombo();
             this.updateUI();
-            this.saveGameState();
+            this.scheduleSave();
             this.checkGameOver();
         }
     }
 
     init(containerId) {
         this.gameBoardElement = document.getElementById(containerId);
-        this.particleContainer = document.getElementById('particles-container');
+        this.initParticleCanvas();
         this.animateParticles();
 
         if (!this.loadGame()) {
             this.applyTheme();
             this.newGame();
         }
+    }
+
+    initParticleCanvas() {
+        const container = document.getElementById('particles-container');
+        if (!container) return;
+
+        this.particleCanvas = document.createElement('canvas');
+        this.particleCanvas.style.position = 'absolute';
+        this.particleCanvas.style.top = '0';
+        this.particleCanvas.style.left = '0';
+        this.particleCanvas.style.width = '100%';
+        this.particleCanvas.style.height = '100%';
+        this.particleCanvas.style.pointerEvents = 'none';
+        this.particleCanvas.style.zIndex = '50';
+
+        const rect = container.getBoundingClientRect();
+        this.particleCanvas.width = rect.width || 565;
+        this.particleCanvas.height = rect.height || 565;
+        this.particleCtx = this.particleCanvas.getContext('2d');
+
+        container.appendChild(this.particleCanvas);
     }
 
     applyTheme() {
@@ -100,15 +122,13 @@ class Game {
     addScore(points) {
         this.score += points;
         this.updateUI();
-        this.saveGameState();
+        this.scheduleSave();
         this.checkWinCondition();
     }
 
     updateCombo(combo) {
         this.combo = combo;
-        if (combo > this.maxCombo) {
-            this.maxCombo = combo;
-        }
+        if (combo > this.maxCombo) this.maxCombo = combo;
         this.updateUI();
     }
 
@@ -119,78 +139,59 @@ class Game {
 
     shakeBoard(combo) {
         if (!this.gameBoardElement) return;
-
         const intensity = Math.min(combo, 5);
         this.gameBoardElement.classList.remove('shake');
-
         void this.gameBoardElement.offsetWidth;
-
         this.gameBoardElement.style.animationDuration = `${0.2 + intensity * 0.1}s`;
         this.gameBoardElement.classList.add('shake');
-
-        setTimeout(() => {
-            this.gameBoardElement.classList.remove('shake');
-        }, 300 + intensity * 100);
+        setTimeout(() => this.gameBoardElement.classList.remove('shake'), 300 + intensity * 100);
     }
 
     spawnParticle(particleData) {
-        if (!this.particleContainer) return;
-
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-
-        const { x, y, color, angle, speed, size, combo } = particleData;
-
-        particle.style.left = `${x}px`;
-        particle.style.top = `${y}px`;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.backgroundColor = color;
-        particle.style.boxShadow = `0 0 ${10 + combo * 5}px ${color}`;
-
-        this.particleContainer.appendChild(particle);
-
-        const velocity = {
-            x: Math.cos(angle) * speed,
-            y: Math.sin(angle) * speed - 2
-        };
-
+        const { x, y, color, angle, speed, size } = particleData;
         this.particles.push({
-            element: particle,
-            x,
-            y,
-            velocity,
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2,
             life: 1,
-            decay: 0.02 + Math.random() * 0.02,
-            gravity: 0.2
+            decay: 0.03 + Math.random() * 0.02,
+            size,
+            color
         });
+
+        if (this.particles.length > 150) {
+            this.particles.splice(0, this.particles.length - 150);
+        }
     }
 
     animateParticles() {
-        const animate = () => {
-            for (let i = this.particles.length - 1; i >= 0; i--) {
-                const p = this.particles[i];
+        const loop = () => {
+            if (this.particleCtx && this.particleCanvas) {
+                this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
 
-                p.velocity.y += p.gravity;
-                p.x += p.velocity.x;
-                p.y += p.velocity.y;
-                p.life -= p.decay;
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.vy += 0.15;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
 
-                p.element.style.left = `${p.x}px`;
-                p.element.style.top = `${p.y}px`;
-                p.element.style.opacity = p.life;
-                p.element.style.transform = `scale(${p.life})`;
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
 
-                if (p.life <= 0) {
-                    p.element.remove();
-                    this.particles.splice(i, 1);
+                    this.particleCtx.globalAlpha = p.life;
+                    this.particleCtx.fillStyle = p.color;
+                    this.particleCtx.beginPath();
+                    this.particleCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                    this.particleCtx.fill();
                 }
+                this.particleCtx.globalAlpha = 1;
             }
-
-            requestAnimationFrame(animate);
+            requestAnimationFrame(loop);
         };
-
-        animate();
+        loop();
     }
 
     checkWinCondition() {
@@ -225,7 +226,6 @@ class Game {
         finalScore.textContent = this.score;
         finalCombo.textContent = this.maxCombo;
         nextBtn.style.display = 'inline-block';
-
         modal.classList.add('active');
     }
 
@@ -245,7 +245,6 @@ class Game {
         finalScore.textContent = this.score;
         finalCombo.textContent = this.maxCombo;
         nextBtn.style.display = 'none';
-
         modal.classList.add('active');
     }
 
@@ -266,13 +265,7 @@ class Game {
 
     async saveGame(isWin) {
         try {
-            await GameAPI.saveGame(
-                this.level,
-                this.score,
-                this.maxCombo,
-                this.stepsUsed,
-                isWin
-            );
+            await GameAPI.saveGame(this.level, this.score, this.maxCombo, this.stepsUsed, isWin);
             this.loadHighScores();
         } catch (error) {
             console.error('保存游戏失败:', error);
@@ -283,13 +276,8 @@ class Game {
         try {
             const scoreData = await GameAPI.getHighestScore(this.level);
             const comboData = await GameAPI.getHighestCombo(this.level);
-
-            if (scoreData && scoreData.data) {
-                document.getElementById('high-score').textContent = scoreData.data.score;
-            }
-            if (comboData && comboData.data) {
-                document.getElementById('high-combo').textContent = comboData.data.max_combo;
-            }
+            if (scoreData && scoreData.data) document.getElementById('high-score').textContent = scoreData.data.score;
+            if (comboData && comboData.data) document.getElementById('high-combo').textContent = comboData.data.max_combo;
         } catch (error) {
             console.error('加载最高分失败:', error);
         }
@@ -309,23 +297,16 @@ class Game {
 
         if (moves.length > 0 && this.gameBoardElement) {
             const [[r1, c1], [r2, c2]] = moves[0];
-
             const allCells = this.gameBoardElement.querySelectorAll('.gear-cell');
             allCells.forEach(cell => {
                 const row = parseInt(cell.dataset.row);
                 const col = parseInt(cell.dataset.col);
-
                 if ((row === r1 && col === c1) || (row === r2 && col === c2)) {
                     cell.classList.add('hint');
                     this.highlightedCells.push(cell);
                 }
             });
-
-            setTimeout(() => {
-                this.clearHintHighlight();
-            }, 2500);
-        } else {
-            console.log('没有找到可移动的步骤');
+            setTimeout(() => this.clearHintHighlight(), 2500);
         }
     }
 
@@ -339,13 +320,14 @@ class Game {
 
         const scoreEl = document.getElementById('score');
         scoreEl.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-            scoreEl.style.transform = 'scale(1)';
-        }, 150);
+        setTimeout(() => { scoreEl.style.transform = 'scale(1)'; }, 150);
     }
 
-    getBoard() {
-        return this.board;
+    getBoard() { return this.board; }
+
+    scheduleSave() {
+        if (this.saveTimer) clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(() => this.saveGameState(), 300);
     }
 
     saveGameState() {
@@ -372,7 +354,6 @@ class Game {
             if (!saved) return false;
 
             const state = JSON.parse(saved);
-
             this.level = state.level;
             this.score = state.score;
             this.target = state.target;
@@ -393,8 +374,6 @@ class Game {
             await this.board.processInitialMatches();
             this.saveGameState();
             this.loadHighScores();
-
-            console.log('游戏状态已恢复');
             return true;
         } catch (error) {
             console.error('加载游戏状态失败:', error);
@@ -403,10 +382,6 @@ class Game {
     }
 
     clearSavedState() {
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-        } catch (error) {
-            console.error('清除保存状态失败:', error);
-        }
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     }
 }

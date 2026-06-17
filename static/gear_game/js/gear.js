@@ -63,7 +63,7 @@ class Gear {
 
         const spokes = document.createElement('div');
         spokes.className = 'gear-spokes';
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 4; i++) {
             const spoke = document.createElement('span');
             spokes.appendChild(spoke);
         }
