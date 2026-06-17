@@ -18,11 +18,11 @@
           <tr v-for="r in records" :key="r.id">
             <td>{{ r.cycle_name || (r.year + '年Q' + r.quarter) }}</td>
             <td>{{ r.cycle?.start_date || '-' }} ~ {{ r.cycle?.end_date || '-' }}</td>
-            <td><span class="tag tag-status tag-status-{{r.status}}">{{ statusText[r.status] }}</span></td>
+            <td><span :class="['tag', 'tag-status', 'tag-status-' + r.status]">{{ statusText[r.status] }}</span></td>
             <td>{{ r.self_total_score || '-' }}</td>
             <td>{{ r.final_score || '-' }}</td>
             <td>
-              <span v-if="r.grade" class="tag tag-grade-{{r.grade.toLowerCase()}}">{{ r.grade }}</span>
+              <span v-if="r.grade" :class="['tag', 'tag-grade-' + r.grade.toLowerCase()]">{{ r.grade }}</span>
               <span v-else>-</span>
             </td>
             <td>
@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../utils/api'
 

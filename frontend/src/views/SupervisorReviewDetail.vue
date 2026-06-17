@@ -8,7 +8,7 @@
             {{ record.cycle?.name || '考核周期' }} · {{ record.employee?.name || '' }} · {{ record.employee?.department || '' }} · {{ record.employee?.position || '' }}
           </span>
         </div>
-        <span class="tag tag-status tag-status-{{record.status}}">{{ statusText[record.status] }}</span>
+        <span :class="['tag', 'tag-status', 'tag-status-' + record.status]">{{ statusText[record.status] }}</span>
       </div>
 
       <div class="form-row" style="background:#fffbe6; padding:14px; border-radius:6px; border:1px solid #ffe58f;">
@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineProps } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '../utils/api'
 

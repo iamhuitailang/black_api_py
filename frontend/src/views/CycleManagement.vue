@@ -27,7 +27,7 @@
             <td>Q{{ c.quarter }}</td>
             <td>{{ c.start_date }} ~ {{ c.end_date }}</td>
             <td>{{ (c.dimensions || []).length }}</td>
-            <td><span class="tag tag-status tag-status-{{c.status}}">{{ statusText[c.status] }}</span></td>
+            <td><span :class="['tag', 'tag-status', 'tag-status-' + c.status]">{{ statusText[c.status] }}</span></td>
             <td>
               <button class="btn btn-sm" @click="editCycle(c)">编辑</button>
               <button v-if="c.status === 'draft'" class="btn btn-sm btn-primary" @click="publishCycle(c.id)">发布</button>

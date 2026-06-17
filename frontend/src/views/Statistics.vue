@@ -62,16 +62,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="r in records" :key="r.id" v-if="r.status === 'completed'">
+              <tr v-for="r in completedRecords" :key="r.id">
                 <td>{{ r.employee_name }}</td>
                 <td>{{ r.department }}</td>
                 <td>{{ r.position }}</td>
                 <td>{{ r.self_total_score }}</td>
                 <td>{{ r.supervisor_total_score }}</td>
                 <td><strong>{{ r.final_score }}</strong></td>
-                <td><span class="tag tag-grade-{{r.grade.toLowerCase()}}">{{ r.grade }}</span></td>
+                <td><span :class="['tag', 'tag-grade-' + r.grade.toLowerCase()]">{{ r.grade }}</span></td>
               </tr>
-              <tr v-if="records.filter(r=>r.status==='completed').length === 0">
+              <tr v-if="completedRecords.length === 0">
                 <td colspan="7" class="empty-state"><div class="empty-state-icon">📋</div>暂无已完成的考核数据</td>
               </tr>
             </tbody>
@@ -83,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick, defineProps } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import api from '../utils/api'
 
@@ -104,6 +104,8 @@ const saRate = computed(() => {
   const sa = (gd.S || 0) + (gd.A || 0)
   return stats.value.total_count ? Math.round(sa / stats.value.total_count * 100) : 0
 })
+
+const completedRecords = computed(() => records.value.filter(r => r.status === 'completed'))
 
 const loadData = async () => {
   try {

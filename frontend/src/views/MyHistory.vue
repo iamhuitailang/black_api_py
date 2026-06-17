@@ -49,10 +49,10 @@
               <td>{{ r.supervisor_total_score || '-' }}</td>
               <td><strong>{{ r.final_score || '-' }}</strong></td>
               <td>
-                <span v-if="r.grade" class="tag tag-grade-{{r.grade.toLowerCase()}}">{{ r.grade }}</span>
+                <span v-if="r.grade" :class="['tag', 'tag-grade-' + r.grade.toLowerCase()]">{{ r.grade }}</span>
                 <span v-else>-</span>
               </td>
-              <td><span class="tag tag-status tag-status-{{r.status}}">{{ statusText[r.status] }}</span></td>
+              <td><span :class="['tag', 'tag-status', 'tag-status-' + r.status]">{{ statusText[r.status] }}</span></td>
             </tr>
             <tr v-if="history.length === 0"><td colspan="6" class="empty-state"><div class="empty-state-icon">📜</div>暂无历史数据</td></tr>
           </tbody>
@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, defineProps, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import api from '../utils/api'
 

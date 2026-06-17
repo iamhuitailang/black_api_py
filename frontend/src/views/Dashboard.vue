@@ -37,7 +37,7 @@
             <td>Q{{ c.quarter }}</td>
             <td>{{ c.start_date }} ~ {{ c.end_date }}</td>
             <td>{{ (c.dimensions || []).length }} 个</td>
-            <td><span class="tag tag-status tag-status-{{c.status}}">{{ statusText[c.status] }}</span></td>
+            <td><span :class="['tag', 'tag-status', 'tag-status-' + c.status]">{{ statusText[c.status] }}</span></td>
           </tr>
           <tr v-if="cycles.length === 0"><td colspan="6" class="empty-state"><div class="empty-state-icon">📅</div>暂无考核周期</td></tr>
         </tbody>
@@ -63,10 +63,10 @@
               <td>{{ r.self_total_score || '-' }}</td>
               <td>{{ r.final_score || '-' }}</td>
               <td>
-                <span v-if="r.grade" class="tag tag-grade-{{r.grade.toLowerCase()}}">{{ r.grade }}</span>
+                <span v-if="r.grade" :class="['tag', 'tag-grade-' + r.grade.toLowerCase()]">{{ r.grade }}</span>
                 <span v-else>-</span>
               </td>
-              <td><span class="tag tag-status tag-status-{{r.status}}">{{ statusText[r.status] }}</span></td>
+              <td><span :class="['tag', 'tag-status', 'tag-status-' + r.status]">{{ statusText[r.status] }}</span></td>
             </tr>
             <tr v-if="myRecords.length === 0"><td colspan="5" class="empty-state"><div class="empty-state-icon">📋</div>暂无记录</td></tr>
           </tbody>
@@ -90,7 +90,7 @@
               <td>{{ r.employee_name }}</td>
               <td>{{ r.cycle_name || ('Q' + r.quarter) }}</td>
               <td>{{ r.self_total_score || '-' }}</td>
-              <td><span class="tag tag-status tag-status-{{r.status}}">{{ statusText[r.status] }}</span></td>
+              <td><span :class="['tag', 'tag-status', 'tag-status-' + r.status]">{{ statusText[r.status] }}</span></td>
               <td>
                 <button v-if="r.status === 'self_reviewed'" class="btn btn-sm btn-primary" @click="$router.push(`/supervisor-review/${r.id}`)">去评分</button>
                 <span v-else class="tag tag-status-pending">等待自评</span>
@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineProps, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '../utils/api'
 
 const props = defineProps({ user: Object })

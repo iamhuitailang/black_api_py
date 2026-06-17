@@ -8,7 +8,7 @@
             {{ record.cycle?.name || '考核周期' }} · {{ record.employee?.name || '' }} · {{ record.employee?.department || '' }}
           </span>
         </div>
-        <span class="tag tag-status tag-status-{{record.status}}">{{ statusText[record.status] }}</span>
+        <span :class="['tag', 'tag-status', 'tag-status-' + record.status]">{{ statusText[record.status] }}</span>
       </div>
 
       <div v-for="s in scores" :key="s.id" class="dimension-item">
@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineProps } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '../utils/api'
 
