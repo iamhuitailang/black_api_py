@@ -499,8 +499,6 @@ class Alien extends Enemy {
     }
 
     update(deltaTime, playerX, playerY, canvasWidth, canvasHeight) {
-        super.update(deltaTime, playerX, playerY, canvasWidth, canvasHeight);
-        
         this.patternTime += deltaTime;
 
         if (this.movePattern === 'zigzag') {
@@ -534,8 +532,7 @@ class Alien extends Enemy {
             }
         }
 
-        this.x += this.vx * deltaTime;
-        this.y += this.vy * deltaTime;
+        super.update(deltaTime, playerX, playerY, canvasWidth, canvasHeight);
 
         const margin = this.width;
         this.x = Math.max(margin, Math.min(canvasWidth - margin, this.x));
@@ -660,8 +657,6 @@ class Boss extends Enemy {
     }
 
     update(deltaTime, playerX, playerY, canvasWidth, canvasHeight) {
-        super.update(deltaTime, playerX, playerY, canvasWidth, canvasHeight);
-        
         this.phaseTimer += deltaTime;
         this.patternTimer += deltaTime;
         this.moveTimer += deltaTime;
@@ -692,8 +687,7 @@ class Boss extends Enemy {
             this.vy *= 0.95;
         }
 
-        this.x += this.vx * deltaTime;
-        this.y += this.vy * deltaTime;
+        super.update(deltaTime, playerX, playerY, canvasWidth, canvasHeight);
 
         const margin = this.width / 2 + 50;
         this.x = Math.max(margin, Math.min(canvasWidth - margin, this.x));
