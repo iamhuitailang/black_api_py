@@ -12,7 +12,9 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.kpi import EmployeeModel, AssessmentCycleModel, AssessmentDimensionModel, AssessmentRecordModel, AssessmentScoreModel
 from app.common.sqlite.db import get_db
+from app.controller.kpi.kpi_controller import router as kpi_router
 
 
 def migrate_database():
@@ -34,10 +36,26 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    EmployeeModel.create_table()
+    AssessmentCycleModel.create_table()
+    AssessmentDimensionModel.create_table()
+    AssessmentRecordModel.create_table()
+    AssessmentScoreModel.create_table()
+    
+    _init_default_users(db)
     
     migrate_database()
     
     print("Database initialized successfully")
+
+
+def _init_default_users(db):
+    user_model = UserModel()
+    for i in range(2, 11):
+        username = f"user{i}"
+        existing = user_model.get_by_username(username)
+        if not existing:
+            user_model.create(username, f"user{i}123")
 
 
 @asynccontextmanager
@@ -81,6 +99,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 router_registry = get_router_registry()
 api_router = router_registry.register_all(prefix="/api")
 app.include_router(api_router)
+app.include_router(kpi_router, prefix="/api")
 
 
 @app.get("/")
