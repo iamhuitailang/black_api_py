@@ -81,7 +81,7 @@ const App = {
             return false;
         }
 
-        async function loadSave(saveId) {
+        async function loadSave(saveId, silent) {
             if (isLoading.value) return;
             isLoading.value = true;
             
@@ -98,18 +98,31 @@ const App = {
                     }
                     
                     await nextTick();
+                    await new Promise(function(resolve) { requestAnimationFrame(resolve); });
+                    
+                    var canvasEl = document.getElementById('gameCanvas');
+                    if (!canvasEl) {
+                        await new Promise(function(resolve) { setTimeout(resolve, 150); });
+                    }
+                    
                     if (!renderer.value) {
                         renderer.value = new GameRenderer('gameCanvas');
                     }
-                    renderer.value.setGameData(result.data);
-                    renderer.value.start();
+                    if (renderer.value && renderer.value.ready) {
+                        renderer.value.setGameData(result.data);
+                        renderer.value.start();
+                    } else {
+                        console.error('Canvas渲染器初始化失败');
+                        isLoading.value = false;
+                        return false;
+                    }
                     
                     startGameLoop();
                     
                     try {
-                        const tutorialShown = localStorage.getItem(STORAGE_KEY_TUTORIAL_SHOWN);
+                        var tutorialShown = localStorage.getItem(STORAGE_KEY_TUTORIAL_SHOWN);
                         if (!tutorialShown) {
-                            setTimeout(() => {
+                            setTimeout(function() {
                                 showTutorial.value = true;
                             }, 500);
                         }
@@ -120,11 +133,15 @@ const App = {
                     isLoading.value = false;
                     return true;
                 } else {
-                    showMessage(result.message, 'error');
+                    if (!silent) {
+                        showMessage(result.message, 'error');
+                    }
                 }
             } catch (e) {
                 console.error('加载存档失败:', e);
-                showMessage('加载存档失败', 'error');
+                if (!silent) {
+                    showMessage('加载存档失败', 'error');
+                }
             }
             
             isLoading.value = false;
@@ -232,6 +249,7 @@ const App = {
             stopGameLoop();
             if (renderer.value) {
                 renderer.value.stop();
+                renderer.value = null;
             }
             currentSave.value = null;
             selectedTool.value = null;
@@ -394,28 +412,34 @@ const App = {
 
         async function tryRestoreSave() {
             try {
-                const savedId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
-                if (!savedId) return false;
+                var savedId = localStorage.getItem(STORAGE_KEY_CURRENT_SAVE);
+                var saveId = savedId ? parseInt(savedId) : null;
                 
-                const saveId = parseInt(savedId);
-                if (!saveId) return false;
-                
-                await loadSaveList();
-                
-                const saveExists = saves.value.some(s => s.id === saveId);
-                if (saveExists) {
-                    const savedSpeed = localStorage.getItem(STORAGE_KEY_GAME_SPEED);
-                    if (savedSpeed) {
-                        const speed = parseInt(savedSpeed);
-                        if ([1, 2, 3, 5].includes(speed)) {
-                            gameSpeed.value = speed;
-                        }
+                var savedSpeed = localStorage.getItem(STORAGE_KEY_GAME_SPEED);
+                if (savedSpeed) {
+                    var speed = parseInt(savedSpeed);
+                    if ([1, 2, 3, 5].includes(speed)) {
+                        gameSpeed.value = speed;
                     }
-                    
-                    await loadSave(saveId);
-                    return true;
-                } else {
-                    localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+                }
+                
+                if (saveId) {
+                    var restored = await loadSave(saveId, true);
+                    if (restored) {
+                        return true;
+                    }
+                    try {
+                        localStorage.removeItem(STORAGE_KEY_CURRENT_SAVE);
+                    } catch (e) {}
+                }
+                
+                var listOk = await loadSaveList();
+                if (listOk && saves.value.length > 0) {
+                    var latestSave = saves.value[0];
+                    var restored2 = await loadSave(latestSave.id, true);
+                    if (restored2) {
+                        return true;
+                    }
                 }
             } catch (e) {
                 console.warn('恢复存档失败:', e);
@@ -424,7 +448,7 @@ const App = {
         }
 
         onMounted(async () => {
-            const restored = await tryRestoreSave();
+            var restored = await tryRestoreSave();
             if (!restored) {
                 loadSaveList();
             }

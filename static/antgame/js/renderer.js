@@ -1,7 +1,17 @@
 class GameRenderer {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
+        this.ready = false;
+        if (!this.canvas) {
+            console.error('Canvas element not found:', canvasId);
+            return;
+        }
         this.ctx = this.canvas.getContext('2d');
+        if (!this.ctx) {
+            console.error('Canvas context not available');
+            return;
+        }
+        this.ready = true;
         this.cellSize = 40;
         this.gridWidth = 20;
         this.gridHeight = 15;
@@ -35,7 +45,7 @@ class GameRenderer {
     }
 
     setGameData(gameData) {
-        if (!gameData) return;
+        if (!gameData || !this.ready) return;
         
         this.gridWidth = gameData.grid_width || 20;
         this.gridHeight = gameData.grid_height || 15;
@@ -122,12 +132,13 @@ class GameRenderer {
     }
 
     resize() {
+        if (!this.canvas) return;
         this.canvas.width = this.gridWidth * this.cellSize;
         this.canvas.height = this.gridHeight * this.cellSize;
     }
 
     start() {
-        if (this.isRunning) return;
+        if (this.isRunning || !this.ready) return;
         this.isRunning = true;
         this.lastTime = performance.now();
         this.animate();
@@ -138,7 +149,7 @@ class GameRenderer {
     }
 
     animate() {
-        if (!this.isRunning) return;
+        if (!this.isRunning || !this.ready) return;
         
         const currentTime = performance.now();
         const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1);
@@ -487,6 +498,7 @@ class GameRenderer {
     }
 
     getGridPosition(clientX, clientY) {
+        if (!this.canvas) return null;
         const rect = this.canvas.getBoundingClientRect();
         const x = clientX - rect.left;
         const y = clientY - rect.top;
