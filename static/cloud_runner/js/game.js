@@ -10,13 +10,14 @@ let essenceCount = 0;
 let playerName = '';
 let cameraX = 0;
 
-const GRAVITY = 0.5;
-const JUMP_POWER_MIN = 8;
-const JUMP_POWER_MAX = 18;
-const CHARGE_SPEED = 0.3;
-const MOVE_SPEED = 4;
-const FLY_DURATION = 3000;
-const FLY_GRAVITY = 0.1;
+const GRAVITY = 0.45;
+const JUMP_POWER_MIN = 9;
+const JUMP_POWER_MAX = 16;
+const CHARGE_SPEED = 0.025;
+const MOVE_SPEED_BASE = 2.5;
+const MOVE_SPEED_MAX = 5;
+const FLY_DURATION = 3500;
+const FLY_GRAVITY = 0.08;
 const STUN_DURATION = 2000;
 
 let isCharging = false;
@@ -341,11 +342,14 @@ function drawParticle(p) {
 }
 
 function initGame() {
+    const firstCloudY = 420;
+    const firstCloudTop = firstCloudY - 35;
+    
     player.x = 200;
-    player.y = 300;
+    player.y = firstCloudTop;
     player.vx = 0;
     player.vy = 0;
-    player.onCloud = false;
+    player.onCloud = true;
     player.squash = 1;
     player.stretch = 1;
     player.cloudSquish = 0;
@@ -374,20 +378,20 @@ function initGame() {
 
 function generateInitialClouds() {
     clouds.push({
-        x: 100,
-        y: 400,
-        width: 200,
-        height: 60,
+        x: 200,
+        y: 420,
+        width: 350,
+        height: 70,
         life: 1,
         maxLife: 1,
-        fadeSpeed: 0.001,
+        fadeSpeed: 0.0002,
         squish: 0
     });
     
-    let lastX = 250;
+    let lastX = 450;
     for (let i = 0; i < 10; i++) {
-        lastX += 150 + Math.random() * 100;
-        const cloudY = 300 + Math.random() * 200;
+        lastX += 100 + Math.random() * 70;
+        const cloudY = 340 + Math.random() * 160;
         addCloud(lastX, cloudY);
     }
 }
@@ -470,11 +474,13 @@ function update() {
     const gravity = isFlying ? FLY_GRAVITY : GRAVITY;
     player.vy += gravity;
     
+    const speedProgress = Math.min(distance / 3000, 1);
+    const currentMoveSpeed = MOVE_SPEED_BASE + (MOVE_SPEED_MAX - MOVE_SPEED_BASE) * speedProgress;
+    
     if (isStunned) {
         player.vx *= 0.95;
     } else {
-        const targetVx = MOVE_SPEED;
-        player.vx += (targetVx - player.vx) * 0.1;
+        player.vx += (currentMoveSpeed - player.vx) * 0.08;
     }
     
     player.x += player.vx;
@@ -489,6 +495,8 @@ function update() {
     score = distance + essenceCount * 100;
     
     player.onCloud = false;
+    let currentCloud = null;
+    
     for (let cloud of clouds) {
         if (cloud.life <= 0.1) continue;
         
@@ -496,31 +504,32 @@ function update() {
         const cloudLeft = cloud.x - cloud.width / 2;
         const cloudRight = cloud.x + cloud.width / 2;
         
-        if (player.vy >= 0 &&
-            player.x + player.width / 3 > cloudLeft &&
-            player.x - player.width / 3 < cloudRight &&
-            player.y >= cloudTop - 10 &&
-            player.y <= cloudTop + 20) {
-            
-            player.y = cloudTop;
-            player.vy = 0;
-            player.onCloud = true;
-            
-            if (player.squash < 1.3) {
-                player.squash = 1.3;
-                player.stretch = 0.7;
-                cloud.squish = 15;
-                createLandingParticles(player.x, player.y);
+        const playerBottom = player.y;
+        const playerLeft = player.x - player.width / 3;
+        const playerRight = player.x + player.width / 3;
+        
+        const isHorizontalOverlap = playerRight > cloudLeft && playerLeft < cloudRight;
+        
+        if (isHorizontalOverlap && player.vy >= 0) {
+            if (playerBottom >= cloudTop - 5 && playerBottom <= cloudTop + 25) {
+                player.y = cloudTop;
+                player.vy = 0;
+                player.onCloud = true;
+                currentCloud = cloud;
+                
+                if (player.squash < 1.3) {
+                    player.squash = 1.3;
+                    player.stretch = 0.7;
+                    cloud.squish = 15;
+                    createLandingParticles(player.x, player.y);
+                }
+                break;
             }
         }
     }
     
     for (let cloud of clouds) {
-        if (player.onCloud && cloud === clouds.find(c => 
-            player.x > c.x - c.width / 2 && 
-            player.x < c.x + c.width / 2 &&
-            Math.abs(player.y - (c.y - c.height / 2 + c.squish)) < 5
-        )) {
+        if (cloud === currentCloud) {
             cloud.life -= cloud.fadeSpeed * 1.5;
         } else {
             cloud.life -= cloud.fadeSpeed * 0.3;
@@ -751,7 +760,29 @@ function gameLoop() {
 
 function startGame() {
     const nameInput = document.getElementById('playerName');
-    playerName = nameInput.value.trim() || '匿名玩家';
+    const nameValue = nameInput.value.trim();
+    
+    if (!nameValue) {
+        nameInput.style.borderColor = '#ff6b6b';
+        nameInput.style.boxShadow = '0 0 10px rgba(255, 107, 107, 0.5)';
+        nameInput.placeholder = '请输入你的名字哦~';
+        nameInput.classList.add('shake');
+        setTimeout(() => {
+            nameInput.classList.remove('shake');
+        }, 500);
+        return;
+    }
+    
+    if (nameValue.length > 20) {
+        nameInput.style.borderColor = '#ff6b6b';
+        nameInput.style.boxShadow = '0 0 10px rgba(255, 107, 107, 0.5)';
+        return;
+    }
+    
+    playerName = nameValue;
+    
+    nameInput.style.borderColor = '#d4a574';
+    nameInput.style.boxShadow = 'none';
     
     initGame();
     gameState = 'playing';
@@ -815,12 +846,25 @@ async function loadLeaderboard() {
 }
 
 document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && gameState === 'playing') {
+    if (e.code === 'Space') {
+        const activeElement = document.activeElement;
+        if (activeElement && activeElement.tagName === 'INPUT') {
+            return;
+        }
+        
         e.preventDefault();
-        if (!isCharging && player.onCloud && !isStunned) {
-            isCharging = true;
-            chargePower = 0;
-            document.getElementById('powerBarContainer').style.display = 'flex';
+        
+        if (gameState === 'start' || gameState === 'gameover') {
+            startGame();
+            return;
+        }
+        
+        if (gameState === 'playing') {
+            if (!isCharging && player.onCloud && !isStunned) {
+                isCharging = true;
+                chargePower = 0;
+                document.getElementById('powerBarContainer').style.display = 'flex';
+            }
         }
     }
 });
@@ -837,5 +881,11 @@ document.addEventListener('keyup', (e) => {
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('restartBtn').addEventListener('click', startGame);
 
+document.getElementById('playerName').addEventListener('input', (e) => {
+    e.target.style.borderColor = '#d4a574';
+    e.target.style.boxShadow = 'none';
+});
+
+initGame();
 loadLeaderboard();
 gameLoop();
