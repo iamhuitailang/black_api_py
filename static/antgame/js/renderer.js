@@ -77,13 +77,23 @@ class GameRenderer {
             if (this.ants.has(serverAnt.id)) {
                 const localAnt = this.ants.get(serverAnt.id);
                 
-                localAnt.targetX = serverAnt.target_x !== null && serverAnt.target_x !== undefined 
-                    ? serverAnt.target_x 
+                const newTargetX = serverAnt.target_x !== null && serverAnt.target_x !== undefined
+                    ? serverAnt.target_x
                     : serverAnt.x;
-                localAnt.targetY = serverAnt.target_y !== null && serverAnt.target_y !== undefined 
-                    ? serverAnt.target_y 
+                const newTargetY = serverAnt.target_y !== null && serverAnt.target_y !== undefined
+                    ? serverAnt.target_y
                     : serverAnt.y;
                 
+                const diffX = serverAnt.x - localAnt.x;
+                const diffY = serverAnt.y - localAnt.y;
+                const diffDist = Math.sqrt(diffX * diffX + diffY * diffY);
+                if (diffDist > 40) {
+                    localAnt.x = serverAnt.x;
+                    localAnt.y = serverAnt.y;
+                }
+                
+                localAnt.targetX = newTargetX;
+                localAnt.targetY = newTargetY;
                 localAnt.serverX = serverAnt.x;
                 localAnt.serverY = serverAnt.y;
                 localAnt.ant_type = serverAnt.ant_type;
@@ -95,16 +105,18 @@ class GameRenderer {
                 localAnt.speed = serverAnt.speed;
                 localAnt.rest_time = serverAnt.rest_time;
             } else {
+                var initTargetX = serverAnt.target_x !== null && serverAnt.target_x !== undefined
+                    ? serverAnt.target_x
+                    : serverAnt.x;
+                var initTargetY = serverAnt.target_y !== null && serverAnt.target_y !== undefined
+                    ? serverAnt.target_y
+                    : serverAnt.y;
                 this.ants.set(serverAnt.id, {
                     id: serverAnt.id,
-                    x: serverAnt.x,
-                    y: serverAnt.y,
-                    targetX: serverAnt.target_x !== null && serverAnt.target_x !== undefined 
-                        ? serverAnt.target_x 
-                        : serverAnt.x,
-                    targetY: serverAnt.target_y !== null && serverAnt.target_y !== undefined 
-                        ? serverAnt.target_y 
-                        : serverAnt.y,
+                    x: initTargetX,
+                    y: initTargetY,
+                    targetX: initTargetX,
+                    targetY: initTargetY,
                     serverX: serverAnt.x,
                     serverY: serverAnt.y,
                     ant_type: serverAnt.ant_type,
