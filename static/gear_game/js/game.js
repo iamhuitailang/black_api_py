@@ -1,3 +1,5 @@
+const STORAGE_KEY = 'gear_game_save';
+
 const LevelConfig = {
     getConfig(level) {
         return {
@@ -33,6 +35,7 @@ class Game {
         this.particles = [];
         this.particleContainer = null;
         this.gameBoardElement = null;
+        this.highlightedCells = [];
         this.setupCallbacks();
     }
 
@@ -41,14 +44,29 @@ class Game {
         this.board.onComboCallback = (combo) => this.updateCombo(combo);
         this.board.onShakeCallback = (combo) => this.shakeBoard(combo);
         this.board.onParticlesCallback = (particle) => this.spawnParticle(particle);
+        this.board.onMoveCallback = () => this.handleMoveMade();
+    }
+
+    handleMoveMade() {
+        if (this.steps > 0) {
+            this.steps--;
+            this.stepsUsed++;
+            this.resetCombo();
+            this.updateUI();
+            this.saveGameState();
+            this.checkGameOver();
+        }
     }
 
     init(containerId) {
         this.gameBoardElement = document.getElementById(containerId);
         this.particleContainer = document.getElementById('particles-container');
-        this.applyTheme();
-        this.newGame();
         this.animateParticles();
+        
+        if (!this.loadGame()) {
+            this.applyTheme();
+            this.newGame();
+        }
     }
 
     applyTheme() {
@@ -72,11 +90,13 @@ class Game {
 
         this.updateUI();
         this.hideModal();
+        this.saveGameState();
     }
 
     addScore(points) {
         this.score += points;
         this.updateUI();
+        this.saveGameState();
         this.checkWinCondition();
     }
 
@@ -95,7 +115,9 @@ class Game {
 
     async makeMove(gear1, gear2) {
         if (this.isGameOver || this.steps <= 0) return false;
+        if (this.board.isAnimating) return false;
 
+        this.clearHintHighlight();
         const success = await this.board.trySwap(gear1, gear2);
         
         if (success) {
@@ -103,6 +125,7 @@ class Game {
             this.stepsUsed++;
             this.resetCombo();
             this.updateUI();
+            this.saveGameState();
             this.checkGameOver();
         }
 
@@ -188,6 +211,7 @@ class Game {
     checkWinCondition() {
         if (this.score >= this.target && !this.isGameOver) {
             this.isGameOver = true;
+            this.saveGameState();
             setTimeout(() => this.showWinModal(), 500);
         }
     }
@@ -195,12 +219,14 @@ class Game {
     checkGameOver() {
         if (this.steps <= 0 && this.score < this.target && !this.isGameOver) {
             this.isGameOver = true;
+            this.saveGameState();
             setTimeout(() => this.showLoseModal(), 500);
         }
     }
 
     showWinModal() {
         this.saveGame(true);
+        this.clearSavedState();
         
         const modal = document.getElementById('modal-overlay');
         const title = document.getElementById('modal-title');
@@ -220,6 +246,7 @@ class Game {
 
     showLoseModal() {
         this.saveGame(false);
+        this.clearSavedState();
         
         const modal = document.getElementById('modal-overlay');
         const title = document.getElementById('modal-title');
@@ -283,29 +310,37 @@ class Game {
         }
     }
 
+    clearHintHighlight() {
+        if (this.gameBoardElement) {
+            const cells = this.gameBoardElement.querySelectorAll('.gear-cell.hint');
+            cells.forEach(cell => cell.classList.remove('hint'));
+        }
+        this.highlightedCells = [];
+    }
+
     showHint() {
+        this.clearHintHighlight();
         const moves = this.board.findPossibleMoves();
-        if (moves.length > 0) {
+        
+        if (moves.length > 0 && this.gameBoardElement) {
             const [[r1, c1], [r2, c2]] = moves[0];
             
-            const gear1 = this.board.getGearAt(r1, c1);
-            const gear2 = this.board.getGearAt(r2, c2);
-            
-            if (gear1 && gear1.element) {
-                gear1.element.classList.add('hint');
-            }
-            if (gear2 && gear2.element) {
-                gear2.element.classList.add('hint');
-            }
+            const allCells = this.gameBoardElement.querySelectorAll('.gear-cell');
+            allCells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                
+                if ((row === r1 && col === c1) || (row === r2 && col === c2)) {
+                    cell.classList.add('hint');
+                    this.highlightedCells.push(cell);
+                }
+            });
 
             setTimeout(() => {
-                if (gear1 && gear1.element) {
-                    gear1.element.classList.remove('hint');
-                }
-                if (gear2 && gear2.element) {
-                    gear2.element.classList.remove('hint');
-                }
-            }, 2000);
+                this.clearHintHighlight();
+            }, 2500);
+        } else {
+            console.log('没有找到可移动的步骤');
         }
     }
 
@@ -326,5 +361,64 @@ class Game {
 
     getBoard() {
         return this.board;
+    }
+
+    saveGameState() {
+        try {
+            const state = {
+                level: this.level,
+                score: this.score,
+                target: this.target,
+                steps: this.steps,
+                maxCombo: this.maxCombo,
+                stepsUsed: this.stepsUsed,
+                isGameOver: this.isGameOver,
+                grid: this.board.serialize()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (error) {
+            console.error('保存游戏状态失败:', error);
+        }
+    }
+
+    loadGame() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return false;
+
+            const state = JSON.parse(saved);
+            
+            this.level = state.level;
+            this.score = state.score;
+            this.target = state.target;
+            this.steps = state.steps;
+            this.combo = 0;
+            this.maxCombo = state.maxCombo;
+            this.stepsUsed = state.stepsUsed;
+            this.isGameOver = state.isGameOver;
+
+            this.applyTheme();
+            this.board.setLevel(this.level);
+            this.board.deserialize(state.grid);
+            this.board.render(this.gameBoardElement);
+
+            this.updateUI();
+            this.hideModal();
+            this.loadHighScores();
+
+            console.log('游戏状态已恢复');
+            return true;
+        } catch (error) {
+            console.error('加载游戏状态失败:', error);
+            return false;
+        }
+    }
+
+    clearSavedState() {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (error) {
+            console.error('清除保存状态失败:', error);
+        }
     }
 }

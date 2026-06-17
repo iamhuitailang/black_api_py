@@ -10,6 +10,8 @@ class Board {
         this.onComboCallback = null;
         this.onShakeCallback = null;
         this.onParticlesCallback = null;
+        this.onMoveCallback = null;
+        this.container = null;
         this.init();
     }
 
@@ -97,6 +99,9 @@ class Board {
     }
 
     render(container) {
+        if (!this.container) {
+            this.container = container;
+        }
         container.innerHTML = '';
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
@@ -107,6 +112,23 @@ class Board {
                     container.appendChild(element);
                 }
             }
+        }
+
+        if (this.selectedGear && this.selectedGear.element) {
+            const selRow = this.selectedGear.row;
+            const selCol = this.selectedGear.col;
+            const gears = container.querySelectorAll('.gear-cell');
+            gears.forEach(g => {
+                if (parseInt(g.dataset.row) === selRow && parseInt(g.dataset.col) === selCol) {
+                    g.classList.add('selected');
+                }
+            });
+        }
+    }
+
+    rerender() {
+        if (this.container) {
+            this.render(this.container);
         }
     }
 
@@ -132,16 +154,12 @@ class Board {
 
     selectGear(row, col) {
         this.selectedGear = this.grid[row][col];
-        if (this.selectedGear && this.selectedGear.element) {
-            this.selectedGear.element.classList.add('selected');
-        }
+        this.rerender();
     }
 
     deselectGear() {
-        if (this.selectedGear && this.selectedGear.element) {
-            this.selectedGear.element.classList.remove('selected');
-        }
         this.selectedGear = null;
+        this.rerender();
     }
 
     areAdjacent(gear1, gear2) {
@@ -160,15 +178,21 @@ class Board {
         const col2 = gear2.col;
 
         this.swapGears(gear1, gear2);
+        this.rerender();
 
         const matches = this.findMatches();
         
         if (matches.length > 0) {
-            this.deselectGear();
+            this.selectedGear = null;
             await this.processMatches();
+            if (this.onMoveCallback) {
+                this.onMoveCallback();
+            }
         } else {
-            await this.swapGears(gear1, gear2);
-            this.deselectGear();
+            await this.delay(200);
+            this.swapGears(gear1, gear2);
+            this.selectedGear = null;
+            this.rerender();
             this.isAnimating = false;
             return false;
         }
@@ -188,29 +212,6 @@ class Board {
 
         gear1.updatePosition(row2, col2);
         gear2.updatePosition(row1, col1);
-
-        if (gear1.element && gear2.element) {
-            const tempRow1 = gear1.element.style.gridRow;
-            const tempCol1 = gear1.element.style.gridColumn;
-            gear1.element.style.gridRow = gear2.element.style.gridRow;
-            gear1.element.style.gridColumn = gear2.element.style.gridColumn;
-            gear2.element.style.gridRow = tempRow1;
-            gear2.element.style.gridColumn = tempCol1;
-
-            const parent = gear1.element.parentNode;
-            const nextSibling = gear1.element.nextSibling;
-            
-            gear2.element.remove();
-            gear1.element.remove();
-            
-            if (nextSibling === gear2.element) {
-                parent.insertBefore(gear1.element, gear2.element);
-                parent.insertBefore(gear2.element, gear1.element.nextSibling);
-            } else {
-                parent.insertBefore(gear2.element, nextSibling);
-                parent.insertBefore(gear1.element, gear2.element.nextSibling);
-            }
-        }
     }
 
     findMatches() {
@@ -273,9 +274,9 @@ class Board {
             if (gear && startGear.matches(gear)) {
                 match.push(gear);
             } else {
-                    break;
-                }
+                break;
             }
+        }
 
         return match;
     }
@@ -346,53 +347,33 @@ class Board {
                 }
             }
 
-            await this.removeGears(toRemove);
+            for (const key of toRemove) {
+                const [row, col] = key.split('-').map(Number);
+                this.grid[row][col] = null;
+            }
 
             for (const effect of specialEffects) {
                 if (effect.type === 'explode') {
-                    await this.explodeAround(effect.gear, combo);
+                    this.explodeAround(effect.gear, combo);
                 }
             }
 
-            await this.applyGravity();
+            this.rerender();
+            await this.delay(300);
 
-            await this.fillEmptySpaces();
+            this.applyGravitySync();
+            this.rerender();
+            await this.delay(200);
 
+            this.fillEmptySpacesSync();
+            this.rerender();
             await this.delay(300);
         }
 
         return { score: totalScore, combo };
     }
 
-    async removeGears(toRemove) {
-        const promises = [];
-        
-        for (const key of toRemove) {
-            const [row, col] = key.split('-').map(Number);
-            const gear = this.grid[row][col];
-            
-            if (gear && gear.element) {
-                gear.element.querySelector('.gear').classList.add('gear-matching');
-                
-                const promise = new Promise(resolve => {
-                    setTimeout(() => {
-                        if (gear.element && gear.element.parentNode) {
-                            gear.element.remove();
-                        }
-                        this.grid[row][col] = null;
-                        resolve();
-                    }, 300);
-                });
-                promises.push(promise);
-            } else {
-                this.grid[row][col] = null;
-            }
-        }
-
-        await Promise.all(promises);
-    }
-
-    async explodeAround(gear, combo) {
+    explodeAround(gear, combo) {
         const row = gear.row;
         const col = gear.col;
         const toExplode = [];
@@ -421,24 +402,11 @@ class Board {
                 }
             }
 
-            if (g.element) {
-                g.element.querySelector('.gear').classList.add('gear-matching');
-            }
-
             if (this.onScoreCallback) {
                 this.onScoreCallback(g.getScoreValue());
             }
-        }
 
-        await this.delay(300);
-
-        for (const g of toExplode) {
-            if (g.type !== GearType.RUST || g.rustLayers <= 0) {
-                if (g.element && g.element.parentNode) {
-                    g.element.remove();
-                }
-                this.grid[g.row][g.col] = null;
-            }
+            this.grid[g.row][g.col] = null;
         }
     }
 
@@ -465,7 +433,7 @@ class Board {
         }
     }
 
-    async applyGravity() {
+    applyGravitySync() {
         for (let col = 0; col < this.cols; col++) {
             for (let row = this.rows - 1; row >= 0; row--) {
                 if (!this.grid[row][col]) {
@@ -475,44 +443,22 @@ class Board {
                             this.grid[row][col] = gear;
                             this.grid[aboveRow][col] = null;
                             gear.updatePosition(row, col);
-                            
-                            if (gear.element) {
-                                gear.element.querySelector('.gear').classList.add('gear-falling');
-                                setTimeout(() => {
-                                    gear.element.querySelector('.gear').classList.remove('gear-falling');
-                                }, 300);
-                            }
                             break;
                         }
                     }
                 }
             }
         }
-        
-        await this.delay(200);
     }
 
-    async fillEmptySpaces() {
-        const container = document.getElementById('game-board');
-        
+    fillEmptySpacesSync() {
         for (let col = 0; col < this.cols; col++) {
             for (let row = this.rows - 1; row >= 0; row--) {
                 if (!this.grid[row][col]) {
-                    const gear = this.createGearAtAvoidingMatches(row, col);
-                    const element = gear.createElement();
-                    element.addEventListener('click', () => this.handleGearClick(row, col));
-                    element.querySelector('.gear').classList.add('gear-falling');
-                    
-                    container.appendChild(element);
-                    
-                    setTimeout(() => {
-                        element.querySelector('.gear').classList.remove('gear-falling');
-                    }, 300);
+                    this.createGearAtAvoidingMatches(row, col);
                 }
             }
         }
-        
-        await this.delay(300);
     }
 
     findPossibleMoves() {
@@ -563,5 +509,41 @@ class Board {
 
     setLevel(level) {
         this.level = level;
+    }
+
+    serialize() {
+        const gridData = [];
+        for (let row = 0; row < this.rows; row++) {
+            gridData[row] = [];
+            for (let col = 0; col < this.cols; col++) {
+                const gear = this.grid[row][col];
+                if (gear) {
+                    gridData[row][col] = {
+                        color: gear.color,
+                        type: gear.type,
+                        rustLayers: gear.rustLayers
+                    };
+                } else {
+                    gridData[row][col] = null;
+                }
+            }
+        }
+        return gridData;
+    }
+
+    deserialize(gridData) {
+        this.init();
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const data = gridData[row]?.[col];
+                if (data) {
+                    const gear = new Gear(row, col, data.color, data.type);
+                    if (data.rustLayers !== undefined) {
+                        gear.rustLayers = data.rustLayers;
+                    }
+                    this.grid[row][col] = gear;
+                }
+            }
+        }
     }
 }

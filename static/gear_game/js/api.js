@@ -1,5 +1,5 @@
 const GameAPI = {
-    baseURL: 'http://localhost:8080/api/gear/game',
+    baseURL: 'http://localhost:8980/api/gear/game',
 
     async saveGame(level, score, maxCombo, stepsUsed, isWin) {
         try {
