@@ -2,8 +2,12 @@
     'use strict';
 
     var C = {
-        GRAVITY: 0.6,
-        JUMP_FORCE: -13,
+        GRAVITY: 0.55,
+        JUMP_FORCE: -12.5,
+        JUMP_HOLD_FORCE: -0.35,
+        JUMP_HOLD_MAX_FRAMES: 14,
+        COYOTE_FRAMES: 6,
+        JUMP_BUFFER_FRAMES: 8,
         BASE_SPEED: 6,
         MAX_SPEED: 12,
         SPEED_INCR: 0.0004,
@@ -27,10 +31,7 @@
         SKYLIGHT_W: 50,
         SKYLIGHT_H: 10,
         LETTER_SIZE: 24,
-        JUMP_HOLD_MIN: 100,
-        JUMP_HOLD_MAX: 400,
-        JUMP_EXTRA_FORCE_MIN: 0,
-        JUMP_EXTRA_FORCE_MAX: 3.5
+        JUMP_EXTRA_VX: 1.8
     };
 
     var STORIES = [
@@ -71,8 +72,10 @@
     var neonSigns = [];
 
     var keys = {};
-    var jumpPressTime = 0;
+    var jumpBufferTime = 0;
+    var coyoteTime = 0;
     var jumpHeld = false;
+    var jumpHoldTimer = 0;
     var cachedEls = {};
 
     var STORAGE_KEY = 'skyline_runner_save';
@@ -125,6 +128,13 @@
         initNeonSigns();
         resetGame();
 
+        window.addEventListener('beforeunload', function() {
+            saveGameState();
+        });
+        window.addEventListener('pagehide', function() {
+            saveGameState();
+        });
+
         var savedName = loadFromStorage('playerName');
         if (savedName) {
             playerName = savedName;
@@ -132,7 +142,9 @@
             if (nameInput) nameInput.value = savedName;
         }
 
-        showOverlay('main-menu');
+        if (!restoreGameState()) {
+            showOverlay('main-menu');
+        }
         requestAnimationFrame(loop);
     }
 
@@ -148,7 +160,7 @@
                 e.preventDefault();
                 if (!keys.space) {
                     keys.space = true;
-                    jumpPressTime = Date.now();
+                    jumpBufferTime = C.JUMP_BUFFER_FRAMES;
                     jumpHeld = true;
                 }
             }
@@ -161,13 +173,10 @@
             if (e.code === 'Space') {
                 e.preventDefault();
                 keys.space = false;
-                if (jumpHeld && gameState === STATE.PLAYING) {
-                    var holdTime = Date.now() - jumpPressTime;
-                    playerJump(holdTime);
-                    jumpHeld = false;
-                }
+                jumpHeld = false;
             }
             if (e.code === 'KeyS') {
+                e.preventDefault();
                 keys.s = false;
             }
         });
@@ -178,17 +187,13 @@
             btnJump.addEventListener('touchstart', function(e) {
                 e.preventDefault();
                 keys.space = true;
-                jumpPressTime = Date.now();
+                jumpBufferTime = C.JUMP_BUFFER_FRAMES;
                 jumpHeld = true;
             }, { passive: false });
             btnJump.addEventListener('touchend', function(e) {
                 e.preventDefault();
                 keys.space = false;
-                if (jumpHeld && gameState === STATE.PLAYING) {
-                    var holdTime = Date.now() - jumpPressTime;
-                    playerJump(holdTime);
-                    jumpHeld = false;
-                }
+                jumpHeld = false;
             }, { passive: false });
         }
         if (btnSlide) {
@@ -203,14 +208,16 @@
         }
     }
 
-    function playerJump(holdTime) {
-        if (player.jumping || player.sliding || player.falling) return;
+    function startJump() {
+        if (player.jumping || player.sliding || player.falling) return false;
         player.jumping = true;
         player.vy = C.JUMP_FORCE;
-        var t = Math.min(Math.max(holdTime, C.JUMP_HOLD_MIN), C.JUMP_HOLD_MAX);
-        var ratio = (t - C.JUMP_HOLD_MIN) / (C.JUMP_HOLD_MAX - C.JUMP_HOLD_MIN);
-        player.extraVx = C.JUMP_EXTRA_FORCE_MIN + ratio * (C.JUMP_EXTRA_FORCE_MAX - C.JUMP_EXTRA_FORCE_MIN);
+        player.extraVx = C.JUMP_EXTRA_VX;
         player.jumpFrame = 0;
+        jumpHoldTimer = 0;
+        coyoteTime = 0;
+        jumpBufferTime = 0;
+        return true;
     }
 
     function setupUI() {
@@ -274,6 +281,7 @@
         }
         if (nameInput) nameInput.value = playerName;
         saveToStorage('playerName', playerName);
+        clearGameState();
 
         resetGame();
         gameState = STATE.COUNTDOWN;
@@ -424,13 +432,24 @@
             nightProgress = t;
         }
 
+        if (jumpBufferTime > 0) jumpBufferTime--;
+        if (coyoteTime > 0) coyoteTime--;
+
+        if (!player.jumping && !player.falling && !player.sliding) {
+            coyoteTime = C.COYOTE_FRAMES;
+        }
+
+        if (jumpBufferTime > 0 && coyoteTime > 0 && !player.jumping && !player.sliding && !player.falling) {
+            startJump();
+        }
+
         updatePlayer();
         updateRoofs();
         updateObstacles();
         updateLetterPickups();
         updateParticles();
 
-        if (keys.s && !player.sliding && !player.jumping && !player.falling) {
+        if (keys.s && !player.sliding && !player.jumping && !player.falling && player.onGround) {
             player.sliding = true;
             player.slideTimer = C.SLIDE_DURATION;
             player.h = C.SLIDE_H;
@@ -442,11 +461,17 @@
             if (player.slideTimer <= 0) {
                 player.sliding = false;
                 player.h = C.PLAYER_H;
-                player.y = player.currentRoof.y - C.PLAYER_H;
+                if (player.currentRoof) {
+                    player.y = player.currentRoof.y - C.PLAYER_H;
+                }
             }
         }
 
         player.runFrame += 0.15;
+
+        if (frameCount % 30 === 0) {
+            saveGameState();
+        }
 
         var hudDist = $('hud-dist');
         var hudLetters = $('hud-letters');
@@ -459,19 +484,40 @@
             player.fallSpeed += C.GRAVITY;
             player.y += player.fallSpeed;
 
-            for (var i = 0; i < roofs.length; i++) {
-                var r = roofs[i];
-                if (player.fallSpeed > 0 &&
-                    player.x + player.w > r.x + 5 &&
-                    player.x < r.x + r.w - 5 &&
-                    player.y + player.h >= r.y &&
-                    player.y + player.h <= r.y + player.fallSpeed + 5) {
-                    player.y = r.y - player.h;
-                    player.falling = false;
-                    player.fallSpeed = 0;
-                    player.onGround = true;
-                    player.currentRoof = r;
-                    break;
+            if (jumpBufferTime > 0) {
+                for (var fi = 0; fi < roofs.length; fi++) {
+                    var fr = roofs[fi];
+                    var landY = fr.y - player.h;
+                    if (player.x + player.w > fr.x + 5 &&
+                        player.x < fr.x + fr.w - 5 &&
+                        player.y + player.h >= fr.y - 2 &&
+                        player.y + player.h <= fr.y + player.fallSpeed + 10) {
+                        player.y = landY;
+                        player.falling = false;
+                        player.fallSpeed = 0;
+                        player.onGround = true;
+                        player.currentRoof = fr;
+                        startJump();
+                        break;
+                    }
+                }
+            }
+
+            if (!player.jumping) {
+                for (var i = 0; i < roofs.length; i++) {
+                    var r = roofs[i];
+                    if (player.fallSpeed > 0 &&
+                        player.x + player.w > r.x + 5 &&
+                        player.x < r.x + r.w - 5 &&
+                        player.y + player.h >= r.y &&
+                        player.y + player.h <= r.y + player.fallSpeed + 5) {
+                        player.y = r.y - player.h;
+                        player.falling = false;
+                        player.fallSpeed = 0;
+                        player.onGround = true;
+                        player.currentRoof = r;
+                        break;
+                    }
                 }
             }
 
@@ -482,12 +528,16 @@
         }
 
         if (player.jumping) {
+            if (jumpHeld && jumpHoldTimer < C.JUMP_HOLD_MAX_FRAMES && player.vy < 0) {
+                player.vy += C.JUMP_HOLD_FORCE;
+                jumpHoldTimer++;
+            }
             player.vy += C.GRAVITY;
             player.y += player.vy;
             player.x += player.extraVx;
             player.jumpFrame++;
             if (player.extraVx > 0) {
-                player.extraVx *= 0.95;
+                player.extraVx *= 0.96;
             }
 
             if (player.vy > 0) {
@@ -523,6 +573,7 @@
                 player.currentRoof = null;
             } else {
                 player.y = cr.y - player.h;
+                player.onGround = true;
             }
         }
     }
@@ -710,9 +761,73 @@
         toast.classList.add('show');
     }
 
+    function saveGameState() {
+        if (gameState !== STATE.PLAYING) return;
+        try {
+            var state = {
+                gameState: gameState,
+                playerName: playerName,
+                distance: distance,
+                speed: speed,
+                nightProgress: nightProgress,
+                collectedLettersThisRun: collectedLettersThisRun,
+                pendingLetterSaves: pendingLetterSaves,
+                player: player,
+                roofs: roofs,
+                obstacles: obstacles,
+                letterPickups: letterPickups,
+                savedAt: Date.now()
+            };
+            saveToStorage('gameState', state);
+        } catch (e) {}
+    }
+
+    function clearGameState() {
+        saveToStorage('gameState', null);
+    }
+
+    function restoreGameState() {
+        var state = loadFromStorage('gameState');
+        if (!state || !state.playerName || state.distance < 5) return false;
+        var elapsed = Date.now() - (state.savedAt || 0);
+        if (elapsed > 10 * 60 * 1000) return false;
+
+        var msg = '检测到未完成的游戏进度（距离: ' + Math.floor(state.distance) + 'm, 昵称: ' + state.playerName + '），是否继续？';
+        if (!confirm(msg)) {
+            clearGameState();
+            return false;
+        }
+
+        gameState = state.gameState;
+        playerName = state.playerName;
+        distance = state.distance;
+        speed = state.speed;
+        nightProgress = state.nightProgress;
+        collectedLettersThisRun = state.collectedLettersThisRun || [];
+        pendingLetterSaves = state.pendingLetterSaves || [];
+        player = state.player;
+        roofs = state.roofs || [];
+        obstacles = state.obstacles || [];
+        letterPickups = state.letterPickups || [];
+        particles = [];
+        jumpBufferTime = 0;
+        coyoteTime = 0;
+        jumpHeld = false;
+        jumpHoldTimer = 0;
+
+        var nameInput = $('player-name');
+        if (nameInput) nameInput.value = playerName;
+
+        gameState = STATE.PLAYING;
+        showOverlay('hud');
+        clearGameState();
+        return true;
+    }
+
     function gameOver() {
         if (gameState === STATE.GAMEOVER) return;
         gameState = STATE.GAMEOVER;
+        clearGameState();
 
         var dist = Math.floor(distance);
         var el;
