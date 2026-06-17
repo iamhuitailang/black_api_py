@@ -110,8 +110,8 @@ class LevelSelect {
           exitPoint: mc.exit_point,
           deployNodes: mc.deploy_nodes,
           waves: waves,
-          startingSamples: 350,
-          startingLives: 30
+          startingSamples: 200,
+          startingLives: 20
         };
         this.app.startLevel(levelData);
       } else {
@@ -200,34 +200,34 @@ class LevelSelect {
     ];
 
     var waves_1 = [
-      { enemies: [{type:'normal', count:8, interval:1200, entry:0}, {type:'normal', count:5, interval:1200, entry:1}], reward: 30 },
-      { enemies: [{type:'normal', count:6, interval:1000, entry:0}, {type:'acid', count:3, interval:1500, entry:1}], reward: 40 },
-      { enemies: [{type:'normal', count:8, interval:800, entry:0}, {type:'acid', count:4, interval:1200, entry:1}, {type:'shell', count:3, interval:2000, entry:0}], reward: 50 },
-      { enemies: [{type:'normal', count:10, interval:600, entry:0}, {type:'shell', count:5, interval:1500, entry:1}, {type:'mother', count:2, interval:4000, entry:0}], reward: 80 },
-      { enemies: [{type:'acid', count:8, interval:700, entry:0}, {type:'shell', count:6, interval:1000, entry:1}, {type:'mother', count:3, interval:3000, entry:0}], reward: 100 }
+      { enemies: [{type:'normal', count:12, interval:900, entry:0}, {type:'normal', count:8, interval:900, entry:1}], reward: 20 },
+      { enemies: [{type:'normal', count:10, interval:700, entry:0}, {type:'acid', count:5, interval:1000, entry:1}], reward: 25 },
+      { enemies: [{type:'normal', count:12, interval:600, entry:0}, {type:'acid', count:6, interval:800, entry:1}, {type:'shell', count:4, interval:1500, entry:0}], reward: 30 },
+      { enemies: [{type:'acid', count:10, interval:500, entry:0}, {type:'shell', count:6, interval:1000, entry:1}, {type:'mother', count:1, interval:3000, entry:0}], reward: 40 },
+      { enemies: [{type:'normal', count:15, interval:400, entry:0}, {type:'acid', count:8, interval:600, entry:1}, {type:'shell', count:8, interval:700, entry:0}, {type:'mother', count:2, interval:2500, entry:1}], reward: 50 }
     ];
 
     var waves_2 = [
-      { enemies: [{type:'normal', count:6, interval:1000, entry:0}, {type:'normal', count:6, interval:1000, entry:1}], reward: 30 },
-      { enemies: [{type:'normal', count:10, interval:700, entry:0}, {type:'acid', count:4, interval:1200, entry:1}], reward: 40 },
-      { enemies: [{type:'normal', count:8, interval:600, entry:0}, {type:'shell', count:5, interval:1000, entry:1}, {type:'acid', count:4, interval:1000, entry:0}], reward: 50 },
-      { enemies: [{type:'acid', count:8, interval:600, entry:0}, {type:'shell', count:6, interval:800, entry:1}], reward: 60 },
-      { enemies: [{type:'normal', count:12, interval:400, entry:0}, {type:'acid', count:6, interval:600, entry:1}, {type:'mother', count:1, interval:4000, entry:0}], reward: 80 },
-      { enemies: [{type:'shell', count:10, interval:600, entry:0}, {type:'mother', count:2, interval:3000, entry:1}], reward: 100 },
-      { enemies: [{type:'normal', count:20, interval:300, entry:0}, {type:'acid', count:10, interval:400, entry:1}, {type:'shell', count:8, interval:700, entry:0}, {type:'mother', count:3, interval:2500, entry:1}], reward: 130 }
+      { enemies: [{type:'normal', count:10, interval:800, entry:0}, {type:'normal', count:10, interval:800, entry:1}], reward: 20 },
+      { enemies: [{type:'normal', count:15, interval:500, entry:0}, {type:'acid', count:8, interval:700, entry:1}], reward: 25 },
+      { enemies: [{type:'normal', count:12, interval:400, entry:0}, {type:'shell', count:6, interval:700, entry:1}, {type:'acid', count:6, interval:600, entry:0}], reward: 30 },
+      { enemies: [{type:'acid', count:12, interval:400, entry:0}, {type:'shell', count:8, interval:600, entry:1}], reward: 35 },
+      { enemies: [{type:'normal', count:18, interval:300, entry:0}, {type:'acid', count:10, interval:400, entry:1}, {type:'mother', count:2, interval:2500, entry:0}], reward: 40 },
+      { enemies: [{type:'shell', count:12, interval:500, entry:0}, {type:'mother', count:3, interval:2000, entry:1}, {type:'acid', count:8, interval:500, entry:0}], reward: 50 },
+      { enemies: [{type:'normal', count:25, interval:250, entry:0}, {type:'acid', count:15, interval:300, entry:1}, {type:'shell', count:10, interval:500, entry:0}, {type:'mother', count:4, interval:1800, entry:1}], reward: 60 }
     ];
 
     var waves_3 = [
-      { enemies: [{type:'normal', count:8, interval:900, entry:0}, {type:'normal', count:8, interval:900, entry:1}], reward: 30 },
-      { enemies: [{type:'normal', count:12, interval:600, entry:0}, {type:'acid', count:6, interval:900, entry:1}], reward: 40 },
-      { enemies: [{type:'normal', count:10, interval:500, entry:0}, {type:'shell', count:6, interval:900, entry:1}, {type:'acid', count:5, interval:800, entry:0}], reward: 50 },
-      { enemies: [{type:'acid', count:10, interval:500, entry:0}, {type:'shell', count:8, interval:700, entry:1}], reward: 60 },
-      { enemies: [{type:'normal', count:15, interval:350, entry:0}, {type:'acid', count:8, interval:500, entry:1}, {type:'mother', count:2, interval:2500, entry:0}], reward: 80 },
-      { enemies: [{type:'shell', count:12, interval:500, entry:0}, {type:'mother', count:3, interval:2500, entry:1}], reward: 100 },
-      { enemies: [{type:'acid', count:12, interval:400, entry:0}, {type:'shell', count:10, interval:500, entry:1}, {type:'mother', count:2, interval:2000, entry:0}], reward: 110 },
-      { enemies: [{type:'normal', count:25, interval:250, entry:0}, {type:'shell', count:10, interval:500, entry:1}], reward: 120 },
-      { enemies: [{type:'acid', count:15, interval:350, entry:0}, {type:'mother', count:4, interval:2000, entry:1}, {type:'shell', count:10, interval:500, entry:0}], reward: 140 },
-      { enemies: [{type:'normal', count:30, interval:200, entry:0}, {type:'acid', count:15, interval:300, entry:1}, {type:'shell', count:12, interval:400, entry:0}, {type:'mother', count:5, interval:1500, entry:1}], reward: 180 }
+      { enemies: [{type:'normal', count:12, interval:700, entry:0}, {type:'normal', count:12, interval:700, entry:1}], reward: 20 },
+      { enemies: [{type:'normal', count:18, interval:450, entry:0}, {type:'acid', count:10, interval:600, entry:1}], reward: 25 },
+      { enemies: [{type:'normal', count:15, interval:350, entry:0}, {type:'shell', count:8, interval:600, entry:1}, {type:'acid', count:8, interval:500, entry:0}], reward: 30 },
+      { enemies: [{type:'acid', count:15, interval:350, entry:0}, {type:'shell', count:10, interval:500, entry:1}], reward: 35 },
+      { enemies: [{type:'normal', count:20, interval:300, entry:0}, {type:'acid', count:12, interval:350, entry:1}, {type:'mother', count:2, interval:2000, entry:0}], reward: 40 },
+      { enemies: [{type:'shell', count:15, interval:350, entry:0}, {type:'mother', count:3, interval:1800, entry:1}], reward: 45 },
+      { enemies: [{type:'acid', count:18, interval:300, entry:0}, {type:'shell', count:12, interval:400, entry:1}, {type:'mother', count:2, interval:1500, entry:0}], reward: 50 },
+      { enemies: [{type:'normal', count:30, interval:200, entry:0}, {type:'shell', count:12, interval:350, entry:1}], reward: 55 },
+      { enemies: [{type:'acid', count:20, interval:250, entry:0}, {type:'mother', count:4, interval:1500, entry:1}, {type:'shell', count:12, interval:350, entry:0}], reward: 60 },
+      { enemies: [{type:'normal', count:35, interval:150, entry:0}, {type:'acid', count:20, interval:200, entry:1}, {type:'shell', count:15, interval:300, entry:0}, {type:'mother', count:5, interval:1200, entry:1}], reward: 80 }
     ];
 
     var entryMap = {
@@ -255,8 +255,8 @@ class LevelSelect {
       exitPoint: exitMap[levelId] || exitMap[1],
       deployNodes: nodesMap[levelId] || deployNodes_1,
       waves: wavesMap[levelId] || waves_1,
-      startingSamples: 350,
-      startingLives: 30
+      startingSamples: 200,
+      startingLives: 20
     };
   }
 

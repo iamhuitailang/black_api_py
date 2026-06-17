@@ -1,73 +1,3 @@
-var MOCK_LEVEL = {
-  id: 1,
-  name: '研发区走廊',
-  width: 20,
-  height: 15,
-  grid: [
-    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
-    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
-    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
-    [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
-    [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
-    [0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
-    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
-    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0]
-  ],
-  entryPoints: [{x:2, y:0}, {x:17, y:0}],
-  exitPoint: {x:11, y:14},
-  deployNodes: [
-    {x:1,y:1},{x:4,y:2},{x:8,y:2},{x:16,y:1},
-    {x:4,y:4},{x:10,y:4},{x:1,y:6},{x:4,y:7},
-    {x:8,y:6},{x:8,y:10},{x:15,y:9},{x:2,y:12}
-  ],
-  waves: [
-    {
-      enemies: [{type:'normal', count:8, interval:1200, entry:0}, {type:'normal', count:5, interval:1200, entry:1}],
-      reward: 30
-    },
-    {
-      enemies: [
-        {type:'normal', count:6, interval:1000, entry:0},
-        {type:'acid', count:3, interval:1500, entry:1}
-      ],
-      reward: 40
-    },
-    {
-      enemies: [
-        {type:'normal', count:8, interval:800, entry:0},
-        {type:'acid', count:4, interval:1200, entry:1},
-        {type:'shell', count:3, interval:2000, entry:0}
-      ],
-      reward: 50
-    },
-    {
-      enemies: [
-        {type:'normal', count:10, interval:600, entry:0},
-        {type:'shell', count:5, interval:1500, entry:1},
-        {type:'mother', count:2, interval:4000, entry:0}
-      ],
-      reward: 80
-    },
-    {
-      enemies: [
-        {type:'acid', count:8, interval:700, entry:0},
-        {type:'shell', count:6, interval:1000, entry:1},
-        {type:'mother', count:3, interval:3000, entry:0}
-      ],
-      reward: 100
-    }
-  ],
-  startingSamples: 350,
-  startingLives: 30
-};
-
 var SAVE_KEY = 'deepspace_towerdefense_save';
 
 class App {
@@ -86,7 +16,7 @@ class App {
     this.samples = 0;
     this.lives = 0;
     this.waveSystem = null;
-    this.saveTimer = null;
+    this.autoSaveInterval = null;
 
     this.bindCanvasEvents();
     this.bindHUDEvents();
@@ -94,6 +24,14 @@ class App {
   }
 
   init() {
+    var globalSave = this.getGlobalSave();
+    if (globalSave && globalSave.currentLevelId) {
+      var levelSave = this.loadProgress(globalSave.currentLevelId);
+      if (levelSave && levelSave.lives > 0) {
+        this.resumeFromSave(globalSave.currentLevelId, levelSave);
+        return;
+      }
+    }
     this.levelSelect.show();
   }
 
@@ -101,10 +39,24 @@ class App {
     return SAVE_KEY + '_level_' + levelId;
   }
 
-  saveProgress() {
-    if (!this.levelMap) {
-      return;
+  getGlobalSave() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY + '_global');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
     }
+  }
+
+  setGlobalSave(data) {
+    try {
+      localStorage.setItem(SAVE_KEY + '_global', JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  saveProgress() {
+    if (!this.levelMap) return;
     try {
       var towerData = [];
       for (var i = 0; i < this.towers.length; i++) {
@@ -117,18 +69,19 @@ class App {
           totalInvested: t.totalInvested
         });
       }
+      var gameState = this.gameLoop ? this.gameLoop.state : 'prep';
       var save = {
         levelId: this.levelMap.id,
+        levelName: this.levelMap.name,
         samples: this.samples,
         lives: this.lives,
         currentWave: this.waveSystem ? this.waveSystem.currentWaveIndex : -1,
+        gameState: gameState,
         towers: towerData,
         timestamp: Date.now()
       };
       localStorage.setItem(this.getSaveKeyForLevel(this.levelMap.id), JSON.stringify(save));
-      localStorage.setItem(SAVE_KEY + '_global', JSON.stringify({
-        currentLevelId: this.levelMap.id
-      }));
+      this.setGlobalSave({ currentLevelId: this.levelMap.id });
     } catch (e) {
       console.error('Save failed:', e);
     }
@@ -147,7 +100,15 @@ class App {
   clearProgress(levelId) {
     try {
       localStorage.removeItem(this.getSaveKeyForLevel(levelId));
+      var gs = this.getGlobalSave();
+      if (gs && gs.currentLevelId === levelId) {
+        this.setGlobalSave({ currentLevelId: null });
+      }
     } catch (e) {}
+  }
+
+  resumeFromSave(levelId) {
+    this.levelSelect.selectLevel(levelId);
   }
 
   startLevel(levelData) {
@@ -159,7 +120,8 @@ class App {
     this.lives = this.levelMap.startingLives;
 
     var saved = this.loadProgress(levelData.id);
-    if (saved && saved.samples > 0 && saved.towers && saved.towers.length > 0) {
+    var restoredState = null;
+    if (saved && saved.lives > 0 && saved.towers && saved.towers.length > 0) {
       this.samples = saved.samples;
       this.lives = saved.lives;
       if (saved.currentWave >= 0) {
@@ -172,22 +134,47 @@ class App {
         tower.totalInvested = td.totalInvested || TOWER_TYPES[td.type].cost;
         this.towers.push(tower);
       }
+      restoredState = saved.gameState || null;
+
+      for (var i = 0; i < this.towers.length; i++) {
+        var t = this.towers[i];
+        this.levelMap.deployNodes = this.levelMap.deployNodes.map(function (n) {
+          if (n.x === t.gx && n.y === t.gy) {
+            return { x: n.x, y: n.y, tower: t };
+          }
+          return n;
+        });
+      }
     }
 
     this.renderer.resize(this.levelMap.getCanvasWidth(), this.levelMap.getCanvasHeight());
-    this.gameLoop.setState(GAME_STATE.PREP);
+
+    var initialState = GAME_STATE.PREP;
+    if (restoredState === 'combat' && this.waveSystem.currentWaveIndex >= 0) {
+      initialState = GAME_STATE.COMBAT;
+      this.waveSystem.startNextWave();
+    }
+    this.gameLoop.setState(initialState);
 
     this.hud.update({
       wave: Math.max(0, this.waveSystem.currentWaveIndex + 1),
       totalWaves: this.waveSystem.getTotalWaves(),
       lives: this.lives,
       samples: this.samples,
-      state: GAME_STATE.PREP
+      state: initialState
     });
 
     if (!this.gameLoop.running) {
       this.gameLoop.start();
     }
+
+    if (this.autoSaveInterval) clearInterval(this.autoSaveInterval);
+    var self = this;
+    this.autoSaveInterval = setInterval(function () {
+      if (self.levelMap && self.gameLoop && self.gameLoop.state !== GAME_STATE.ENDED) {
+        self.saveProgress();
+      }
+    }, 5000);
   }
 
   bindCanvasEvents() {
@@ -277,6 +264,7 @@ class App {
     if (restartBtn) {
       restartBtn.addEventListener('click', function () {
         self.hideGameOverlay();
+        if (self.levelMap) self.clearProgress(self.levelMap.id);
         self.levelSelect.show();
       });
     }
@@ -285,6 +273,7 @@ class App {
     if (menuBtn) {
       menuBtn.addEventListener('click', function () {
         self.hideGameOverlay();
+        if (self.levelMap) self.clearProgress(self.levelMap.id);
         self.gameLoop.stop();
         self.levelSelect.show();
       });
@@ -334,7 +323,9 @@ class App {
       this.levelSelect.unlockLevel(this.levelMap.id + 1);
       this.clearProgress(this.levelMap.id);
     }
-    this.saveProgress();
+    if (!victory && this.levelMap) {
+      this.clearProgress(this.levelMap.id);
+    }
     this.syncProgressToServer();
   }
 
@@ -398,4 +389,10 @@ window.addEventListener('DOMContentLoaded', function () {
   var app = new App();
   app.init();
   window.gameApp = app;
+});
+
+window.addEventListener('beforeunload', function () {
+  if (window.gameApp && window.gameApp.levelMap) {
+    window.gameApp.saveProgress();
+  }
 });

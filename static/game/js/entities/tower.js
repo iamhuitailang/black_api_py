@@ -1,62 +1,62 @@
 var TOWER_TYPES = {
   electromagnetic: {
     name: '电磁塔',
-    cost: 60,
-    damage: 35,
-    range: 130,
-    attackSpeed: 1.2,
+    cost: 80,
+    damage: 18,
+    range: 120,
+    attackSpeed: 1.0,
     color: '#9c27b0',
-    slowFactor: 0.5,
-    slowDuration: 2.5,
+    slowFactor: 0.4,
+    slowDuration: 2.0,
     armorPierce: 0,
     aoe: false
   },
   laser: {
     name: '激光塔',
-    cost: 90,
-    damage: 70,
-    range: 170,
-    attackSpeed: 0.9,
+    cost: 120,
+    damage: 35,
+    range: 150,
+    attackSpeed: 0.7,
     color: '#ff1744',
     slowFactor: 0,
     slowDuration: 0,
-    armorPierce: 0.4,
+    armorPierce: 0.3,
     aoe: false
   },
   flame: {
     name: '喷火塔',
-    cost: 80,
-    damage: 25,
-    range: 110,
-    attackSpeed: 1.0,
+    cost: 100,
+    damage: 12,
+    range: 100,
+    attackSpeed: 0.8,
     color: '#ff6d00',
     slowFactor: 0,
     slowDuration: 0,
     armorPierce: 0,
     aoe: true,
-    burnDps: 15,
+    burnDps: 8,
     burnDuration: 3,
     coneAngle: 60
   },
   freeze: {
     name: '冷冻塔',
-    cost: 120,
-    damage: 20,
-    range: 130,
-    attackSpeed: 0.8,
+    cost: 150,
+    damage: 8,
+    range: 120,
+    attackSpeed: 0.6,
     color: '#00b0ff',
-    slowFactor: 0.7,
-    slowDuration: 4,
+    slowFactor: 0.6,
+    slowDuration: 3.5,
     armorPierce: 0,
     aoe: true,
-    aoeRadius: 80
+    aoeRadius: 70
   }
 };
 
 var TOWER_LEVEL_MULT = [
   { damage: 1.0, range: 1.0, attackSpeed: 1.0 },
-  { damage: 1.6, range: 1.15, attackSpeed: 1.2 },
-  { damage: 2.4, range: 1.3, attackSpeed: 1.45 }
+  { damage: 1.4, range: 1.1, attackSpeed: 1.1 },
+  { damage: 1.9, range: 1.2, attackSpeed: 1.25 }
 ];
 
 class Tower {

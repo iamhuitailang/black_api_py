@@ -37,11 +37,11 @@ def seed_game_data():
             "entry_points": [{"x":2,"y":0},{"x":17,"y":0}],
             "exit_point": {"x":11,"y":14},
             "waves": [
-                {"wave_index":0,"enemies":[{"type":"normal","count":5,"entry_index":0,"spawn_interval":1000,"spawn_delay":0},{"type":"normal","count":5,"entry_index":1,"spawn_interval":1000,"spawn_delay":0}]},
-                {"wave_index":1,"enemies":[{"type":"normal","count":8,"entry_index":0,"spawn_interval":800,"spawn_delay":0},{"type":"acid","count":3,"entry_index":1,"spawn_interval":1200,"spawn_delay":0}]},
-                {"wave_index":2,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":600,"spawn_delay":0},{"type":"shell","count":4,"entry_index":1,"spawn_interval":1000,"spawn_delay":0},{"type":"acid","count":3,"entry_index":0,"spawn_interval":1200,"spawn_delay":3000}]},
-                {"wave_index":3,"enemies":[{"type":"acid","count":5,"entry_index":0,"spawn_interval":800,"spawn_delay":0},{"type":"shell","count":6,"entry_index":1,"spawn_interval":800,"spawn_delay":0},{"type":"mother","count":1,"entry_index":0,"spawn_interval":0,"spawn_delay":5000}]},
-                {"wave_index":4,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":400,"spawn_delay":0},{"type":"acid","count":5,"entry_index":1,"spawn_interval":600,"spawn_delay":0},{"type":"shell","count":5,"entry_index":0,"spawn_interval":800,"spawn_delay":2000},{"type":"mother","count":2,"entry_index":1,"spawn_interval":3000,"spawn_delay":3000}]}
+                {"wave_index":0,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":900,"spawn_delay":0},{"type":"normal","count":8,"entry_index":1,"spawn_interval":900,"spawn_delay":0}]},
+                {"wave_index":1,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":700,"spawn_delay":0},{"type":"acid","count":5,"entry_index":1,"spawn_interval":1000,"spawn_delay":0}]},
+                {"wave_index":2,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":600,"spawn_delay":0},{"type":"acid","count":6,"entry_index":1,"spawn_interval":800,"spawn_delay":0},{"type":"shell","count":4,"entry_index":0,"spawn_interval":1500,"spawn_delay":3000}]},
+                {"wave_index":3,"enemies":[{"type":"acid","count":10,"entry_index":0,"spawn_interval":500,"spawn_delay":0},{"type":"shell","count":6,"entry_index":1,"spawn_interval":1000,"spawn_delay":0},{"type":"mother","count":1,"entry_index":0,"spawn_interval":0,"spawn_delay":5000}]},
+                {"wave_index":4,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":400,"spawn_delay":0},{"type":"acid","count":8,"entry_index":1,"spawn_interval":600,"spawn_delay":0},{"type":"shell","count":8,"entry_index":0,"spawn_interval":700,"spawn_delay":2000},{"type":"mother","count":2,"entry_index":1,"spawn_interval":2500,"spawn_delay":3000}]}
             ]
         })
         grid_2 = [
@@ -62,13 +62,13 @@ def seed_game_data():
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
         ]
         waves_2 = [
-            {"wave_index":0,"enemies":[{"type":"normal","count":6,"entry_index":0,"spawn_interval":1000},{"type":"normal","count":6,"entry_index":1,"spawn_interval":1000}]},
-            {"wave_index":1,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":700},{"type":"acid","count":4,"entry_index":1,"spawn_interval":1200}]},
-            {"wave_index":2,"enemies":[{"type":"normal","count":8,"entry_index":0,"spawn_interval":600},{"type":"shell","count":5,"entry_index":1,"spawn_interval":1000},{"type":"acid","count":4,"entry_index":0,"spawn_interval":1000,"spawn_delay":3000}]},
-            {"wave_index":3,"enemies":[{"type":"acid","count":8,"entry_index":0,"spawn_interval":600},{"type":"shell","count":6,"entry_index":1,"spawn_interval":800}]},
-            {"wave_index":4,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":400},{"type":"acid","count":6,"entry_index":1,"spawn_interval":600},{"type":"mother","count":1,"entry_index":0,"spawn_interval":0,"spawn_delay":4000}]},
-            {"wave_index":5,"enemies":[{"type":"shell","count":10,"entry_index":0,"spawn_interval":600},{"type":"mother","count":2,"entry_index":1,"spawn_interval":3000}]},
-            {"wave_index":6,"enemies":[{"type":"normal","count":20,"entry_index":0,"spawn_interval":300},{"type":"acid","count":10,"entry_index":1,"spawn_interval":400},{"type":"shell","count":8,"entry_index":0,"spawn_interval":700,"spawn_delay":2000},{"type":"mother","count":3,"entry_index":1,"spawn_interval":2500,"spawn_delay":3000}]}
+            {"wave_index":0,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":800},{"type":"normal","count":10,"entry_index":1,"spawn_interval":800}]},
+            {"wave_index":1,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":500},{"type":"acid","count":8,"entry_index":1,"spawn_interval":700}]},
+            {"wave_index":2,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":400},{"type":"shell","count":6,"entry_index":1,"spawn_interval":700},{"type":"acid","count":6,"entry_index":0,"spawn_interval":600,"spawn_delay":3000}]},
+            {"wave_index":3,"enemies":[{"type":"acid","count":12,"entry_index":0,"spawn_interval":400},{"type":"shell","count":8,"entry_index":1,"spawn_interval":600}]},
+            {"wave_index":4,"enemies":[{"type":"normal","count":18,"entry_index":0,"spawn_interval":300},{"type":"acid","count":10,"entry_index":1,"spawn_interval":400},{"type":"mother","count":2,"entry_index":0,"spawn_interval":2500,"spawn_delay":4000}]},
+            {"wave_index":5,"enemies":[{"type":"shell","count":12,"entry_index":0,"spawn_interval":500},{"type":"mother","count":3,"entry_index":1,"spawn_interval":2000},{"type":"acid","count":8,"entry_index":0,"spawn_interval":500,"spawn_delay":2000}]},
+            {"wave_index":6,"enemies":[{"type":"normal","count":25,"entry_index":0,"spawn_interval":250},{"type":"acid","count":15,"entry_index":1,"spawn_interval":300},{"type":"shell","count":10,"entry_index":0,"spawn_interval":500,"spawn_delay":2000},{"type":"mother","count":4,"entry_index":1,"spawn_interval":1800,"spawn_delay":3000}]}
         ]
         map_config_2 = json.dumps({
             "width": 20,
@@ -98,16 +98,16 @@ def seed_game_data():
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
         ]
         waves_3 = [
-            {"wave_index":0,"enemies":[{"type":"normal","count":8,"entry_index":0,"spawn_interval":900},{"type":"normal","count":8,"entry_index":1,"spawn_interval":900}]},
-            {"wave_index":1,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":600},{"type":"acid","count":6,"entry_index":1,"spawn_interval":900}]},
-            {"wave_index":2,"enemies":[{"type":"normal","count":10,"entry_index":0,"spawn_interval":500},{"type":"shell","count":6,"entry_index":1,"spawn_interval":900},{"type":"acid","count":5,"entry_index":0,"spawn_interval":800,"spawn_delay":2000}]},
-            {"wave_index":3,"enemies":[{"type":"acid","count":10,"entry_index":0,"spawn_interval":500},{"type":"shell","count":8,"entry_index":1,"spawn_interval":700}]},
-            {"wave_index":4,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":350},{"type":"acid","count":8,"entry_index":1,"spawn_interval":500},{"type":"mother","count":2,"entry_index":0,"spawn_interval":2500,"spawn_delay":3000}]},
-            {"wave_index":5,"enemies":[{"type":"shell","count":12,"entry_index":0,"spawn_interval":500},{"type":"mother","count":3,"entry_index":1,"spawn_interval":2500}]},
-            {"wave_index":6,"enemies":[{"type":"acid","count":12,"entry_index":0,"spawn_interval":400},{"type":"shell","count":10,"entry_index":1,"spawn_interval":500},{"type":"mother","count":2,"entry_index":0,"spawn_interval":2000,"spawn_delay":2000}]},
-            {"wave_index":7,"enemies":[{"type":"normal","count":25,"entry_index":0,"spawn_interval":250},{"type":"shell","count":10,"entry_index":1,"spawn_interval":500}]},
-            {"wave_index":8,"enemies":[{"type":"acid","count":15,"entry_index":0,"spawn_interval":350},{"type":"mother","count":4,"entry_index":1,"spawn_interval":2000},{"type":"shell","count":10,"entry_index":0,"spawn_interval":500,"spawn_delay":2000}]},
-            {"wave_index":9,"enemies":[{"type":"normal","count":30,"entry_index":0,"spawn_interval":200},{"type":"acid","count":15,"entry_index":1,"spawn_interval":300},{"type":"shell","count":12,"entry_index":0,"spawn_interval":400,"spawn_delay":2000},{"type":"mother","count":5,"entry_index":1,"spawn_interval":1500,"spawn_delay":3000}]}
+            {"wave_index":0,"enemies":[{"type":"normal","count":12,"entry_index":0,"spawn_interval":700},{"type":"normal","count":12,"entry_index":1,"spawn_interval":700}]},
+            {"wave_index":1,"enemies":[{"type":"normal","count":18,"entry_index":0,"spawn_interval":450},{"type":"acid","count":10,"entry_index":1,"spawn_interval":600}]},
+            {"wave_index":2,"enemies":[{"type":"normal","count":15,"entry_index":0,"spawn_interval":350},{"type":"shell","count":8,"entry_index":1,"spawn_interval":600},{"type":"acid","count":8,"entry_index":0,"spawn_interval":500,"spawn_delay":2000}]},
+            {"wave_index":3,"enemies":[{"type":"acid","count":15,"entry_index":0,"spawn_interval":350},{"type":"shell","count":10,"entry_index":1,"spawn_interval":500}]},
+            {"wave_index":4,"enemies":[{"type":"normal","count":20,"entry_index":0,"spawn_interval":300},{"type":"acid","count":12,"entry_index":1,"spawn_interval":350},{"type":"mother","count":2,"entry_index":0,"spawn_interval":2000,"spawn_delay":3000}]},
+            {"wave_index":5,"enemies":[{"type":"shell","count":15,"entry_index":0,"spawn_interval":350},{"type":"mother","count":3,"entry_index":1,"spawn_interval":1800}]},
+            {"wave_index":6,"enemies":[{"type":"acid","count":18,"entry_index":0,"spawn_interval":300},{"type":"shell","count":12,"entry_index":1,"spawn_interval":400},{"type":"mother","count":2,"entry_index":0,"spawn_interval":1500,"spawn_delay":2000}]},
+            {"wave_index":7,"enemies":[{"type":"normal","count":30,"entry_index":0,"spawn_interval":200},{"type":"shell","count":12,"entry_index":1,"spawn_interval":350}]},
+            {"wave_index":8,"enemies":[{"type":"acid","count":20,"entry_index":0,"spawn_interval":250},{"type":"mother","count":4,"entry_index":1,"spawn_interval":1500},{"type":"shell","count":12,"entry_index":0,"spawn_interval":350,"spawn_delay":2000}]},
+            {"wave_index":9,"enemies":[{"type":"normal","count":35,"entry_index":0,"spawn_interval":150},{"type":"acid","count":20,"entry_index":1,"spawn_interval":200},{"type":"shell","count":15,"entry_index":0,"spawn_interval":300,"spawn_delay":2000},{"type":"mother","count":5,"entry_index":1,"spawn_interval":1200,"spawn_delay":3000}]}
         ]
         map_config_3 = json.dumps({
             "width": 20,

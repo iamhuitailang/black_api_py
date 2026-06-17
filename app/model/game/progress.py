@@ -35,7 +35,7 @@ class ProgressModel:
         existing = model.get_by_player_id('default')
         if existing:
             return
-        model.upsert('default', bio_samples=350, completed_levels='[]', tower_upgrades='{}')
+        model.upsert('default', bio_samples=200, completed_levels='[]', tower_upgrades='{}')
 
     def get_by_player_id(self, player_id: str) -> Optional[Dict[str, Any]]:
         return self.query.find_one({'player_id': player_id})
