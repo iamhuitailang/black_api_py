@@ -22,7 +22,7 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">🍖 食物</span>
-                        <span class="stat-value">{{ food }}</span>
+                        <span class="stat-value" :class="{ 'danger-text': food <= 0 }">{{ food }}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">🪵 木材</span>
@@ -30,7 +30,10 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">🔥 篝火</span>
-                        <span class="stat-value">{{ campfireFuel.toFixed(1) }}%</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill campfire" :style="{ width: campfireFuel + '%' }"></div>
+                        </div>
+                        <span class="stat-value" :class="{ 'danger-text': campfireFuel <= 10 }">{{ campfireFuel.toFixed(1) }}%</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">⏰ 时间</span>
@@ -53,8 +56,9 @@
                         <ul>
                             <li>WASD / 方向键 - 移动</li>
                             <li>空格 - 采集/互动</li>
-                            <li>B - 搭建庇护所</li>
-                            <li>E - 靠近篝火添加木材</li>
+                            <li>B - 搭建庇护所 (需5木材)</li>
+                            <li>E - 给篝火添加木材 (+30%)</li>
+                            <li>T - 队友任务面板</li>
                         </ul>
                     </div>
                     
@@ -62,9 +66,30 @@
                         <h3>游戏状态</h3>
                         <p v-if="isNight && !isNearCampfire" class="warning-text">⚠️ 夜间远离篝火很危险!</p>
                         <p v-if="temperature < 30" class="danger-text">🔥 体温过低! 快回篝火!</p>
-                        <p v-if="hasShelter">🏠 庇护所: 已搭建</p>
-                        <p v-else>🏠 庇护所: 未搭建</p>
+                        <p v-if="campfireFuel <= 10 && campfireFuel > 0" class="danger-text">🔥 篝火快熄灭了!</p>
+                        <p :class="gameState.isInShelter ? 'success-text' : ''">{{ shelterStatusText }}</p>
                         <p v-if="teammateCount > 0">👥 队友: {{ teammateCount }} 人</p>
+                        <p v-if="gameState.isInShelter && isBlizzard" class="success-text">🛡️ 暴风雪庇护生效中</p>
+                    </div>
+
+                    <div class="sidebar-section" v-if="showTaskPanel && recruitedNpcs.length > 0">
+                        <h3>👥 队友任务</h3>
+                        <div v-for="(npc, idx) in recruitedNpcs" :key="idx" class="teammate-card">
+                            <div class="teammate-name">{{ npc.name }}</div>
+                            <div class="teammate-tasks">
+                                <button 
+                                    v-for="(label, taskKey) in TASK_LABELS" 
+                                    :key="taskKey"
+                                    @click="setTeammateTask(gameState.npcs.indexOf(npc), taskKey)"
+                                    :class="['task-btn', npc.task === taskKey ? 'task-btn-active' : '']">
+                                    {{ label }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sidebar-section" v-else-if="teammateCount > 0">
+                        <h3>👥 队友任务</h3>
+                        <p class="hint-text">按 T 键打开任务面板</p>
                     </div>
 
                     <div class="sidebar-section">
@@ -73,6 +98,7 @@
                         <button @click="saveGame" class="btn btn-primary">💾 保存游戏</button>
                         <button @click="loadGame" class="btn btn-secondary">📂 读取存档</button>
                         <button @click="newGame" class="btn btn-danger">🔄 新游戏</button>
+                        <p class="hint-text">游戏每10秒自动保存到本地</p>
                     </div>
 
                     <div class="sidebar-section">

@@ -1,26 +1,40 @@
-const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
+const { createApp, ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } = Vue;
 
 const TILE_SIZE = 32;
 const MAP_WIDTH = 80;
 const MAP_HEIGHT = 60;
 const PLAYER_SPEED = 120;
-const CAMPFIRE_WARM_RADIUS = 150;
-const BASE_TEMP_DROP_RATE = 2;
-const BLIZZARD_TEMP_DROP_RATE = 8;
-const CAMPFIRE_RECOVER_RATE = 15;
-const DAY_DURATION = 60000;
-const NIGHT_DURATION = 30000;
-const BLIZZARD_CHANCE = 0.3;
-const BLIZZARD_DURATION = 15000;
-const BLIZZARD_INTERVAL = 45000;
+const CAMPFIRE_WARM_RADIUS = 180;
+const BASE_TEMP_DROP_RATE = 1.2;
+const CAMPFIRE_RECOVER_RATE = 12;
+const DAY_DURATION = 90000;
+const NIGHT_DURATION = 40000;
+const BLIZZARD_DURATION = 20000;
+const BLIZZARD_INTERVAL = 60000;
+const CAMPFIRE_BASE_BURN_RATE = 0.8;
+const WOOD_ADD_FUEL = 30;
+const AUTO_SAVE_INTERVAL = 10000;
+const RESOURCE_RESPAWN_INTERVAL = 15000;
+const TEAMMATE_TASK_INTERVAL = 5000;
 
 const GAME_STATES = {
-    EMPTY: 0,
     SNOW: 1,
-    WOOD: 2,
-    FOOD: 3,
     TREE: 4,
     ROCK: 5
+};
+
+const TEAMMATE_TASKS = {
+    FOLLOW: 'follow',
+    WOOD: 'wood',
+    FOOD: 'food',
+    GUARD: 'guard'
+};
+
+const TASK_LABELS = {
+    follow: '跟随',
+    wood: '🪵 伐木',
+    food: '🍖 觅食',
+    guard: '🔥 守火'
 };
 
 createApp({
@@ -32,7 +46,7 @@ createApp({
         const playerName = ref('Survivor');
         const temperature = ref(100);
         const food = ref(5);
-        const wood = ref(3);
+        const wood = ref(5);
         const campfireFuel = ref(100);
         const hasShelter = ref(false);
         const teammateCount = ref(0);
@@ -40,7 +54,8 @@ createApp({
         const gameOver = ref(false);
         const survivalTime = ref(0);
         const messages = ref([]);
-        const timeOfDay = ref(0);
+        const showTaskPanel = ref(false);
+        const selectedNpcIdx = ref(-1);
 
         const gameState = reactive({
             player: { x: 0, y: 0, dir: 'down' },
@@ -60,14 +75,17 @@ createApp({
             camera: { x: 0, y: 0 },
             particles: [],
             snowParticles: [],
-            teammate: []
+            lastAutoSave: 0,
+            lastResourceRespawn: 0,
+            lastTeammateTask: 0,
+            isInShelter: false,
+            restingInShelter: false
         });
 
         const isNearCampfire = computed(() => {
             const dx = gameState.player.x - gameState.campfire.x;
             const dy = gameState.player.y - gameState.campfire.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            return dist < CAMPFIRE_WARM_RADIUS;
+            return Math.sqrt(dx * dx + dy * dy) < CAMPFIRE_WARM_RADIUS;
         });
 
         const isNight = computed(() => gameState.isNight);
@@ -77,9 +95,19 @@ createApp({
             return '☀️ 白天';
         });
 
+        const recruitedNpcs = computed(() => {
+            return gameState.npcs.filter(n => n.recruited);
+        });
+
+        const shelterStatusText = computed(() => {
+            if (!hasShelter.value) return '🏠 庇护所: 未搭建 (需5木材)';
+            if (gameState.isInShelter) return '🏠 庇护所: 你正在庇护所中';
+            return '🏠 庇护所: 已搭建 (靠近可获得保护)';
+        });
+
         function addMessage(text, type = 'info') {
             messages.value.unshift({ text, type });
-            if (messages.value.length > 20) {
+            if (messages.value.length > 30) {
                 messages.value.pop();
             }
         }
@@ -93,14 +121,13 @@ createApp({
                 }
             }
 
-            const treeCount = 60;
+            const treeCount = 80;
             for (let i = 0; i < treeCount; i++) {
                 const x = Math.floor(Math.random() * MAP_WIDTH);
                 const y = Math.floor(Math.random() * MAP_HEIGHT);
                 const cx = Math.floor(MAP_WIDTH / 2);
                 const cy = Math.floor(MAP_HEIGHT / 2);
-                const distFromCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-                if (distFromCenter > 5) {
+                if (Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) > 5) {
                     gameState.map[y][x] = GAME_STATES.TREE;
                 }
             }
@@ -114,36 +141,53 @@ createApp({
                 }
             }
 
-            gameState.resources = [];
-            for (let i = 0; i < 20; i++) {
-                let x, y;
-                do {
-                    x = Math.floor(Math.random() * MAP_WIDTH);
-                    y = Math.floor(Math.random() * MAP_HEIGHT);
-                } while (gameState.map[y][x] !== GAME_STATES.SNOW);
-                gameState.resources.push({
-                    x: x * TILE_SIZE + TILE_SIZE / 2,
-                    y: y * TILE_SIZE + TILE_SIZE / 2,
-                    type: Math.random() > 0.5 ? 'wood' : 'food',
-                    amount: 1
-                });
-            }
+            spawnResources(30);
+            spawnNPCs(4);
+        }
 
-            gameState.npcs = [];
-            for (let i = 0; i < 3; i++) {
+        function spawnResources(count) {
+            for (let i = 0; i < count; i++) {
                 let x, y;
+                let attempts = 0;
                 do {
                     x = Math.floor(Math.random() * MAP_WIDTH);
                     y = Math.floor(Math.random() * MAP_HEIGHT);
-                } while (gameState.map[y][x] !== GAME_STATES.SNOW);
-                gameState.npcs.push({
-                    x: x * TILE_SIZE + TILE_SIZE / 2,
-                    y: y * TILE_SIZE + TILE_SIZE / 2,
-                    active: true,
-                    recruited: false,
-                    wanderTimer: 0,
-                    wanderDir: { x: 0, y: 0 }
-                });
+                    attempts++;
+                } while (gameState.map[y][x] !== GAME_STATES.SNOW && attempts < 50);
+                if (attempts < 50) {
+                    gameState.resources.push({
+                        x: x * TILE_SIZE + TILE_SIZE / 2,
+                        y: y * TILE_SIZE + TILE_SIZE / 2,
+                        type: Math.random() > 0.5 ? 'wood' : 'food',
+                        amount: Math.random() > 0.7 ? 2 : 1
+                    });
+                }
+            }
+        }
+
+        function spawnNPCs(count) {
+            gameState.npcs = [];
+            for (let i = 0; i < count; i++) {
+                let x, y;
+                let attempts = 0;
+                do {
+                    x = Math.floor(Math.random() * MAP_WIDTH);
+                    y = Math.floor(Math.random() * MAP_HEIGHT);
+                    attempts++;
+                } while (gameState.map[y][x] !== GAME_STATES.SNOW && attempts < 50);
+                if (attempts < 50) {
+                    gameState.npcs.push({
+                        x: x * TILE_SIZE + TILE_SIZE / 2,
+                        y: y * TILE_SIZE + TILE_SIZE / 2,
+                        active: true,
+                        recruited: false,
+                        task: TEAMMATE_TASKS.FOLLOW,
+                        wanderTimer: 0,
+                        wanderDir: { x: 0, y: 0 },
+                        taskTimer: 0,
+                        name: ['老张', '小李', '阿强', '阿花'][i] || '幸存者'
+                    });
+                }
             }
         }
 
@@ -158,15 +202,19 @@ createApp({
             gameState.footprints = [];
             gameState.particles = [];
             gameState.snowParticles = [];
-            gameState.teammate = [];
             gameState.isNight = false;
             gameState.dayNightTimer = 0;
-            gameState.lastBlizzardTime = 0;
+            gameState.lastBlizzardTime = Date.now();
             gameState.gameStartTime = Date.now();
+            gameState.lastAutoSave = Date.now();
+            gameState.lastResourceRespawn = Date.now();
+            gameState.lastTeammateTask = Date.now();
+            gameState.isInShelter = false;
+            gameState.restingInShelter = false;
 
             temperature.value = 100;
             food.value = 5;
-            wood.value = 3;
+            wood.value = 5;
             campfireFuel.value = 100;
             hasShelter.value = false;
             teammateCount.value = 0;
@@ -174,11 +222,14 @@ createApp({
             gameOver.value = false;
             survivalTime.value = 0;
             messages.value = [];
+            showTaskPanel.value = false;
+            selectedNpcIdx.value = -1;
 
             initMap();
             initSnowParticles();
             addMessage('你在冰原醒来，只有一堆篝火和几根火柴...', 'info');
             addMessage('搜集木材维持篝火，狩猎获取食物，搭建庇护所', 'info');
+            addMessage('按 T 键打开队友任务面板', 'info');
         }
 
         function initSnowParticles() {
@@ -220,7 +271,7 @@ createApp({
 
         function updatePlayer(deltaTime) {
             let dx = 0, dy = 0;
-            const speed = PLAYER_SPEED * (isBlizzard.value ? 0.6 : 1);
+            const speed = PLAYER_SPEED * (isBlizzard.value ? 0.6 : 1) * (gameState.restingInShelter ? 0 : 1);
 
             if (gameState.keys['w'] || gameState.keys['arrowup']) {
                 dy -= speed * deltaTime;
@@ -248,6 +299,10 @@ createApp({
             const newX = gameState.player.x + dx;
             const newY = gameState.player.y + dy;
 
+            if (dx !== 0 || dy !== 0) {
+                gameState.restingInShelter = false;
+            }
+
             if (canMoveTo(newX, gameState.player.y)) {
                 gameState.player.x = newX;
             }
@@ -271,6 +326,8 @@ createApp({
 
             gameState.camera.x = gameState.player.x - canvasWidth.value / 2;
             gameState.camera.y = gameState.player.y - canvasHeight.value / 2;
+
+            gameState.isInShelter = hasShelter.value && isNearShelter();
         }
 
         function updateFootprints(deltaTime) {
@@ -282,22 +339,45 @@ createApp({
             });
         }
 
+        function isNearShelter() {
+            if (!hasShelter.value) return false;
+            const dx = gameState.player.x - gameState.shelter.x;
+            const dy = gameState.player.y - gameState.shelter.y;
+            return Math.sqrt(dx * dx + dy * dy) < 80;
+        }
+
         function updateTemperature(deltaTime) {
             if (gameOver.value) return;
 
             const near = isNearCampfire.value;
-            const inShelter = hasShelter.value && isNearShelter();
-            const nightPenalty = gameState.isNight ? 1.5 : 1;
-            const blizzardPenalty = isBlizzard.value ? 2.5 : 1;
+            const inShelter = gameState.isInShelter;
+            const nightPenalty = gameState.isNight ? 1.3 : 1;
+            const blizzardPenalty = isBlizzard.value ? 1.8 : 1;
 
-            if (near) {
-                const recoverRate = CAMPFIRE_RECOVER_RATE * (campfireFuel.value > 0 ? 1 : 0.3);
+            if (near && campfireFuel.value > 0) {
+                let recoverRate = CAMPFIRE_RECOVER_RATE;
+                if (inShelter) recoverRate *= 1.5;
                 temperature.value = Math.min(100, temperature.value + recoverRate * deltaTime);
             } else {
                 let dropRate = BASE_TEMP_DROP_RATE * nightPenalty * blizzardPenalty;
-                if (inShelter) dropRate *= 0.5;
-                if (hasShelter.value && isNearShelter()) dropRate *= 0.7;
+
+                if (inShelter) {
+                    dropRate *= 0.35;
+                    if (isBlizzard.value) {
+                        dropRate *= 0.6;
+                    }
+                }
+
+                if (food.value <= 0) {
+                    dropRate *= 1.5;
+                }
+
                 temperature.value = Math.max(0, temperature.value - dropRate * deltaTime);
+            }
+
+            if (inShelter && !near && !gameState.restingInShelter) {
+                gameState.restingInShelter = true;
+                addMessage('你在庇护所中休息，体温流失减缓', 'info');
             }
 
             if (temperature.value <= 0) {
@@ -306,22 +386,26 @@ createApp({
                 addMessage('你的体温降到了零度...', 'danger');
             }
 
-            if (temperature.value < 20 && temperature.value > 19) {
-                addMessage('体温过低！快回到篝火边！', 'danger');
+            if (temperature.value < 25 && temperature.value > 24) {
+                addMessage('体温过低！快回到篝火边或庇护所！', 'danger');
             }
         }
 
-        function isNearShelter() {
-            if (!hasShelter.value) return false;
-            const dx = gameState.player.x - gameState.shelter.x;
-            const dy = gameState.player.y - gameState.shelter.y;
-            return Math.sqrt(dx * dx + dy * dy) < 80;
-        }
-
         function updateCampfire(deltaTime) {
-            const burnRate = gameState.isNight ? 1.5 : 1;
-            const teamMult = 1 + teammateCount.value * 0.5;
-            campfireFuel.value = Math.max(0, campfireFuel.value - 2 * burnRate * teamMult * deltaTime);
+            let burnRate = CAMPFIRE_BASE_BURN_RATE;
+            if (gameState.isNight) burnRate *= 1.2;
+            if (isBlizzard.value) burnRate *= 1.3;
+
+            const guardingCount = gameState.npcs.filter(n => n.recruited && n.task === TEAMMATE_TASKS.GUARD).length;
+            if (guardingCount > 0) {
+                burnRate *= Math.max(0.4, 1 - guardingCount * 0.25);
+            }
+
+            campfireFuel.value = Math.max(0, campfireFuel.value - burnRate * deltaTime);
+
+            if (campfireFuel.value <= 0 && campfireFuel.value > -1) {
+                addMessage('篝火熄灭了！快添加木材！', 'danger');
+            }
 
             if (campfireFuel.value > 0 && Math.random() < 0.3) {
                 gameState.particles.push({
@@ -343,7 +427,7 @@ createApp({
 
         function updateDayNight(deltaTime) {
             gameState.dayNightTimer += deltaTime * 1000;
-            
+
             if (gameState.isNight) {
                 if (gameState.dayNightTimer >= NIGHT_DURATION) {
                     gameState.isNight = false;
@@ -361,12 +445,15 @@ createApp({
 
         function updateBlizzard(deltaTime) {
             const now = Date.now();
-            
+
             if (!isBlizzard.value) {
-                if (now - gameState.lastBlizzardTime > BLIZZARD_INTERVAL && Math.random() < 0.001) {
+                if (now - gameState.lastBlizzardTime > BLIZZARD_INTERVAL && Math.random() < 0.0008) {
                     isBlizzard.value = true;
                     gameState.blizzardEndTime = now + BLIZZARD_DURATION;
                     addMessage('暴风雪来了！视野缩小，体温下降更快！', 'warning');
+                    if (hasShelter.value && gameState.isInShelter) {
+                        addMessage('你在庇护所中，暴风雪的影响大大减弱', 'success');
+                    }
                 }
             } else {
                 if (now > gameState.blizzardEndTime) {
@@ -404,30 +491,207 @@ createApp({
 
         function updateTeammates(deltaTime) {
             const recruited = gameState.npcs.filter(n => n.recruited);
+
             for (let npc of recruited) {
-                const dx = gameState.player.x - npc.x;
-                const dy = gameState.player.y - npc.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist > 50) {
-                    const speed = 80 * (isBlizzard.value ? 0.6 : 1);
-                    npc.x += (dx / dist) * speed * deltaTime;
-                    npc.y += (dy / dist) * speed * deltaTime;
+                switch (npc.task) {
+                    case TEAMMATE_TASKS.FOLLOW:
+                        moveNpcToward(npc, gameState.player.x, gameState.player.y, 50, deltaTime);
+                        break;
+
+                    case TEAMMATE_TASKS.WOOD: {
+                        const nearestTree = findNearestTile(npc, GAME_STATES.TREE);
+                        if (nearestTree) {
+                            moveNpcToward(npc, nearestTree.x * TILE_SIZE + TILE_SIZE / 2, nearestTree.y * TILE_SIZE + TILE_SIZE / 2, 20, deltaTime);
+                        } else {
+                            moveNpcToward(npc, gameState.player.x, gameState.player.y, 50, deltaTime);
+                        }
+                        break;
+                    }
+
+                    case TEAMMATE_TASKS.FOOD: {
+                        const nearestFood = findNearestResource(npc, 'food');
+                        if (nearestFood) {
+                            moveNpcToward(npc, nearestFood.x, nearestFood.y, 20, deltaTime);
+                        } else {
+                            moveNpcToward(npc, gameState.player.x, gameState.player.y, 50, deltaTime);
+                        }
+                        break;
+                    }
+
+                    case TEAMMATE_TASKS.GUARD:
+                        moveNpcToward(npc, gameState.campfire.x, gameState.campfire.y, 30, deltaTime);
+                        break;
+                }
+            }
+
+            const now = Date.now();
+            if (now - gameState.lastTeammateTask > TEAMMATE_TASK_INTERVAL) {
+                gameState.lastTeammateTask = now;
+                processTeammateTasks();
+            }
+        }
+
+        function moveNpcToward(npc, targetX, targetY, stopDist, deltaTime) {
+            const dx = targetX - npc.x;
+            const dy = targetY - npc.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > stopDist) {
+                const speed = 80 * (isBlizzard.value ? 0.6 : 1);
+                const newX = npc.x + (dx / dist) * speed * deltaTime;
+                const newY = npc.y + (dy / dist) * speed * deltaTime;
+                if (canMoveTo(newX, npc.y)) npc.x = newX;
+                if (canMoveTo(npc.x, newY)) npc.y = newY;
+            }
+        }
+
+        function findNearestTile(npc, tileType) {
+            const npcTileX = Math.floor(npc.x / TILE_SIZE);
+            const npcTileY = Math.floor(npc.y / TILE_SIZE);
+            let best = null;
+            let bestDist = Infinity;
+            const range = 15;
+
+            for (let dy = -range; dy <= range; dy++) {
+                for (let dx = -range; dx <= range; dx++) {
+                    const tx = npcTileX + dx;
+                    const ty = npcTileY + dy;
+                    if (tx >= 0 && tx < MAP_WIDTH && ty >= 0 && ty < MAP_HEIGHT) {
+                        if (gameState.map[ty][tx] === tileType) {
+                            const d = Math.sqrt(dx * dx + dy * dy);
+                            if (d < bestDist) {
+                                bestDist = d;
+                                best = { x: tx, y: ty };
+                            }
+                        }
+                    }
+                }
+            }
+            return best;
+        }
+
+        function findNearestResource(npc, type) {
+            let best = null;
+            let bestDist = Infinity;
+            for (const res of gameState.resources) {
+                if (res.type === type) {
+                    const dx = res.x - npc.x;
+                    const dy = res.y - npc.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        best = res;
+                    }
+                }
+            }
+            return best;
+        }
+
+        function processTeammateTasks() {
+            for (const npc of gameState.npcs) {
+                if (!npc.recruited) continue;
+
+                switch (npc.task) {
+                    case TEAMMATE_TASKS.WOOD: {
+                        const nearTree = findNearestTile(npc, GAME_STATES.TREE);
+                        if (nearTree) {
+                            const dx = nearTree.x * TILE_SIZE + TILE_SIZE / 2 - npc.x;
+                            const dy = nearTree.y * TILE_SIZE + TILE_SIZE / 2 - npc.y;
+                            if (Math.sqrt(dx * dx + dy * dy) < 40) {
+                                gameState.map[nearTree.y][nearTree.x] = GAME_STATES.SNOW;
+                                const amount = 2;
+                                wood.value += amount;
+                                addMessage(`${npc.name} 砍倒了树，获得 ${amount} 木材`, 'success');
+                            }
+                        }
+                        break;
+                    }
+
+                    case TEAMMATE_TASKS.FOOD: {
+                        const nearFood = findNearestResource(npc, 'food');
+                        if (nearFood) {
+                            const dx = nearFood.x - npc.x;
+                            const dy = nearFood.y - npc.y;
+                            if (Math.sqrt(dx * dx + dy * dy) < 40) {
+                                const idx = gameState.resources.indexOf(nearFood);
+                                if (idx >= 0) {
+                                    gameState.resources.splice(idx, 1);
+                                    food.value += nearFood.amount;
+                                    addMessage(`${npc.name} 找到了 ${nearFood.amount} 食物`, 'success');
+                                }
+                            }
+                        }
+                        break;
+                    }
+
+                    case TEAMMATE_TASKS.GUARD: {
+                        const dx = gameState.campfire.x - npc.x;
+                        const dy = gameState.campfire.y - npc.y;
+                        if (Math.sqrt(dx * dx + dy * dy) < 60) {
+                            if (campfireFuel.value < 80 && wood.value > 0) {
+                                wood.value--;
+                                campfireFuel.value = Math.min(100, campfireFuel.value + WOOD_ADD_FUEL);
+                                addMessage(`${npc.name} 给篝火添加了木材`, 'success');
+                            }
+                        }
+                        break;
+                    }
                 }
             }
         }
 
         function updateFood(deltaTime) {
             if (gameOver.value) return;
-            
-            if (Math.random() < 0.002 * (1 + teammateCount.value * 0.5)) {
+
+            if (Math.random() < 0.001 * (1 + teammateCount.value * 0.5)) {
                 if (food.value > 0) {
                     food.value--;
                     if (food.value === 0) {
                         addMessage('食物吃完了！快去寻找食物吧', 'warning');
                     }
                 } else {
-                    temperature.value = Math.max(0, temperature.value - 5 * deltaTime);
+                    temperature.value = Math.max(0, temperature.value - 3 * deltaTime);
+                    if (Math.random() < 0.01) {
+                        addMessage('饥饿让你感到更加寒冷...', 'danger');
+                    }
+                }
+            }
+        }
+
+        function updateResourceRespawn() {
+            const now = Date.now();
+            if (now - gameState.lastResourceRespawn > RESOURCE_RESPAWN_INTERVAL) {
+                gameState.lastResourceRespawn = now;
+                if (gameState.resources.length < 20) {
+                    spawnResources(3);
+                }
+                const treeCount = countTrees();
+                if (treeCount < 40) {
+                    regrowTrees(5);
+                }
+            }
+        }
+
+        function countTrees() {
+            let count = 0;
+            for (let y = 0; y < MAP_HEIGHT; y++) {
+                for (let x = 0; x < MAP_WIDTH; x++) {
+                    if (gameState.map[y][x] === GAME_STATES.TREE) count++;
+                }
+            }
+            return count;
+        }
+
+        function regrowTrees(count) {
+            for (let i = 0; i < count; i++) {
+                const x = Math.floor(Math.random() * MAP_WIDTH);
+                const y = Math.floor(Math.random() * MAP_HEIGHT);
+                if (gameState.map[y][x] === GAME_STATES.SNOW) {
+                    const cx = Math.floor(MAP_WIDTH / 2);
+                    const cy = Math.floor(MAP_HEIGHT / 2);
+                    if (Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) > 5) {
+                        gameState.map[y][x] = GAME_STATES.TREE;
+                    }
                 }
             }
         }
@@ -459,8 +723,9 @@ createApp({
                     if (tx >= 0 && tx < MAP_WIDTH && ty >= 0 && ty < MAP_HEIGHT) {
                         if (gameState.map[ty][tx] === GAME_STATES.TREE) {
                             gameState.map[ty][tx] = GAME_STATES.SNOW;
-                            wood.value += 2;
-                            addMessage('砍倒了一棵树，获得 2 木材', 'success');
+                            const amount = 2 + (Math.random() > 0.7 ? 1 : 0);
+                            wood.value += amount;
+                            addMessage(`砍倒了一棵树，获得 ${amount} 木材`, 'success');
                             return;
                         }
                     }
@@ -473,9 +738,10 @@ createApp({
                     const dy = gameState.player.y - npc.y;
                     if (Math.sqrt(dx * dx + dy * dy) < 50) {
                         npc.recruited = true;
+                        npc.task = TEAMMATE_TASKS.FOLLOW;
                         teammateCount.value++;
-                        addMessage('遇到了另一位幸存者，你们组队了！', 'success');
-                        addMessage('注意：组队后食物和篝火消耗增加', 'warning');
+                        addMessage(`遇到了 ${npc.name}，你们组队了！`, 'success');
+                        addMessage('按 T 键可以给队友分配任务', 'info');
                         return;
                     }
                 }
@@ -496,17 +762,18 @@ createApp({
             gameState.shelter.y = gameState.player.y;
             gameState.shelter.built = true;
             hasShelter.value = true;
-            addMessage('搭建了简易庇护所！可以稍微抵御风寒', 'success');
+            addMessage('搭建了简易庇护所！靠近可大幅减少体温流失', 'success');
+            addMessage('暴风雪时在庇护所内可获得额外保护', 'info');
         }
 
         function tryAddWood() {
             const dx = gameState.player.x - gameState.campfire.x;
             const dy = gameState.player.y - gameState.campfire.y;
-            if (Math.sqrt(dx * dx + dy * dy) < 60) {
+            if (Math.sqrt(dx * dx + dy * dy) < 80) {
                 if (wood.value > 0) {
                     wood.value--;
-                    campfireFuel.value = Math.min(100, campfireFuel.value + 20);
-                    addMessage('给篝火添加了木材', 'success');
+                    campfireFuel.value = Math.min(100, campfireFuel.value + WOOD_ADD_FUEL);
+                    addMessage(`给篝火添加了木材 (+${WOOD_ADD_FUEL}% 燃料)`, 'success');
                 } else {
                     addMessage('你没有木材了', 'warning');
                 }
@@ -515,11 +782,108 @@ createApp({
             }
         }
 
+        function setTeammateTask(npcIdx, task) {
+            if (npcIdx >= 0 && npcIdx < gameState.npcs.length) {
+                const npc = gameState.npcs[npcIdx];
+                if (npc.recruited) {
+                    npc.task = task;
+                    addMessage(`${npc.name} 的任务改为: ${TASK_LABELS[task]}`, 'info');
+                }
+            }
+        }
+
+        function autoSaveToLocalStorage() {
+            const saveData = {
+                player: { x: gameState.player.x, y: gameState.player.y, dir: gameState.player.dir },
+                campfire: { x: gameState.campfire.x, y: gameState.campfire.y },
+                shelter: { ...gameState.shelter },
+                temperature: temperature.value,
+                food: food.value,
+                wood: wood.value,
+                campfireFuel: campfireFuel.value,
+                hasShelter: hasShelter.value,
+                teammateCount: teammateCount.value,
+                isNight: gameState.isNight,
+                dayNightTimer: gameState.dayNightTimer,
+                resources: gameState.resources,
+                npcs: gameState.npcs.map(n => ({
+                    x: n.x, y: n.y, active: n.active, recruited: n.recruited,
+                    task: n.task, name: n.name
+                })),
+                map: gameState.map,
+                isBlizzard: isBlizzard.value,
+                lastBlizzardTime: gameState.lastBlizzardTime,
+                blizzardEndTime: gameState.blizzardEndTime,
+                survivalTime: (Date.now() - gameState.gameStartTime) / 1000,
+                playerName: playerName.value,
+                timestamp: Date.now()
+            };
+            try {
+                localStorage.setItem('blizzard_survival_autosave', JSON.stringify(saveData));
+            } catch (e) {
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem('blizzard_survival_autosave');
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+
+                gameState.player.x = data.player.x;
+                gameState.player.y = data.player.y;
+                gameState.player.dir = data.player.dir || 'down';
+                gameState.campfire.x = data.campfire.x;
+                gameState.campfire.y = data.campfire.y;
+                gameState.shelter = { ...data.shelter };
+                temperature.value = data.temperature;
+                food.value = data.food;
+                wood.value = data.wood;
+                campfireFuel.value = data.campfireFuel;
+                hasShelter.value = data.hasShelter;
+                teammateCount.value = data.teammateCount;
+                gameState.isNight = data.isNight;
+                gameState.dayNightTimer = data.dayNightTimer || 0;
+                gameState.resources = data.resources || [];
+                gameState.npcs = (data.npcs || []).map(n => ({
+                    ...n,
+                    wanderTimer: 0,
+                    wanderDir: { x: 0, y: 0 },
+                    taskTimer: 0
+                }));
+                gameState.map = data.map || [];
+                isBlizzard.value = data.isBlizzard || false;
+                gameState.lastBlizzardTime = data.lastBlizzardTime || Date.now();
+                gameState.blizzardEndTime = data.blizzardEndTime || 0;
+                gameState.footprints = [];
+                gameState.gameStartTime = Date.now() - (data.survivalTime || 0) * 1000;
+                gameState.lastAutoSave = Date.now();
+                gameState.lastResourceRespawn = Date.now();
+                gameState.lastTeammateTask = Date.now();
+                gameState.isInShelter = false;
+                gameState.restingInShelter = false;
+                gameOver.value = false;
+                if (data.playerName) playerName.value = data.playerName;
+
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function checkAutoSave() {
+            const now = Date.now();
+            if (now - gameState.lastAutoSave > AUTO_SAVE_INTERVAL) {
+                gameState.lastAutoSave = now;
+                autoSaveToLocalStorage();
+            }
+        }
+
         function render() {
             const canvas = gameCanvas.value;
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            
+
             ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value);
 
             const camX = gameState.camera.x;
@@ -579,7 +943,9 @@ createApp({
             for (let res of gameState.resources) {
                 const screenX = res.x - camX;
                 const screenY = res.y - camY;
-                
+
+                if (screenX < -40 || screenX > canvasWidth.value + 40 || screenY < -40 || screenY > canvasHeight.value + 40) continue;
+
                 if (res.type === 'wood') {
                     ctx.fillStyle = '#8B4513';
                     ctx.fillRect(screenX - 8, screenY - 3, 16, 6);
@@ -600,18 +966,39 @@ createApp({
                 if (!npc.active) continue;
                 const screenX = npc.x - camX;
                 const screenY = npc.y - camY;
-                
-                ctx.fillStyle = npc.recruited ? '#3498db' : '#9b59b6';
-                ctx.beginPath();
-                ctx.arc(screenX, screenY - 5, 10, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.fillStyle = '#f5deb3';
-                ctx.beginPath();
-                ctx.arc(screenX, screenY - 15, 6, 0, Math.PI * 2);
-                ctx.fill();
 
-                if (!npc.recruited) {
+                if (screenX < -40 || screenX > canvasWidth.value + 40 || screenY < -40 || screenY > canvasHeight.value + 40) continue;
+
+                if (npc.recruited) {
+                    ctx.fillStyle = '#3498db';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY - 5, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#f5deb3';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY - 15, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '9px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(TASK_LABELS[npc.task] || '跟随', screenX, screenY - 22);
+
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '8px Arial';
+                    ctx.fillText(npc.name, screenX, screenY + 18);
+                } else {
+                    ctx.fillStyle = '#9b59b6';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY - 5, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#f5deb3';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY - 15, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
                     ctx.fillStyle = '#fff';
                     ctx.font = '10px Arial';
                     ctx.textAlign = 'center';
@@ -622,7 +1009,14 @@ createApp({
             if (hasShelter.value) {
                 const sx = gameState.shelter.x - camX;
                 const sy = gameState.shelter.y - camY;
-                
+
+                if (gameState.isInShelter) {
+                    ctx.fillStyle = 'rgba(139, 69, 19, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 80, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
                 ctx.fillStyle = '#8B4513';
                 ctx.beginPath();
                 ctx.moveTo(sx - 25, sy + 15);
@@ -630,12 +1024,19 @@ createApp({
                 ctx.lineTo(sx + 25, sy + 15);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 ctx.fillStyle = '#654321';
                 ctx.fillRect(sx - 20, sy + 15, 40, 15);
-                
+
                 ctx.fillStyle = '#3d2817';
                 ctx.fillRect(sx - 5, sy + 10, 10, 20);
+
+                if (gameState.isInShelter) {
+                    ctx.fillStyle = '#6bcb77';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🏠 庇护中', sx, sy - 25);
+                }
             }
 
             const cfX = gameState.campfire.x - camX;
@@ -657,7 +1058,7 @@ createApp({
 
             if (campfireFuel.value > 0) {
                 const flicker = Math.sin(Date.now() / 100) * 2;
-                
+
                 ctx.fillStyle = '#ff6b35';
                 ctx.beginPath();
                 ctx.moveTo(cfX - 8, cfY + 2);
@@ -673,6 +1074,11 @@ createApp({
                 ctx.quadraticCurveTo(cfX + 2 - flicker, cfY - 10, cfX + 4, cfY);
                 ctx.closePath();
                 ctx.fill();
+            } else {
+                ctx.fillStyle = '#555';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('❌ 熄灭', cfX, cfY - 10);
             }
 
             for (let p of gameState.particles) {
@@ -689,12 +1095,12 @@ createApp({
 
             ctx.fillStyle = '#c0392b';
             ctx.fillRect(px - 8, py - 5, 16, 20);
-            
+
             ctx.fillStyle = '#f5deb3';
             ctx.beginPath();
             ctx.arc(px, py - 12, 8, 0, Math.PI * 2);
             ctx.fill();
-            
+
             ctx.fillStyle = '#2c3e50';
             ctx.fillRect(px - 9, py - 18, 18, 5);
             ctx.fillRect(px - 6, py - 22, 12, 6);
@@ -703,7 +1109,7 @@ createApp({
             if (nightAlpha > 0) {
                 ctx.fillStyle = `rgba(10, 20, 50, ${nightAlpha})`;
                 ctx.fillRect(0, 0, canvasWidth.value, canvasHeight.value);
-                
+
                 const playerLight = ctx.createRadialGradient(px, py, 0, px, py, 120);
                 playerLight.addColorStop(0, 'rgba(255, 200, 100, 0.3)');
                 playerLight.addColorStop(1, 'rgba(255, 200, 100, 0)');
@@ -772,6 +1178,8 @@ createApp({
                 updateTeammates(deltaTime);
                 updateFood(deltaTime);
                 updateSnowParticles(deltaTime);
+                updateResourceRespawn();
+                checkAutoSave();
             }
 
             render();
@@ -792,6 +1200,12 @@ createApp({
             if (key === 'e') {
                 tryAddWood();
             }
+            if (key === 't') {
+                showTaskPanel.value = !showTaskPanel.value;
+            }
+            if (key === 'escape') {
+                showTaskPanel.value = false;
+            }
         }
 
         function handleKeyUp(e) {
@@ -809,7 +1223,7 @@ createApp({
             }
 
             const gameData = {
-                player: { x: gameState.player.x, y: gameState.player.y },
+                player: { x: gameState.player.x, y: gameState.player.y, dir: gameState.player.dir },
                 campfire: { x: gameState.campfire.x, y: gameState.campfire.y },
                 shelter: { ...gameState.shelter },
                 temperature: temperature.value,
@@ -821,9 +1235,14 @@ createApp({
                 isNight: gameState.isNight,
                 dayNightTimer: gameState.dayNightTimer,
                 resources: gameState.resources,
-                npcs: gameState.npcs,
+                npcs: gameState.npcs.map(n => ({
+                    x: n.x, y: n.y, active: n.active, recruited: n.recruited,
+                    task: n.task, name: n.name
+                })),
                 map: gameState.map,
-                footprints: gameState.footprints,
+                isBlizzard: isBlizzard.value,
+                lastBlizzardTime: gameState.lastBlizzardTime,
+                blizzardEndTime: gameState.blizzardEndTime,
                 survivalTime: (Date.now() - gameState.gameStartTime) / 1000
             };
 
@@ -838,12 +1257,13 @@ createApp({
                 });
                 const result = await response.json();
                 if (result.code === 0) {
-                    addMessage('游戏已保存', 'success');
+                    addMessage('游戏已保存到服务器', 'success');
                 } else {
                     addMessage('保存失败: ' + result.message, 'danger');
                 }
             } catch (err) {
-                addMessage('保存失败: 网络错误', 'danger');
+                addMessage('保存到服务器失败，已保存到本地', 'warning');
+                autoSaveToLocalStorage();
             }
         }
 
@@ -858,9 +1278,10 @@ createApp({
                 const result = await response.json();
                 if (result.code === 0 && result.data) {
                     const data = result.data.game_data;
-                    
+
                     gameState.player.x = data.player.x;
                     gameState.player.y = data.player.y;
+                    gameState.player.dir = data.player.dir || 'down';
                     gameState.campfire.x = data.campfire.x;
                     gameState.campfire.y = data.campfire.y;
                     gameState.shelter = { ...data.shelter };
@@ -873,22 +1294,36 @@ createApp({
                     gameState.isNight = data.isNight;
                     gameState.dayNightTimer = data.dayNightTimer || 0;
                     gameState.resources = data.resources || [];
-                    gameState.npcs = data.npcs || [];
+                    gameState.npcs = (data.npcs || []).map(n => ({
+                        ...n,
+                        wanderTimer: 0,
+                        wanderDir: { x: 0, y: 0 },
+                        taskTimer: 0
+                    }));
                     gameState.map = data.map || [];
+                    isBlizzard.value = data.isBlizzard || false;
+                    gameState.lastBlizzardTime = data.lastBlizzardTime || Date.now();
+                    gameState.blizzardEndTime = data.blizzardEndTime || 0;
                     gameState.footprints = [];
                     gameState.gameStartTime = Date.now() - (data.survivalTime || 0) * 1000;
+                    gameState.lastAutoSave = Date.now();
+                    gameState.lastResourceRespawn = Date.now();
+                    gameState.lastTeammateTask = Date.now();
+                    gameState.isInShelter = false;
+                    gameState.restingInShelter = false;
                     gameOver.value = false;
-                    
+
                     addMessage('存档已读取', 'success');
                 } else {
-                    addMessage('未找到存档', 'warning');
+                    addMessage('未找到服务器存档', 'warning');
                 }
             } catch (err) {
-                addMessage('读取失败: 网络错误', 'danger');
+                addMessage('读取服务器存档失败', 'danger');
             }
         }
 
         function newGame() {
+            localStorage.removeItem('blizzard_survival_autosave');
             initGame();
             addMessage('新游戏开始！祝你好运！', 'success');
         }
@@ -896,13 +1331,26 @@ createApp({
         onMounted(() => {
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('keyup', handleKeyUp);
-            initGame();
+            window.addEventListener('beforeunload', () => {
+                autoSaveToLocalStorage();
+            });
+
+            const loaded = loadFromLocalStorage();
+            if (loaded) {
+                addMessage('已自动恢复上次游戏进度', 'success');
+                initSnowParticles();
+                gameState.lastTime = 0;
+            } else {
+                initGame();
+            }
+
             requestAnimationFrame(gameLoop);
         });
 
         onUnmounted(() => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            autoSaveToLocalStorage();
         });
 
         return {
@@ -923,10 +1371,18 @@ createApp({
             timeOfDayLabel,
             isNight,
             isNearCampfire,
+            showTaskPanel,
+            selectedNpcIdx,
+            recruitedNpcs,
+            shelterStatusText,
+            TEAMMATE_TASKS,
+            TASK_LABELS,
+            gameState,
             onCanvasClick,
             saveGame,
             loadGame,
-            newGame
+            newGame,
+            setTeammateTask
         };
     }
 }).mount('#app');
