@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冰封峡谷 - 最后一个弓箭手</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container" v-if="gameState === 'menu'">
+            <div class="menu-bg"></div>
+            <div class="menu-content">
+                <h1 class="game-title">❄ 冰封峡谷 ❄</h1>
+                <h2 class="game-subtitle">最后一个弓箭手</h2>
+                <div class="menu-buttons">
+                    <button class="btn-primary" @click="startGame">开始游戏</button>
+                    <button class="btn-secondary" @click="showLeaderboard">排行榜</button>
+                    <button class="btn-secondary" @click="showHelp">游戏说明</button>
+                </div>
+                <div class="stats-preview" v-if="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">最高波数</span>
+                        <span class="stat-value">{{ stats.highest_wave }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最高分</span>
+                        <span class="stat-value">{{ stats.highest_score }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">总场次</span>
+                        <span class="stat-value">{{ stats.total_games }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container" v-if="gameState === 'playing' || gameState === 'paused'">
+            <canvas ref="gameCanvas" class="game-canvas" @mousemove="handleMouseMove" @click="handleClick"></canvas>
+
+            <div class="game-ui">
+                <div class="top-bar">
+                    <div class="wave-info">
+                        <span class="wave-label">波次</span>
+                        <span class="wave-number">{{ currentWave }}</span>
+                    </div>
+                    <div class="score-info">
+                        <span class="score-label">分数</span>
+                        <span class="score-number">{{ score }}</span>
+                    </div>
+                    <div class="enemy-info">
+                        <span class="enemy-label">敌人</span>
+                        <span class="enemy-number">{{ enemiesRemaining }}/{{ enemiesPerWave }}</span>
+                    </div>
+                </div>
+
+                <div class="bottom-bar">
+                    <div class="mana-bar-container">
+                        <div class="mana-label">❄ 寒气值</div>
+                        <div class="mana-bar">
+                            <div class="mana-fill" :style="{ width: manaPercent + '%' }"></div>
+                        </div>
+                        <div class="mana-text">{{ Math.floor(currentMana) }}/{{ maxMana }}</div>
+                    </div>
+                    <div class="heat-wave-indicator" v-if="heatWaveActive">
+                        <span class="heat-icon">🔥</span>
+                        <span class="heat-text">热浪中 - 寒气恢复暂停</span>
+                    </div>
+                </div>
+
+                <div class="boss-health-bar" v-if="bossActive">
+                    <div class="boss-label">🐉 火龙BOSS</div>
+                    <div class="boss-bar">
+                        <div class="boss-fill" :style="{ width: bossHealthPercent + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="wave-announcement" v-if="waveAnnouncement">
+                    <div class="announcement-text">{{ waveAnnouncement }}</div>
+                </div>
+            </div>
+
+            <div class="pause-menu" v-if="gameState === 'paused'">
+                <div class="pause-content">
+                    <h2>游戏暂停</h2>
+                    <button class="btn-primary" @click="resumeGame">继续游戏</button>
+                    <button class="btn-secondary" @click="quitToMenu">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container" v-if="gameState === 'gameover'">
+            <div class="gameover-bg"></div>
+            <div class="gameover-content">
+                <h1 class="gameover-title">游戏结束</h1>
+                <div class="gameover-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">到达波次</span>
+                        <span class="stat-value">{{ finalStats.wave }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">最终得分</span>
+                        <span class="stat-value">{{ finalStats.score }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">击杀数量</span>
+                        <span class="stat-value">{{ finalStats.kills }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">精英击杀</span>
+                        <span class="stat-value">{{ finalStats.elite_kills }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">BOSS击杀</span>
+                        <span class="stat-value">{{ finalStats.boss_kills }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">发射冰箭</span>
+                        <span class="stat-value">{{ finalStats.arrows_shot }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">收集冰晶</span>
+                        <span class="stat-value">{{ finalStats.crystals_collected }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">造成伤害</span>
+                        <span class="stat-value">{{ finalStats.damage_dealt }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">存活时间</span>
+                        <span class="stat-value">{{ formatTime(finalStats.survival_time) }}</span>
+                    </div>
+                </div>
+                <div class="name-input">
+                    <label>输入你的名字：</label>
+                    <input type="text" v-model="playerName" maxlength="20" placeholder="Anonymous">
+                </div>
+                <div class="gameover-buttons">
+                    <button class="btn-primary" @click="saveAndRestart">保存并重玩</button>
+                    <button class="btn-secondary" @click="quitToMenu">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container" v-if="gameState === 'leaderboard'">
+            <div class="leaderboard-bg"></div>
+            <div class="leaderboard-content">
+                <h1 class="leaderboard-title">🏆 排行榜 🏆</h1>
+                <div class="leaderboard-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>玩家</th>
+                                <th>波次</th>
+                                <th>分数</th>
+                                <th>击杀</th>
+                                <th>日期</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(record, index) in leaderboard" :key="record.id" :class="{ 'top-three': index < 3 }">
+                                <td>
+                                    <span v-if="index === 0">🥇</span>
+                                    <span v-else-if="index === 1">🥈</span>
+                                    <span v-else-if="index === 2">🥉</span>
+                                    <span v-else>{{ index + 1 }}</span>
+                                </td>
+                                <td>{{ record.player_name }}</td>
+                                <td>{{ record.wave }}</td>
+                                <td>{{ record.score }}</td>
+                                <td>{{ record.kills }}</td>
+                                <td>{{ formatDate(record.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn-secondary" @click="backToMenu">返回主菜单</button>
+            </div>
+        </div>
+
+        <div class="game-container" v-if="gameState === 'help'">
+            <div class="help-bg"></div>
+            <div class="help-content">
+                <h1 class="help-title">📖 游戏说明</h1>
+                <div class="help-sections">
+                    <div class="help-section">
+                        <h3>🎯 游戏目标</h3>
+                        <p>你是冰封峡谷里最后一个弓箭手，用冰箭射杀入侵的火蜥蜴大军！</p>
+                    </div>
+                    <div class="help-section">
+                        <h3>🖱️ 操作方式</h3>
+                        <p><strong>鼠标移动</strong> - 瞄准方向</p>
+                        <p><strong>鼠标点击</strong> - 发射冰箭（消耗寒气值）</p>
+                        <p><strong>ESC键</strong> - 暂停游戏</p>
+                    </div>
+                    <div class="help-section">
+                        <h3>❄️ 冰箭机制</h3>
+                        <p>• 冰箭命中敌人将其冻结3秒</p>
+                        <p>• 冻结期间再次命中则碎裂秒杀</p>
+                        <p>• 冰箭会留下冰雾尾迹</p>
+                    </div>
+                    <div class="help-section">
+                        <h3>💧 寒气值</h3>
+                        <p>• 发射冰箭消耗20点寒气值</p>
+                        <p>• 寒气值每秒缓慢恢复5点</p>
+                        <p>• 拾取蓝色冰晶快速恢复50点</p>
+                        <p>• 🔥热浪期间寒气恢复暂停</p>
+                    </div>
+                    <div class="help-section">
+                        <h3>🦎 敌人类型</h3>
+                        <p>• <span style="color: #ff4444">普通火蜥蜴</span> - 1次冻结+1次碎裂</p>
+                        <p>• <span style="color: #ff8800">精英火蜥蜴</span> - 需要3次命中才能碎裂</p>
+                        <p>• 🐉 <span style="color: #ff0000">火龙BOSS</span> - 每5波出现，射落火球并输出</p>
+                    </div>
+                    <div class="help-section">
+                        <h3>🔥 热浪效果</h3>
+                        <p>火蜥蜴死亡时释放热浪，附近寒气值回复暂停</p>
+                    </div>
+                </div>
+                <button class="btn-secondary" @click="backToMenu">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
