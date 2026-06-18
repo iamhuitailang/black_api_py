@@ -86,20 +86,30 @@ createApp({
 
         function saveGame() {
             const saveData = {
+                version: 1,
                 wave: currentWave.value,
                 score: score.value,
                 mana: currentMana.value,
                 enemiesRemaining: enemiesRemaining.value,
                 enemiesPerWave: enemiesPerWave.value,
+                enemiesSpawned: enemiesSpawned,
+                spawnTimer: spawnTimer,
+                waveComplete: waveComplete,
+                waveTransitionTimer: waveTransitionTimer,
+                bossActive: bossActive.value,
+                bossHealth: bossHealth.value,
+                bossMaxHealth: bossMaxHealth.value,
                 stats: { ...finalStats },
                 survivalTime: gameStartTime > 0 ? Math.floor((Date.now() - gameStartTime) / 1000) : 0,
                 savedAt: Date.now()
             };
             try {
-                localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                const json = JSON.stringify(saveData);
+                localStorage.setItem(SAVE_KEY, json);
                 hasSave.value = true;
+                console.log('[Save] 游戏已保存, 波次:', saveData.wave, '分数:', saveData.score);
             } catch (e) {
-                console.error('Failed to save game:', e);
+                console.error('[Save] 保存失败:', e);
             }
         }
 
@@ -108,11 +118,12 @@ createApp({
                 const raw = localStorage.getItem(SAVE_KEY);
                 if (!raw) return null;
                 const data = JSON.parse(raw);
-                if (data.wave && data.wave >= 1) {
+                if (data && data.wave && data.wave >= 1) {
+                    console.log('[Load] 检测到存档, 波次:', data.wave, '分数:', data.score);
                     return data;
                 }
             } catch (e) {
-                console.error('Failed to load save:', e);
+                console.error('[Load] 读取失败:', e);
             }
             return null;
         }
@@ -121,8 +132,9 @@ createApp({
             try {
                 localStorage.removeItem(SAVE_KEY);
                 hasSave.value = false;
+                console.log('[Save] 存档已清除');
             } catch (e) {
-                console.error('Failed to clear save:', e);
+                console.error('[Save] 清除存档失败:', e);
             }
         }
 
@@ -191,27 +203,52 @@ createApp({
             gameObjects.arrows.push(arrow);
         }
 
-        function startGame(fromWave) {
+        function startGame(fromWave, isContinue = false) {
             resetGameState();
-            if (fromWave && fromWave > 1) {
-                currentWave.value = fromWave;
-                score.value = savedSessionData.score || 0;
-                currentMana.value = savedSessionData.mana || GAME_CONFIG.MANA_MAX;
-                Object.assign(finalStats, savedSessionData.stats || {});
-            }
-            gameState.value = 'playing';
 
-            nextTick(() => {
-                initCanvas();
-                startWave(fromWave || 1);
-                gameStartTime = Date.now();
-                if (fromWave && fromWave > 1 && savedSessionData.survivalTime) {
-                    gameStartTime -= savedSessionData.survivalTime * 1000;
-                }
-                lastTime = performance.now();
-                startAutoSave();
-                requestAnimationFrame(gameLoop);
-            });
+            if (isContinue && savedSessionData.wave) {
+                console.log('[Continue] 恢复存档, 波次:', savedSessionData.wave);
+                const s = savedSessionData;
+                currentWave.value = s.wave;
+                score.value = s.score || 0;
+                currentMana.value = s.mana || GAME_CONFIG.MANA_MAX;
+                enemiesPerWave.value = s.enemiesPerWave || GAME_CONFIG.BASE_ENEMIES_PER_WAVE;
+                enemiesRemaining.value = s.enemiesRemaining != null ? s.enemiesRemaining : enemiesPerWave.value;
+                enemiesSpawned = s.enemiesSpawned || 0;
+                spawnTimer = s.spawnTimer || 0;
+                waveComplete = s.waveComplete || false;
+                waveTransitionTimer = s.waveTransitionTimer || 0;
+                if (s.stats) Object.assign(finalStats, s.stats);
+                if (s.bossHealth) bossHealth.value = s.bossHealth;
+                if (s.bossMaxHealth) bossMaxHealth.value = s.bossMaxHealth;
+                if (s.bossActive) bossActive.value = s.bossActive;
+
+                gameState.value = 'playing';
+                nextTick(() => {
+                    initCanvas();
+                    if (bossActive.value && bossHealth.value > 0) {
+                        spawnBossFromSave(s);
+                    } else if (!waveComplete) {
+                        waveAnnouncement.value = `继续第 ${currentWave.value} 波`;
+                        setTimeout(() => { waveAnnouncement.value = ''; }, 1500);
+                    }
+                    gameStartTime = Date.now() - (s.survivalTime ? s.survivalTime * 1000 : 0);
+                    lastTime = performance.now();
+                    startAutoSave();
+                    requestAnimationFrame(gameLoop);
+                });
+            } else {
+                console.log('[NewGame] 新游戏开始');
+                gameState.value = 'playing';
+                nextTick(() => {
+                    initCanvas();
+                    startWave(1);
+                    gameStartTime = Date.now();
+                    lastTime = performance.now();
+                    startAutoSave();
+                    requestAnimationFrame(gameLoop);
+                });
+            }
         }
 
         function resetGameState() {
@@ -319,6 +356,29 @@ createApp({
             };
         }
 
+        function spawnBossFromSave(saveData) {
+            const canvas = gameCanvas.value;
+            bossMaxHealth.value = saveData.bossMaxHealth || (50 + currentWave.value * 10);
+            bossHealth.value = saveData.bossHealth || bossMaxHealth.value;
+            bossActive.value = true;
+
+            gameObjects.boss = {
+                x: canvas.width - 200,
+                y: canvas.height / 2,
+                targetY: canvas.height / 2,
+                health: bossHealth.value,
+                maxHealth: bossMaxHealth.value,
+                active: true,
+                fireballTimer: 1500,
+                invincible: false,
+                invincibleTimer: 0,
+                size: 80
+            };
+
+            waveAnnouncement.value = `继续第 ${currentWave.value} 波 BOSS战`;
+            setTimeout(() => { waveAnnouncement.value = ''; }, 1500);
+        }
+
         function spawnFireball() {
             const boss = gameObjects.boss;
             if (!boss) return;
@@ -340,12 +400,20 @@ createApp({
         }
 
         function spawnCrystal(x, y) {
+            const player = gameObjects.player;
+            const dx = player.x - x;
+            const dy = player.y - y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
             const crystal = {
                 x: x,
                 y: y,
                 size: 15,
                 active: true,
-                pulsePhase: 0
+                pulsePhase: Math.random() * Math.PI * 2,
+                vx: (dx / dist),
+                vy: (dy / dist),
+                age: 0
             };
 
             gameObjects.crystals.push(crystal);
@@ -724,6 +792,7 @@ createApp({
 
         function updateCrystals(dt) {
             const player = gameObjects.player;
+            if (!player) return;
 
             for (let i = gameObjects.crystals.length - 1; i >= 0; i--) {
                 const crystal = gameObjects.crystals[i];
@@ -732,17 +801,25 @@ createApp({
                     continue;
                 }
 
-                crystal.pulsePhase += 0.1 * dt;
+                crystal.pulsePhase += 0.15 * dt;
+                crystal.age += dt;
 
                 const dx = player.x - crystal.x;
                 const dy = player.y - crystal.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-                if (dist < GAME_CONFIG.CRYSTAL_PULL_RANGE) {
-                    const pullSpeed = (8 + (1 - dist / GAME_CONFIG.CRYSTAL_PULL_RANGE) * 12) * dt;
-                    crystal.x += (dx / dist) * pullSpeed;
-                    crystal.y += (dy / dist) * pullSpeed;
+                crystal.vx += (dx / dist) * 0.5 * dt;
+                crystal.vy += (dy / dist) * 0.5 * dt;
+
+                const speed = Math.sqrt(crystal.vx * crystal.vx + crystal.vy * crystal.vy);
+                const maxSpeed = dist < 300 ? 18 : 12;
+                if (speed > maxSpeed) {
+                    crystal.vx = (crystal.vx / speed) * maxSpeed;
+                    crystal.vy = (crystal.vy / speed) * maxSpeed;
                 }
+
+                crystal.x += crystal.vx * dt;
+                crystal.y += crystal.vy * dt;
 
                 if (dist < GAME_CONFIG.CRYSTAL_COLLECT_RANGE) {
                     collectCrystal(crystal);
@@ -1536,18 +1613,21 @@ createApp({
             const save = loadSave();
             if (save) {
                 savedSessionData = save;
-                startGame(save.wave);
+                startGame(save.wave, true);
             }
         }
 
         function newGame() {
             clearSave();
             savedSessionData = {};
-            startGame();
+            startGame(1, false);
         }
 
-        onMounted(() => {
-            hasSave.value = loadSave() !== null;
+        onMounted(async () => {
+            await nextTick();
+            const existingSave = loadSave();
+            hasSave.value = existingSave !== null;
+            console.log('[Init] 组件挂载完成, 存档状态:', hasSave.value, 'localStorage 原始值:', localStorage.getItem(SAVE_KEY) ? '存在' : '不存在');
             loadStats();
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('resize', handleResize);
