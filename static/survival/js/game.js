@@ -16,8 +16,8 @@ const WOOD_ADD_FUEL = 30;
 const AUTO_SAVE_INTERVAL = 10000;
 const RESOURCE_RESPAWN_INTERVAL = 15000;
 const TEAMMATE_TASK_INTERVAL = 5000;
-const SHELTER_WARM_RADIUS = 80;
-const SHELTER_RECOVER_RATE = 4;
+const SHELTER_WARM_RADIUS = 100;
+const SHELTER_RECOVER_RATE = 8;
 const SNOW_SEED_KEY = 'blizzard_survival_snow_seed';
 
 const GAME_STATES = {
@@ -104,8 +104,19 @@ createApp({
 
         const shelterStatusText = computed(() => {
             if (!hasShelter.value) return '🏠 庇护所: 未搭建 (需5木材)';
-            if (gameState.isInShelter) return '🏠 庇护所: 你正在庇护所中';
-            return '🏠 庇护所: 已搭建 (靠近可获得保护)';
+            if (gameState.isInShelter) return '🏠 庇护所: 温暖中 (回温 +8%/秒)';
+            return '🏠 庇护所: 已搭建 (靠近可回温)';
+        });
+
+        const shelterEffectLabel = computed(() => {
+            if (!hasShelter.value) return '';
+            if (gameState.isInShelter && isNearCampfire.value) {
+                return '🔥+🏠 篝火庇护叠加';
+            }
+            if (gameState.isInShelter) {
+                return '🏠 庇护回温中';
+            }
+            return '';
         });
 
         function addMessage(text, type = 'info') {
@@ -290,7 +301,16 @@ createApp({
 
         function updatePlayer(deltaTime) {
             let dx = 0, dy = 0;
-            const speed = PLAYER_SPEED * (isBlizzard.value ? 0.6 : 1) * (gameState.restingInShelter ? 0 : 1);
+            const speed = PLAYER_SPEED * (isBlizzard.value ? 0.6 : 1);
+
+            const hasInput = gameState.keys['w'] || gameState.keys['arrowup']
+                || gameState.keys['s'] || gameState.keys['arrowdown']
+                || gameState.keys['a'] || gameState.keys['arrowleft']
+                || gameState.keys['d'] || gameState.keys['arrowright'];
+
+            if (hasInput && gameState.restingInShelter) {
+                gameState.restingInShelter = false;
+            }
 
             if (gameState.keys['w'] || gameState.keys['arrowup']) {
                 dy -= speed * deltaTime;
@@ -317,10 +337,6 @@ createApp({
 
             const newX = gameState.player.x + dx;
             const newY = gameState.player.y + dy;
-
-            if (dx !== 0 || dy !== 0) {
-                gameState.restingInShelter = false;
-            }
 
             if (canMoveTo(newX, gameState.player.y)) {
                 gameState.player.x = newX;
@@ -359,10 +375,10 @@ createApp({
         }
 
         function isNearShelter() {
-            if (!hasShelter.value) return false;
+            if (!hasShelter.value && !gameState.shelter.built) return false;
             const dx = gameState.player.x - gameState.shelter.x;
             const dy = gameState.player.y - gameState.shelter.y;
-            return Math.sqrt(dx * dx + dy * dy) < 80;
+            return Math.sqrt(dx * dx + dy * dy) < SHELTER_WARM_RADIUS;
         }
 
         function updateTemperature(deltaTime) {
@@ -791,8 +807,8 @@ createApp({
             gameState.shelter.built = true;
             hasShelter.value = true;
             addMessage('搭建了简易庇护所！庇护所效果：', 'success');
-            addMessage('  ✅ 靠近庇护所可自动回温 +4%/秒', 'success');
-            addMessage('  ✅ 篝火+庇护所叠加回温 +180%', 'success');
+            addMessage('  ✅ 靠近庇护所可自动回温 +8%/秒', 'success');
+            addMessage('  ✅ 篝火+庇护所叠加回温 1.8倍', 'success');
             addMessage('  ✅ 暴风雪和夜晚保护', 'success');
         }
 
@@ -860,28 +876,43 @@ createApp({
                 if (!raw) return false;
                 const data = JSON.parse(raw);
 
+                if (!data.player || !data.campfire || !data.temperature) {
+                    return false;
+                }
+
+                if (!data.map || !Array.isArray(data.map) || data.map.length === 0) {
+                    initMap();
+                } else {
+                    gameState.map = data.map;
+                }
+
                 gameState.player.x = data.player.x;
                 gameState.player.y = data.player.y;
                 gameState.player.dir = data.player.dir || 'down';
                 gameState.campfire.x = data.campfire.x;
                 gameState.campfire.y = data.campfire.y;
-                gameState.shelter = { ...data.shelter };
+                gameState.shelter = data.shelter || {
+                    x: gameState.player.x + TILE_SIZE * 3,
+                    y: gameState.player.y,
+                    built: false
+                };
                 temperature.value = data.temperature;
-                food.value = data.food;
-                wood.value = data.wood;
-                campfireFuel.value = data.campfireFuel;
-                hasShelter.value = data.hasShelter;
-                teammateCount.value = data.teammateCount;
-                gameState.isNight = data.isNight;
+                food.value = data.food ?? 5;
+                wood.value = data.wood ?? 5;
+                campfireFuel.value = data.campfireFuel ?? 100;
+                hasShelter.value = data.hasShelter ?? false;
+                teammateCount.value = data.teammateCount ?? 0;
+                gameState.isNight = data.isNight ?? false;
                 gameState.dayNightTimer = data.dayNightTimer || 0;
                 gameState.resources = data.resources || [];
                 gameState.npcs = (data.npcs || []).map(n => ({
                     ...n,
                     wanderTimer: 0,
                     wanderDir: { x: 0, y: 0 },
-                    taskTimer: 0
+                    taskTimer: 0,
+                    task: n.task || 'follow',
+                    name: n.name || '幸存者'
                 }));
-                gameState.map = data.map || [];
                 isBlizzard.value = data.isBlizzard || false;
                 gameState.lastBlizzardTime = data.lastBlizzardTime || Date.now();
                 gameState.blizzardEndTime = data.blizzardEndTime || 0;
@@ -892,11 +923,23 @@ createApp({
                 gameState.lastTeammateTask = Date.now();
                 gameState.isInShelter = false;
                 gameState.restingInShelter = false;
+                gameState.particles = [];
                 gameOver.value = false;
                 if (data.playerName) playerName.value = data.playerName;
 
+                gameState.camera.x = gameState.player.x - canvasWidth.value / 2;
+                gameState.camera.y = gameState.player.y - canvasHeight.value / 2;
+
+                if (gameState.resources.length === 0) {
+                    spawnResources(15);
+                }
+                if (gameState.npcs.length === 0) {
+                    spawnNPCs(3);
+                }
+
                 return true;
             } catch (e) {
+                console.error('Failed to load from localStorage:', e);
                 return false;
             }
         }
@@ -1444,6 +1487,7 @@ createApp({
             selectedNpcIdx,
             recruitedNpcs,
             shelterStatusText,
+            shelterEffectLabel,
             TEAMMATE_TASKS,
             TASK_LABELS,
             gameState,

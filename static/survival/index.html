@@ -67,9 +67,16 @@
                         <p v-if="isNight && !isNearCampfire" class="warning-text">⚠️ 夜间远离篝火很危险!</p>
                         <p v-if="temperature < 30" class="danger-text">🔥 体温过低! 快回篝火!</p>
                         <p v-if="campfireFuel <= 10 && campfireFuel > 0" class="danger-text">🔥 篝火快熄灭了!</p>
-                        <p :class="gameState.isInShelter ? 'success-text' : ''">{{ shelterStatusText }}</p>
+                        <p class="shelter-status" :class="{ 'shelter-active': gameState.isInShelter }">
+                            {{ shelterStatusText }}
+                        </p>
+                        <p v-if="shelterEffectLabel" class="success-text shelter-effect">
+                            ✨ {{ shelterEffectLabel }}
+                        </p>
                         <p v-if="teammateCount > 0">👥 队友: {{ teammateCount }} 人</p>
-                        <p v-if="gameState.isInShelter && isBlizzard" class="success-text">🛡️ 暴风雪庇护生效中</p>
+                        <p v-if="gameState.isInShelter && isBlizzard" class="success-text">
+                            🛡️ 暴风雪庇护生效 (体温流失-60%)
+                        </p>
                     </div>
 
                     <div class="sidebar-section" v-if="showTaskPanel && recruitedNpcs.length > 0">
