@@ -1,4 +1,5 @@
 import random
+import json
 from typing import Dict, Any, List, Optional, Tuple
 from app.model.vault import VaultSaveModel, VaultResidentModel, VaultFacilityModel, VaultLogModel
 
@@ -109,6 +110,14 @@ class VaultBusiness:
                 info['upgrade_cost'] = None
             facility_info.append(info)
 
+        wanderer_event = None
+        pending_raw = save.get('wanderer_pending')
+        if pending_raw and isinstance(pending_raw, str):
+            try:
+                wanderer_event = json.loads(pending_raw)
+            except (json.JSONDecodeError, TypeError):
+                wanderer_event = None
+
         return {
             'code': 0,
             'message': 'success',
@@ -117,7 +126,8 @@ class VaultBusiness:
                 'residents': residents,
                 'facilities': facility_info,
                 'logs': logs,
-                'capacity': capacity
+                'capacity': capacity,
+                'wanderer_event': wanderer_event
             }
         }
 
@@ -293,8 +303,9 @@ class VaultBusiness:
 
         event_counter = save['event_counter'] + 1
         wanderer_event = None
+        wanderer_pending_json = save.get('wanderer_pending') if save.get('wanderer_pending') else None
 
-        if event_counter >= random.randint(2, 4):
+        if not wanderer_pending_json and event_counter >= random.randint(2, 4):
             capacity = self._calculate_capacity(facilities)
             alive_residents = [r for r in residents if r['is_alive']]
             if len(alive_residents) < capacity:
@@ -306,6 +317,7 @@ class VaultBusiness:
                     'mood': random.randint(40, 70)
                 }
                 wanderer_event = wanderer_stats
+                wanderer_pending_json = json.dumps(wanderer_stats, ensure_ascii=False)
                 day_logs.append(('info', f'一名流浪者 {wanderer_name} 敲响了避难所的大门，请求入住。'))
                 event_counter = 0
 
@@ -324,14 +336,11 @@ class VaultBusiness:
             current_water=current_water,
             current_food=current_food,
             current_medicine=current_medicine,
-            event_counter=event_counter
+            event_counter=event_counter,
+            wanderer_pending=wanderer_pending_json
         )
 
-        result = self._build_state(save_id)
-        if wanderer_event:
-            result['data']['wanderer_event'] = wanderer_event
-
-        return result
+        return self._build_state(save_id)
 
     def _calculate_capacity(self, facilities: List[Dict[str, Any]]) -> int:
         capacity = 4
@@ -353,6 +362,7 @@ class VaultBusiness:
 
         self.resident_model.create(save_id, wanderer_name, hunger, health, mood, 'idle')
         self.log_model.create(save_id, save['day'], 'success', f'{wanderer_name} 加入了避难所！')
+        self.save_model.update_save(save_id, wanderer_pending=None)
 
         return self._build_state(save_id)
 
@@ -367,6 +377,7 @@ class VaultBusiness:
 
         self.log_model.create(save_id, save['day'], 'warning',
                               f'{wanderer_name} 被拒之门外。居民们心情受到影响。')
+        self.save_model.update_save(save_id, wanderer_pending=None)
 
         return self._build_state(save_id)
 

@@ -27,7 +27,6 @@ createApp({
         const saves = ref([]);
         const gameState = ref(null);
         const selectedResident = ref(null);
-        const wandererEvent = ref(null);
         const showNewGame = ref(false);
         const newGameName = ref('Vault 101');
         const advancing = ref(false);
@@ -43,6 +42,7 @@ createApp({
 
         const population = computed(() => residents.value.filter(r => r.is_alive).length);
         const isFull = computed(() => population.value >= capacity.value);
+        const wandererEvent = computed(() => gameState.value?.data?.wanderer_event || null);
 
         const residentsByAssignment = computed(() => {
             const map = {};
@@ -140,7 +140,6 @@ createApp({
             screen.value = 'boot';
             gameState.value = null;
             selectedResident.value = null;
-            wandererEvent.value = null;
             localStorage.removeItem('vault_current_save');
             loadSaves();
         }
@@ -190,9 +189,6 @@ createApp({
                 const res = await VaultAPI.advanceDay(currentSaveId.value);
                 if (res.code === 0) {
                     gameState.value = res;
-                    if (res.data?.wanderer_event) {
-                        wandererEvent.value = res.data.wanderer_event;
-                    }
                 } else {
                     showMessage(res.message);
                 }
@@ -210,13 +206,9 @@ createApp({
             );
             if (res.code === 0) {
                 gameState.value = res;
-                wandererEvent.value = null;
                 showMessage(accept ? '流浪者已加入避难所！' : '流浪者被送走了...');
             } else {
                 showMessage(res.message);
-                if (!accept) {
-                    wandererEvent.value = null;
-                }
             }
         }
 
@@ -499,7 +491,7 @@ createApp({
         </template>
 
         <!-- WANDERER MODAL -->
-        <div v-if="wandererEvent" class="modal-overlay" @click.self="wandererEvent = null">
+        <div v-if="wandererEvent" class="modal-overlay">
             <div class="modal-box">
                 <div class="modal-title">⚠ 流浪者请求入境</div>
                 <div class="modal-body">

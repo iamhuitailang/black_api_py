@@ -31,6 +31,7 @@ class VaultSaveModel:
                 max_food INTEGER NOT NULL DEFAULT 100,
                 max_medicine INTEGER NOT NULL DEFAULT 50,
                 event_counter INTEGER NOT NULL DEFAULT 0,
+                wanderer_pending TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -38,6 +39,16 @@ class VaultSaveModel:
         db.execute(sql)
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_updated_at ON {cls.TABLE_NAME}(updated_at)"
         db.execute(index_sql)
+
+    @classmethod
+    def migrate_add_wanderer_pending(cls):
+        db = get_db()
+        cols = db.fetch_all(f"PRAGMA table_info({cls.TABLE_NAME})")
+        col_names = [c['name'] for c in cols]
+        if 'wanderer_pending' not in col_names:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN wanderer_pending TEXT DEFAULT NULL")
+            return True
+        return False
 
     def create(self, name: str = 'Vault 101') -> int:
         now = datetime.now().isoformat()
@@ -54,6 +65,7 @@ class VaultSaveModel:
             'max_food': 100,
             'max_medicine': 50,
             'event_counter': 0,
+            'wanderer_pending': None,
             'created_at': now,
             'updated_at': now
         }

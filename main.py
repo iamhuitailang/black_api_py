@@ -23,6 +23,10 @@ def migrate_database():
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
 
+    migrated = VaultSaveModel.migrate_add_wanderer_pending()
+    if migrated:
+        print("  - Migrated vault_saves: added wanderer_pending column")
+
 
 def init_database():
     db = get_db()
