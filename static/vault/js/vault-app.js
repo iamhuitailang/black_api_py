@@ -80,7 +80,8 @@ createApp({
                 ],
                 [
                     { id: 'farm', type: 'farm', name: '水培农场', icon: '🌱', level: null,
-                      workers: residentsByAssignment.value.farming },
+                      workers: residentsByAssignment.value.farming,
+                      farmOutput: 5 + residentsByAssignment.value.farming.length * 12 },
                     { id: 'medbay', type: 'medbay', name: '医疗站', icon: '➕',
                       level: getFacilityLevel('medbay'),
                       workers: [],
@@ -116,6 +117,7 @@ createApp({
                 gameState.value = res;
                 screen.value = 'game';
                 showNewGame.value = false;
+                localStorage.setItem('vault_current_save', currentSaveId.value);
                 showMessage('避难所启动成功！');
             } else {
                 showMessage(res.message);
@@ -127,6 +129,7 @@ createApp({
             if (res.code === 0) {
                 gameState.value = res;
                 screen.value = 'game';
+                localStorage.setItem('vault_current_save', saveId);
                 showMessage('存档加载成功');
             } else {
                 showMessage(res.message);
@@ -138,6 +141,7 @@ createApp({
             gameState.value = null;
             selectedResident.value = null;
             wandererEvent.value = null;
+            localStorage.removeItem('vault_current_save');
             loadSaves();
         }
 
@@ -145,6 +149,9 @@ createApp({
             event.stopPropagation();
             if (confirm('确定要删除这个存档吗？')) {
                 await VaultAPI.deleteSave(saveId);
+                if (currentSaveId.value === saveId) {
+                    localStorage.removeItem('vault_current_save');
+                }
                 await loadSaves();
             }
         }
@@ -241,8 +248,18 @@ createApp({
             } catch(e) { return ''; }
         }
 
-        onMounted(() => {
-            loadSaves();
+        onMounted(async () => {
+            await loadSaves();
+            const savedId = localStorage.getItem('vault_current_save');
+            if (savedId) {
+                const id = parseInt(savedId, 10);
+                const exists = saves.value.some(s => s.id === id);
+                if (exists) {
+                    await loadSave(id);
+                } else {
+                    localStorage.removeItem('vault_current_save');
+                }
+            }
         });
 
         return {
@@ -361,11 +378,14 @@ createApp({
                             <span v-if="f.type==='generator'">每日产电: <strong>{{ 10 * f.level }}</strong></span>
                             <span v-else-if="f.type==='water_cycler'">每日产水: <strong>{{ 10 * f.level }}</strong></span>
                             <span v-else-if="f.type==='medbay'">每日制药: <strong>{{ 5 * f.level }}</strong></span>
-                            <span class="text-dim" style="margin-left:8px;">
+                            <span class="text-dim" style="margin-left:8px;" v-if="f.upgrade_cost">
                                 升级消耗: 
-                                <span v-if="f.type==='generator'">🍖 15</span>
-                                <span v-else-if="f.type==='water_cycler'">⚡ 15</span>
-                                <span v-else-if="f.type==='medbay'">💧 15</span>
+                                <span v-if="f.type==='generator'">🍖 {{ f.upgrade_cost.food }}</span>
+                                <span v-else-if="f.type==='water_cycler'">⚡ {{ f.upgrade_cost.energy }}</span>
+                                <span v-else-if="f.type==='medbay'">💧 {{ f.upgrade_cost.water }}</span>
+                            </span>
+                            <span class="text-dim" style="margin-left:8px;" v-else>
+                                已满级
                             </span>
                         </div>
                         <div class="text-dim" style="font-size:13px; margin-top:3px;">
@@ -398,10 +418,15 @@ createApp({
                                         {{ w.name.slice(0,2) }}
                                     </span>
                                 </div>
-                                <div v-if="room.facility" style="margin-top:4px;">
+                                <div v-if="room.facility" style="margin-top:4px; font-size:12px;">
                                     <button class="crt-btn small" @click="upgradeFacilityUI(room.type)" :disabled="room.level >= 5">
                                         {{ room.level >= 5 ? '满级' : '↑升级' }}
                                     </button>
+                                    <span v-if="room.facility.upgrade_cost" class="text-dim" style="margin-left:4px;">
+                                        <span v-if="room.type==='generator'">🍖{{ room.facility.upgrade_cost.food }}</span>
+                                        <span v-else-if="room.type==='water_cycler'">⚡{{ room.facility.upgrade_cost.energy }}</span>
+                                        <span v-else-if="room.type==='medbay'">💧{{ room.facility.upgrade_cost.water }}</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>

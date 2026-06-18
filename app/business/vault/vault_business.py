@@ -19,21 +19,21 @@ FACILITY_TYPES = {
         'name': '水循环器',
         'description': '净化并循环水资源',
         'base_output': 10,
-        'upgrade_cost': {'energy': 15},
+        'upgrade_cost_base': {'energy': 10},
         'max_level': 5
     },
     'generator': {
         'name': '发电机',
         'description': '为避难所提供电力',
         'base_output': 10,
-        'upgrade_cost': {'food': 15},
+        'upgrade_cost_base': {'food': 10},
         'max_level': 5
     },
     'medbay': {
         'name': '医疗站',
         'description': '治疗受伤的居民',
         'base_output': 5,
-        'upgrade_cost': {'water': 15},
+        'upgrade_cost_base': {'water': 10},
         'max_level': 5
     }
 }
@@ -68,6 +68,7 @@ class VaultBusiness:
             used_names.append(resident_name)
             self.resident_model.create(save_id, resident_name, 80, 100, 80, 'idle')
 
+        self.save_model.update_save(save_id, current_food=80, current_water=60)
         self.log_model.create(save_id, 1, 'info', f'避难所 "{name}" 启动运行。初始居民已安置。')
 
         return self._build_state(save_id)
@@ -99,13 +100,22 @@ class VaultBusiness:
             if f['type'] == 'generator':
                 capacity += f['level'] * 2
 
+        facility_info = []
+        for f in facilities:
+            info = dict(f)
+            if f['level'] < FACILITY_TYPES[f['type']]['max_level']:
+                info['upgrade_cost'] = self._calculate_upgrade_cost(f['type'], f['level'])
+            else:
+                info['upgrade_cost'] = None
+            facility_info.append(info)
+
         return {
             'code': 0,
             'message': 'success',
             'data': {
                 'save': save,
                 'residents': residents,
-                'facilities': facilities,
+                'facilities': facility_info,
                 'logs': logs,
                 'capacity': capacity
             }
@@ -125,6 +135,13 @@ class VaultBusiness:
 
         return self._build_state(save_id)
 
+    def _calculate_upgrade_cost(self, facility_type: str, current_level: int) -> Dict[str, int]:
+        cfg = FACILITY_TYPES[facility_type]
+        cost = {}
+        for resource, base_amount in cfg['upgrade_cost_base'].items():
+            cost[resource] = base_amount * (current_level + 1)
+        return cost
+
     def upgrade_facility(self, save_id: int, facility_type: str) -> Dict[str, Any]:
         if facility_type not in FACILITY_TYPES:
             return {'code': 1, 'message': '无效的设施类型', 'data': None}
@@ -139,7 +156,7 @@ class VaultBusiness:
         if facility['level'] >= cfg['max_level']:
             return {'code': 1, 'message': f'{cfg["name"]}已达到最高等级', 'data': None}
 
-        cost = cfg['upgrade_cost']
+        cost = self._calculate_upgrade_cost(facility_type, facility['level'])
         for resource, amount in cost.items():
             current = save[f'current_{resource}']
             if current < amount:
@@ -178,7 +195,7 @@ class VaultBusiness:
 
         energy_output = 0
         water_output = 0
-        food_output = 0
+        food_output = 5
         medicine_output = 0
 
         for f in facilities:
@@ -190,7 +207,7 @@ class VaultBusiness:
             elif f['type'] == 'medbay':
                 medicine_output += cfg['base_output'] * f['level'] + assignment_counts['maintenance'] * 2
 
-        food_output += assignment_counts['farming'] * 8
+        food_output += assignment_counts['farming'] * 12
 
         scavengers = [r for r in residents if r['assignment'] == 'scavenge']
         for scavenger in scavengers:
@@ -221,15 +238,15 @@ class VaultBusiness:
             if not resident['is_alive']:
                 continue
 
-            hunger = self._clamp(resident['hunger'] - random.randint(5, 12))
-            mood = self._clamp(resident['mood'] - random.randint(2, 6))
+            hunger = self._clamp(resident['hunger'] - random.randint(3, 8))
+            mood = self._clamp(resident['mood'] - random.randint(1, 4))
             health = resident['health']
 
-            if current_food >= 5:
-                current_food -= 5
-                hunger = self._clamp(hunger + 15)
+            if current_food >= 4:
+                current_food -= 4
+                hunger = self._clamp(hunger + 20)
             else:
-                hunger = self._clamp(hunger - 5)
+                hunger = self._clamp(hunger - 3)
                 health = self._clamp(health - 5)
                 day_logs.append(('warning', f'{resident["name"]} 没有足够的食物，健康受损。'))
 
