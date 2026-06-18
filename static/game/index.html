@@ -15,7 +15,8 @@
                 <h1 class="game-title">❄ 冰封峡谷 ❄</h1>
                 <h2 class="game-subtitle">最后一个弓箭手</h2>
                 <div class="menu-buttons">
-                    <button class="btn-primary" @click="startGame">开始游戏</button>
+                    <button class="btn-primary" @click="startGame">新游戏</button>
+                    <button class="btn-continue" v-if="hasSaveData()" @click="continueGame">继续游戏</button>
                     <button class="btn-secondary" @click="showLeaderboard">排行榜</button>
                     <button class="btn-secondary" @click="showHelp">游戏说明</button>
                 </div>

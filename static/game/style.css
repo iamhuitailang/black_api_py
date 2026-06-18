@@ -92,7 +92,7 @@ body {
     margin-bottom: 40px;
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary, .btn-secondary, .btn-continue {
     padding: 15px 50px;
     font-size: 20px;
     border: none;
@@ -112,6 +112,17 @@ body {
 .btn-primary:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 25px rgba(0, 114, 255, 0.6);
+}
+
+.btn-continue {
+    background: linear-gradient(135deg, #00e5a0 0%, #00b377 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 179, 119, 0.4);
+}
+
+.btn-continue:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(0, 179, 119, 0.6);
 }
 
 .btn-secondary {

@@ -1,6 +1,8 @@
 const { createApp, reactive, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
 
-const API_BASE = 'http://localhost:8001/api';
+const API_BASE = 'http://localhost:8930/api';
+
+const SAVE_KEY = 'frozen_canyon_save';
 
 const GAME_CONFIG = {
     ARROW_COST: 20,
@@ -73,9 +75,67 @@ createApp({
         let enemiesSpawned = 0;
         let waveComplete = false;
         let waveTransitionTimer = 0;
+        let savedSessionData = {};
+        let autoSaveInterval = null;
 
         const manaPercent = computed(() => (currentMana.value / maxMana.value) * 100);
         const bossHealthPercent = computed(() => bossMaxHealth.value > 0 ? (bossHealth.value / bossMaxHealth.value) * 100 : 0);
+
+        function saveGame() {
+            const saveData = {
+                wave: currentWave.value,
+                score: score.value,
+                mana: currentMana.value,
+                enemiesRemaining: enemiesRemaining.value,
+                enemiesPerWave: enemiesPerWave.value,
+                stats: { ...finalStats },
+                survivalTime: gameStartTime > 0 ? Math.floor((Date.now() - gameStartTime) / 1000) : 0,
+                savedAt: Date.now()
+            };
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            } catch (e) {
+                console.error('Failed to save game:', e);
+            }
+        }
+
+        function loadSave() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (data.wave && data.wave >= 1) {
+                    return data;
+                }
+            } catch (e) {
+                console.error('Failed to load save:', e);
+            }
+            return null;
+        }
+
+        function clearSave() {
+            try {
+                localStorage.removeItem(SAVE_KEY);
+            } catch (e) {
+                console.error('Failed to clear save:', e);
+            }
+        }
+
+        function startAutoSave() {
+            if (autoSaveInterval) clearInterval(autoSaveInterval);
+            autoSaveInterval = setInterval(() => {
+                if (gameState.value === 'playing') {
+                    saveGame();
+                }
+            }, 3000);
+        }
+
+        function stopAutoSave() {
+            if (autoSaveInterval) {
+                clearInterval(autoSaveInterval);
+                autoSaveInterval = null;
+            }
+        }
 
         function initCanvas() {
             const canvas = gameCanvas.value;
@@ -126,16 +186,26 @@ createApp({
             gameObjects.arrows.push(arrow);
         }
 
-        function startGame() {
+        function startGame(fromWave) {
             resetGameState();
+            if (fromWave && fromWave > 1) {
+                currentWave.value = fromWave;
+                score.value = savedSessionData.score || 0;
+                currentMana.value = savedSessionData.mana || GAME_CONFIG.MANA_MAX;
+                Object.assign(finalStats, savedSessionData.stats || {});
+            }
             gameState.value = 'playing';
 
             nextTick(() => {
                 initCanvas();
-                startWave(1);
+                startWave(fromWave || 1);
                 gameStartTime = Date.now();
+                if (fromWave && fromWave > 1 && savedSessionData.survivalTime) {
+                    gameStartTime -= savedSessionData.survivalTime * 1000;
+                }
                 lastTime = performance.now();
-                gameLoop();
+                startAutoSave();
+                requestAnimationFrame(gameLoop);
             });
         }
 
@@ -1309,8 +1379,8 @@ createApp({
                 return;
             }
 
-            const deltaTime = currentTime - lastTime;
-            lastTime = currentTime;
+            const deltaTime = lastTime === 0 ? 16.67 : Math.max(0, currentTime - lastTime);
+            lastTime = currentTime || performance.now();
 
             if (gameState.value === 'playing') {
                 update(Math.min(deltaTime, 50));
@@ -1322,6 +1392,7 @@ createApp({
 
         function gameOver() {
             gameState.value = 'gameover';
+            stopAutoSave();
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
@@ -1329,6 +1400,7 @@ createApp({
             finalStats.wave = currentWave.value;
             finalStats.score = score.value;
             finalStats.survival_time = Math.floor((Date.now() - gameStartTime) / 1000);
+            clearSave();
         }
 
         async function saveAndRestart() {
@@ -1360,6 +1432,10 @@ createApp({
         }
 
         function quitToMenu() {
+            if (gameState.value === 'playing') {
+                saveGame();
+            }
+            stopAutoSave();
             gameState.value = 'menu';
             if (animationId) {
                 cancelAnimationFrame(animationId);
@@ -1381,7 +1457,7 @@ createApp({
             if (gameState.value === 'paused') {
                 gameState.value = 'playing';
                 lastTime = performance.now();
-                gameLoop();
+                requestAnimationFrame(gameLoop);
             }
         }
 
@@ -1447,13 +1523,38 @@ createApp({
             }
         }
 
+        function hasSaveData() {
+            return loadSave() !== null;
+        }
+
+        function continueGame() {
+            const save = loadSave();
+            if (save) {
+                savedSessionData = save;
+                startGame(save.wave);
+            }
+        }
+
+        function newGame() {
+            clearSave();
+            savedSessionData = {};
+            startGame();
+        }
+
         onMounted(() => {
             loadStats();
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('resize', handleResize);
+
+            window.addEventListener('beforeunload', () => {
+                if (gameState.value === 'playing') {
+                    saveGame();
+                }
+            });
         });
 
         onUnmounted(() => {
+            stopAutoSave();
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('resize', handleResize);
             if (animationId) {
@@ -1479,7 +1580,9 @@ createApp({
             stats,
             leaderboard,
             finalStats,
-            startGame,
+            startGame: newGame,
+            continueGame,
+            hasSaveData,
             pauseGame,
             resumeGame,
             quitToMenu,
