@@ -1,14 +1,16 @@
 const { createApp, reactive, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
 
-const API_BASE = 'http://localhost:8930/api';
+const API_BASE = 'http://localhost:8950/api';
 
 const SAVE_KEY = 'frozen_canyon_save';
 
 const GAME_CONFIG = {
-    ARROW_COST: 20,
-    MANA_MAX: 100,
-    MANA_REGEN: 5,
-    CRYSTAL_MANA: 50,
+    ARROW_COST: 12,
+    MANA_MAX: 150,
+    MANA_REGEN: 12,
+    CRYSTAL_MANA: 60,
+    CRYSTAL_PULL_RANGE: 600,
+    CRYSTAL_COLLECT_RANGE: 80,
     FREEZE_DURATION: 3000,
     ARROW_SPEED: 15,
     ARROW_TRAIL_LENGTH: 20,
@@ -77,6 +79,7 @@ createApp({
         let waveTransitionTimer = 0;
         let savedSessionData = {};
         let autoSaveInterval = null;
+        const hasSave = ref(false);
 
         const manaPercent = computed(() => (currentMana.value / maxMana.value) * 100);
         const bossHealthPercent = computed(() => bossMaxHealth.value > 0 ? (bossHealth.value / bossMaxHealth.value) * 100 : 0);
@@ -94,6 +97,7 @@ createApp({
             };
             try {
                 localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                hasSave.value = true;
             } catch (e) {
                 console.error('Failed to save game:', e);
             }
@@ -116,6 +120,7 @@ createApp({
         function clearSave() {
             try {
                 localStorage.removeItem(SAVE_KEY);
+                hasSave.value = false;
             } catch (e) {
                 console.error('Failed to clear save:', e);
             }
@@ -733,13 +738,13 @@ createApp({
                 const dy = player.y - crystal.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
-                if (dist < 100) {
-                    const pullSpeed = 3 * dt;
+                if (dist < GAME_CONFIG.CRYSTAL_PULL_RANGE) {
+                    const pullSpeed = (8 + (1 - dist / GAME_CONFIG.CRYSTAL_PULL_RANGE) * 12) * dt;
                     crystal.x += (dx / dist) * pullSpeed;
                     crystal.y += (dy / dist) * pullSpeed;
                 }
 
-                if (dist < 40) {
+                if (dist < GAME_CONFIG.CRYSTAL_COLLECT_RANGE) {
                     collectCrystal(crystal);
                 }
             }
@@ -1524,7 +1529,7 @@ createApp({
         }
 
         function hasSaveData() {
-            return loadSave() !== null;
+            return hasSave.value;
         }
 
         function continueGame() {
@@ -1542,6 +1547,7 @@ createApp({
         }
 
         onMounted(() => {
+            hasSave.value = loadSave() !== null;
             loadStats();
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('resize', handleResize);
@@ -1580,9 +1586,9 @@ createApp({
             stats,
             leaderboard,
             finalStats,
+            hasSave,
             startGame: newGame,
             continueGame,
-            hasSaveData,
             pauseGame,
             resumeGame,
             quitToMenu,
