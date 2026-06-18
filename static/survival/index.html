@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暴风雪生存 - Blizzard Survival</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <div class="game-header">
+                <h1>🏔️ 暴风雪生存</h1>
+                <div class="game-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">🌡️ 体温</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill temperature" :style="{ width: temperature + '%' }"></div>
+                        </div>
+                        <span class="stat-value">{{ temperature.toFixed(1) }}%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🍖 食物</span>
+                        <span class="stat-value">{{ food }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🪵 木材</span>
+                        <span class="stat-value">{{ wood }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🔥 篝火</span>
+                        <span class="stat-value">{{ campfireFuel.toFixed(1) }}%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">⏰ 时间</span>
+                        <span class="stat-value">{{ timeOfDayLabel }}</span>
+                    </div>
+                    <div class="stat-item" v-if="isBlizzard">
+                        <span class="stat-label blizzard-warning">🌨️ 暴风雪!</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-main">
+                <canvas ref="gameCanvas" class="game-canvas" 
+                        :width="canvasWidth" :height="canvasHeight"
+                        @mousedown="onCanvasClick"></canvas>
+                
+                <div class="game-sidebar">
+                    <div class="sidebar-section">
+                        <h3>操作说明</h3>
+                        <ul>
+                            <li>WASD / 方向键 - 移动</li>
+                            <li>空格 - 采集/互动</li>
+                            <li>B - 搭建庇护所</li>
+                            <li>E - 靠近篝火添加木材</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h3>游戏状态</h3>
+                        <p v-if="isNight && !isNearCampfire" class="warning-text">⚠️ 夜间远离篝火很危险!</p>
+                        <p v-if="temperature < 30" class="danger-text">🔥 体温过低! 快回篝火!</p>
+                        <p v-if="hasShelter">🏠 庇护所: 已搭建</p>
+                        <p v-else>🏠 庇护所: 未搭建</p>
+                        <p v-if="teammateCount > 0">👥 队友: {{ teammateCount }} 人</p>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3>存档管理</h3>
+                        <input v-model="playerName" placeholder="输入玩家名" class="input-field">
+                        <button @click="saveGame" class="btn btn-primary">💾 保存游戏</button>
+                        <button @click="loadGame" class="btn btn-secondary">📂 读取存档</button>
+                        <button @click="newGame" class="btn btn-danger">🔄 新游戏</button>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3>消息日志</h3>
+                        <div class="message-log">
+                            <p v-for="(msg, idx) in messages" :key="idx" :class="msg.type">{{ msg.text }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="gameOver" class="game-over-overlay">
+                <div class="game-over-modal">
+                    <h2>💀 你没能活过今晚</h2>
+                    <p>生存了 {{ survivalTime }} 秒</p>
+                    <button @click="newGame" class="btn btn-primary">再试一次</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
