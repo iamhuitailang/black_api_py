@@ -16,6 +16,9 @@ const WOOD_ADD_FUEL = 30;
 const AUTO_SAVE_INTERVAL = 10000;
 const RESOURCE_RESPAWN_INTERVAL = 15000;
 const TEAMMATE_TASK_INTERVAL = 5000;
+const SHELTER_WARM_RADIUS = 80;
+const SHELTER_RECOVER_RATE = 4;
+const SNOW_SEED_KEY = 'blizzard_survival_snow_seed';
 
 const GAME_STATES = {
     SNOW: 1,
@@ -233,15 +236,31 @@ createApp({
         }
 
         function initSnowParticles() {
+            let seed = parseInt(localStorage.getItem(SNOW_SEED_KEY) || '0', 10);
+            if (!seed) {
+                seed = Math.floor(Math.random() * 1000000);
+                localStorage.setItem(SNOW_SEED_KEY, String(seed));
+            }
+            const rand = mulberry32(seed);
             gameState.snowParticles = [];
             for (let i = 0; i < 100; i++) {
                 gameState.snowParticles.push({
-                    x: Math.random() * canvasWidth.value,
-                    y: Math.random() * canvasHeight.value,
-                    speed: 30 + Math.random() * 50,
-                    size: 1 + Math.random() * 3
+                    x: rand() * canvasWidth.value,
+                    y: rand() * canvasHeight.value,
+                    speed: 30 + rand() * 50,
+                    size: 1 + rand() * 3
                 });
             }
+        }
+
+        function mulberry32(a) {
+            return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                let t = a;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
         }
 
         function updateSnowParticles(deltaTime) {
@@ -356,17 +375,18 @@ createApp({
 
             if (near && campfireFuel.value > 0) {
                 let recoverRate = CAMPFIRE_RECOVER_RATE;
-                if (inShelter) recoverRate *= 1.5;
+                if (inShelter) {
+                    recoverRate *= 1.8;
+                }
                 temperature.value = Math.min(100, temperature.value + recoverRate * deltaTime);
+            } else if (inShelter) {
+                let shelterRecover = SHELTER_RECOVER_RATE;
+                if (isBlizzard.value) shelterRecover *= 0.7;
+                if (gameState.isNight) shelterRecover *= 0.8;
+                if (food.value <= 0) shelterRecover *= 0.4;
+                temperature.value = Math.min(100, temperature.value + shelterRecover * deltaTime);
             } else {
                 let dropRate = BASE_TEMP_DROP_RATE * nightPenalty * blizzardPenalty;
-
-                if (inShelter) {
-                    dropRate *= 0.35;
-                    if (isBlizzard.value) {
-                        dropRate *= 0.6;
-                    }
-                }
 
                 if (food.value <= 0) {
                     dropRate *= 1.5;
@@ -375,9 +395,17 @@ createApp({
                 temperature.value = Math.max(0, temperature.value - dropRate * deltaTime);
             }
 
-            if (inShelter && !near && !gameState.restingInShelter) {
+            if (inShelter && !gameState.restingInShelter) {
                 gameState.restingInShelter = true;
-                addMessage('你在庇护所中休息，体温流失减缓', 'info');
+                if (near && campfireFuel.value > 0) {
+                    addMessage('🏠 庇护所+篝火叠加效果：回温速度大幅提升！', 'success');
+                } else {
+                    addMessage('🏠 你在庇护所中，体温开始缓慢回升', 'success');
+                }
+            }
+            if (!inShelter && gameState.restingInShelter) {
+                gameState.restingInShelter = false;
+                addMessage('你离开了庇护所', 'info');
             }
 
             if (temperature.value <= 0) {
@@ -762,8 +790,10 @@ createApp({
             gameState.shelter.y = gameState.player.y;
             gameState.shelter.built = true;
             hasShelter.value = true;
-            addMessage('搭建了简易庇护所！靠近可大幅减少体温流失', 'success');
-            addMessage('暴风雪时在庇护所内可获得额外保护', 'info');
+            addMessage('搭建了简易庇护所！庇护所效果：', 'success');
+            addMessage('  ✅ 靠近庇护所可自动回温 +4%/秒', 'success');
+            addMessage('  ✅ 篝火+庇护所叠加回温 +180%', 'success');
+            addMessage('  ✅ 暴风雪和夜晚保护', 'success');
         }
 
         function tryAddWood() {
@@ -1010,32 +1040,70 @@ createApp({
                 const sx = gameState.shelter.x - camX;
                 const sy = gameState.shelter.y - camY;
 
+                const shelterGlow = ctx.createRadialGradient(sx, sy, 0, sx, sy, SHELTER_WARM_RADIUS);
+                const glowAlpha = gameState.isInShelter ? 0.35 : 0.2;
+                shelterGlow.addColorStop(0, `rgba(255, 200, 120, ${glowAlpha})`);
+                shelterGlow.addColorStop(0.6, `rgba(255, 170, 80, ${glowAlpha * 0.5})`);
+                shelterGlow.addColorStop(1, 'rgba(255, 140, 60, 0)');
+                ctx.fillStyle = shelterGlow;
+                ctx.beginPath();
+                ctx.arc(sx, sy, SHELTER_WARM_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+
                 if (gameState.isInShelter) {
-                    ctx.fillStyle = 'rgba(139, 69, 19, 0.2)';
+                    ctx.strokeStyle = 'rgba(107, 203, 119, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([8, 4]);
                     ctx.beginPath();
-                    ctx.arc(sx, sy, 80, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.arc(sx, sy, SHELTER_WARM_RADIUS, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
 
                 ctx.fillStyle = '#8B4513';
                 ctx.beginPath();
-                ctx.moveTo(sx - 25, sy + 15);
-                ctx.lineTo(sx, sy - 20);
-                ctx.lineTo(sx + 25, sy + 15);
+                ctx.moveTo(sx - 30, sy + 18);
+                ctx.lineTo(sx, sy - 28);
+                ctx.lineTo(sx + 30, sy + 18);
                 ctx.closePath();
                 ctx.fill();
 
                 ctx.fillStyle = '#654321';
-                ctx.fillRect(sx - 20, sy + 15, 40, 15);
+                ctx.fillRect(sx - 24, sy + 18, 48, 18);
+
+                ctx.strokeStyle = '#4a2c14';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(sx - 24 + i * 16, sy + 18);
+                    ctx.lineTo(sx, sy - 28 + i * 12);
+                    ctx.stroke();
+                }
 
                 ctx.fillStyle = '#3d2817';
-                ctx.fillRect(sx - 5, sy + 10, 10, 20);
+                ctx.fillRect(sx - 6, sy + 8, 12, 28);
+
+                ctx.fillStyle = '#ffcc66';
+                ctx.beginPath();
+                ctx.ellipse(sx, sy + 16, 4, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
 
                 if (gameState.isInShelter) {
                     ctx.fillStyle = '#6bcb77';
-                    ctx.font = '10px Arial';
+                    ctx.font = 'bold 12px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('🏠 庇护中', sx, sy - 25);
+                    ctx.fillText('🏠 温暖庇护中', sx, sy - 38);
+                    ctx.font = '10px Arial';
+                    ctx.fillStyle = '#a0e0a0';
+                    ctx.fillText('体温 +4%/秒', sx, sy - 25);
+                } else {
+                    ctx.fillStyle = '#ffd93d';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🏠 庇护所', sx, sy - 38);
+                    ctx.font = '9px Arial';
+                    ctx.fillStyle = '#cccccc';
+                    ctx.fillText('靠近可回温', sx, sy - 26);
                 }
             }
 
@@ -1324,6 +1392,7 @@ createApp({
 
         function newGame() {
             localStorage.removeItem('blizzard_survival_autosave');
+            localStorage.removeItem(SNOW_SEED_KEY);
             initGame();
             addMessage('新游戏开始！祝你好运！', 'success');
         }
