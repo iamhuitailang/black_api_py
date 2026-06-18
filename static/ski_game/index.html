@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雪山速降 - 第一人称滑雪游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="hud">
+            <div class="hud-item">
+                <span class="hud-label">分数</span>
+                <span class="hud-value" id="score-value">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">速度</span>
+                <span class="hud-value" id="speed-value">0</span>
+                <span class="hud-unit">km/h</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">距离</span>
+                <span class="hud-value" id="distance-value">0</span>
+                <span class="hud-unit">m</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">坡度</span>
+                <span class="hud-value" id="slope-value">缓坡</span>
+            </div>
+        </div>
+
+        <div id="avalanche-warning" class="hidden">
+            <div class="warning-text">⚠ 雪崩来袭！加速前进！</div>
+            <div class="avalanche-progress-bar">
+                <div class="avalanche-progress" id="avalanche-progress"></div>
+            </div>
+        </div>
+
+        <div id="start-screen" class="overlay">
+            <h1>🏔️ 雪山速降</h1>
+            <p class="subtitle">第一人称沉浸式滑雪体验</p>
+            <div class="instructions">
+                <h3>操作说明</h3>
+                <ul>
+                    <li><span class="key">←</span> <span class="key">→</span> 或 <span class="key">A</span> <span class="key">D</span> 左右移动</li>
+                    <li><span class="key">空格</span> 急转弯（小幅度变向但减速）</li>
+                    <li>穿过 🚩 旗门加分并短暂加速</li>
+                    <li>错过旗门会减速</li>
+                    <li>小心 🌲 松树和 🪨 岩石！</li>
+                    <li>⚠ 雪崩来袭时赶紧加速逃离！</li>
+                </ul>
+            </div>
+            <div class="input-group">
+                <label for="player-name">玩家名称</label>
+                <input type="text" id="player-name" placeholder="请输入你的名字" maxlength="20">
+            </div>
+            <button id="start-btn" class="btn-primary">开始滑雪</button>
+            <button id="show-ranking-btn" class="btn-secondary">查看排行榜</button>
+        </div>
+
+        <div id="game-over-screen" class="overlay hidden">
+            <h1>💥 游戏结束</h1>
+            <div class="final-stats">
+                <div class="stat-row">
+                    <span class="stat-label">最终得分</span>
+                    <span class="stat-value" id="final-score">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">滑行距离</span>
+                    <span class="stat-value" id="final-distance">0 m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">最高速度</span>
+                    <span class="stat-value" id="final-max-speed">0 km/h</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">通过旗门</span>
+                    <span class="stat-value" id="final-gates">0 个</span>
+                </div>
+            </div>
+            <div id="submit-result" class="submit-result hidden"></div>
+            <button id="submit-score-btn" class="btn-primary">提交成绩</button>
+            <button id="restart-btn" class="btn-secondary">再来一次</button>
+            <button id="back-menu-btn" class="btn-tertiary">返回主菜单</button>
+        </div>
+
+        <div id="ranking-screen" class="overlay hidden">
+            <h1>🏆 排行榜</h1>
+            <div id="ranking-list" class="ranking-list"></div>
+            <button id="back-from-ranking-btn" class="btn-secondary">返回</button>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
