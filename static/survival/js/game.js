@@ -862,7 +862,19 @@ createApp({
                 blizzardEndTime: gameState.blizzardEndTime,
                 survivalTime: (Date.now() - gameState.gameStartTime) / 1000,
                 playerName: playerName.value,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                footprints: gameState.footprints,
+                snowParticles: gameState.snowParticles.map(p => ({
+                    x: p.x, y: p.y, speed: p.speed, size: p.size
+                })),
+                particles: gameState.particles.map(p => ({
+                    x: p.x, y: p.y, vy: p.vy, life: p.life, size: p.size, color: p.color
+                })),
+                camera: { x: gameState.camera.x, y: gameState.camera.y },
+                lastResourceRespawn: gameState.lastResourceRespawn,
+                lastTeammateTask: gameState.lastTeammateTask,
+                isInShelter: gameState.isInShelter,
+                restingInShelter: gameState.restingInShelter
             };
             try {
                 localStorage.setItem('blizzard_survival_autosave', JSON.stringify(saveData));
@@ -916,19 +928,35 @@ createApp({
                 isBlizzard.value = data.isBlizzard || false;
                 gameState.lastBlizzardTime = data.lastBlizzardTime || Date.now();
                 gameState.blizzardEndTime = data.blizzardEndTime || 0;
-                gameState.footprints = [];
+                gameState.footprints = (data.footprints && Array.isArray(data.footprints)) ? data.footprints : [];
                 gameState.gameStartTime = Date.now() - (data.survivalTime || 0) * 1000;
                 gameState.lastAutoSave = Date.now();
-                gameState.lastResourceRespawn = Date.now();
-                gameState.lastTeammateTask = Date.now();
-                gameState.isInShelter = false;
-                gameState.restingInShelter = false;
-                gameState.particles = [];
+                gameState.lastResourceRespawn = data.lastResourceRespawn || Date.now();
+                gameState.lastTeammateTask = data.lastTeammateTask || Date.now();
+                gameState.isInShelter = data.isInShelter || false;
+                gameState.restingInShelter = data.restingInShelter || false;
+                gameState.particles = (data.particles && Array.isArray(data.particles)) ? data.particles : [];
                 gameOver.value = false;
                 if (data.playerName) playerName.value = data.playerName;
 
-                gameState.camera.x = gameState.player.x - canvasWidth.value / 2;
-                gameState.camera.y = gameState.player.y - canvasHeight.value / 2;
+                if (data.camera) {
+                    gameState.camera.x = data.camera.x;
+                    gameState.camera.y = data.camera.y;
+                } else {
+                    gameState.camera.x = gameState.player.x - canvasWidth.value / 2;
+                    gameState.camera.y = gameState.player.y - canvasHeight.value / 2;
+                }
+
+                if (data.snowParticles && Array.isArray(data.snowParticles) && data.snowParticles.length > 0) {
+                    gameState.snowParticles = data.snowParticles.map(p => ({
+                        x: p.x,
+                        y: p.y,
+                        speed: p.speed,
+                        size: p.size
+                    }));
+                } else {
+                    initSnowParticles();
+                }
 
                 if (gameState.resources.length === 0) {
                     spawnResources(15);
@@ -1354,7 +1382,19 @@ createApp({
                 isBlizzard: isBlizzard.value,
                 lastBlizzardTime: gameState.lastBlizzardTime,
                 blizzardEndTime: gameState.blizzardEndTime,
-                survivalTime: (Date.now() - gameState.gameStartTime) / 1000
+                survivalTime: (Date.now() - gameState.gameStartTime) / 1000,
+                footprints: gameState.footprints,
+                snowParticles: gameState.snowParticles.map(p => ({
+                    x: p.x, y: p.y, speed: p.speed, size: p.size
+                })),
+                particles: gameState.particles.map(p => ({
+                    x: p.x, y: p.y, vy: p.vy, life: p.life, size: p.size, color: p.color
+                })),
+                camera: { x: gameState.camera.x, y: gameState.camera.y },
+                lastResourceRespawn: gameState.lastResourceRespawn,
+                lastTeammateTask: gameState.lastTeammateTask,
+                isInShelter: gameState.isInShelter,
+                restingInShelter: gameState.restingInShelter
             };
 
             try {
@@ -1415,14 +1455,31 @@ createApp({
                     isBlizzard.value = data.isBlizzard || false;
                     gameState.lastBlizzardTime = data.lastBlizzardTime || Date.now();
                     gameState.blizzardEndTime = data.blizzardEndTime || 0;
-                    gameState.footprints = [];
+                    gameState.footprints = (data.footprints && Array.isArray(data.footprints)) ? data.footprints : [];
                     gameState.gameStartTime = Date.now() - (data.survivalTime || 0) * 1000;
                     gameState.lastAutoSave = Date.now();
-                    gameState.lastResourceRespawn = Date.now();
-                    gameState.lastTeammateTask = Date.now();
-                    gameState.isInShelter = false;
-                    gameState.restingInShelter = false;
+                    gameState.lastResourceRespawn = data.lastResourceRespawn || Date.now();
+                    gameState.lastTeammateTask = data.lastTeammateTask || Date.now();
+                    gameState.isInShelter = data.isInShelter || false;
+                    gameState.restingInShelter = data.restingInShelter || false;
+                    gameState.particles = (data.particles && Array.isArray(data.particles)) ? data.particles : [];
                     gameOver.value = false;
+
+                    if (data.camera) {
+                        gameState.camera.x = data.camera.x;
+                        gameState.camera.y = data.camera.y;
+                    } else {
+                        gameState.camera.x = gameState.player.x - canvasWidth.value / 2;
+                        gameState.camera.y = gameState.player.y - canvasHeight.value / 2;
+                    }
+
+                    if (data.snowParticles && Array.isArray(data.snowParticles) && data.snowParticles.length > 0) {
+                        gameState.snowParticles = data.snowParticles.map(p => ({
+                            x: p.x, y: p.y, speed: p.speed, size: p.size
+                        }));
+                    } else {
+                        initSnowParticles();
+                    }
 
                     addMessage('存档已读取', 'success');
                 } else {
@@ -1450,7 +1507,6 @@ createApp({
             const loaded = loadFromLocalStorage();
             if (loaded) {
                 addMessage('已自动恢复上次游戏进度', 'success');
-                initSnowParticles();
                 gameState.lastTime = 0;
             } else {
                 initGame();
