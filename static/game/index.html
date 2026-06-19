@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>突击兵 - 战争前线</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="startScreen" class="screen">
+            <div class="start-container">
+                <h1 class="game-title">突击兵</h1>
+                <p class="game-subtitle">WAR FRONTLINE</p>
+                <div class="input-group">
+                    <input type="text" id="playerName" placeholder="输入你的名字" maxlength="20">
+                </div>
+                <div class="button-group">
+                    <button id="startBtn" class="btn btn-primary">开始新游戏</button>
+                    <button id="leaderboardBtn" class="btn btn-secondary">排行榜</button>
+                </div>
+                <div class="controls-info">
+                    <p><span class="key">WASD</span> 移动</p>
+                    <p><span class="key">鼠标</span> 瞄准</p>
+                    <p><span class="key">左键</span> 射击</p>
+                    <p><span class="key">R</span> 换弹夹</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="leaderboardScreen" class="screen hidden">
+            <div class="leaderboard-container">
+                <h2>全球排行榜</h2>
+                <div id="leaderboardList" class="leaderboard-list"></div>
+                <button id="backBtn" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="screen hidden">
+            <canvas id="gameCanvas"></canvas>
+            
+            <div id="bossHealthBar" class="boss-health-bar hidden">
+                <div class="boss-name" id="bossName">BOSS</div>
+                <div class="boss-health-bg">
+                    <div class="boss-health-fill" id="bossHealthFill"></div>
+                </div>
+            </div>
+
+            <div id="hud">
+                <div class="hud-left">
+                    <div class="health-bar-container">
+                        <div class="health-bar-bg">
+                            <div class="health-bar-fill" id="healthBar"></div>
+                        </div>
+                        <span class="health-text" id="healthText">100/100</span>
+                    </div>
+                    <div class="ammo-display">
+                        <span class="ammo-current" id="ammoCurrent">30</span>
+                        <span class="ammo-separator">/</span>
+                        <span class="ammo-total" id="ammoTotal">90</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="distance-display">
+                        <span id="distanceText">0</span> 米
+                    </div>
+                    <div class="checkpoint-indicator" id="checkpointIndicator"></div>
+                </div>
+                <div class="hud-right">
+                    <div class="kills-display">
+                        击杀: <span id="killsText">0</span>
+                    </div>
+                    <div class="time-display">
+                        时间: <span id="timeText">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reloadIndicator" class="reload-indicator hidden">
+                <div class="reload-progress">
+                    <div class="reload-bar" id="reloadBar"></div>
+                </div>
+                <span>换弹中...</span>
+            </div>
+
+            <div id="checkpointSave" class="checkpoint-save hidden">
+                <span>检查点已保存!</span>
+            </div>
+
+            <div id="gameOverScreen" class="game-over hidden">
+                <div class="game-over-container">
+                    <h2 id="gameOverTitle">任务失败</h2>
+                    <div class="game-stats">
+                        <p>行进距离: <span id="finalDistance">0</span> 米</p>
+                        <p>击杀数: <span id="finalKills">0</span></p>
+                        <p>用时: <span id="finalTime">00:00</span></p>
+                        <p id="rankText" class="rank-text hidden">全球排名: <span id="finalRank">-</span></p>
+                    </div>
+                    <div class="button-group">
+                        <button id="restartBtn" class="btn btn-primary">重新开始</button>
+                        <button id="menuBtn" class="btn btn-secondary">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
