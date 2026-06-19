@@ -4,10 +4,108 @@ let currentPageNum = 1;
 let currentRole = 'publisher';
 let isLoginMode = true;
 let isPageLoaded = false;
+let isNavigatingFromHash = false;
+
+function parseHash() {
+    const hash = window.location.hash.slice(1) || 'home';
+    const parts = hash.split('?');
+    const page = parts[0] || 'home';
+    const params = {};
+    
+    if (parts[1]) {
+        const pairs = parts[1].split('&');
+        pairs.forEach(pair => {
+            const [key, value] = pair.split('=');
+            if (value !== undefined) {
+                params[key] = decodeURIComponent(value);
+            } else {
+                params[key] = true;
+            }
+        });
+    }
+    
+    return { page, params };
+}
+
+function buildHash(page, params) {
+    let hash = '#' + page;
+    const paramStrs = [];
+    
+    if (params) {
+        Object.keys(params).forEach(key => {
+            const val = params[key];
+            if (val === true) {
+                paramStrs.push(key);
+            } else if (val !== null && val !== undefined && val !== '') {
+                paramStrs.push(`${key}=${encodeURIComponent(val)}`);
+            }
+        });
+    }
+    
+    if (paramStrs.length > 0) {
+        hash += '?' + paramStrs.join('&');
+    }
+    
+    return hash;
+}
+
+function updateHash() {
+    if (isNavigatingFromHash) return;
+    
+    let params = {};
+    
+    if (currentPage === 'home' && currentStatus) {
+        params.status = currentStatus;
+    }
+    
+    if (currentPage === 'profile' && currentRole !== 'publisher') {
+        params.role = currentRole;
+    }
+    
+    const hash = buildHash(currentPage, params);
+    history.replaceState(null, '', hash);
+}
+
+function restoreFromHash() {
+    const { page, params } = parseHash();
+    
+    const validPages = ['home', 'rank', 'profile'];
+    if (!validPages.includes(page)) {
+        currentPage = 'home';
+    } else {
+        currentPage = page;
+    }
+    
+    if (currentPage === 'home' && params.status) {
+        const validStatuses = ['pending', 'accepted', 'delivered', 'cancelled'];
+        if (validStatuses.includes(params.status)) {
+            currentStatus = params.status;
+        }
+    } else if (currentPage === 'home') {
+        currentStatus = null;
+    }
+    
+    if (currentPage === 'profile' && params.role) {
+        if (['publisher', 'taker'].includes(params.role)) {
+            currentRole = params.role;
+        }
+    } else if (currentPage === 'profile') {
+        currentRole = 'publisher';
+    }
+}
 
 function navigateTo(page) {
     currentPage = page;
     currentPageNum = 1;
+    
+    if (page === 'home') {
+        if (currentStatus === undefined) currentStatus = null;
+    }
+    if (page === 'profile') {
+        currentRole = 'publisher';
+    }
+    
+    updateHash();
     
     const navItems = document.querySelectorAll('.nav-item');
     if (navItems && navItems.length > 0) {
@@ -85,6 +183,8 @@ function renderHomePage() {
 function filterByStatus(status) {
     currentStatus = status || null;
     currentPageNum = 1;
+    
+    updateHash();
     
     document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.classList.remove('active');
@@ -435,6 +535,8 @@ async function renderProfilePage() {
 function switchProfileTab(role) {
     currentRole = role;
     currentPageNum = 1;
+    
+    updateHash();
     
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
@@ -1149,8 +1251,76 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function handleHashChange() {
+    isNavigatingFromHash = true;
+    try {
+        const oldPage = currentPage;
+        const oldStatus = currentStatus;
+        const oldRole = currentRole;
+        
+        restoreFromHash();
+        
+        if (oldPage !== currentPage) {
+            const navItems = document.querySelectorAll('.nav-item');
+            if (navItems && navItems.length > 0) {
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.page === currentPage) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            
+            const fabBtn = document.getElementById('fabBtn');
+            if (fabBtn) {
+                if (currentPage === 'home') {
+                    fabBtn.style.display = 'flex';
+                } else {
+                    fabBtn.style.display = 'none';
+                }
+            }
+            
+            renderPage();
+        } else {
+            if (currentPage === 'home' && oldStatus !== currentStatus) {
+                const tabs = document.querySelectorAll('.filter-tab');
+                tabs.forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.status === (currentStatus || '')) {
+                        tab.classList.add('active');
+                    }
+                });
+                loadOrderList();
+            }
+            
+            if (currentPage === 'profile' && oldRole !== currentRole) {
+                const tabs = document.querySelectorAll('.card .tab');
+                tabs.forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.role === currentRole) {
+                        tab.classList.add('active');
+                    }
+                });
+                loadMyOrders(currentRole);
+            }
+        }
+    } catch (e) {
+        console.error('处理hash变化出错:', e);
+    } finally {
+        setTimeout(() => {
+            isNavigatingFromHash = false;
+        }, 0);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     isPageLoaded = true;
+    
+    try {
+        restoreFromHash();
+    } catch (e) {
+        console.error('解析hash出错:', e);
+    }
     
     try {
         updateUserArea();
@@ -1168,13 +1338,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     try {
-        navigateTo('home');
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navItems && navItems.length > 0) {
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === currentPage) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        const fabBtn = document.getElementById('fabBtn');
+        if (fabBtn) {
+            if (currentPage === 'home') {
+                fabBtn.style.display = 'flex';
+            } else {
+                fabBtn.style.display = 'none';
+            }
+        }
+        
+        renderPage();
     } catch (e) {
         console.error('初始化页面出错:', e);
         const container = document.getElementById('pageContainer');
         if (container) {
             container.innerHTML = '<div class="card"><div class="card-body text-center" style="color: var(--danger-color);">页面加载失败，请刷新重试</div></div>';
         }
+    }
+    
+    try {
+        window.addEventListener('hashchange', handleHashChange);
+    } catch (e) {
+        console.error('绑定hashchange事件出错:', e);
     }
     
     try {
