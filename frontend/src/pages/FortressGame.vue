@@ -8,7 +8,23 @@
         <span class="day-info">第 {{ gameState?.day || 1 }} 天 - {{ phaseText }}</span>
         <span v-if="gameState?.is_siege_day" class="siege-warning">⚠️ 攻城日</span>
       </div>
+      <div class="header-center">
+        <div class="time-progress-container">
+          <span class="time-label">{{ isDay ? '☀️' : '🌙' }}</span>
+          <div class="time-progress-bar">
+            <div 
+              class="time-progress-fill" 
+              :class="{ 'day-fill': isDay, 'night-fill': !isDay }"
+              :style="{ width: timeProgress + '%' }"
+            ></div>
+          </div>
+          <span class="time-label">{{ isDay ? '🌙' : '☀️' }}</span>
+        </div>
+      </div>
       <div class="header-right">
+        <button @click="skipTime" class="btn-skip" :disabled="isPaused || isGameOver">
+          ⏩ 快进
+        </button>
         <button @click="togglePause" class="btn-pause">
           {{ isPaused ? '▶ 继续' : '⏸ 暂停' }}
         </button>
@@ -174,10 +190,13 @@ const {
 const {
   newGame,
   getGameState,
+  autoLoadGame,
   buildStructure,
   togglePause,
   selectBuildingType: setSelectedBuildingType,
-  getWormPositions
+  getWormPositions,
+  startGameLoop,
+  stopGameLoop
 } = gameStore;
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const canvasWidth = 800;
@@ -193,9 +212,13 @@ const CELL_WIDTH = canvasWidth / GRID_COLS;
 const CELL_HEIGHT = canvasHeight / GRID_ROWS;
 const FORTRESS_COLS = 2;
 const hpPercent = computed(() => {
- if (!gameState.value)
- return 100;
- return (gameState.value.fortress_hp / gameState.value.max_fortress_hp) * 100;
+  if (!gameState.value) return 100;
+  return (gameState.value.fortress_hp / gameState.value.max_fortress_hp) * 100;
+});
+
+const timeProgress = computed(() => {
+  if (!gameState.value) return 0;
+  return (gameState.value.time_of_day || 0) * 100;
 });
 const phaseText = computed(() => {
  if (!gameState.value)
@@ -259,8 +282,13 @@ async function craftOil() {
  }
 }
 async function startNewGame() {
- showStartScreen.value = false;
- await newGame();
+  showStartScreen.value = false;
+  await newGame();
+}
+
+async function skipTime() {
+  if (isPaused.value || isGameOver.value) return;
+  await gameStore.advanceTime(0.2);
 }
 function handleCanvasClick(event: MouseEvent) {
  if (!selectedBuildingType.value || !isDay.value)
@@ -683,23 +711,34 @@ function drawLighting(ctx: CanvasRenderingContext2D) {
  }
 }
 let wormCheckInterval: number | null = null;
+let isLoading = ref(true);
+
 onMounted(async () => {
- await nextTick();
- draw();
- wormCheckInterval = window.setInterval(() => {
- if (isNight.value && gameState.value) {
- getWormPositions();
- }
- }, 2000);
+  await nextTick();
+  draw();
+  
+  const loaded = await autoLoadGame();
+  if (loaded) {
+    showStartScreen.value = false;
+  }
+  
+  isLoading.value = false;
+  
+  wormCheckInterval = window.setInterval(() => {
+    if (isNight.value && gameState.value) {
+      getWormPositions();
+    }
+  }, 2000);
 });
+
 onUnmounted(() => {
- if (animationFrameId.value) {
- cancelAnimationFrame(animationFrameId.value);
- }
- if (wormCheckInterval) {
- clearInterval(wormCheckInterval);
- }
- gameStore.stopGameLoop();
+  if (animationFrameId.value) {
+    cancelAnimationFrame(animationFrameId.value);
+  }
+  if (wormCheckInterval) {
+    clearInterval(wormCheckInterval);
+  }
+  stopGameLoop();
 });
 watch(() => gameState.value?.id, (newId) => {
  if (newId) {
@@ -769,6 +808,72 @@ watch(() => gameState.value?.id, (newId) => {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.time-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 300px;
+}
+
+.time-label {
+  font-size: 20px;
+}
+
+.time-progress-bar {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.time-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 5px;
+}
+
+.day-fill {
+  background: linear-gradient(90deg, #ffa500, #ffd700);
+}
+
+.night-fill {
+  background: linear-gradient(90deg, #4a5568, #9f7aea);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-skip {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-skip:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.5);
+}
+
+.btn-skip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-pause {

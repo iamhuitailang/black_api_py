@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 
 const API_BASE = '/api'
+const STORAGE_KEY = 'fortress_game_state_id'
 
 export interface GameState {
   id: number
@@ -95,6 +96,9 @@ export const useGameStore = defineStore('game', () => {
       const response = await axios.post(`${API_BASE}/fortress/newgame`)
       const data = response.data.data
       updateGameData(data)
+      if (data.state?.id) {
+        localStorage.setItem(STORAGE_KEY, String(data.state.id))
+      }
       startGameLoop()
       return response.data
     } catch (error) {
@@ -109,6 +113,9 @@ export const useGameStore = defineStore('game', () => {
       const response = await axios.get(`${API_BASE}/fortress/getstate`, { params })
       if (response.data.data) {
         updateGameData(response.data.data)
+        if (response.data.data.state?.id) {
+          localStorage.setItem(STORAGE_KEY, String(response.data.data.state.id))
+        }
         startGameLoop()
       }
       return response.data
@@ -116,6 +123,22 @@ export const useGameStore = defineStore('game', () => {
       console.error('Failed to get game state:', error)
       throw error
     }
+  }
+
+  async function autoLoadGame(): Promise<boolean> {
+    const savedId = localStorage.getItem(STORAGE_KEY)
+    if (savedId) {
+      try {
+        const response = await getGameState(parseInt(savedId, 10))
+        if (response.data && response.data.state) {
+          return true
+        }
+      } catch (e) {
+        console.warn('Failed to auto-load game:', e)
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    }
+    return false
   }
 
   function updateGameData(data: any) {
@@ -261,6 +284,7 @@ export const useGameStore = defineStore('game', () => {
     isGameOver,
     newGame,
     getGameState,
+    autoLoadGame,
     buildStructure,
     advanceTime,
     collectResource,
