@@ -12,6 +12,11 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.game import (
+    SaveModel, ShipModel, PlanetModel, EquipmentModel, ItemModel,
+    MissionModel, EnemyModel, InventoryModel, ReputationModel, SkillModel,
+    MissionTemplateModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,9 +39,28 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
-    
+
+    SaveModel.create_table()
+    ShipModel.create_table()
+    PlanetModel.create_table()
+    EquipmentModel.create_table()
+    ItemModel.create_table()
+    MissionTemplateModel.create_table()
+    MissionModel.create_table()
+    EnemyModel.create_table()
+    InventoryModel.create_table()
+    ReputationModel.create_table()
+    SkillModel.create_table()
+
+    PlanetModel.seed_data()
+    EquipmentModel.seed_data()
+    ItemModel.seed_data()
+    EnemyModel.seed_data()
+    SkillModel.seed_data()
+    MissionTemplateModel.seed_data()
+
     migrate_database()
-    
+
     print("Database initialized successfully")
 
 
@@ -113,6 +137,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=6010,
         reload=True
     )
