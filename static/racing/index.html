@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>越野赛车竞速</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 开始界面 -->
+        <div id="start-screen" class="screen active">
+            <div class="start-container">
+                <h1>🏎️ 越野赛车竞速</h1>
+                <p class="subtitle">8段地形挑战，改装你的战车，征服所有赛道！</p>
+                <div class="start-form">
+                    <label for="player-name">玩家名称</label>
+                    <input type="text" id="player-name" placeholder="输入你的名字" value="Player">
+                    <button id="btn-new-game" class="btn btn-primary">开始新游戏</button>
+                </div>
+                <div class="track-preview">
+                    <h3>🎯 8段赛道挑战</h3>
+                    <div class="track-list" id="track-list-preview"></div>
+                </div>
+                <button id="btn-show-leaderboard" class="btn btn-secondary">🏆 查看排行榜</button>
+            </div>
+        </div>
+
+        <!-- 主游戏界面 -->
+        <div id="game-screen" class="screen">
+            <!-- 顶部信息栏 -->
+            <div class="top-bar">
+                <div class="terrain-label" id="terrain-label">
+                    <span id="terrain-name">泥路</span>
+                    <span id="terrain-icon">🌿</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>检查点进度</span>
+                        <span id="checkpoint-text">0 / 3</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="checkpoint-progress"></div>
+                    </div>
+                </div>
+                <div class="timer">
+                    <span class="timer-label">⏱️ 时间</span>
+                    <span class="timer-value" id="race-timer">00:00.00</span>
+                </div>
+                <div class="gold-display">
+                    <span class="gold-icon">💰</span>
+                    <span id="gold-amount">0</span>
+                </div>
+            </div>
+
+            <!-- 主游戏区域 -->
+            <div class="main-area">
+                <!-- 赛道画布 -->
+                <div class="track-container">
+                    <canvas id="track-canvas" width="900" height="400"></canvas>
+                    <div class="rain-overlay" id="rain-overlay"></div>
+                    <div class="fog-overlay" id="fog-overlay"></div>
+                    <div class="speed-indicator">
+                        <span id="current-speed">0</span>
+                        <span class="speed-unit">km/h</span>
+                    </div>
+                    <div class="tire-wear-indicator">
+                        <span>🛞 轮胎磨损</span>
+                        <div class="wear-bar">
+                            <div class="wear-fill" id="tire-wear-fill"></div>
+                        </div>
+                        <span id="tire-wear-text">0%</span>
+                    </div>
+                </div>
+
+                <!-- 右侧车辆参数面板 -->
+                <div class="vehicle-panel">
+                    <h3>🚗 车辆参数</h3>
+                    <div class="param-group">
+                        <div class="param-item">
+                            <label>引擎功率</label>
+                            <div class="param-bar">
+                                <div class="param-fill engine" id="param-engine"></div>
+                            </div>
+                            <span id="param-engine-value">50</span>
+                        </div>
+                        <div class="param-item">
+                            <label>悬挂硬度</label>
+                            <div class="param-bar">
+                                <div class="param-fill suspension" id="param-suspension"></div>
+                            </div>
+                            <span id="param-suspension-value">3/10</span>
+                        </div>
+                        <div class="param-item">
+                            <label>轮胎抓地力</label>
+                            <div class="param-bar">
+                                <div class="param-fill grip" id="param-grip"></div>
+                            </div>
+                            <span id="param-grip-value">4/10</span>
+                        </div>
+                        <div class="param-item">
+                            <label>车重</label>
+                            <div class="param-bar">
+                                <div class="param-fill weight" id="param-weight"></div>
+                            </div>
+                            <span id="param-weight-value">1200kg</span>
+                        </div>
+                        <div class="param-item">
+                            <label>轮胎类型</label>
+                            <span id="param-tire-type">普通胎</span>
+                        </div>
+                    </div>
+
+                    <h3>🔧 改装选项</h3>
+                    <div class="upgrade-options" id="upgrade-options">
+                    </div>
+
+                    <div class="panel-actions">
+                        <button id="btn-start-race" class="btn btn-primary">🏁 开始比赛</button>
+                        <button id="btn-next-track" class="btn btn-success" style="display:none;">➡️ 下一赛道</button>
+                        <button id="btn-restart-segment" class="btn btn-warning" style="display:none;">🔄 重跑本段</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消息提示 -->
+            <div class="game-message" id="game-message"></div>
+        </div>
+
+        <!-- 比赛结果界面 -->
+        <div id="result-screen" class="screen">
+            <div class="result-container">
+                <h2 id="result-title">🏁 比赛完成！</h2>
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">赛道</span>
+                        <span class="stat-value" id="result-track">泥路</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">用时</span>
+                        <span class="stat-value" id="result-time">00:00.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">排名</span>
+                        <span class="stat-value" id="result-position">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">获得奖金</span>
+                        <span class="stat-value gold" id="result-gold">+500</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">发现捷径</span>
+                        <span class="stat-value" id="result-shortcuts">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">翻车次数</span>
+                        <span class="stat-value" id="result-rollovers">0</span>
+                    </div>
+                </div>
+                <div class="checkpoint-times" id="checkpoint-times"></div>
+                <button id="btn-continue" class="btn btn-primary">继续</button>
+            </div>
+        </div>
+
+        <!-- 排行榜界面 -->
+        <div id="leaderboard-screen" class="screen">
+            <div class="leaderboard-container">
+                <h2>🏆 总用时排行榜</h2>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>玩家</th>
+                            <th>总用时</th>
+                            <th>总奖金</th>
+                            <th>捷径</th>
+                            <th>翻车</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+                <button id="btn-back-to-start" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+
+        <!-- 游戏完成界面 -->
+        <div id="complete-screen" class="screen">
+            <div class="complete-container">
+                <h1>🎉 恭喜通关！</h1>
+                <p class="complete-subtitle">你已征服所有8段赛道！</p>
+                <div class="final-stats">
+                    <div class="stat-item big">
+                        <span class="stat-label">总用时</span>
+                        <span class="stat-value" id="final-total-time">00:00.00</span>
+                    </div>
+                    <div class="stat-item big">
+                        <span class="stat-label">最终排名</span>
+                        <span class="stat-value" id="final-rank">-</span>
+                    </div>
+                </div>
+                <div class="track-results" id="track-results"></div>
+                <div class="complete-actions">
+                    <button id="btn-play-again" class="btn btn-primary">🔄 再玩一次</button>
+                    <button id="btn-view-leaderboard" class="btn btn-secondary">🏆 查看排行榜</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

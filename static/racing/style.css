@@ -1,0 +1,704 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+#app {
+    width: 100%;
+    min-height: 100vh;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.screen.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#game-screen.active {
+    display: block;
+}
+
+/* 开始界面 */
+.start-container {
+    text-align: center;
+    max-width: 600px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.start-container h1 {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, #ff6b6b, #feca57);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #a0a0a0;
+    margin-bottom: 30px;
+}
+
+.start-form {
+    margin-bottom: 30px;
+}
+
+.start-form label {
+    display: block;
+    margin-bottom: 8px;
+    text-align: left;
+    color: #ccc;
+}
+
+.start-form input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    margin-bottom: 15px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.start-form input:focus {
+    border-color: #4ecdc4;
+}
+
+.btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: inline-block;
+    margin: 5px;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(78, 205, 196, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #2ecc71, #27ae60);
+    color: #fff;
+}
+
+.btn-warning {
+    background: linear-gradient(45deg, #f39c12, #e67e22);
+    color: #fff;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.track-preview {
+    margin: 30px 0;
+    text-align: left;
+}
+
+.track-preview h3 {
+    margin-bottom: 15px;
+    color: #4ecdc4;
+}
+
+.track-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.track-item-preview {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 顶部信息栏 */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 15px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.terrain-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.progress-container {
+    flex: 1;
+    max-width: 400px;
+    margin: 0 20px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.progress-bar {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ecdc4, #44a08d);
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 6px;
+}
+
+.timer {
+    text-align: center;
+}
+
+.timer-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #ccc;
+}
+
+.timer-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    color: #feca57;
+}
+
+.gold-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #feca57;
+}
+
+/* 主游戏区域 */
+.main-area {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.track-container {
+    position: relative;
+    flex: 1;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+#track-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.rain-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: none;
+    background: repeating-linear-gradient(
+        transparent,
+        transparent 10px,
+        rgba(174, 194, 224, 0.3) 10px,
+        rgba(174, 194, 224, 0.3) 12px
+    );
+    animation: rain 0.3s linear infinite;
+}
+
+.rain-overlay.active {
+    display: block;
+}
+
+@keyframes rain {
+    0% { transform: translateY(-20px); }
+    100% { transform: translateY(20px); }
+}
+
+.fog-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: none;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.7) 0%,
+        rgba(255, 255, 255, 0.7) 30%,
+        transparent 30%,
+        transparent 100%
+    );
+}
+
+.fog-overlay.active {
+    display: block;
+}
+
+.speed-indicator {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.speed-indicator #current-speed {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #4ecdc4;
+    display: block;
+}
+
+.speed-unit {
+    font-size: 0.8rem;
+    color: #ccc;
+}
+
+.tire-wear-indicator {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.tire-wear-indicator .wear-bar {
+    width: 100px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    margin: 5px 0;
+    overflow: hidden;
+}
+
+.tire-wear-indicator .wear-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2ecc71, #feca57, #ff6b6b);
+    width: 0%;
+    transition: width 0.3s;
+}
+
+/* 车辆参数面板 */
+.vehicle-panel {
+    width: 320px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vehicle-panel h3 {
+    margin-bottom: 15px;
+    color: #4ecdc4;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.param-group {
+    margin-bottom: 20px;
+}
+
+.param-item {
+    margin-bottom: 12px;
+}
+
+.param-item label {
+    display: block;
+    font-size: 0.9rem;
+    color: #ccc;
+    margin-bottom: 5px;
+}
+
+.param-bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 3px;
+}
+
+.param-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.3s;
+}
+
+.param-fill.engine {
+    background: linear-gradient(90deg, #ff6b6b, #ee5a5a);
+}
+
+.param-fill.suspension {
+    background: linear-gradient(90deg, #feca57, #f39c12);
+}
+
+.param-fill.grip {
+    background: linear-gradient(90deg, #4ecdc4, #44a08d);
+}
+
+.param-fill.weight {
+    background: linear-gradient(90deg, #a55eea, #8854d0);
+}
+
+.param-item span:last-child:not(.speed-unit) {
+    font-size: 0.85rem;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 改装选项 */
+.upgrade-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.upgrade-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+}
+
+.upgrade-btn:hover:not(:disabled) {
+    background: rgba(78, 205, 196, 0.2);
+    border-color: #4ecdc4;
+}
+
+.upgrade-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.upgrade-info {
+    flex: 1;
+}
+
+.upgrade-name {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.upgrade-desc {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+.upgrade-cost {
+    color: #feca57;
+    font-weight: bold;
+}
+
+.panel-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.panel-actions .btn {
+    width: 100%;
+    margin: 0;
+}
+
+/* 消息提示 */
+.game-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px 40px;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 15px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 1000;
+    border: 2px solid #4ecdc4;
+}
+
+.game-message.show {
+    opacity: 1;
+}
+
+.game-message.warning {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+}
+
+.game-message.success {
+    border-color: #2ecc71;
+    color: #2ecc71;
+}
+
+/* 比赛结果界面 */
+.result-container, .leaderboard-container, .complete-container {
+    text-align: center;
+    max-width: 700px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.result-container h2 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    color: #4ecdc4;
+}
+
+.result-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-item {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.stat-item.big {
+    padding: 25px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+.stat-value.gold {
+    color: #feca57;
+}
+
+.checkpoint-times {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.checkpoint-times h4 {
+    margin-bottom: 10px;
+    color: #4ecdc4;
+}
+
+.checkpoint-time-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.checkpoint-time-item:last-child {
+    border-bottom: none;
+}
+
+/* 排行榜 */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-table th {
+    color: #4ecdc4;
+    font-weight: 600;
+}
+
+.leaderboard-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rank-1 { color: #feca57; font-weight: bold; }
+.rank-2 { color: #bdc3c7; font-weight: bold; }
+.rank-3 { color: #cd7f32; font-weight: bold; }
+
+/* 完成界面 */
+.complete-container h1 {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.complete-subtitle {
+    font-size: 1.2rem;
+    color: #a0a0a0;
+    margin-bottom: 30px;
+}
+
+.final-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.track-results {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.track-results h3 {
+    color: #4ecdc4;
+    margin-bottom: 15px;
+}
+
+.track-result-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.track-result-item .track-name {
+    font-weight: 600;
+}
+
+.track-result-item .track-time {
+    font-family: 'Courier New', monospace;
+    color: #4ecdc4;
+}
+
+.complete-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+    .main-area {
+        flex-direction: column;
+    }
+    
+    .vehicle-panel {
+        width: 100%;
+    }
+    
+    .top-bar {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .progress-container {
+        max-width: 100%;
+        margin: 0;
+    }
+    
+    .track-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

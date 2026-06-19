@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.racing import VehicleModel, RaceModel, CheckpointModel, LeaderboardModel, UpgradeLogModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +35,11 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    VehicleModel.create_table()
+    RaceModel.create_table()
+    CheckpointModel.create_table()
+    LeaderboardModel.create_table()
+    UpgradeLogModel.create_table()
     
     migrate_database()
     
@@ -108,11 +114,19 @@ async def health_check():
     }
 
 
+@app.get("/racing")
+async def racing_game():
+    from fastapi.responses import HTMLResponse
+    import os
+    with open(os.path.join(os.path.dirname(__file__), 'static', 'racing', 'index.html'), 'r') as f:
+        return HTMLResponse(f.read())
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=3003,
         reload=True
     )
