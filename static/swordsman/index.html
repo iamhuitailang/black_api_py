@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>墨剑江湖 - 水墨风剑客闯关</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1000" height="600"></canvas>
+
+        <div id="start-screen" class="screen active">
+            <div class="ink-title">墨剑江湖</div>
+            <div class="ink-subtitle">水墨风剑客闯关</div>
+            <div class="player-input">
+                <input type="text" id="player-name-input" placeholder="请输入剑客名号" maxlength="12">
+            </div>
+            <button class="ink-btn" id="start-btn">开始闯关</button>
+            <button class="ink-btn secondary" id="leaderboard-btn">排行榜</button>
+            <div class="controls-hint">
+                <div>WASD / 方向键 - 移动</div>
+                <div>鼠标左键 - 普通攻击</div>
+                <div>Q - 旋风斩 | E - 影步 | R - 蓄力劈</div>
+            </div>
+        </div>
+
+        <div id="leaderboard-screen" class="screen">
+            <div class="ink-title small">英雄榜</div>
+            <div id="leaderboard-list"></div>
+            <button class="ink-btn" id="back-from-leaderboard">返回</button>
+        </div>
+
+        <div id="game-ui" class="game-ui">
+            <div class="area-info">
+                <div id="area-name">竹林</div>
+                <div id="wave-info">第 1 / 3 波</div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="hp-bar-container">
+                    <div class="hp-label">生命</div>
+                    <div class="hp-bar">
+                        <div id="hp-fill" class="hp-fill"></div>
+                        <span id="hp-text">100/100</span>
+                    </div>
+                </div>
+                <div class="soul-stones">
+                    <span class="soul-icon">◆</span>
+                    <span>魂石: <span id="soul-count">0</span></span>
+                </div>
+                <div class="stats-row">
+                    <div>力量: <span id="stat-strength">10</span></div>
+                    <div>敏捷: <span id="stat-agility">10</span></div>
+                    <div>意志: <span id="stat-will">10</span></div>
+                </div>
+                <div class="stats-row secondary">
+                    <div>攻击: <span id="stat-attack">20</span></div>
+                    <div>闪避: <span id="stat-dodge">20%</span></div>
+                    <div>速度: <span id="stat-speed">6.0</span></div>
+                </div>
+                <div class="kills-count">击杀: <span id="kills-count">0</span></div>
+            </div>
+
+            <div class="skills-panel">
+                <div class="skill-slot" id="skill-q">
+                    <div class="skill-key">Q</div>
+                    <div class="skill-name">旋风斩</div>
+                    <div class="skill-cd" id="cd-q"></div>
+                </div>
+                <div class="skill-slot" id="skill-e">
+                    <div class="skill-key">E</div>
+                    <div class="skill-name">影步</div>
+                    <div class="skill-cd" id="cd-e"></div>
+                </div>
+                <div class="skill-slot" id="skill-r">
+                    <div class="skill-key">R</div>
+                    <div class="skill-name">蓄力劈</div>
+                    <div class="skill-cd" id="cd-r"></div>
+                </div>
+            </div>
+
+            <div class="equipment-panel">
+                <div class="eq-title">装备</div>
+                <div id="equipment-list"></div>
+            </div>
+        </div>
+
+        <div id="soul-stone-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">◆ 获得魂石 ◆</div>
+                <div class="modal-desc">选择注入的属性（+3，其余属性-1）</div>
+                <div class="soul-choices">
+                    <button class="soul-btn" data-stat="strength">
+                        <div class="soul-stat-name">力量</div>
+                        <div class="soul-stat-effect">+3 攻击力</div>
+                    </button>
+                    <button class="soul-btn" data-stat="agility">
+                        <div class="soul-stat-name">敏捷</div>
+                        <div class="soul-stat-effect">+3 速度与闪避</div>
+                    </button>
+                    <button class="soul-btn" data-stat="will">
+                        <div class="soul-stat-name">意志</div>
+                        <div class="soul-stat-effect">+3 HP与冷却缩减</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="equipment-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">✦ 击败区域Boss ✦</div>
+                <div class="modal-desc">获得装备</div>
+                <div id="equipment-reward"></div>
+                <button class="ink-btn" id="continue-btn">继续闯关</button>
+            </div>
+        </div>
+
+        <div id="death-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">☠ 剑客倒下 ☠</div>
+                <div class="modal-desc" id="death-desc">是否消耗魂石复活？</div>
+                <div class="death-choices">
+                    <button class="ink-btn" id="revive-btn">复活 (消耗1魂石)</button>
+                    <button class="ink-btn secondary" id="restart-btn">从本区域重新开始</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="victory-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">★ 通关成功 ★</div>
+                <div id="victory-stats"></div>
+                <button class="ink-btn" id="victory-ok">返回</button>
+            </div>
+        </div>
+
+        <div id="damage-texts"></div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
