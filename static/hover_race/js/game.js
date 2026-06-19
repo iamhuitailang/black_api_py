@@ -30,7 +30,8 @@ class HoverRaceGame {
         this.trackWidth = 2000;
         this.lanes = 3;
         this.cameraHeight = 1000;
-        this.cameraDepth = 0.25;
+        this.cameraDepth = 0.36;
+        this.shipRefDistance = 150;
 
         this.player = null;
         this.opponents = [];
@@ -972,7 +973,7 @@ class HoverRaceGame {
         const horizonY = h * 0.4;
 
         let playerCurveX = 0;
-        const playerRefDistance = 100;
+        const playerRefDistance = this.shipRefDistance;
         for (let i = drawSegments.length - 1; i >= 0; i--) {
             const ds = drawSegments[i];
             const d = ds.z - this.player.z;
@@ -981,6 +982,10 @@ class HoverRaceGame {
                 break;
             }
         }
+
+        const shipScale = this.cameraDepth / (playerRefDistance / 100 + 0.01);
+        const shipY = horizonY + (roadY - horizonY) * shipScale;
+        const shipX = w / 2 + (this.player.x + playerCurveX) * shipScale * (w / 800);
 
         for (let i = 0; i < drawSegments.length; i++) {
             const { seg, z, curveX } = drawSegments[i];
@@ -1058,7 +1063,7 @@ class HoverRaceGame {
 
         this.drawOpponents(drawSegments, w, horizonY, roadY);
 
-        this.drawPlayerShip(playerCurveX);
+        this.drawPlayerShip(shipX, shipY, shipScale);
 
         this.drawSpeedLines();
 
@@ -1138,18 +1143,16 @@ class HoverRaceGame {
         ctx.fill();
     }
 
-    drawPlayerShip(playerCurveX) {
+    drawPlayerShip(shipX, shipY, shipScale) {
         const ctx = this.ctx;
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        const refDistance = 100;
-        const refScale = this.cameraDepth / (refDistance / 100 + 0.01);
-        const shipX = w / 2 + (this.player.x + playerCurveX) * refScale * (w / 800);
-        const shipY = h * 0.82;
-
         ctx.save();
         ctx.translate(shipX, shipY);
+
+        const scale = Math.max(0.6, Math.min(2, shipScale * 3));
+        ctx.scale(scale, scale);
 
         if (this.player.isFlipped) {
             ctx.scale(1, -1);
