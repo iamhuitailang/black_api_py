@@ -27,6 +27,7 @@ export class GameEngine {
     this.camera = new Camera(canvas.width, canvas.height);
     this.particles = new ParticleSystem();
     this.background = new BackgroundRenderer(canvas.width, canvas.height);
+    this._saveKeyPrefix = 'ink_sword_save_';
 
     this.player = null;
     this.enemies = [];
@@ -85,6 +86,7 @@ export class GameEngine {
     const startX = 50;
     const startY = level.groundY - 60;
     this.player = new Player(startX, startY);
+    this.player.setWorldBounds(0, level.width);
     this.player.onEmitParticles = this._emitParticlesBound;
 
     for (const enemyConfig of level.enemies) {
@@ -105,6 +107,72 @@ export class GameEngine {
 
     this.background.setBgType(level.bgType);
     this.particles.clear();
+
+    this._tryRestoreState();
+  }
+
+  _getSaveKey() {
+    return this._saveKeyPrefix + this.currentLevelId;
+  }
+
+  _saveState() {
+    if (!this.player || this.state !== GameState.PLAYING) return;
+    try {
+      const save = {
+        levelId: this.currentLevelId,
+        player: {
+          x: this.player.x,
+          y: this.player.y,
+          vx: this.player.vx,
+          vy: this.player.vy,
+          hp: this.player.hp,
+          facing: this.player.facing,
+        },
+        scoreStats: { ...this.scoreStats },
+        collectibles: this.collectibles.map((c) => c.collected),
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(this._getSaveKey(), JSON.stringify(save));
+    } catch (e) {}
+  }
+
+  _tryRestoreState() {
+    try {
+      const raw = localStorage.getItem(this._getSaveKey());
+      if (!raw) return;
+      const save = JSON.parse(raw);
+      if (!save || save.levelId !== this.currentLevelId) return;
+      const age = Date.now() - (save.timestamp || 0);
+      if (age > 1000 * 60 * 10) {
+        localStorage.removeItem(this._getSaveKey());
+        return;
+      }
+
+      if (save.player && this.player) {
+        this.player.x = save.player.x;
+        this.player.y = save.player.y;
+        this.player.vx = save.player.vx || 0;
+        this.player.vy = save.player.vy || 0;
+        this.player.hp = save.player.hp;
+        this.player.facing = save.player.facing || 1;
+      }
+      if (save.scoreStats) {
+        this.scoreStats = { ...this.scoreStats, ...save.scoreStats };
+      }
+      if (Array.isArray(save.collectibles) && save.collectibles.length === this.collectibles.length) {
+        for (let i = 0; i < this.collectibles.length; i++) {
+          this.collectibles[i].collected = save.collectibles[i];
+        }
+      }
+    } catch (e) {
+      localStorage.removeItem(this._getSaveKey());
+    }
+  }
+
+  _clearSaveState() {
+    try {
+      localStorage.removeItem(this._getSaveKey());
+    } catch (e) {}
   }
 
   start() {
@@ -173,11 +241,23 @@ export class GameEngine {
 
     this.player.update(this.input, this.platforms);
 
+    if (this.player.y > 750) {
+      this.player.hp = 0;
+      this.player.state = 'DEAD';
+      this.scoreStats.damageTaken += 5;
+    }
+
     for (const enemy of this.enemies) {
       if (enemy.type === 'elite' || enemy.type === 'soldier' || enemy.type === 'archer') {
         enemy.update(this.player, this.platforms);
       } else {
         enemy.update(this.player, this.platforms);
+      }
+
+      if (enemy.y > 1000) {
+        enemy.hp = 0;
+        enemy.state = 'DEAD';
+        enemy.active = false;
       }
 
       if (enemy instanceof Archer) {
@@ -237,11 +317,14 @@ export class GameEngine {
     }
 
     if (this.player.x >= this.levelData.exitX) {
-      const allEnemiesDead = this.enemies.every((e) => e.isDead?.() || !e.active || e.type?.startsWith('trap'));
+      const allEnemiesDead = this.enemies.every((e) => 
+        e.isDead?.() || !e.active || e.type?.startsWith('trap') || e.state === 'STUNNED'
+      );
       const bossDefeated = !this.boss || this.boss.isDead();
 
       if (allEnemiesDead && bossDefeated) {
         this.state = GameState.LEVEL_COMPLETE;
+        this._clearSaveState();
         const grade = this._calculateGrade();
         const timeScore = Math.max(0, 100 - Math.floor(this.scoreStats.time));
         const damageScore = Math.max(0, 50 - this.scoreStats.damageTaken * 10);
@@ -268,10 +351,15 @@ export class GameEngine {
 
     if (!this.player.isAlive()) {
       this.state = GameState.GAME_OVER;
+      this._clearSaveState();
       if (this.callbacks.onGameOver) {
         this.callbacks.onGameOver({ levelId: this.currentLevelId });
       }
       return;
+    }
+
+    if (this.frameCount % 60 === 0) {
+      this._saveState();
     }
 
     if (this.callbacks.onHudUpdate) {
@@ -444,10 +532,16 @@ export class GameEngine {
       if (enemy.isDead?.() || !enemy.active || enemy.type?.startsWith('trap')) continue;
       if (stompCheck(this.player, enemy)) {
         if (!enemy.isDead?.()) {
-          enemy.stun(enemy.stunDuration || 90);
+          enemy.takeDamage(1);
+          if (!enemy.isDead?.()) {
+            enemy.stun(enemy.stunDuration || 90);
+          }
           this.player.stompBounce();
           const center = enemy.getCenter?.() || { x: enemy.x + enemy.width * 0.5, y: enemy.y };
           this._emitParticles(ParticleType.STUN_STARS, center.x, center.y - 10, { count: 4 });
+          if (enemy.isDead?.()) {
+            this._emitParticles(ParticleType.INK_SPLASH, center.x, center.y, { count: 15 });
+          }
         }
       }
     }

@@ -27,6 +27,8 @@ export class Player {
     this.facing = 1;
     this.onGround = false;
     this.state = State.IDLE;
+    this.worldMinX = 0;
+    this.worldMaxX = Infinity;
 
     this.attackFrame = 0;
     this.attackDuration = 18;
@@ -56,6 +58,7 @@ export class Player {
       this.vx = 0;
       this.vy += this.gravity;
       this.y += this.vy;
+      this._clampToWorldBounds();
       return;
     }
 
@@ -79,6 +82,7 @@ export class Player {
       this.x += this.vx;
       this.y += this.vy;
       resolveCollision(this, platforms);
+      this._clampToWorldBounds();
       if (this.dashFrame <= 0) {
         this.dashCooldown = this.dashCooldownMax;
         this.vx = 0;
@@ -99,6 +103,7 @@ export class Player {
       }
       this.y += this.vy;
       resolveCollision(this, platforms);
+      this._clampToWorldBounds();
       if (this.attackFrame <= 0) {
         this.attackCooldown = this.attackCooldownMax;
         this.canSlashProjectiles = false;
@@ -110,10 +115,13 @@ export class Player {
 
     if (this.hurtStun > 0) {
       this.state = State.HURT;
+      this.vx *= 0.82;
+      if (Math.abs(this.vx) < 0.1) this.vx = 0;
       this.x += this.vx;
       this.vy += this.gravity;
       this.y += this.vy;
       resolveCollision(this, platforms);
+      this._clampToWorldBounds();
       return;
     }
 
@@ -155,6 +163,7 @@ export class Player {
     this.x += this.vx;
     this.y += this.vy;
     resolveCollision(this, platforms);
+    this._clampToWorldBounds();
 
     if (this.attackFrame > 0) {
       this.state = State.ATTACK;
@@ -177,11 +186,11 @@ export class Player {
     if (this.invincible > 0 || !this.isAlive()) return;
     this.hp -= amount;
     if (fromX < this.x + this.width * 0.5) {
-      this.vx = 5;
+      this.vx = 3.5;
     } else {
-      this.vx = -5;
+      this.vx = -3.5;
     }
-    this.vy = -4;
+    this.vy = -3.5;
     this.hurtStun = this.hurtStunMax;
     this.invincible = this.invincibleAfterDamage;
     this.state = State.HURT;
@@ -556,5 +565,22 @@ export class Player {
 
   isAlive() {
     return this.hp > 0;
+  }
+
+  setWorldBounds(minX, maxX) {
+    this.worldMinX = minX;
+    this.worldMaxX = maxX;
+  }
+
+  _clampToWorldBounds() {
+    if (this.x < this.worldMinX) {
+      this.x = this.worldMinX;
+      this.vx = 0;
+    }
+    const maxX = this.worldMaxX - this.width;
+    if (this.x > maxX) {
+      this.x = maxX;
+      this.vx = 0;
+    }
   }
 }

@@ -26,14 +26,17 @@ export function pointInRect(px, py, rect) {
 }
 
 export function resolveCollision(entity, platforms) {
+  entity.prevY = entity.y;
+  entity.prevX = entity.x;
   entity.onGround = false;
 
   for (const p of platforms) {
     if (!rectOverlap(entity, p)) continue;
 
     if (p.type === 'platform') {
-      const prevBottom = entity.y + entity.height - entity.vy;
-      if (entity.vy > 0 && prevBottom <= p.y + 1) {
+      const prevBottom = entity.prevY + entity.height;
+      const tolerance = Math.max(4, Math.abs(entity.vy) + 2);
+      if (entity.vy >= 0 && prevBottom <= p.y + tolerance) {
         entity.y = p.y - entity.height;
         entity.vy = 0;
         entity.onGround = true;
@@ -52,11 +55,10 @@ export function resolveCollision(entity, platforms) {
     if (minOverlapX < minOverlapY) {
       if (overlapLeft < overlapRight) {
         entity.x = p.x - entity.width;
-        if (entity.vx > 0) entity.vx = 0;
       } else {
         entity.x = p.x + p.width;
-        if (entity.vx < 0) entity.vx = 0;
       }
+      entity.vx = 0;
     } else {
       if (overlapTop < overlapBottom) {
         entity.y = p.y - entity.height;
@@ -64,7 +66,7 @@ export function resolveCollision(entity, platforms) {
         entity.onGround = true;
       } else {
         entity.y = p.y + p.height;
-        if (entity.vy < 0) entity.vy = 0;
+        entity.vy = 0;
       }
     }
   }

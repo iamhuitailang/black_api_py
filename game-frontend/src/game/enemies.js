@@ -97,7 +97,10 @@ class Enemy {
 
   _checkStomp(player) {
     if (stompCheck(player, this)) {
-      this.stun(this.stunDuration || 90);
+      this.takeDamage(1);
+      if (!this.isDead()) {
+        this.stun(this.stunDuration || 90);
+      }
       player.stompBounce();
       return true;
     }
