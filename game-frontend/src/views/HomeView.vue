@@ -22,8 +22,8 @@
     </div>
 
     <div class="menu-buttons">
-      <button class="ink-btn" @click="$emit('start')">开始闯关</button>
-      <button class="ink-btn" @click="$emit('ranking')">排行榜</button>
+      <button class="ink-btn" @click="handleStart">开始闯关</button>
+      <button class="ink-btn" @click="handleRanking">排行榜</button>
       <div class="name-input">
         <label for="playerName">剑客名号：</label>
         <input 
@@ -59,11 +59,28 @@ export default {
       localStorage.setItem('playerName', playerName.value || '剑客')
     }
 
+    function handleStart() {
+      try {
+        localStorage.removeItem('ink_sword_view_state')
+        for (let i = 1; i <= 10; i++) {
+          localStorage.removeItem('ink_sword_save_' + i)
+        }
+      } catch (e) {}
+      emit('start')
+    }
+
+    function handleRanking() {
+      try {
+        localStorage.removeItem('ink_sword_view_state')
+      } catch (e) {}
+      emit('ranking')
+    }
+
     onMounted(() => {
       playerName.value = localStorage.getItem('playerName') || '剑客'
     })
 
-    return { playerName, saveName }
+    return { playerName, saveName, handleStart, handleRanking }
   }
 }
 </script>

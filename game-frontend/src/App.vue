@@ -2,24 +2,24 @@
   <div id="game-root">
     <HomeView
       v-if="currentView === 'home'"
-      @start="currentView = 'levelSelect'"
-      @ranking="currentView = 'ranking'"
+      @start="goToLevelSelect"
+      @ranking="goToRanking"
     />
     <LevelSelectView
       v-else-if="currentView === 'levelSelect'"
       @select="startLevel"
-      @back="currentView = 'home'"
+      @back="goToHome"
     />
     <GameView
       v-else-if="currentView === 'game'"
       :level-id="selectedLevel"
       @complete="onLevelComplete"
-      @back="currentView = 'levelSelect'"
+      @back="handleGameBack"
       ref="gameViewRef"
     />
     <RankingView
       v-else-if="currentView === 'ranking'"
-      @back="currentView = 'home'"
+      @back="goToHome"
     />
   </div>
 </template>
@@ -35,17 +35,61 @@ export default {
   name: 'App',
   components: { HomeView, LevelSelectView, GameView, RankingView },
   setup() {
+    const VIEW_SAVE_KEY = 'ink_sword_view_state'
     const currentView = ref('home')
     const selectedLevel = ref(1)
     const gameViewRef = ref(null)
 
+    function _saveViewState() {
+      try {
+        localStorage.setItem(VIEW_SAVE_KEY, JSON.stringify({
+          view: currentView.value,
+          level: selectedLevel.value,
+          timestamp: Date.now()
+        }))
+      } catch (e) {}
+    }
+
+    function _restoreViewState() {
+      try {
+        const raw = localStorage.getItem(VIEW_SAVE_KEY)
+        if (!raw) return false
+        const save = JSON.parse(raw)
+        const age = Date.now() - (save.timestamp || 0)
+        if (age > 1000 * 60 * 10) {
+          localStorage.removeItem(VIEW_SAVE_KEY)
+          return false
+        }
+        if (save.view === 'game' && save.level >= 1 && save.level <= 10) {
+          selectedLevel.value = save.level
+          currentView.value = 'game'
+          return true
+        } else if (save.view === 'levelSelect' || save.view === 'ranking') {
+          currentView.value = save.view
+          return true
+        }
+        return false
+      } catch (e) {
+        localStorage.removeItem(VIEW_SAVE_KEY)
+        return false
+      }
+    }
+
+    function _clearViewState() {
+      try {
+        localStorage.removeItem(VIEW_SAVE_KEY)
+      } catch (e) {}
+    }
+
     function startLevel(levelId) {
       selectedLevel.value = levelId
       currentView.value = 'game'
+      _saveViewState()
     }
 
     function onLevelComplete() {
       currentView.value = 'levelSelect'
+      _clearViewState()
     }
 
     function handleNextLevel(e) {
@@ -55,15 +99,39 @@ export default {
       }
     }
 
+    function handleGameBack() {
+      currentView.value = 'levelSelect'
+      _saveViewState()
+    }
+
+    function goToLevelSelect() {
+      currentView.value = 'levelSelect'
+      _saveViewState()
+    }
+
+    function goToRanking() {
+      currentView.value = 'ranking'
+      _saveViewState()
+    }
+
+    function goToHome() {
+      currentView.value = 'home'
+      _clearViewState()
+    }
+
     onMounted(() => {
       window.addEventListener('next-level', handleNextLevel)
+      _restoreViewState()
     })
 
     onBeforeUnmount(() => {
       window.removeEventListener('next-level', handleNextLevel)
     })
 
-    return { currentView, selectedLevel, gameViewRef, startLevel, onLevelComplete }
+    return { 
+      currentView, selectedLevel, gameViewRef, startLevel, onLevelComplete, handleGameBack,
+      goToLevelSelect, goToRanking, goToHome
+    }
   }
 }
 </script>

@@ -139,14 +139,16 @@ export class GameEngine {
   _tryRestoreState() {
     try {
       const raw = localStorage.getItem(this._getSaveKey());
-      if (!raw) return;
+      if (!raw) return false;
       const save = JSON.parse(raw);
-      if (!save || save.levelId !== this.currentLevelId) return;
+      if (!save || save.levelId !== this.currentLevelId) return false;
       const age = Date.now() - (save.timestamp || 0);
       if (age > 1000 * 60 * 10) {
         localStorage.removeItem(this._getSaveKey());
-        return;
+        return false;
       }
+
+      let restored = false;
 
       if (save.player && this.player) {
         this.player.x = save.player.x;
@@ -155,17 +157,36 @@ export class GameEngine {
         this.player.vy = save.player.vy || 0;
         this.player.hp = save.player.hp;
         this.player.facing = save.player.facing || 1;
+        restored = true;
       }
       if (save.scoreStats) {
         this.scoreStats = { ...this.scoreStats, ...save.scoreStats };
+        restored = true;
       }
       if (Array.isArray(save.collectibles) && save.collectibles.length === this.collectibles.length) {
         for (let i = 0; i < this.collectibles.length; i++) {
           this.collectibles[i].collected = save.collectibles[i];
         }
+        this.scoreStats.collectiblesGathered = this.collectibles.filter((c) => c.collected).length;
+        restored = true;
       }
+
+      if (restored && this.callbacks.onHudUpdate) {
+        this.callbacks.onHudUpdate({
+          hp: this.player.hp,
+          maxHp: this.player.maxHp,
+          time: this.scoreStats.time,
+          collectibles: this.scoreStats.collectiblesGathered,
+          maxCollectibles: this.scoreStats.maxCollectibles,
+          damageTaken: this.scoreStats.damageTaken,
+          boss: null,
+        });
+      }
+
+      return restored;
     } catch (e) {
       localStorage.removeItem(this._getSaveKey());
+      return false;
     }
   }
 
