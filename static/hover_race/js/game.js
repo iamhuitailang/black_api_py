@@ -30,7 +30,7 @@ class HoverRaceGame {
         this.trackWidth = 2000;
         this.lanes = 3;
         this.cameraHeight = 1000;
-        this.cameraDepth = 0.84;
+        this.cameraDepth = 0.25;
 
         this.player = null;
         this.opponents = [];
@@ -962,17 +962,36 @@ class HoverRaceGame {
 
         drawSegments.reverse();
 
+        let curveXAccum = 0;
+        for (let i = 0; i < drawSegments.length; i++) {
+            curveXAccum += drawSegments[i].seg.curve * 3;
+            drawSegments[i].curveX = curveXAccum;
+        }
+
         const roadY = baseY;
         const horizonY = h * 0.4;
 
+        let playerCurveX = 0;
+        const playerRefDistance = 100;
+        for (let i = drawSegments.length - 1; i >= 0; i--) {
+            const ds = drawSegments[i];
+            const d = ds.z - this.player.z;
+            if (d <= playerRefDistance) {
+                playerCurveX = ds.curveX;
+                break;
+            }
+        }
+
         for (let i = 0; i < drawSegments.length; i++) {
-            const { seg, z, index } = drawSegments[i];
+            const { seg, z, curveX } = drawSegments[i];
             const distance = z - this.player.z;
             const scale = this.cameraDepth / (distance / 100 + 0.01);
 
             const y = horizonY + (roadY - horizonY) * scale;
             const width = this.trackWidth * scale * (w / 800);
-            const x = w / 2 - width / 2;
+            const centerOffset = curveX * scale * (w / 800);
+            const trackCenterX = w / 2 + centerOffset;
+            const x = trackCenterX - width / 2;
 
             if (y < 0 || y > h) continue;
 
@@ -1039,7 +1058,7 @@ class HoverRaceGame {
 
         this.drawOpponents(drawSegments, w, horizonY, roadY);
 
-        this.drawPlayerShip();
+        this.drawPlayerShip(playerCurveX);
 
         this.drawSpeedLines();
 
@@ -1119,12 +1138,14 @@ class HoverRaceGame {
         ctx.fill();
     }
 
-    drawPlayerShip() {
+    drawPlayerShip(playerCurveX) {
         const ctx = this.ctx;
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        const shipX = w / 2 + this.player.x * 0.1;
+        const refDistance = 100;
+        const refScale = this.cameraDepth / (refDistance / 100 + 0.01);
+        const shipX = w / 2 + (this.player.x + playerCurveX) * refScale * (w / 800);
         const shipY = h * 0.82;
 
         ctx.save();
@@ -1216,11 +1237,19 @@ class HoverRaceGame {
             const distance = oppZ - this.player.z;
             if (distance < 0 || distance > 300 * 200) return;
 
+            let oppCurveX = 0;
+            for (let i = 0; i < drawSegments.length; i++) {
+                if (drawSegments[i].z >= oppZ) {
+                    oppCurveX = drawSegments[i].curveX;
+                    break;
+                }
+            }
+
             const scale = this.cameraDepth / (distance / 100 + 0.01);
             const y = horizonY + (roadY - horizonY) * scale;
             const trackWidth = this.trackWidth * scale * (w / 800);
 
-            const x = w / 2 + opp.x * scale * (w / 800);
+            const x = w / 2 + (opp.x + oppCurveX) * scale * (w / 800);
 
             const shipSize = Math.max(5, 40 * scale);
 
@@ -1293,10 +1322,20 @@ class HoverRaceGame {
             const distance = arc.z - this.player.z;
             if (distance < 0 || distance > 300 * 200) return;
 
+            let arcCurveX = 0;
+            for (let i = 0; i < drawSegments.length; i++) {
+                if (drawSegments[i].z >= arc.z) {
+                    arcCurveX = drawSegments[i].curveX;
+                    break;
+                }
+            }
+
             const scale = this.cameraDepth / (distance / 100 + 0.01);
             const y = horizonY + (roadY - horizonY) * scale;
             const trackWidth = this.trackWidth * scale * (w / 800);
-            const trackX = w / 2 - trackWidth / 2;
+            const centerOffset = arcCurveX * scale * (w / 800);
+            const trackCenterX = w / 2 + centerOffset;
+            const trackX = trackCenterX - trackWidth / 2;
 
             const sideX = arc.side === 'left' ? trackX : trackX + trackWidth;
             const height = 30 * scale;
