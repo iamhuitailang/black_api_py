@@ -31,12 +31,15 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const store = useGameStore()
-  const saveId = await store.initFromLocalStorage()
 
   if (to.name !== 'SaveSlot') {
-    if (!saveId) {
+    if (!store.saveId) {
       next({ name: 'SaveSlot' })
       return
+    }
+    await store.ensureStateReady()
+    if (to.name === 'StarMap') {
+      await store.ensurePlanetsReady()
     }
   }
   next()

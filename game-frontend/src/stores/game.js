@@ -3,13 +3,14 @@ import { api } from '../api'
 
 export const useGameStore = defineStore('game', {
   state: () => ({
-    saveId: null,
+    saveId: Number(localStorage.getItem('current_save_id')) || null,
     gameState: null,
     planets: [],
     combatState: null,
     toast: null,
     loading: false,
-    _initialized: false,
+    _statePromise: null,
+    _planetsPromise: null,
   }),
   getters: {
     hasSave: (state) => !!state.saveId,
@@ -26,26 +27,18 @@ export const useGameStore = defineStore('game', {
       this.toast = { message, type }
       setTimeout(() => { this.toast = null }, 2500)
     },
-    async initFromLocalStorage() {
-      if (this._initialized) return this.saveId
-      this._initialized = true
-      const sid = localStorage.getItem('current_save_id')
-      if (sid) {
-        this.saveId = Number(sid)
-        if (!this.gameState) {
-          try {
-            await this.refreshState()
-          } catch (e) {
-            console.warn('Failed to restore state:', e)
-          }
-        }
-        if (this.planets.length === 0) {
-          try {
-            await this.loadPlanets()
-          } catch (e) {}
-        }
-      }
-      return this.saveId
+    async ensureStateReady() {
+      if (!this.saveId) return false
+      if (this.gameState) return true
+      if (this._statePromise) return this._statePromise
+      this._statePromise = this.refreshState().then(() => true).catch(() => false)
+      return this._statePromise
+    },
+    async ensurePlanetsReady() {
+      if (this.planets.length > 0) return true
+      if (this._planetsPromise) return this._planetsPromise
+      this._planetsPromise = this.loadPlanets().then(() => true).catch(() => false)
+      return this._planetsPromise
     },
     async createNewGame(playerName) {
       this.loading = true
@@ -80,6 +73,8 @@ export const useGameStore = defineStore('game', {
     },
     selectSave(saveId) {
       this.saveId = saveId
+      this.gameState = null
+      this._statePromise = null
       localStorage.setItem('current_save_id', String(saveId))
     },
     async refreshState() {
@@ -154,6 +149,9 @@ export const useGameStore = defineStore('game', {
       this.saveId = null
       this.gameState = null
       this.combatState = null
+      this.planets = []
+      this._statePromise = null
+      this._planetsPromise = null
       localStorage.removeItem('current_save_id')
     },
   },

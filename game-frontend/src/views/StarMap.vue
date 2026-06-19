@@ -189,8 +189,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '../stores/game'
-
-const LowPolyPlanet = defineAsyncComponent(() => import('../components/LowPolyPlanet.vue'))
+import LowPolyPlanet from '../components/LowPolyPlanet.vue'
 
 const router = useRouter()
 const store = useGameStore()
