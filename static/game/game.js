@@ -1112,6 +1112,30 @@ class Game {
         if (!this.player) return;
         if (this.state !== GameState.PLAYING && this.state !== GameState.PAUSED) return;
         try {
+            const pickups = this.pickups
+                .filter(p => p.active)
+                .map(p => ({ x: p.x, y: p.y, type: p.type }));
+
+            const bunkers = this.bunkers.map(b => ({
+                x: b.x,
+                health: b.health,
+                active: b.active
+            }));
+
+            const mines = this.mines.map(m => ({
+                x: m.x,
+                active: m.active,
+                exploded: m.exploded
+            }));
+
+            const bosses = this.bosses.map(b => ({
+                x: b.x,
+                type: b.type,
+                health: b.health,
+                active: b.active,
+                phase: b.phase
+            }));
+
             const state = {
                 playerId: this.playerId,
                 playerName: this.playerName,
@@ -1124,7 +1148,12 @@ class Game {
                 playTime: this.getPlayTime(),
                 lastCheckpoint: this.lastCheckpoint,
                 bossSpawned: this.bossSpawned,
-                stateAtSave: this.state
+                stateAtSave: this.state,
+                worldOffset: this.worldOffset,
+                pickups: pickups,
+                bunkers: bunkers,
+                mines: mines,
+                bosses: bosses
             };
             localStorage.setItem('game_state', JSON.stringify(state));
         } catch (e) {
@@ -1317,7 +1346,12 @@ class Game {
         let saveId = this.saveId;
         let bossSpawned = { 300: false, 600: false, 900: false };
         let lastCheckpoint = 0;
-        
+        let restoredBunkers = null;
+        let restoredMines = null;
+        let restoredPickups = null;
+        let restoredBosses = null;
+        let restoredWorldOffset = null;
+
         if (saveData) {
             if (saveData.current_distance !== undefined) {
                 distance = saveData.current_distance;
@@ -1328,7 +1362,7 @@ class Game {
                 playTime = saveData.play_time;
                 saveId = saveData.save_id;
                 lastCheckpoint = distance;
-                
+
                 if (saveData.checkpoints) {
                     saveData.checkpoints.forEach(cp => {
                         if (cp.checkpoint_distance >= 290 && cp.checkpoint_distance <= 310) {
@@ -1356,9 +1390,14 @@ class Game {
                 if (saveData.lastCheckpoint !== undefined) {
                     lastCheckpoint = saveData.lastCheckpoint;
                 }
+                restoredBunkers = saveData.bunkers || null;
+                restoredMines = saveData.mines || null;
+                restoredPickups = saveData.pickups || null;
+                restoredBosses = saveData.bosses || null;
+                restoredWorldOffset = saveData.worldOffset !== undefined ? saveData.worldOffset : null;
             }
         }
-        
+
         const startX = 200 + distance * 10;
         this.player = new Player(startX, CONFIG.GROUND_Y - 60);
         this.player.health = health;
@@ -1366,7 +1405,7 @@ class Game {
         this.player.totalAmmo = totalAmmo;
         this.player.kills = kills;
         this.player.distance = distance;
-        
+
         this.enemies = [];
         this.bunkers = [];
         this.mines = [];
@@ -1374,19 +1413,72 @@ class Game {
         this.pickups = [];
         this.bosses = [];
         this.particles = new ParticleSystem();
-        this.worldOffset = Math.max(0, startX - CONFIG.CANVAS_WIDTH * 0.3);
+
+        if (restoredWorldOffset !== null) {
+            this.worldOffset = restoredWorldOffset;
+        } else {
+            this.worldOffset = Math.max(0, startX - CONFIG.CANVAS_WIDTH * 0.3);
+        }
+
         this.lastCheckpoint = lastCheckpoint;
         this.saveId = saveId;
         this.gameStartTime = Date.now() - playTime * 1000;
         this.currentBoss = null;
         this.bossSpawned = bossSpawned;
-        
-        this.spawnInitialContent(distance);
-        
+
+        this.spawnInitialContent(distance, restoredBunkers, restoredMines);
+
+        if (restoredBunkers) {
+            restoredBunkers.forEach(rb => {
+                const bunker = new Bunker(rb.x);
+                bunker.health = rb.health;
+                bunker.active = rb.active;
+                this.bunkers.push(bunker);
+            });
+        }
+
+        if (restoredMines) {
+            restoredMines.forEach(rm => {
+                const mine = new Mine(rm.x);
+                mine.active = rm.active;
+                mine.exploded = rm.exploded;
+                this.mines.push(mine);
+            });
+        }
+
+        if (restoredPickups) {
+            restoredPickups.forEach(rp => {
+                const pickup = new Pickup(rp.x, rp.y, rp.type);
+                pickup.vy = 0;
+                pickup.bounceCount = 2;
+                this.pickups.push(pickup);
+            });
+        }
+
+        if (restoredBosses) {
+            restoredBosses.forEach(rb => {
+                const boss = new Boss(rb.x, rb.type);
+                boss.health = rb.health;
+                boss.active = rb.active;
+                boss.phase = rb.phase;
+                this.bosses.push(boss);
+                if (boss.active) {
+                    this.currentBoss = boss;
+                    document.getElementById('bossName').textContent = boss.config.name;
+                }
+            });
+        }
+
         document.getElementById('bossHealthBar').classList.add('hidden');
+        if (this.currentBoss && this.currentBoss.active) {
+            document.getElementById('bossHealthBar').classList.remove('hidden');
+        }
     }
 
-    spawnInitialContent(startDistance = 0) {
+    spawnInitialContent(startDistance = 0, existingBunkers = null, existingMines = null) {
+        const bunkerXs = existingBunkers ? new Set(existingBunkers.map(b => b.x)) : new Set();
+        const mineXs = existingMines ? new Set(existingMines.map(m => m.x)) : new Set();
+
         for (let i = 100; i < CONFIG.GAME_LENGTH; i += 50 + Math.random() * 50) {
             if (i > startDistance - 5 && Math.random() > 0.5 && !this.isBossZone(i)) {
                 this.enemies.push(new Enemy(i * 10, CONFIG.GROUND_Y - 60, 'infantry'));
@@ -1394,14 +1486,16 @@ class Game {
         }
         
         for (let i = 150; i < CONFIG.GAME_LENGTH; i += 150 + Math.random() * 100) {
-            if (i > startDistance - 15 && !this.isBossZone(i)) {
-                this.bunkers.push(new Bunker(i * 10));
+            const wx = i * 10;
+            if (i > startDistance - 15 && !this.isBossZone(i) && !bunkerXs.has(wx)) {
+                this.bunkers.push(new Bunker(wx));
             }
         }
         
         for (let i = 80; i < CONFIG.GAME_LENGTH; i += 80 + Math.random() * 60) {
-            if (i > startDistance - 10 && Math.random() > 0.6 && !this.isBossZone(i)) {
-                this.mines.push(new Mine(i * 10));
+            const wx = i * 10;
+            if (i > startDistance - 10 && Math.random() > 0.6 && !this.isBossZone(i) && !mineXs.has(wx)) {
+                this.mines.push(new Mine(wx));
             }
         }
     }
