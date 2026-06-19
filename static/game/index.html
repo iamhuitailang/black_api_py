@@ -24,8 +24,11 @@
                 <label for="playerNameInput">输入你的名字：</label>
                 <input type="text" id="playerNameInput" placeholder="请输入名字" maxlength="20" value="宇航员">
             </div>
-            <button id="startBtn" class="btn btn-primary">开始游戏</button>
-            <button id="showLeaderboardBtn" class="btn btn-secondary">排行榜</button>
+            <div class="btn-group">
+                <button id="startBtn" class="btn btn-primary">开始游戏</button>
+                <button id="continueBtn" class="btn btn-warning" style="display:none;">继续游戏</button>
+                <button id="showLeaderboardBtn" class="btn btn-secondary">排行榜</button>
+            </div>
         </div>
 
         <div id="gameUI" class="hidden">

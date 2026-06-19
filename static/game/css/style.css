@@ -147,6 +147,28 @@ body {
     transform: translateY(-2px);
 }
 
+.btn-warning {
+    background: linear-gradient(135deg, #ffaa00, #ff6600);
+    color: #331100;
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(255, 170, 0, 0.4);
+}
+
+.btn-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-group .btn {
+    margin: 4px;
+    min-width: 200px;
+}
+
 #gameUI {
     position: absolute;
     top: 0;

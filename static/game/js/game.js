@@ -1626,6 +1626,11 @@ function update(dt) {
         nextArea();
     }
 
+    if (gameState === GAME_STATE.PLAYING && (Date.now() - lastSaveTime > SAVE_INTERVAL)) {
+        saveGameState();
+        lastSaveTime = Date.now();
+    }
+
     updateHUD();
 }
 
@@ -1827,21 +1832,33 @@ function updateHUD() {
 // ============================================================
 // 游戏状态控制
 // ============================================================
-function startGame() {
-    const nameInput = document.getElementById('playerNameInput').value.trim();
-    if (nameInput) {
+const SAVE_KEY = 'alien_escape_save';
+const SAVE_INTERVAL = 2000;
+let lastSaveTime = 0;
+
+function startGame(loadSave = false) {
+    if (!loadSave) {
+        const nameInput = document.getElementById('playerNameInput').value.trim();
+        if (!nameInput) {
+            alert('请输入昵称后再开始游戏！');
+            document.getElementById('playerNameInput').focus();
+            return;
+        }
         playerName = nameInput;
     }
 
-    currentArea = 0;
-    gameTime = 0;
-    specimenCount = 0;
-    bullets = [];
-    enemyBullets = [];
-    particles = [];
+    if (!loadSave) {
+        currentArea = 0;
+        gameTime = 0;
+        specimenCount = 0;
+        bullets = [];
+        enemyBullets = [];
+        particles = [];
 
-    player = new Player(50, GROUND_Y - 48);
-    generateArea(0);
+        player = new Player(50, GROUND_Y - 48);
+        generateArea(0);
+        showAreaTransition(1, '菌类森林');
+    }
 
     gameState = GAME_STATE.PLAYING;
 
@@ -1851,8 +1868,6 @@ function startGame() {
     document.getElementById('leaderboardScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
     document.getElementById('gameUI').classList.remove('hidden');
-
-    showAreaTransition(1, '菌类森林');
 
     updateHUD();
 }
@@ -1869,6 +1884,8 @@ function nextArea() {
 
     const areaNames = ['菌类森林', '熔岩地带', '异形巢穴'];
     showAreaTransition(currentArea + 1, areaNames[currentArea]);
+
+    setTimeout(() => saveGameState(), 2500);
 }
 
 function showAreaTransition(areaNum, areaName) {
@@ -1896,6 +1913,7 @@ function resumeGame() {
 
 function gameOver() {
     gameState = GAME_STATE.GAME_OVER;
+    clearSave();
 
     document.getElementById('gameUI').classList.add('hidden');
     document.getElementById('finalSpecimens').textContent = specimenCount;
@@ -1911,6 +1929,7 @@ function gameOver() {
 
 function victory() {
     gameState = GAME_STATE.VICTORY;
+    clearSave();
 
     document.getElementById('gameUI').classList.add('hidden');
     document.getElementById('victorySpecimens').textContent = specimenCount;
@@ -1928,11 +1947,249 @@ function victory() {
 
 function backToMenu() {
     gameState = GAME_STATE.MENU;
+    clearSave();
     document.getElementById('startScreen').classList.remove('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('victoryScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
     document.getElementById('gameUI').classList.add('hidden');
+    updateContinueButton();
+}
+
+// ============================================================
+// 游戏存档系统
+// ============================================================
+function saveGameState() {
+    if (gameState !== GAME_STATE.PLAYING) return;
+
+    try {
+        const saveData = {
+            playerName: playerName,
+            currentArea: currentArea,
+            gameTime: gameTime,
+            specimenCount: specimenCount,
+            cameraX: cameraX,
+            areaWidth: areaWidth,
+            player: player ? {
+                x: player.x,
+                y: player.y,
+                vx: player.vx,
+                vy: player.vy,
+                health: player.health,
+                maxHealth: player.maxHealth,
+                weapon: player.weapon,
+                facingRight: player.facingRight,
+                onGround: player.onGround,
+                invincible: player.invincible
+            } : null,
+            bullets: bullets.map(b => ({
+                x: b.x, y: b.y, vx: b.vx, vy: b.vy,
+                damage: b.damage, size: b.size, color: b.color, isPlayer: b.isPlayer
+            })),
+            enemyBullets: enemyBullets.map(b => ({
+                x: b.x, y: b.y, vx: b.vx, vy: b.vy,
+                damage: b.damage, size: b.size, color: b.color, isPlayer: b.isPlayer
+            })),
+            enemies: enemies.filter(e => e.alive).map(e => serializeEnemy(e)),
+            pickups: pickups.filter(p => p.alive).map(p => ({
+                x: p.x, y: p.y, type: p.type, subType: p.subType
+            })),
+            specimens: specimens.filter(s => s.alive).map(s => ({
+                x: s.x, y: s.y
+            })),
+            boss: boss && boss.alive ? {
+                x: boss.x, y: boss.y, health: boss.health,
+                maxHealth: boss.maxHealth, phase: boss.phase
+            } : null,
+            hazards: hazards.map(h => ({
+                x: h.x, state: h.state, timer: h.timer,
+                height: h.height, idleTime: h.idleTime
+            }))
+        };
+
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+    } catch (e) {
+        console.warn('保存游戏状态失败:', e);
+    }
+}
+
+function serializeEnemy(e) {
+    const base = {
+        type: e.constructor.name,
+        x: e.x, y: e.y, health: e.health,
+        maxHealth: e.maxHealth, vx: e.vx, vy: e.vy
+    };
+
+    if (e instanceof JumperBug) {
+        base.jumpTimer = e.jumpTimer;
+        base.jumpInterval = e.jumpInterval;
+    } else if (e instanceof SporeShooter) {
+        base.shootTimer = e.shootTimer;
+    } else if (e instanceof LavaWorm) {
+        base.state = e.state;
+        base.timer = e.timer;
+        base.currentHeight = e.currentHeight;
+    } else if (e instanceof AlienBug) {
+        base.animTimer = e.animTimer;
+    }
+
+    return base;
+}
+
+function loadGameState() {
+    try {
+        const saved = localStorage.getItem(SAVE_KEY);
+        if (!saved) return false;
+
+        const data = JSON.parse(saved);
+
+        playerName = data.playerName;
+        currentArea = data.currentArea;
+        gameTime = data.gameTime;
+        specimenCount = data.specimenCount;
+        cameraX = data.cameraX;
+        areaWidth = data.areaWidth;
+
+        generateArea(currentArea);
+
+        if (data.player) {
+            player = new Player(data.player.x, data.player.y);
+            player.vx = data.player.vx;
+            player.vy = data.player.vy;
+            player.health = data.player.health;
+            player.maxHealth = data.player.maxHealth;
+            player.weapon = data.player.weapon;
+            player.facingRight = data.player.facingRight;
+            player.onGround = data.player.onGround;
+            player.invincible = data.player.invincible;
+        }
+
+        bullets = data.bullets.map(b => {
+            const nb = new Bullet(b.x, b.y, b.vx, b.vy, b.damage, b.size, b.color, b.isPlayer);
+            return nb;
+        });
+
+        enemyBullets = data.enemyBullets.map(b => {
+            const nb = new Bullet(b.x, b.y, b.vx, b.vy, b.damage, b.size, b.color, b.isPlayer);
+            return nb;
+        });
+
+        enemies = data.enemies.map(ed => deserializeEnemy(ed)).filter(e => e);
+        pickups = data.pickups.map(pd => new Pickup(pd.x, pd.y, pd.type, pd.subType));
+        specimens = data.specimens.map(sd => new Specimen(sd.x, sd.y));
+
+        if (data.boss) {
+            boss = new BossQueen(data.boss.x);
+            boss.health = data.boss.health;
+            boss.maxHealth = data.boss.maxHealth;
+            boss.phase = data.boss.phase;
+        } else {
+            boss = null;
+        }
+
+        if (data.hazards && data.hazards.length > 0) {
+            for (let i = 0; i < Math.min(hazards.length, data.hazards.length); i++) {
+                hazards[i].state = data.hazards[i].state;
+                hazards[i].timer = data.hazards[i].timer;
+                hazards[i].height = data.hazards[i].height;
+                if (data.hazards[i].idleTime) hazards[i].idleTime = data.hazards[i].idleTime;
+            }
+        }
+
+        return true;
+    } catch (e) {
+        console.warn('加载游戏状态失败:', e);
+        return false;
+    }
+}
+
+function deserializeEnemy(ed) {
+    let enemy = null;
+    try {
+        switch (ed.type) {
+            case 'JumperBug':
+                enemy = new JumperBug(ed.x, ed.y);
+                enemy.jumpTimer = ed.jumpTimer || 0;
+                enemy.jumpInterval = ed.jumpInterval || 2000;
+                break;
+            case 'SporeShooter':
+                enemy = new SporeShooter(ed.x, ed.y);
+                enemy.shootTimer = ed.shootTimer || 0;
+                break;
+            case 'LavaWorm':
+                enemy = new LavaWorm(ed.x);
+                enemy.state = ed.state || 'hidden';
+                enemy.timer = ed.timer || 0;
+                enemy.currentHeight = ed.currentHeight || 0;
+                enemy.y = GROUND_Y - enemy.currentHeight;
+                enemy.height = enemy.currentHeight;
+                break;
+            case 'AlienBug':
+                enemy = new AlienBug(ed.x, ed.y);
+                enemy.animTimer = ed.animTimer || 0;
+                break;
+            default:
+                return null;
+        }
+
+        if (enemy) {
+            enemy.health = ed.health;
+            enemy.maxHealth = ed.maxHealth;
+            enemy.vx = ed.vx || 0;
+            enemy.vy = ed.vy || 0;
+        }
+    } catch (e) {
+        console.warn('反序列化敌人失败:', e);
+    }
+    return enemy;
+}
+
+function clearSave() {
+    try {
+        localStorage.removeItem(SAVE_KEY);
+    } catch (e) {
+        console.warn('清除存档失败:', e);
+    }
+}
+
+function hasSave() {
+    try {
+        return localStorage.getItem(SAVE_KEY) !== null;
+    } catch (e) {
+        return false;
+    }
+}
+
+function continueGame() {
+    if (loadGameState()) {
+        startGame(true);
+    } else {
+        alert('未找到存档，无法继续游戏！');
+        document.getElementById('continueBtn').style.display = 'none';
+    }
+}
+
+function updateContinueButton() {
+    const continueBtn = document.getElementById('continueBtn');
+    const nameInput = document.getElementById('playerNameInput');
+    if (hasSave()) {
+        try {
+            const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+            const areaNames = ['菌类森林', '熔岩地带', '异形巢穴'];
+            const areaName = areaNames[saved.currentArea] || '未知区域';
+            const timeSec = Math.floor(saved.gameTime / 1000);
+            const mins = Math.floor(timeSec / 60);
+            const secs = timeSec % 60;
+            const timeStr = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            continueBtn.style.display = 'inline-block';
+            continueBtn.textContent = `继续游戏 (${saved.playerName} · ${areaName} · ${timeStr})`;
+            nameInput.value = saved.playerName;
+        } catch (e) {
+            continueBtn.style.display = 'none';
+        }
+    } else {
+        continueBtn.style.display = 'none';
+    }
 }
 
 // ============================================================
@@ -2067,6 +2324,7 @@ function initEvents() {
     });
 
     document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('continueBtn').addEventListener('click', continueGame);
     document.getElementById('showLeaderboardBtn').addEventListener('click', () => {
         gameState = GAME_STATE.LEADERBOARD;
         document.getElementById('startScreen').classList.add('hidden');
@@ -2078,6 +2336,7 @@ function initEvents() {
         gameState = GAME_STATE.MENU;
         document.getElementById('leaderboardScreen').classList.add('hidden');
         document.getElementById('startScreen').classList.remove('hidden');
+        updateContinueButton();
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -2101,6 +2360,7 @@ function initEvents() {
 // ============================================================
 function init() {
     initEvents();
+    updateContinueButton();
     requestAnimationFrame(gameLoop);
 }
 
