@@ -9,6 +9,7 @@ export const useGameStore = defineStore('game', {
     combatState: null,
     toast: null,
     loading: false,
+    _initialized: false,
   }),
   getters: {
     hasSave: (state) => !!state.saveId,
@@ -24,6 +25,27 @@ export const useGameStore = defineStore('game', {
     showToast(message, type = 'info') {
       this.toast = { message, type }
       setTimeout(() => { this.toast = null }, 2500)
+    },
+    async initFromLocalStorage() {
+      if (this._initialized) return this.saveId
+      this._initialized = true
+      const sid = localStorage.getItem('current_save_id')
+      if (sid) {
+        this.saveId = Number(sid)
+        if (!this.gameState) {
+          try {
+            await this.refreshState()
+          } catch (e) {
+            console.warn('Failed to restore state:', e)
+          }
+        }
+        if (this.planets.length === 0) {
+          try {
+            await this.loadPlanets()
+          } catch (e) {}
+        }
+      }
+      return this.saveId
     },
     async createNewGame(playerName) {
       this.loading = true

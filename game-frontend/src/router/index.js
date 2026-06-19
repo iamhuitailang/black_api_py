@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useGameStore } from '../stores/game'
 
 const routes = [
   {
@@ -28,9 +29,11 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  const store = useGameStore()
+  const saveId = await store.initFromLocalStorage()
+
   if (to.name !== 'SaveSlot') {
-    const saveId = localStorage.getItem('current_save_id')
     if (!saveId) {
       next({ name: 'SaveSlot' })
       return

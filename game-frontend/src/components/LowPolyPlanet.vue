@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   cx: { type: Number, required: true },
@@ -135,7 +135,19 @@ const props = defineProps({
   danger: { type: Number, default: 1 },
 })
 
-const uid = Math.random().toString(36).slice(2, 10)
+const _uidSeed = ref(null)
+const uid = computed(() => {
+  if (!_uidSeed.value) {
+    let hash = 0
+    const str = props.name + '_' + props.cx + '_' + props.cy
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i)
+      hash = hash & hash
+    }
+    _uidSeed.value = Math.abs(hash).toString(36).slice(0, 8)
+  }
+  return _uidSeed.value
+})
 const labelWidth = computed(() => Math.max(props.name.length * 12 + 24, 80))
 const labelBgX = computed(() => -labelWidth.value / 2)
 

@@ -29,6 +29,8 @@ class MissionBusiness:
                 return {'code': 1, 'message': '该空间站没有任务发布台', 'data': None}
 
             active_mission = self.mission_model.get_active_by_save_id(save_id)
+            completed_missions = self.mission_model.get_by_save_id(save_id, status='completed')
+            completed_template_ids = {m['template_id'] for m in completed_missions}
 
             mil_rep = save['reputation_military']
             pir_rep = save['reputation_pirate']
@@ -37,6 +39,8 @@ class MissionBusiness:
 
             available = []
             for mt in all_templates:
+                if mt['id'] in completed_template_ids:
+                    continue
                 mr = mt['min_reputation']
                 ok = False
                 if mt['faction'] == 'military':

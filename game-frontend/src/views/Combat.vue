@@ -531,8 +531,10 @@ onUnmounted(() => {
 
 <style scoped>
 .combat-page {
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
+  display: flex;
+  flex-direction: column;
   position: relative;
   overflow: hidden;
   background: var(--bg-deep);
@@ -546,24 +548,25 @@ onUnmounted(() => {
   position: relative; z-index: 10;
   display: grid; grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
-  padding: 20px 30px;
+  padding: 14px 24px;
   background: linear-gradient(180deg, var(--bg-glass), transparent);
+  flex-shrink: 0;
 }
 .turn-info {
   display: flex; flex-direction: column; align-items: flex-start;
-  padding: 8px 18px;
+  padding: 6px 14px;
   background: var(--bg-glass); backdrop-filter: blur(8px);
   border: 1px solid var(--border-subtle);
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 .turn-label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.2em; text-transform: uppercase; font-family: var(--font-title); }
-.turn-num { font-family: var(--font-title); font-size: 28px; font-weight: 900; color: var(--accent-cyan); line-height: 1; }
+.turn-num { font-family: var(--font-title); font-size: 24px; font-weight: 900; color: var(--accent-cyan); line-height: 1; }
 
 .phase-info {
   justify-self: center;
-  padding: 10px 26px;
+  padding: 8px 20px;
   font-family: var(--font-title);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.15em;
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
@@ -585,37 +588,39 @@ onUnmounted(() => {
 .battlefield {
   position: relative; z-index: 5;
   display: grid;
-  grid-template-columns: 1fr 80px 1fr;
-  gap: 20px;
-  padding: 10px 30px 20px;
-  min-height: 360px;
-  align-items: start;
+  grid-template-columns: 1fr 60px 1fr;
+  gap: 16px;
+  padding: 8px 24px 12px;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
 }
-.ship-side { display: flex; flex-direction: column; gap: 14px; }
+.ship-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .player-side { align-items: flex-start; }
 .enemies-side { align-items: flex-end; }
 
 .ship-display {
-  max-width: 420px;
+  max-width: 360px;
   width: 100%;
+  flex-shrink: 0;
 }
 .ship-stats-panel {
-  display: flex; gap: 10px;
-  padding: 10px 16px;
+  display: flex; gap: 8px;
+  padding: 8px 12px;
   background: var(--bg-glass);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-subtle);
 }
 .stat-chip {
   display: flex; flex-direction: column; align-items: center;
-  min-width: 68px; padding: 4px 10px;
+  min-width: 60px; padding: 2px 8px;
 }
 .stat-chip .label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; font-family: var(--font-title); }
-.stat-chip .val { font-weight: 700; font-size: 15px; color: var(--accent-cyan); margin-top: 2px; }
+.stat-chip .val { font-weight: 700; font-size: 14px; color: var(--accent-cyan); margin-top: 2px; }
 
 .battle-center { display: flex; align-items: center; justify-content: center; height: 100%; }
 .vs-label {
-  font-size: 42px;
+  font-size: 36px;
   opacity: 0.3;
   filter: drop-shadow(0 0 10px var(--accent-gold));
   animation: pulse-glow 1.5s infinite;
@@ -625,9 +630,13 @@ onUnmounted(() => {
 .enemies-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
 }
 .enemy-card {
   position: relative;
@@ -680,9 +689,10 @@ onUnmounted(() => {
 
 .action-area {
   position: relative; z-index: 8;
-  margin: 0 30px 20px;
+  margin: 0 24px 16px;
   padding: 0;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .action-tabs {
   display: flex;
@@ -692,13 +702,13 @@ onUnmounted(() => {
 }
 .action-tab-btn {
   flex: 1;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  padding: 14px 18px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 14px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   font-family: var(--font-title);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.1em;
   color: var(--text-dim);
@@ -711,9 +721,9 @@ onUnmounted(() => {
   background: var(--bg-glass-light);
 }
 .action-tab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.tab-icon { font-size: 18px; }
+.tab-icon { font-size: 16px; }
 
-.action-content { padding: 20px; min-height: 190px; }
+.action-content { padding: 14px 20px; min-height: 150px; max-height: 180px; overflow-y: auto; }
 .info-hint {
   margin-bottom: 14px;
   padding: 10px 14px;
