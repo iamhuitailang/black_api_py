@@ -389,7 +389,6 @@ function applyState(state) {
   })
   const oldPlayer = combatState.value ? null : null
   if (state.player && combatState.value) {
-    // check player damage detected by comparing to previous state snapshot
   }
   nextTick(() => {
     const lb = logBodyRef.value
@@ -400,6 +399,7 @@ function applyState(state) {
   } else {
     ensureAliveTarget()
   }
+  store.setCombatState(state)
 }
 
 function ensureAliveTarget() {
@@ -512,10 +512,42 @@ onMounted(async () => {
   }
   initBg()
 
-  if (store.combatState && !store.combatState.pending) {
-    combatState.value = store.combatState
+  await store.ensureStateReady()
+
+  let saved = null
+
+  if (store.combatState && store.combatState.pending) {
+    const pending = store.combatState
+    const payload = { save_id: store.saveId }
+    if (pending.enemyIds && pending.enemyIds.length > 0) {
+      payload.enemy_ids = pending.enemyIds
+    } else if (pending.difficulty) {
+      payload.difficulty = pending.difficulty
+    }
+    if (pending.missionId) {
+      payload.mission_id = pending.missionId
+    }
+    const res = await api.initCombat(payload)
+    if (res.code === 0) {
+      saved = res.data
+      store.setCombatState(saved)
+    }
+  }
+
+  if (!saved && store.combatState && !store.combatState.pending && !store.combatState.is_over) {
+    saved = store.combatState
+  }
+
+  if (!saved) {
+    saved = store.getSavedCombatState()
+  }
+
+  if (saved && !saved.is_over) {
+    combatState.value = saved
     ensureAliveTarget()
+    store.setCombatState(saved)
   } else {
+    store.clearCombat()
     router.push('/station')
     return
   }

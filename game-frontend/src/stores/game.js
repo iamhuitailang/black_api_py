@@ -141,9 +141,35 @@ export const useGameStore = defineStore('game', {
     },
     setCombatState(state) {
       this.combatState = state
+      try {
+        if (state && !state.is_over) {
+          localStorage.setItem('combat_state_' + this.saveId, JSON.stringify(state))
+        } else {
+          localStorage.removeItem('combat_state_' + this.saveId)
+        }
+      } catch (e) {}
+    },
+    getSavedCombatState() {
+      if (!this.saveId) return null
+      try {
+        const raw = localStorage.getItem('combat_state_' + this.saveId)
+        if (!raw) return null
+        const state = JSON.parse(raw)
+        if (state && !state.is_over) {
+          this.combatState = state
+          return state
+        }
+        localStorage.removeItem('combat_state_' + this.saveId)
+        return null
+      } catch (e) {
+        return null
+      }
     },
     clearCombat() {
       this.combatState = null
+      if (this.saveId) {
+        localStorage.removeItem('combat_state_' + this.saveId)
+      }
     },
     logout() {
       this.saveId = null

@@ -236,9 +236,46 @@ class CombatBusiness:
 
             state['current_enemy_index'] = self._find_alive_enemy_index(enemies, state['current_enemy_index'])
 
-            return self._enemy_turn(state)
+            result = self._enemy_turn(state)
+            self._sync_player_ship_to_db(state)
+            return result
         except Exception as e:
             return {'code': 1, 'message': str(e), 'data': state}
+
+    def _sync_player_ship_to_db(self, state: Dict[str, Any]) -> None:
+        if state.get('is_over'):
+            return
+        try:
+            save_id = state['save_id']
+            save = self.save_model.get_by_id(save_id)
+            if not save:
+                return
+            ship = self.ship_model.get_by_id(save['ship_id'])
+            if not ship:
+                return
+            player = state['player']
+
+            equipment_list = self.inventory_model.get_equipment(save_id)
+            shield_bonus = 0
+            hull_bonus = 0
+            for eq in equipment_list:
+                if eq.get('is_equipped'):
+                    shield_bonus += eq.get('shield_bonus', 0)
+                    hull_bonus += eq.get('hull_bonus', 0)
+
+            real_max_shield = ship['max_shield'] + shield_bonus
+            real_max_hull = ship['max_hull'] + hull_bonus
+
+            save_cur_shield = int(player['current_shield'] / player['max_shield'] * real_max_shield) if player['max_shield'] > 0 else 0
+            save_cur_hull = int(player['current_hull'] / player['max_hull'] * real_max_hull) if player['max_hull'] > 0 else 1
+            save_cur_shield = max(0, min(save_cur_shield, real_max_shield))
+            save_cur_hull = max(1, min(save_cur_hull, real_max_hull))
+
+            self.ship_model.update(save['ship_id'],
+                                   current_shield=save_cur_shield,
+                                   current_hull=save_cur_hull)
+        except Exception:
+            pass
 
     def _do_damage(self, attacker: Dict[str, Any], defender: Dict[str, Any],
                    log: List[str], attacker_name: str, is_player: bool = False):
