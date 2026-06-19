@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>异星逃生 - 横版射击闯关</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1200" height="600"></canvas>
+
+        <div id="startScreen" class="overlay">
+            <h1 class="title">异 星 逃 生</h1>
+            <p class="subtitle">穿越三片危险区域，抵达救援飞船</p>
+            <div class="instructions">
+                <p>🎮 <strong>操作说明</strong></p>
+                <p>← → 或 A D 键：移动</p>
+                <p>↑ 或 W 或 空格键：跳跃</p>
+                <p>鼠标移动：瞄准</p>
+                <p>鼠标左键：射击</p>
+            </div>
+            <div class="input-group">
+                <label for="playerNameInput">输入你的名字：</label>
+                <input type="text" id="playerNameInput" placeholder="请输入名字" maxlength="20" value="宇航员">
+            </div>
+            <button id="startBtn" class="btn btn-primary">开始游戏</button>
+            <button id="showLeaderboardBtn" class="btn btn-secondary">排行榜</button>
+        </div>
+
+        <div id="gameUI" class="hidden">
+            <div class="hud-top">
+                <div class="hud-item">
+                    <span class="hud-label">生命</span>
+                    <div id="healthBar" class="health-bar">
+                        <div id="healthFill" class="health-fill"></div>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">武器</span>
+                    <span id="weaponName" class="weapon-name">手枪</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">区域</span>
+                    <span id="areaName" class="area-name">菌类森林</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">标本</span>
+                    <span id="specimenCount" class="specimen-count">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">时间</span>
+                    <span id="gameTime" class="game-time">00:00</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="pauseScreen" class="overlay hidden">
+            <h2>游戏暂停</h2>
+            <p>按 ESC 或 P 键继续</p>
+            <button id="resumeBtn" class="btn btn-primary">继续游戏</button>
+            <button id="restartBtn" class="btn btn-secondary">重新开始</button>
+        </div>
+
+        <div id="gameOverScreen" class="overlay hidden">
+            <h2>任 务 失 败</h2>
+            <p id="gameOverText">你倒在了未知星球上...</p>
+            <p>收集标本: <span id="finalSpecimens">0</span> 个</p>
+            <p>存活时间: <span id="finalTime">00:00</span></p>
+            <button id="retryBtn" class="btn btn-primary">再试一次</button>
+            <button id="backToMenuBtn" class="btn btn-secondary">返回主菜单</button>
+        </div>
+
+        <div id="victoryScreen" class="overlay hidden">
+            <h2>🎉 通 关 成 功！</h2>
+            <p>你成功抵达了救援飞船！</p>
+            <p>通关时间: <span id="victoryTime">00:00</span></p>
+            <p>收集标本: <span id="victorySpecimens">0</span> 个</p>
+            <p id="rankText" class="rank-text"></p>
+            <button id="submitRecordBtn" class="btn btn-primary">提交记录</button>
+            <button id="playAgainBtn" class="btn btn-secondary">再玩一次</button>
+        </div>
+
+        <div id="leaderboardScreen" class="overlay hidden">
+            <h2>🏆 排 行 榜</h2>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="time">通关时间</button>
+                <button class="tab-btn" data-tab="specimens">标本收集</button>
+            </div>
+            <div id="leaderboardList" class="leaderboard-list">
+                <p>加载中...</p>
+            </div>
+            <button id="backFromLeaderboardBtn" class="btn btn-secondary">返回</button>
+        </div>
+
+        <div id="areaTransition" class="area-transition hidden">
+            <div class="transition-content">
+                <h2 id="transitionTitle">区域 1</h2>
+                <p id="transitionSubtitle">菌类森林</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>

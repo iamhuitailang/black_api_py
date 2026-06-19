@@ -1,0 +1,360 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: #0a0a0f;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#gameContainer {
+    position: relative;
+    width: 1200px;
+    height: 600px;
+    box-shadow: 0 0 50px rgba(100, 150, 255, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    background: #1a1a2e;
+    cursor: crosshair;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 20, 0.92);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+.title {
+    font-size: 56px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #00ff88, #00aaff, #aa00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    letter-spacing: 8px;
+    text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+}
+
+.subtitle {
+    font-size: 18px;
+    color: #aaa;
+    margin-bottom: 30px;
+}
+
+.instructions {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px 40px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.instructions p {
+    margin: 8px 0;
+    color: #ccc;
+    font-size: 14px;
+}
+
+.instructions p strong {
+    color: #00ff88;
+}
+
+.input-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-group label {
+    color: #aaa;
+    font-size: 14px;
+}
+
+.input-group input {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: #1a1a2e;
+    color: #fff;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #00ff88;
+}
+
+.btn {
+    padding: 12px 40px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 8px;
+    transition: all 0.3s;
+    font-family: inherit;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00ff88, #00aa66);
+    color: #003322;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+}
+
+.btn-secondary {
+    background: #333;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background: #444;
+    transform: translateY(-2px);
+}
+
+#gameUI {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
+#gameUI.hidden {
+    display: none;
+}
+
+.hud-top {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.hud-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.health-bar {
+    width: 150px;
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #555;
+}
+
+.health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ff8844);
+    transition: width 0.3s;
+    border-radius: 8px;
+}
+
+.weapon-name {
+    color: #00aaff;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.area-name {
+    color: #ffaa00;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.specimen-count {
+    color: #aa00ff;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.game-time {
+    color: #fff;
+    font-weight: bold;
+    font-size: 18px;
+    font-family: monospace;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 8px 24px;
+    background: #333;
+    color: #aaa;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    background: #00aa66;
+    color: #fff;
+}
+
+.leaderboard-list {
+    width: 500px;
+    max-height: 350px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.leaderboard-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-item .rank {
+    width: 40px;
+    font-weight: bold;
+    font-size: 18px;
+    color: #888;
+}
+
+.leaderboard-item:nth-child(1) .rank { color: #ffd700; }
+.leaderboard-item:nth-child(2) .rank { color: #c0c0c0; }
+.leaderboard-item:nth-child(3) .rank { color: #cd7f32; }
+
+.leaderboard-item .player {
+    flex: 1;
+    text-align: left;
+    margin-left: 10px;
+}
+
+.leaderboard-item .stats {
+    text-align: right;
+    color: #aaa;
+    font-size: 14px;
+}
+
+.leaderboard-item .stats .time {
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.leaderboard-item .stats .specimens {
+    color: #aa00ff;
+    font-weight: bold;
+}
+
+.area-transition {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    animation: fadeInOut 2s ease-in-out;
+}
+
+.area-transition.hidden {
+    display: none;
+}
+
+.transition-content {
+    text-align: center;
+}
+
+.transition-content h2 {
+    font-size: 48px;
+    color: #00ff88;
+    margin-bottom: 10px;
+}
+
+.transition-content p {
+    font-size: 24px;
+    color: #fff;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.rank-text {
+    color: #ffd700;
+    font-size: 18px;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 36px;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.overlay p {
+    margin: 8px 0;
+    color: #ccc;
+}
