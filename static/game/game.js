@@ -374,6 +374,7 @@ class Enemy {
     update(player, worldOffset) {
         const dist = player.x - this.x;
         const screenX = this.x - worldOffset;
+        const isOnScreen = screenX > 0 && screenX < CONFIG.CANVAS_WIDTH - 30;
         
         if (Math.abs(dist) < this.detectRange) {
             this.patrolDir = dist > 0 ? 1 : -1;
@@ -389,7 +390,7 @@ class Enemy {
             }
         }
         
-        if (screenX > -100 && screenX < CONFIG.CANVAS_WIDTH + 100) {
+        if (isOnScreen && dist > 0) {
             return this.tryShoot(player, worldOffset);
         }
         
@@ -398,9 +399,9 @@ class Enemy {
 
     tryShoot(player, worldOffset) {
         const now = Date.now();
-        const dist = Math.abs(player.x - this.x);
+        const dist = player.x - this.x;
         
-        if (dist < this.detectRange && now - this.lastFireTime > this.fireRate) {
+        if (dist > 0 && dist < this.detectRange && now - this.lastFireTime > this.fireRate) {
             this.lastFireTime = now;
             
             const angle = Math.atan2(
@@ -485,8 +486,9 @@ class Bunker {
     update(player, worldOffset) {
         const dist = player.x - this.x;
         const screenX = this.x - worldOffset;
+        const isOnScreen = screenX > -50 && screenX < CONFIG.CANVAS_WIDTH - 50;
         
-        if (screenX > -150 && screenX < CONFIG.CANVAS_WIDTH + 150) {
+        if (isOnScreen && dist > 0) {
             return this.tryShoot(player);
         }
         return null;
@@ -700,6 +702,13 @@ class Boss {
         this.animTimer++;
         const bullets = [];
         
+        const screenX = this.x - worldOffset;
+        const isOnScreen = screenX > -200 && screenX < CONFIG.CANVAS_WIDTH + 200;
+        
+        if (!isOnScreen) {
+            return bullets;
+        }
+        
         const now = Date.now();
         
         if (now - this.lastFireTime > this.config.fireRate) {
@@ -712,7 +721,11 @@ class Boss {
             for (let i = 0; i < this.config.specialCount; i++) {
                 setTimeout(() => {
                     if (this.active) {
-                        this.fireSpecial(player, worldOffset);
+                        const currentScreenX = this.x - worldOffset;
+                        const stillOnScreen = currentScreenX > -200 && currentScreenX < CONFIG.CANVAS_WIDTH + 200;
+                        if (stillOnScreen) {
+                            this.fireSpecial(player, worldOffset);
+                        }
                     }
                 }, i * 200);
             }
@@ -1089,6 +1102,66 @@ class Game {
         }
     }
 
+    saveGameStateToStorage() {
+        if (!this.player || this.state !== GameState.PLAYING) return;
+        try {
+            const state = {
+                playerId: this.playerId,
+                playerName: this.playerName,
+                saveId: this.saveId,
+                distance: this.player.distance,
+                health: this.player.health,
+                ammo: this.player.ammo,
+                totalAmmo: this.player.totalAmmo,
+                kills: this.player.kills,
+                playTime: this.getPlayTime(),
+                lastCheckpoint: this.lastCheckpoint,
+                bossSpawned: this.bossSpawned
+            };
+            localStorage.setItem('game_state', JSON.stringify(state));
+        } catch (e) {
+            console.error('Save game state error:', e);
+        }
+    }
+
+    loadGameStateFromStorage() {
+        try {
+            const saved = localStorage.getItem('game_state');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch (e) {
+            console.error('Load game state error:', e);
+        }
+        return null;
+    }
+
+    clearGameStateStorage() {
+        try {
+            localStorage.removeItem('game_state');
+        } catch (e) {
+            console.error('Clear game state error:', e);
+        }
+    }
+
+    async hasActiveGame() {
+        const savedState = this.loadGameStateFromStorage();
+        if (savedState && savedState.playerId && savedState.distance > 0) {
+            this.playerId = savedState.playerId;
+            this.playerName = savedState.playerName;
+            document.getElementById('playerName').value = savedState.playerName;
+            return true;
+        }
+        
+        if (this.playerId) {
+            const saveData = await this.getActiveSave();
+            if (saveData && saveData.current_distance > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     async getActiveSave() {
         if (!this.playerId) return null;
         try {
@@ -1198,16 +1271,62 @@ class Game {
     }
 
     initGame(saveData = null) {
-        const startX = saveData ? 200 + saveData.current_distance * 10 : 200;
-        this.player = new Player(startX, CONFIG.GROUND_Y - 60);
+        let distance = 0;
+        let health = CONFIG.MAX_HEALTH;
+        let ammo = CONFIG.MAG_SIZE;
+        let totalAmmo = CONFIG.TOTAL_AMMO;
+        let kills = 0;
+        let playTime = 0;
+        let saveId = this.saveId;
+        let bossSpawned = { 300: false, 600: false, 900: false };
         
         if (saveData) {
-            this.player.health = saveData.health;
-            this.player.ammo = saveData.ammo;
-            this.player.totalAmmo = saveData.total_ammo;
-            this.player.kills = saveData.current_kills;
-            this.player.distance = saveData.current_distance;
+            if (saveData.current_distance !== undefined) {
+                distance = saveData.current_distance;
+                health = saveData.health;
+                ammo = saveData.ammo;
+                totalAmmo = saveData.total_ammo;
+                kills = saveData.current_kills;
+                playTime = saveData.play_time;
+                saveId = saveData.save_id;
+                
+                if (saveData.checkpoints) {
+                    saveData.checkpoints.forEach(cp => {
+                        if (cp.checkpoint_distance >= 290 && cp.checkpoint_distance <= 310) {
+                            bossSpawned[300] = true;
+                        }
+                        if (cp.checkpoint_distance >= 590 && cp.checkpoint_distance <= 610) {
+                            bossSpawned[600] = true;
+                        }
+                        if (cp.checkpoint_distance >= 890 && cp.checkpoint_distance <= 910) {
+                            bossSpawned[900] = true;
+                        }
+                    });
+                }
+            } else if (saveData.distance !== undefined) {
+                distance = saveData.distance;
+                health = saveData.health;
+                ammo = saveData.ammo;
+                totalAmmo = saveData.totalAmmo;
+                kills = saveData.kills;
+                playTime = saveData.playTime;
+                saveId = saveData.saveId;
+                if (saveData.bossSpawned) {
+                    bossSpawned = { ...bossSpawned, ...saveData.bossSpawned };
+                }
+                if (saveData.lastCheckpoint !== undefined) {
+                    this.lastCheckpoint = saveData.lastCheckpoint;
+                }
+            }
         }
+        
+        const startX = 200 + distance * 10;
+        this.player = new Player(startX, CONFIG.GROUND_Y - 60);
+        this.player.health = health;
+        this.player.ammo = ammo;
+        this.player.totalAmmo = totalAmmo;
+        this.player.kills = kills;
+        this.player.distance = distance;
         
         this.enemies = [];
         this.bunkers = [];
@@ -1216,31 +1335,14 @@ class Game {
         this.pickups = [];
         this.bosses = [];
         this.particles = new ParticleSystem();
-        this.worldOffset = saveData ? Math.max(0, startX - CONFIG.CANVAS_WIDTH * 0.3) : 0;
-        this.lastCheckpoint = saveData ? saveData.current_distance : 0;
-        this.saveId = saveData ? saveData.save_id : this.saveId;
-        
-        const savedPlayTime = saveData ? saveData.play_time : 0;
-        this.gameStartTime = Date.now() - savedPlayTime * 1000;
-        
+        this.worldOffset = Math.max(0, startX - CONFIG.CANVAS_WIDTH * 0.3);
+        this.lastCheckpoint = distance;
+        this.saveId = saveId;
+        this.gameStartTime = Date.now() - playTime * 1000;
         this.currentBoss = null;
-        this.bossSpawned = { 300: false, 600: false, 900: false };
+        this.bossSpawned = bossSpawned;
         
-        if (saveData && saveData.checkpoints) {
-            saveData.checkpoints.forEach(cp => {
-                if (cp.checkpoint_distance >= 290 && cp.checkpoint_distance <= 310) {
-                    this.bossSpawned[300] = true;
-                }
-                if (cp.checkpoint_distance >= 590 && cp.checkpoint_distance <= 610) {
-                    this.bossSpawned[600] = true;
-                }
-                if (cp.checkpoint_distance >= 890 && cp.checkpoint_distance <= 910) {
-                    this.bossSpawned[900] = true;
-                }
-            });
-        }
-        
-        this.spawnInitialContent(saveData ? saveData.current_distance : 0);
+        this.spawnInitialContent(distance);
         
         document.getElementById('bossHealthBar').classList.add('hidden');
     }
@@ -1611,6 +1713,7 @@ class Game {
 
     async gameOver(victory) {
         this.state = victory ? GameState.VICTORY : GameState.GAME_OVER;
+        this.clearGameStateStorage();
         
         const result = await this.completeGame(victory);
         
@@ -1635,12 +1738,22 @@ class Game {
     gameLoop() {
         this.update();
         this.draw();
+        
+        if (this.state === GameState.PLAYING) {
+            this.saveCounter = (this.saveCounter || 0) + 1;
+            if (this.saveCounter >= 60) {
+                this.saveGameStateToStorage();
+                this.saveCounter = 0;
+            }
+        }
+        
         requestAnimationFrame(this.gameLoop);
     }
 
     start() {
         this.state = GameState.PLAYING;
         this.initGame();
+        this.saveGameStateToStorage();
         document.getElementById('startScreen').classList.add('hidden');
         document.getElementById('leaderboardScreen').classList.add('hidden');
         document.getElementById('gameScreen').classList.remove('hidden');
@@ -1648,21 +1761,47 @@ class Game {
     }
 
     async continueGame() {
-        const saveData = await this.getActiveSave();
-        if (!saveData || saveData.current_distance === 0) {
-            return false;
+        const localState = this.loadGameStateFromStorage();
+        
+        if (localState && localState.playerId && localState.distance > 0) {
+            this.playerId = localState.playerId;
+            this.playerName = localState.playerName;
+            this.saveId = localState.saveId;
+            
+            this.state = GameState.PLAYING;
+            this.initGame(localState);
+            
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('leaderboardScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            return true;
         }
         
-        this.state = GameState.PLAYING;
-        this.saveId = saveData.save_id;
-        this.initGame(saveData);
+        const saveData = await this.getActiveSave();
+        if (saveData && saveData.current_distance > 0) {
+            this.state = GameState.PLAYING;
+            this.saveId = saveData.save_id;
+            this.initGame(saveData);
+            
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('leaderboardScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            return true;
+        }
         
-        document.getElementById('startScreen').classList.add('hidden');
-        document.getElementById('leaderboardScreen').classList.add('hidden');
-        document.getElementById('gameScreen').classList.remove('hidden');
-        document.getElementById('gameOverScreen').classList.add('hidden');
-        
-        return true;
+        return false;
+    }
+
+    async tryAutoResume() {
+        const localState = this.loadGameStateFromStorage();
+        if (localState && localState.playerId && localState.distance > 0) {
+            return await this.continueGame();
+        }
+        return false;
     }
 
     async checkAndShowContinueButton() {
@@ -1717,11 +1856,19 @@ class Game {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     game = new Game();
     game.gameLoop();
     
-    game.checkAndShowContinueButton();
+    const hasActiveGame = await game.hasActiveGame();
+    if (hasActiveGame) {
+        const resumed = await game.tryAutoResume();
+        if (!resumed) {
+            game.checkAndShowContinueButton();
+        }
+    } else {
+        game.checkAndShowContinueButton();
+    }
     
     document.getElementById('playerName').addEventListener('input', () => {
         game.checkAndShowContinueButton();
