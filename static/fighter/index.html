@@ -128,6 +128,14 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
+        .btn.secondary {
+            border-color: #666;
+            color: #aaa;
+        }
+        .btn.secondary:hover {
+            background: #333;
+            color: #fff;
+        }
         .hud {
             position: absolute;
             top: 0; left: 0;
@@ -308,6 +316,18 @@
             top: 0; left: 0;
             width: 960px; height: 600px;
         }
+        .pause-banner {
+            position: absolute;
+            top: 45%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #ffcc00;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px 40px;
+            border: 2px solid #ffcc00;
+            pointer-events: none;
+            z-index: 35;
+        }
     </style>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
@@ -329,7 +349,7 @@
                         <div v-for="char in characters"
                              class="char-item"
                              :class="{ selected: p1Char === char.id }"
-                             @click="p1Char = char.id">
+                             @click="selectChar(1, char.id)">
                             <div class="char-name">{{ char.name }}</div>
                             <div class="char-desc">{{ char.description }}</div>
                         </div>
@@ -342,7 +362,7 @@
                         <div v-for="char in characters"
                              class="char-item"
                              :class="{ selected: p2Char === char.id }"
-                             @click="p2Char = char.id">
+                             @click="selectChar(2, char.id)">
                             <div class="char-name">{{ char.name }}</div>
                             <div class="char-desc">{{ char.description }}</div>
                         </div>
@@ -350,7 +370,10 @@
                 </div>
             </div>
 
-            <button class="btn" @click="startGame" :disabled="!p1Char || !p2Char">开 始 战 斗</button>
+            <div style="display:flex; gap:20px;">
+                <button class="btn" @click="startGame" :disabled="!p1Char || !p2Char">开 始 战 斗</button>
+                <button v-if="hasSavedGame" class="btn secondary" @click="resumeGame">继 续 对 战</button>
+            </div>
 
             <div class="stats-section">
                 <div class="stats-title">角色统计数据</div>
@@ -417,6 +440,10 @@
                 </div>
             </div>
 
+            <div v-if="gameState === 'roundEnd'" class="pause-banner">
+                回合结束...
+            </div>
+
             <div v-if="gameState === 'gameEnd'" class="screen result-screen">
                 <div class="result-text">{{ winnerText }}</div>
                 <div class="result-details">对战结果: 玩家1 {{ p1Wins }} : {{ p2Wins }} 玩家2</div>
@@ -430,7 +457,9 @@
 </div>
 
 <script>
-const { createApp, ref, reactive, onMounted, nextTick, watch } = Vue;
+const { createApp, ref, reactive, onMounted, nextTick, computed, watch } = Vue;
+
+const SAVE_KEY = 'pixelArenaSave_v1';
 
 createApp({
     setup() {
@@ -451,6 +480,7 @@ createApp({
         const maxComboP1 = ref(0);
         const maxComboP2 = ref(0);
         const winnerText = ref('');
+        const hasSavedGame = ref(false);
 
         const characters = ref([
             { id: 'warrior', name: '战士', description: '攻守兼备' },
@@ -459,17 +489,17 @@ createApp({
         ]);
 
         const charConfigs = {
-            warrior: { lightDamage: 8, heavyDamage: 20, speed: 3, color: '#4488ff' },
-            ninja: { lightDamage: 7, heavyDamage: 18, speed: 3.6, color: '#44ff88' },
-            samurai: { lightDamage: 9, heavyDamage: 22, speed: 2.7, color: '#ff4444' }
+            warrior: { lightDamage: 8, heavyDamage: 20, speed: 3.2, color: '#4488ff' },
+            ninja: { lightDamage: 7, heavyDamage: 18, speed: 3.8, color: '#44ff88' },
+            samurai: { lightDamage: 9, heavyDamage: 22, speed: 2.8, color: '#ff4444' }
         };
 
-        function makePlayer() {
+        function makePlayerObj() {
             return {
                 x: 0, y: 400, vx: 0, vy: 0,
                 hp: 100, maxHp: 100,
                 facing: 1,
-                state: 'idle', stateTimer: 0,
+                state: 'idle',
                 combo: 0, comboTimer: 0,
                 attackType: null, attackTimer: 0,
                 blocking: false,
@@ -481,28 +511,29 @@ createApp({
             };
         }
 
-        const p1 = reactive(makePlayer());
-        const p2 = reactive(makePlayer());
+        const p1 = reactive(makePlayerObj());
+        const p2 = reactive(makePlayerObj());
 
-        const keys = reactive({});
+        const keysDown = reactive({});
         let ctx = null;
         let animationId = null;
-        let gameLoopId = null;
+        let timerIntervalId = null;
         let damageIdCounter = 0;
         let gameRunning = false;
         let inputLocked = false;
+        let saveThrottle = 0;
 
         const GROUND_Y = 400;
         const GRAVITY = 0.6;
-        const JUMP_FORCE = -12;
-        const ATTACK_RANGE = 80;
-        const LIGHT_HIT_FRAME = 12;
-        const HEAVY_HIT_FRAME = 30;
-        const LIGHT_ATTACK_DURATION = 20;
-        const HEAVY_ATTACK_DURATION = 40;
-        const BLOCK_STUN = 20;
-        const HURT_DURATION = 15;
-        const COMBO_TIMEOUT = 90;
+        const JUMP_FORCE = -13;
+        const ATTACK_RANGE = 90;
+        const LIGHT_HIT_FRAME = 10;
+        const HEAVY_HIT_FRAME = 28;
+        const LIGHT_ATTACK_DURATION = 22;
+        const HEAVY_ATTACK_DURATION = 45;
+        const BLOCK_STUN = 22;
+        const HURT_DURATION = 16;
+        const COMBO_TIMEOUT = 100;
 
         function getCharName(id) {
             const c = characters.value.find(x => x.id === id);
@@ -511,6 +542,111 @@ createApp({
 
         function getCharConfig(id) {
             return charConfigs[id] || charConfigs.warrior;
+        }
+
+        function selectChar(player, id) {
+            if (player === 1) p1Char.value = id;
+            else p2Char.value = id;
+            saveMeta();
+        }
+
+        function saveMeta() {
+            try {
+                localStorage.setItem(SAVE_KEY + '_chars', JSON.stringify({
+                    p1Char: p1Char.value,
+                    p2Char: p2Char.value
+                }));
+            } catch (e) { }
+        }
+
+        function loadMeta() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY + '_chars');
+                if (raw) {
+                    const d = JSON.parse(raw);
+                    if (d.p1Char) p1Char.value = d.p1Char;
+                    if (d.p2Char) p2Char.value = d.p2Char;
+                }
+            } catch (e) { }
+        }
+
+        function saveGameProgress() {
+            try {
+                const data = {
+                    gameState: gameState.value,
+                    p1Char: p1Char.value,
+                    p2Char: p2Char.value,
+                    currentRound: currentRound.value,
+                    p1Wins: p1Wins.value,
+                    p2Wins: p2Wins.value,
+                    timeLeft: timeLeft.value,
+                    maxComboP1: maxComboP1.value,
+                    maxComboP2: maxComboP2.value,
+                    p1: snapshotPlayer(p1),
+                    p2: snapshotPlayer(p2)
+                };
+                localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+                hasSavedGame.value = true;
+            } catch (e) { }
+        }
+
+        function snapshotPlayer(p) {
+            return {
+                x: p.x, y: p.y, hp: p.hp, facing: p.facing,
+                state: p.state, speed: p.speed
+            };
+        }
+
+        function checkSavedGame() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                hasSavedGame.value = !!raw;
+            } catch (e) {
+                hasSavedGame.value = false;
+            }
+        }
+
+        function clearSavedGame() {
+            try {
+                localStorage.removeItem(SAVE_KEY);
+            } catch (e) { }
+            hasSavedGame.value = false;
+        }
+
+        function resumeGame() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return;
+                const d = JSON.parse(raw);
+                p1Char.value = d.p1Char || 'warrior';
+                p2Char.value = d.p2Char || 'samurai';
+                currentRound.value = d.currentRound || 1;
+                p1Wins.value = d.p1Wins || 0;
+                p2Wins.value = d.p2Wins || 0;
+                timeLeft.value = d.timeLeft || 60;
+                maxComboP1.value = d.maxComboP1 || 0;
+                maxComboP2.value = d.maxComboP2 || 0;
+
+                nextTick(() => {
+                    ensureCtx();
+                    const cfg1 = getCharConfig(p1Char.value);
+                    const cfg2 = getCharConfig(p2Char.value);
+
+                    const ps1 = d.p1 || {};
+                    resetPlayerTo(p1, ps1.x || 200, 1, p1Char.value);
+
+                    const ps2 = d.p2 || {};
+                    resetPlayerTo(p2, ps2.x || 760, -1, p2Char.value);
+                    if (typeof ps1.hp === 'number') p1.hp = Math.max(0, Math.min(100, ps1.hp));
+                    if (typeof ps2.hp === 'number') p2.hp = Math.max(0, Math.min(100, ps2.hp));
+                    gameState.value = 'battle';
+                    roundAnnounce.value = '';
+                    inputLocked = false;
+                    startBattleLoops();
+                });
+            } catch (e) {
+                startGame();
+            }
         }
 
         async function loadStats() {
@@ -548,9 +684,10 @@ createApp({
             } catch (e) {
                 console.error(e);
             }
+            clearSavedGame();
         }
 
-        function resetPlayer(player, x, facing, charId) {
+        function resetPlayerTo(player, x, facing, charId) {
             const cfg = getCharConfig(charId);
             player.x = x;
             player.y = GROUND_Y;
@@ -560,7 +697,6 @@ createApp({
             player.maxHp = 100;
             player.facing = facing;
             player.state = 'idle';
-            player.stateTimer = 0;
             player.combo = 0;
             player.comboTimer = 0;
             player.attackType = null;
@@ -589,6 +725,8 @@ createApp({
             maxComboP1.value = 0;
             maxComboP2.value = 0;
             damageNumbers.value = [];
+            saveMeta();
+            clearSavedGame();
 
             nextTick(() => {
                 ensureCtx();
@@ -596,10 +734,10 @@ createApp({
             });
         }
 
-        function startRound(isFirst = false) {
+        function startRound(isFirst) {
             ensureCtx();
-            resetPlayer(p1, 200, 1, p1Char.value);
-            resetPlayer(p2, 760, -1, p2Char.value);
+            resetPlayerTo(p1, 200, 1, p1Char.value);
+            resetPlayerTo(p2, 760, -1, p2Char.value);
             timeLeft.value = 60;
             damageNumbers.value = [];
             inputLocked = true;
@@ -608,6 +746,7 @@ createApp({
             stopAllLoops();
             render();
             startIdleRender();
+            saveGameProgress();
 
             if (!isFirst && currentRound.value === 3) {
                 isBlackScreen.value = true;
@@ -620,6 +759,7 @@ createApp({
                         roundAnnounce.value = '';
                         inputLocked = false;
                         startBattleLoops();
+                        saveGameProgress();
                     }, 150);
                 }, 1000);
             } else {
@@ -628,6 +768,7 @@ createApp({
                     roundAnnounce.value = '';
                     inputLocked = false;
                     startBattleLoops();
+                    saveGameProgress();
                 }, 1500);
             }
         }
@@ -638,9 +779,9 @@ createApp({
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
-            if (gameLoopId) {
-                clearInterval(gameLoopId);
-                gameLoopId = null;
+            if (timerIntervalId) {
+                clearInterval(timerIntervalId);
+                timerIntervalId = null;
             }
         }
 
@@ -667,15 +808,22 @@ createApp({
                 if (gameRunning && gameState.value === 'battle') {
                     update();
                     render();
+
+                    saveThrottle++;
+                    if (saveThrottle >= 1800) {
+                        saveThrottle = 0;
+                        saveGameProgress();
+                    }
                     animationId = requestAnimationFrame(loop);
                 }
             }
             animationId = requestAnimationFrame(loop);
 
-            if (gameLoopId) clearInterval(gameLoopId);
-            gameLoopId = setInterval(() => {
+            if (timerIntervalId) clearInterval(timerIntervalId);
+            timerIntervalId = setInterval(() => {
                 if (gameState.value === 'battle' && !inputLocked) {
                     timeLeft.value--;
+                    saveGameProgress();
                     if (timeLeft.value <= 0) {
                         endRound();
                     }
@@ -697,12 +845,15 @@ createApp({
             }, 800);
         }
 
+        function isKeyDown(k) {
+            return !!keysDown[k];
+        }
+
         function updatePlayer(player, opponent, isP1) {
             if (player.hurtTimer > 0) {
                 player.hurtTimer--;
                 if (player.hurtTimer === 0) player.hurt = false;
             }
-
             if (player.attackTimer > 0) {
                 player.attackTimer--;
                 if (player.attackTimer === 0) {
@@ -710,19 +861,16 @@ createApp({
                     player.attackType = null;
                 }
             }
-
             if (player.comboTimer > 0) {
                 player.comboTimer--;
                 if (player.comboTimer === 0) player.combo = 0;
             }
-
             if (Math.abs(player.knockback) > 0.1) {
                 player.x += player.knockback;
                 player.knockback *= 0.85;
             } else {
                 player.knockback = 0;
             }
-
             if (player.y < GROUND_Y) {
                 player.vy += GRAVITY;
                 player.y += player.vy;
@@ -732,22 +880,20 @@ createApp({
                     player.jumping = false;
                 }
             }
-
-            if (player.state !== 'attacking' && player.state !== 'hurt') {
-                player.state = player.blocking ? 'blocking' : 'idle';
-            }
-
             player.facing = opponent.x > player.x ? 1 : -1;
-
-            if (Math.abs(player.x - opponent.x) < 40) {
+            const dist = Math.abs(player.x - opponent.x);
+            if (dist < 42) {
+                const push = (42 - dist) / 2 + 0.5;
                 if (player.x < opponent.x) {
-                    player.x = opponent.x - 40;
+                    player.x -= push;
+                    opponent.x += push;
                 } else {
-                    player.x = opponent.x + 40;
+                    player.x += push;
+                    opponent.x -= push;
                 }
             }
-
             player.x = Math.max(50, Math.min(910, player.x));
+            opponent.x = Math.max(50, Math.min(910, opponent.x));
 
             if (player.state === 'attacking') {
                 const cfg = getCharConfig(isP1 ? p1Char.value : p2Char.value);
@@ -758,8 +904,8 @@ createApp({
                 if (currentFrame === hitFrame) {
                     const dx = opponent.x - player.x;
                     const dy = Math.abs(opponent.y - player.y);
-
-                    if (Math.abs(dx) < ATTACK_RANGE && dy < 60) {
+                    const facingHit = player.facing > 0 ? dx > 0 : dx < 0;
+                    if (Math.abs(dx) < ATTACK_RANGE && dy < 65 && (facingHit || Math.abs(dx) < 55)) {
                         let damage = player.attackType === 'light' ? cfg.lightDamage : cfg.heavyDamage;
                         let hit = true;
 
@@ -769,7 +915,7 @@ createApp({
                                 damage = 0;
                             }
                         } else if (player.attackType === 'heavy') {
-                            if (opponent.jumping && dy > 30) {
+                            if (opponent.jumping && dy > 35) {
                                 hit = false;
                                 damage = 0;
                             } else if (opponent.blocking) {
@@ -784,93 +930,101 @@ createApp({
                         if (hit && damage > 0) {
                             player.combo++;
                             player.comboTimer = COMBO_TIMEOUT;
-
                             if (isP1) {
                                 maxComboP1.value = Math.max(maxComboP1.value, player.combo);
                             } else {
                                 maxComboP2.value = Math.max(maxComboP2.value, player.combo);
                             }
-
                             if (player.combo >= 5) {
                                 damage = Math.floor(damage * 1.1);
                             }
-
                             opponent.hp = Math.max(0, opponent.hp - damage);
                             opponent.state = 'hurt';
                             opponent.hurtTimer = HURT_DURATION;
-                            opponent.knockback = player.facing * 8;
+                            opponent.knockback = player.facing * 9;
                             opponent.combo = 0;
                             opponent.hurt = true;
-
-                            showDamage(opponent.x, opponent.y - 50, damage, !isP1);
+                            showDamage(opponent.x, opponent.y - 55, damage, !isP1);
                         }
                     }
                 }
             }
-
             player.trail.unshift({ x: player.x, y: player.y, alpha: 1 });
             if (player.trail.length > 6) player.trail.pop();
-            for (let i = 0; i < player.trail.length; i++) {
-                player.trail[i].alpha *= 0.7;
+            for (let ti = 0; ti < player.trail.length; ti++) {
+                player.trail[ti].alpha *= 0.7;
             }
         }
 
-        function handleInput(player, left, right, jump, light, heavy, block, isP1) {
+        function doMove(player, leftKey, rightKey) {
+            const pressedLeft = isKeyDown(leftKey);
+            const pressedRight = isKeyDown(rightKey);
+            if (pressedLeft && !pressedRight) {
+                player.x -= player.speed;
+                return true;
+            }
+            if (pressedRight && !pressedLeft) {
+                player.x += player.speed;
+                return true;
+            }
+            return false;
+        }
+
+        function handlePlayerInput(player, isP1) {
             if (inputLocked) return;
-            if (player.state === 'hurt') return;
+            if (player.hurt) return;
             if (player.state === 'attacking') return;
+            if (player.hurtTimer > 0) return;
+            const canAct = player.state !== 'attacking';
+            const onGround = player.y >= GROUND_Y;
+            let moving = false;
 
-            if (player.state !== 'attacking') {
-                if (left) player.x -= player.speed;
-                if (right) player.x += player.speed;
-            }
+            if (canAct) {
+                let lKey, rKey, jKey, ljKey, hjKey, bKey;
+                if (isP1) {
+                    lKey = 'a'; rKey = 'd'; jKey = 'w';
+                    ljKey = 'j'; hjKey = 'k'; bKey = 'l';
+                } else {
+                    lKey = 'arrowleft'; rKey = 'arrowright'; jKey = 'arrowup';
+                    ljKey = '1'; hjKey = '2'; bKey = '3';
+                }
+                moving = doMove(player, lKey, rKey);
 
-            if (jump && !player.jumping && player.y >= GROUND_Y) {
-                player.vy = JUMP_FORCE;
-                player.jumping = true;
-            }
+                const wantJump = isKeyDown(jKey);
+                if (wantJump && onGround && !player.jumping) {
+                    player.vy = JUMP_FORCE;
+                    player.jumping = true;
+                }
 
-            player.blocking = block && player.y >= GROUND_Y && player.state !== 'attacking';
+                const wantBlock = isKeyDown(bKey);
+                player.blocking = wantBlock && onGround;
 
-            if (light) {
-                if (player.state === 'idle' || player.state === 'blocking') {
+                const wantLight = isKeyDown(ljKey);
+                const wantHeavy = isKeyDown(hjKey);
+                if (wantLight) {
                     player.state = 'attacking';
                     player.attackType = 'light';
                     player.attackTimer = LIGHT_ATTACK_DURATION;
                     player.blocking = false;
-                }
-            } else if (heavy) {
-                if (player.state === 'idle' || player.state === 'blocking') {
+                    keysDown[ljKey] = false;
+                } else if (wantHeavy) {
                     player.state = 'attacking';
                     player.attackType = 'heavy';
                     player.attackTimer = HEAVY_ATTACK_DURATION;
                     player.blocking = false;
+                    keysDown[hjKey] = false;
                 }
+            }
+            if (player.state !== 'attacking' && !player.hurt && player.hurtTimer === 0) {
+                player.state = player.blocking ? 'blocking' : (moving ? 'walking' : 'idle');
             }
         }
 
         function update() {
-            handleInput(p1,
-                keys['a'] || keys['A'],
-                keys['d'] || keys['D'],
-                keys['w'] || keys['W'],
-                keys['j'] || keys['J'],
-                keys['k'] || keys['K'],
-                keys['l'] || keys['L'],
-                true);
-
-            handleInput(p2,
-                keys['ArrowLeft'],
-                keys['ArrowRight'],
-                keys['ArrowUp'],
-                keys['1'],
-                keys['2'],
-                keys['3'],
-                false);
-
+            handlePlayerInput(p1, true);
+            handlePlayerInput(p2, false);
             updatePlayer(p1, p2, true);
             updatePlayer(p2, p1, false);
-
             if (p1.hp <= 0 || p2.hp <= 0) {
                 endRound();
             }
@@ -889,12 +1043,11 @@ createApp({
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 960, 600);
 
-            for (let i = 0; i < 50; i++) {
-                const sx = (i * 73) % 960;
+            for (let i = 0; i < 60; i++) {
+                const sx = (i * 73 + 17) % 960;
                 const sy = (i * 37) % 200;
                 drawPixelRect(sx, sy, 2, 2, i % 3 === 0 ? '#ffffff' : '#8888aa');
             }
-
             const buildings = [
                 { x: 0, w: 120, h: 280, c: '#1a1a2e' },
                 { x: 100, w: 80, h: 320, c: '#16162a' },
@@ -909,7 +1062,6 @@ createApp({
                 { x: 780, w: 120, h: 280, c: '#1e1e3a' },
                 { x: 880, w: 80, h: 300, c: '#141428' }
             ];
-
             buildings.forEach(b => {
                 drawPixelRect(b.x, 450 - b.h, b.w, b.h, b.c);
                 for (let wy = 450 - b.h + 20; wy < 430; wy += 25) {
@@ -921,10 +1073,8 @@ createApp({
                     }
                 }
             });
-
             drawPixelRect(0, 450, 960, 150, '#2a2a3a');
             drawPixelRect(0, 445, 960, 5, '#444466');
-
             for (let i = 0; i < 960; i += 30) {
                 drawPixelRect(i, 445, 15, 3, '#555577');
             }
@@ -933,34 +1083,29 @@ createApp({
         function drawPlayer(player, isP1) {
             const charId = isP1 ? p1Char.value : p2Char.value;
             const cfg = getCharConfig(charId);
-
-            for (let i = player.trail.length - 1; i >= 0; i--) {
-                const t = player.trail[i];
+            for (let ti = player.trail.length - 1; ti >= 0; ti--) {
+                const t = player.trail[ti];
                 ctx.globalAlpha = t.alpha * 0.3;
-                drawFighter(t.x, t.y - 50, cfg.color, player.facing, isP1, 'idle', false, false, null);
+                drawFighter(t.x, t.y - 55, cfg.color, player.facing, isP1, 'idle', false, false, null);
             }
             ctx.globalAlpha = 1;
-
             if (player.hurt && player.hurtTimer > 8 && player.hurtTimer % 4 < 2) {
                 ctx.globalAlpha = 0.5;
             }
-
-            drawFighter(player.x, player.y - 50, cfg.color, player.facing, isP1,
-                player.state, player.blocking, player.jumping, player.attackType);
-
+            const dispState = player.state === 'walking' ? 'idle' : player.state;
+            drawFighter(player.x, player.y - 55, cfg.color, player.facing, isP1,
+                dispState, player.blocking, player.jumping, player.attackType);
             ctx.globalAlpha = 1;
         }
 
         function drawFighter(x, y, color, facing, isP1, state, blocking, jumping, attackType) {
             const flip = facing < 0;
             ctx.save();
-            ctx.translate(x, y);
+            ctx.translate(Math.round(x), Math.round(y));
             if (flip) ctx.scale(-1, 1);
-
             const bodyColor = color;
             const accent = isP1 ? '#66aaff' : '#ff8888';
             const dark = '#222';
-
             if (jumping) {
                 drawPixelRect(-12, 10, 24, 30, bodyColor);
                 drawPixelRect(-8, -20, 16, 30, bodyColor);
@@ -979,7 +1124,6 @@ createApp({
                 drawPixelRect(-10, -30, 20, 3, dark);
                 drawPixelRect(4, -28, 4, 4, '#fff');
                 drawPixelRect(6, -28, 2, 2, dark);
-
                 if (state === 'attacking') {
                     if (attackType === 'light') {
                         drawPixelRect(12, -5, 25, 6, accent);
@@ -990,7 +1134,7 @@ createApp({
                         drawPixelRect(14, 0, 6, 20, bodyColor);
                     }
                     drawPixelRect(-22, 0, 10, 20, bodyColor);
-                } else if (blocking) {
+                } else if (blocking || state === 'blocking') {
                     drawPixelRect(14, -10, 8, 8, accent);
                     drawPixelRect(18, -25, 6, 35, '#888');
                     drawPixelRect(-18, 0, 10, 20, bodyColor);
@@ -998,36 +1142,32 @@ createApp({
                     drawPixelRect(-18, 0, 10, 20, bodyColor);
                     drawPixelRect(8, 0, 10, 20, bodyColor);
                 }
-
                 drawPixelRect(-10, 45, 8, 15, bodyColor);
                 drawPixelRect(2, 45, 8, 15, bodyColor);
             }
-
             ctx.restore();
         }
 
         function render() {
             if (!ensureCtx()) return;
-
             drawBackground();
             drawPlayer(p1, true);
             drawPlayer(p2, false);
 
             if (p1.state === 'attacking') {
                 const color = p1.attackType === 'light' ? '#ffff88' : '#ff8844';
-                const effectX = p1.x + (p1.facing > 0 ? 40 : -40 - (p1.attackType === 'light' ? 40 : 60));
-                const effectW = p1.attackType === 'light' ? 40 : 60;
-                ctx.globalAlpha = 0.5;
-                drawPixelRect(effectX, p1.y - 60, effectW, 10, color);
+                const effW = p1.attackType === 'light' ? 45 : 70;
+                const effectX = p1.x + (p1.facing > 0 ? 30 : -30 - effW);
+                ctx.globalAlpha = 0.45;
+                drawPixelRect(effectX, p1.y - 62, effW, 10, color);
                 ctx.globalAlpha = 1;
             }
-
             if (p2.state === 'attacking') {
                 const color = p2.attackType === 'light' ? '#ffff88' : '#ff8844';
-                const effectX = p2.x + (p2.facing > 0 ? 40 : -40 - (p2.attackType === 'light' ? 40 : 60));
-                const effectW = p2.attackType === 'light' ? 40 : 60;
-                ctx.globalAlpha = 0.5;
-                drawPixelRect(effectX, p2.y - 60, effectW, 10, color);
+                const effW = p2.attackType === 'light' ? 45 : 70;
+                const effectX = p2.x + (p2.facing > 0 ? 30 : -30 - effW);
+                ctx.globalAlpha = 0.45;
+                drawPixelRect(effectX, p2.y - 62, effW, 10, color);
                 ctx.globalAlpha = 1;
             }
         }
@@ -1036,7 +1176,6 @@ createApp({
             if (gameState.value !== 'battle') return;
             gameState.value = 'roundEnd';
             inputLocked = true;
-
             stopAllLoops();
 
             let p1WinRound;
@@ -1053,7 +1192,7 @@ createApp({
                 p1Wins.value++;
                 roundAnnounce.value = '玩家1 胜!';
             }
-
+            saveGameProgress();
             startIdleRender();
 
             setTimeout(() => {
@@ -1064,7 +1203,7 @@ createApp({
                     currentRound.value++;
                     startRound();
                 }
-            }, 2000);
+            }, 2200);
         }
 
         function endGame() {
@@ -1074,12 +1213,21 @@ createApp({
             winnerText.value = winner === 'player1' ? '玩家1 胜利!' : '玩家2 胜利!';
             gameState.value = 'gameEnd';
             saveBattleResult(winner);
+            loadStats();
         }
 
         function backToStart() {
             stopAllLoops();
+            clearSavedGame();
             gameState.value = 'start';
             loadStats();
+            checkSavedGame();
+        }
+
+        function normalizeKey(k) {
+            if (!k) return '';
+            if (k.length === 1) return k.toLowerCase();
+            return k;
         }
 
         onMounted(() => {
@@ -1091,21 +1239,35 @@ createApp({
             });
 
             window.addEventListener('keydown', (e) => {
-                keys[e.key] = true;
-                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(e.key) >= 0) {
+                const k = normalizeKey(e.key);
+                keysDown[k] = true;
+                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) {
                     e.preventDefault();
                 }
             });
 
             window.addEventListener('keyup', (e) => {
-                keys[e.key] = false;
+                const k = normalizeKey(e.key);
+                keysDown[k] = false;
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (gameState.value === 'battle' || gameState.value === 'roundEnd') {
+                    saveGameProgress();
+                }
             });
 
             window.addEventListener('resize', () => {
                 ensureCtx();
             });
 
+            loadMeta();
             loadStats();
+            checkSavedGame();
+        });
+
+        watch([p1Char, p2Char], () => {
+            saveMeta();
         });
 
         return {
@@ -1120,8 +1282,11 @@ createApp({
             stats, statsLoading,
             maxComboP1, maxComboP2,
             winnerText,
+            hasSavedGame,
             getCharName,
-            startGame, backToStart
+            selectChar,
+            startGame, backToStart,
+            resumeGame
         };
     }
 }).mount('#app');
