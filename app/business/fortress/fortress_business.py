@@ -9,7 +9,7 @@ BUILDING_CONFIG = {
         'cost_work_hours': 20,
         'cost_water': 5,
         'hp': 150,
-        'build_time': 2,
+        'build_time': 0.25,
         'color': '#c4a35a'
     },
     'arrow_tower': {
@@ -18,7 +18,7 @@ BUILDING_CONFIG = {
         'cost_work_hours': 40,
         'cost_water': 10,
         'hp': 100,
-        'build_time': 3,
+        'build_time': 0.35,
         'damage': 15,
         'range': 3,
         'color': '#8b4513'
@@ -30,7 +30,7 @@ BUILDING_CONFIG = {
         'cost_water': 5,
         'cost_oil': 0,
         'hp': 80,
-        'build_time': 4,
+        'build_time': 0.45,
         'damage': 40,
         'range': 2,
         'color': '#2f1810'
@@ -41,7 +41,7 @@ BUILDING_CONFIG = {
         'cost_work_hours': 30,
         'cost_water': 5,
         'hp': 60,
-        'build_time': 2,
+        'build_time': 0.25,
         'range': 5,
         'color': '#654321'
     },
@@ -50,7 +50,7 @@ BUILDING_CONFIG = {
         'description': '白天收集水源',
         'cost_work_hours': 25,
         'hp': 80,
-        'build_time': 3,
+        'build_time': 0.35,
         'water_per_day': 15,
         'color': '#4a90a4'
     }
@@ -236,7 +236,7 @@ class FortressBusiness:
                         'build_progress': new_progress
                     })
         
-        if new_phase == 'night':
+        if new_phase == 'night' or (current_phase == 'night' and new_time < 1.0):
             self._process_combat(state_id, delta)
         
         self.game_state_model.update(state_id, {
@@ -315,16 +315,20 @@ class FortressBusiness:
         total_damage = 0
         
         if arrow_towers and state['arrows'] > 0:
-            arrow_damage = len(arrow_towers) * BUILDING_CONFIG['arrow_tower']['damage'] * delta * 2
-            arrows_used = min(int(len(arrow_towers) * delta * 0.5), state['arrows'])
+            arrows_per_tick_per_tower = 0.5
+            arrows_needed = int(len(arrow_towers) * arrows_per_tick_per_tower + 1)
+            arrows_used = min(arrows_needed, state['arrows'])
             if arrows_used > 0:
+                arrow_damage = arrows_used * BUILDING_CONFIG['arrow_tower']['damage'] * 2.5
                 total_damage += arrow_damage
                 self.game_state_model.update(state_id, {'arrows': state['arrows'] - arrows_used})
         
         if oil_troughs and state['oil'] > 0:
-            oil_damage = len(oil_troughs) * BUILDING_CONFIG['oil_trough']['damage'] * delta
-            oil_used = min(int(len(oil_troughs) * delta * 0.3), state['oil'])
+            oil_per_tick_per_trough = 0.3
+            oil_needed = int(len(oil_troughs) * oil_per_tick_per_trough + 1)
+            oil_used = min(oil_needed, state['oil'])
             if oil_used > 0:
+                oil_damage = oil_used * BUILDING_CONFIG['oil_trough']['damage'] * 3
                 total_damage += oil_damage
                 self.game_state_model.update(state_id, {'oil': state['oil'] - oil_used})
         
@@ -333,7 +337,7 @@ class FortressBusiness:
         
         if walls:
             damage_to_enemies *= 0.7
-            wall_damage = total_damage * 0.3 / len(walls)
+            wall_damage = total_damage * 0.3 / max(1, len(walls))
             for wall in walls:
                 new_wall_hp = wall['hp'] - wall_damage
                 if new_wall_hp <= 0:
@@ -342,8 +346,12 @@ class FortressBusiness:
                 else:
                     self.building_model.update(wall['id'], {'hp': new_wall_hp})
         
-        enemies_killed = min(int(damage_to_enemies / 30), remaining)
+        enemies_killed = min(int(damage_to_enemies / 8), remaining)
         new_remaining = remaining - enemies_killed
+        
+        if enemies_killed > 0:
+            self._add_log(state_id, state['day'], 'combat', 
+                         f'⚔️ 防御工事击杀了 {enemies_killed} 名敌人！')
         
         if new_remaining <= 0:
             self.enemy_wave_model.update(wave['id'], {

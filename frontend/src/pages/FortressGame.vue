@@ -217,6 +217,26 @@
           <span class="debug-label">建筑数:</span>
           <span class="debug-value">{{ buildings.length }}</span>
         </div>
+        <div class="debug-item">
+          <span class="debug-label">波次:</span>
+          <span class="debug-value">{{ activeWave?.wave_number ?? '-' }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">剩余敌人:</span>
+          <span class="debug-value" :class="{ 'bad': activeWave?.enemies_remaining > 0 }">{{ activeWave?.enemies_remaining ?? 0 }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">波次活跃:</span>
+          <span class="debug-value">{{ activeWave?.is_active === 1 ? '✅' : '❌' }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">箭矢/油料:</span>
+          <span class="debug-value">{{ gameState?.arrows ?? 0 }} / {{ gameState?.oil ?? 0 }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">工时:</span>
+          <span class="debug-value">{{ gameState?.work_hours ?? 0 }} / {{ gameState?.max_work_hours ?? 0 }}</span>
+        </div>
       </div>
     </div>
   </div>
