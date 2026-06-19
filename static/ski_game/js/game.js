@@ -35,6 +35,7 @@
     let height = 0;
 
     const STORAGE_KEY = 'skiGameState';
+    const NAME_KEY = 'skiPlayerName';
 
     const game = {
         score: 0,
@@ -84,8 +85,8 @@
         const fov = 400;
         const scale = fov / (fov + z);
         const screenX = width / 2 + x * scale;
-        const horizonY = height * 0.6;
-        const screenY = horizonY + (height - horizonY) * (1 - scale);
+        const horizonY = height * 0.58;
+        const screenY = horizonY + scale * (height - horizonY);
         return { x: screenX, y: screenY, scale: scale };
     }
 
@@ -94,7 +95,7 @@
         for (let i = 0; i < 200; i++) {
             snowflakes.push({
                 x: (Math.random() - 0.5) * width * 1.5,
-                y: Math.random() * height * 0.7,
+                y: Math.random() * height * 0.6,
                 z: Math.random() * 500 + 50,
                 size: Math.random() * 3 + 1,
                 speed: Math.random() * 2 + 1
@@ -107,7 +108,7 @@
         for (let i = 0; i < snowflakes.length; i++) {
             const flake = snowflakes[i];
             flake.z -= (game.speed * 0.5 + flake.speed * 20) * dt;
-            flake.y += flake.speed * 15 * dt;
+            flake.y += flake.speed * 25 * dt;
             flake.x += Math.sin(flake.y * 0.01 + flake.z * 0.01) * 10 * dt;
             
             if (flake.z < 1) {
@@ -115,7 +116,7 @@
                 flake.y = Math.random() * height * 0.3;
                 flake.x = (Math.random() - 0.5) * width * 1.5;
             }
-            if (flake.y > height * 0.7) {
+            if (flake.y > height * 0.6) {
                 flake.y = 0;
                 flake.x = (Math.random() - 0.5) * width * 1.5;
             }
@@ -297,34 +298,34 @@
     }
 
     function drawSkyAndMountains() {
-        const gradient = ctx.createLinearGradient(0, 0, 0, height * 0.62);
+        const gradient = ctx.createLinearGradient(0, 0, 0, height * 0.6);
         gradient.addColorStop(0, '#5DADE2');
-        gradient.addColorStop(0.4, '#AED6F1');
+        gradient.addColorStop(0.5, '#AED6F1');
         gradient.addColorStop(1, '#EBF5FB');
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height * 0.62);
+        ctx.fillRect(0, 0, width, height * 0.6);
         
         ctx.fillStyle = '#BDC3C7';
         ctx.beginPath();
-        ctx.moveTo(0, height * 0.52);
+        ctx.moveTo(0, height * 0.5);
         for (let x = 0; x <= width; x += 40) {
-            const y = height * 0.52 - Math.sin(x * 0.008 + game.distance * 0.0005) * 25 - Math.abs(Math.sin(x * 0.004)) * 15;
+            const y = height * 0.5 - Math.sin(x * 0.008 + game.distance * 0.0005) * 25 - Math.abs(Math.sin(x * 0.004)) * 15;
             ctx.lineTo(x, y);
         }
-        ctx.lineTo(width, height * 0.62);
-        ctx.lineTo(0, height * 0.62);
+        ctx.lineTo(width, height * 0.6);
+        ctx.lineTo(0, height * 0.6);
         ctx.closePath();
         ctx.fill();
         
         ctx.fillStyle = '#D5DBDB';
         ctx.beginPath();
-        ctx.moveTo(0, height * 0.58);
+        ctx.moveTo(0, height * 0.56);
         for (let x = 0; x <= width; x += 25) {
-            const y = height * 0.58 - Math.sin(x * 0.012 + game.distance * 0.001 + 1.5) * 15 - Math.abs(Math.sin(x * 0.006)) * 8;
+            const y = height * 0.56 - Math.sin(x * 0.012 + game.distance * 0.001 + 1.5) * 15 - Math.abs(Math.sin(x * 0.006)) * 8;
             ctx.lineTo(x, y);
         }
-        ctx.lineTo(width, height * 0.62);
-        ctx.lineTo(0, height * 0.62);
+        ctx.lineTo(width, height * 0.6);
+        ctx.lineTo(0, height * 0.6);
         ctx.closePath();
         ctx.fill();
     }
@@ -496,7 +497,7 @@
             if (leftPost.scale < 0.05) continue;
             
             const postWidth = Math.max(1, 3 * leftPost.scale);
-            const postHeight = Math.abs(top.y - leftPost.y);
+            const postHeight = Math.abs(leftPost.y - top.y);
             
             if (postHeight < 3) continue;
             
@@ -504,20 +505,21 @@
             if (gate.passed) color = '#2ECC71';
             if (gate.missed) color = '#95A5A6';
             
+            const topY = Math.min(leftPost.y, top.y);
             ctx.fillStyle = color;
-            ctx.fillRect(leftPost.x - postWidth / 2, Math.min(leftPost.y, top.y), postWidth, postHeight);
-            ctx.fillRect(rightPost.x - postWidth / 2, Math.min(rightPost.y, top.y), postWidth, postHeight);
+            ctx.fillRect(leftPost.x - postWidth / 2, topY, postWidth, postHeight);
+            ctx.fillRect(rightPost.x - postWidth / 2, topY, postWidth, postHeight);
             
             ctx.fillStyle = '#FFFFFF';
             const flagSize = Math.max(2, 10 * leftPost.scale);
-            ctx.fillRect(leftPost.x, leftPost.y - postHeight * 0.7, flagSize * 1.5, flagSize);
-            ctx.fillRect(rightPost.x - flagSize * 1.5, rightPost.y - postHeight * 0.5, flagSize * 1.5, flagSize);
+            ctx.fillRect(leftPost.x, topY + postHeight * 0.15, flagSize * 1.5, flagSize);
+            ctx.fillRect(rightPost.x - flagSize * 1.5, topY + postHeight * 0.3, flagSize * 1.5, flagSize);
             
             ctx.strokeStyle = color;
             ctx.lineWidth = Math.max(1, 2 * leftPost.scale);
             ctx.beginPath();
-            ctx.moveTo(leftPost.x, top.y);
-            ctx.lineTo(rightPost.x, top.y);
+            ctx.moveTo(leftPost.x, topY);
+            ctx.lineTo(rightPost.x, topY);
             ctx.stroke();
             
             if (gate.passed && gate.z > -10 && gate.z < 30) {
@@ -525,8 +527,8 @@
                 ctx.strokeStyle = `rgba(46, 204, 113, ${glowIntensity * 0.5})`;
                 ctx.lineWidth = Math.max(2, 10 * leftPost.scale);
                 ctx.beginPath();
-                ctx.moveTo(leftPost.x, top.y);
-                ctx.lineTo(rightPost.x, top.y);
+                ctx.moveTo(leftPost.x, topY);
+                ctx.lineTo(rightPost.x, topY);
                 ctx.stroke();
             }
         }
@@ -671,7 +673,9 @@
         const avalancheZ = game.avalanche.distance;
         const proj = project(0, avalancheZ);
         
-        const gradient = ctx.createLinearGradient(0, Math.max(0, proj.y - 150), 0, Math.min(height, proj.y + 100));
+        const gradientTop = Math.max(0, proj.y - 150);
+        const gradientBottom = Math.min(height, proj.y + 100);
+        const gradient = ctx.createLinearGradient(0, gradientTop, 0, gradientBottom);
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
         gradient.addColorStop(0.3, 'rgba(200, 210, 220, 0.5)');
         gradient.addColorStop(0.6, 'rgba(180, 190, 200, 0.75)');
@@ -820,31 +824,13 @@
     }
 
     function saveGameState() {
-        if (gameState !== 'playing') {
-            localStorage.removeItem(STORAGE_KEY);
-            return;
-        }
+        if (gameState !== 'playing') return;
         
         const state = {
-            game: {
-                score: game.score,
-                distance: game.distance,
-                speed: game.speed,
-                maxSpeed: game.maxSpeed,
-                playerX: game.playerX,
-                targetPlayerX: game.targetPlayerX,
-                gatesPassed: game.gatesPassed,
-                slopeLevel: game.slopeLevel,
-                slopeZ: game.slopeZ,
-                isTurning: game.isTurning,
-                turnTimer: game.turnTimer,
-                boostTimer: game.boostTimer,
-                slowTimer: game.slowTimer,
-                avalanche: { ...game.avalanche }
-            },
-            trees: trees.map(t => ({ ...t })),
-            rocks: rocks.map(r => ({ ...r })),
-            gates: gates.map(g => ({ ...g })),
+            game: JSON.parse(JSON.stringify(game)),
+            trees: JSON.parse(JSON.stringify(trees)),
+            rocks: JSON.parse(JSON.stringify(rocks)),
+            gates: JSON.parse(JSON.stringify(gates)),
             timestamp: Date.now()
         };
         
@@ -852,6 +838,23 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         } catch (e) {
             console.warn('Failed to save game state:', e);
+        }
+    }
+
+    function hasSavedGame() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return false;
+            const state = JSON.parse(raw);
+            if (!state || !state.game) return false;
+            const elapsed = (Date.now() - state.timestamp) / 1000;
+            if (elapsed > 300) {
+                localStorage.removeItem(STORAGE_KEY);
+                return false;
+            }
+            return true;
+        } catch (e) {
+            return false;
         }
     }
 
@@ -864,12 +867,13 @@
             if (!state || !state.game) return false;
             
             const elapsed = (Date.now() - state.timestamp) / 1000;
-            if (elapsed > 120) {
+            if (elapsed > 300) {
                 localStorage.removeItem(STORAGE_KEY);
                 return false;
             }
             
             Object.assign(game, state.game);
+            
             trees.length = 0;
             rocks.length = 0;
             gates.length = 0;
@@ -880,11 +884,21 @@
             state.rocks.forEach(r => rocks.push({ ...r }));
             state.gates.forEach(g => gates.push({ ...g }));
             
+            if (game.avalanche.active) {
+                avalancheWarning.classList.remove('hidden');
+            }
+            
             return true;
         } catch (e) {
             console.warn('Failed to load game state:', e);
             return false;
         }
+    }
+
+    function clearSavedGame() {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
     }
 
     function resetGame() {
@@ -928,13 +942,13 @@
             });
         }
         
-        localStorage.removeItem(STORAGE_KEY);
+        clearSavedGame();
     }
 
     function gameOver() {
         gameState = 'gameover';
         cancelAnimationFrame(animationId);
-        localStorage.removeItem(STORAGE_KEY);
+        clearSavedGame();
         
         finalScore.textContent = Math.floor(game.score);
         finalDistance.textContent = Math.floor(game.distance) + ' m';
@@ -955,14 +969,14 @@
             playerNameInput.focus();
             
             let shakeCount = 0;
-            const originalLeft = playerNameInput.style.marginLeft || '0px';
+            const originalTransform = playerNameInput.style.transform || '';
             const shakeInterval = setInterval(() => {
                 if (shakeCount >= 6) {
                     clearInterval(shakeInterval);
-                    playerNameInput.style.marginLeft = originalLeft;
+                    playerNameInput.style.transform = originalTransform;
                     return;
                 }
-                playerNameInput.style.marginLeft = (shakeCount % 2 === 0 ? '-5px' : '5px');
+                playerNameInput.style.transform = `translateX(${shakeCount % 2 === 0 ? -5 : 5}px)`;
                 shakeCount++;
             }, 50);
             
@@ -976,9 +990,14 @@
         if (!validatePlayerName()) return;
         
         const playerName = playerNameInput.value.trim();
-        localStorage.setItem('skiPlayerName', playerName);
+        localStorage.setItem(NAME_KEY, playerName);
         
-        if (!restoreState) {
+        let restored = false;
+        if (restoreState) {
+            restored = loadGameState();
+        }
+        
+        if (!restored) {
             resetGame();
         }
         
@@ -998,7 +1017,7 @@
         updateSlope();
         updateSnowflakes();
         updateSnowShakes();
-        drawSnowTrail();
+        updateSnowTrail();
         spawnEnvironment();
         updateEnvironment();
         updateAvalanche();
@@ -1119,7 +1138,7 @@
             keys.space = true;
             e.preventDefault();
         }
-        if (e.key === 'Enter' && gameState === 'menu') startGame();
+        if (e.key === 'Enter' && gameState === 'menu') startGame(false);
     }
 
     function handleKeyUp(e) {
@@ -1145,6 +1164,31 @@
         keys.right = false;
     }
 
+    function showRestoreButtonIfNeeded() {
+        const hasSave = hasSavedGame();
+        let restoreBtn = document.getElementById('restore-game-btn');
+        
+        if (hasSave) {
+            if (!restoreBtn) {
+                restoreBtn = document.createElement('button');
+                restoreBtn.id = 'restore-game-btn';
+                restoreBtn.className = 'btn-secondary';
+                restoreBtn.textContent = '继续上次游戏';
+                restoreBtn.style.display = 'block';
+                restoreBtn.style.marginTop = '10px';
+                restoreBtn.style.background = 'linear-gradient(135deg, #FF9800, #F57C00)';
+                restoreBtn.style.boxShadow = '0 4px 15px rgba(255, 152, 0, 0.4)';
+                restoreBtn.addEventListener('click', () => startGame(true));
+                
+                const btnContainer = startBtn.parentElement;
+                btnContainer.insertBefore(restoreBtn, showRankingBtn);
+            }
+            restoreBtn.style.display = 'block';
+        } else if (restoreBtn) {
+            restoreBtn.style.display = 'none';
+        }
+    }
+
     function init() {
         resize();
         window.addEventListener('resize', resize);
@@ -1162,13 +1206,15 @@
             gameOverScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
             gameState = 'menu';
-            localStorage.removeItem(STORAGE_KEY);
+            clearSavedGame();
+            showRestoreButtonIfNeeded();
         });
         
         showRankingBtn.addEventListener('click', showRanking);
         backFromRankingBtn.addEventListener('click', () => {
             rankingScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
+            showRestoreButtonIfNeeded();
         });
         
         submitScoreBtn.addEventListener('click', submitScore);
@@ -1177,7 +1223,7 @@
             playerNameInput.style.borderColor = '';
         });
         
-        const savedName = localStorage.getItem('skiPlayerName');
+        const savedName = localStorage.getItem(NAME_KEY);
         if (savedName) {
             playerNameInput.value = savedName;
         }
@@ -1185,23 +1231,7 @@
         initSnowflakes();
         gameState = 'menu';
         
-        const hasSavedState = localStorage.getItem(STORAGE_KEY);
-        if (hasSavedState) {
-            if (confirm('检测到未完成的游戏进度，是否继续？')) {
-                const loaded = loadGameState();
-                if (loaded) {
-                    if (!savedName) {
-                        startScreen.classList.remove('hidden');
-                        drawMenuBackground();
-                        return;
-                    }
-                    startGame(true);
-                    return;
-                }
-            } else {
-                localStorage.removeItem(STORAGE_KEY);
-            }
-        }
+        showRestoreButtonIfNeeded();
         
         drawMenuBackground();
     }
@@ -1239,4 +1269,10 @@
             drawMenuBackground();
         }
     }, 1000 / 30);
+
+    window.addEventListener('pageshow', () => {
+        if (gameState === 'menu') {
+            showRestoreButtonIfNeeded();
+        }
+    });
 })();
