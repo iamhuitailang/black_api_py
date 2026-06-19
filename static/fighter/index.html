@@ -26,12 +26,13 @@
             height: 600px;
             border: 4px solid #333;
             box-shadow: 0 0 30px rgba(100, 100, 255, 0.3);
-            image-rendering: pixelated;
         }
         canvas {
             display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
             image-rendering: pixelated;
-            image-rendering: crisp-edges;
         }
         .screen {
             position: absolute;
@@ -41,6 +42,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            z-index: 50;
         }
         .title {
             font-size: 48px;
@@ -64,11 +66,11 @@
             width: 220px;
             padding: 20px;
             border: 3px solid #444;
-            background: rgba(20, 20, 30, 0.9);
+            background: rgba(20, 20, 30, 0.95);
             text-align: center;
         }
         .player-panel h3 {
-            font-size: 18px;
+            font-size: 16px;
             margin-bottom: 15px;
             color: #fff;
         }
@@ -233,6 +235,7 @@
             background: rgba(0, 0, 0, 0);
             pointer-events: none;
             z-index: 20;
+            transition: background 0.1s;
         }
         .overlay.black { background: rgba(0, 0, 0, 1); }
         .overlay.flash { background: rgba(255, 255, 255, 0.8); }
@@ -300,16 +303,25 @@
             0% { transform: translateY(0); opacity: 1; }
             100% { transform: translateY(-40px); opacity: 0; }
         }
+        .canvas-wrap {
+            position: absolute;
+            top: 0; left: 0;
+            width: 960px; height: 600px;
+        }
     </style>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
 <div id="app">
     <div class="game-container">
+        <div class="canvas-wrap">
+            <canvas ref="gameCanvas" width="960" height="600"></canvas>
+        </div>
+
         <div v-if="gameState === 'start'" class="screen start-screen">
             <div class="title">像 素 擂 台</div>
             <div class="subtitle">PIXEL ARENA - 三局两胜</div>
-            
+
             <div class="char-select">
                 <div class="player-panel player1">
                     <h3>玩家 1 (WASD + J/K/L)</h3>
@@ -355,9 +367,7 @@
             </div>
         </div>
 
-        <div v-if="gameState === 'battle' || gameState === 'roundEnd' || gameState === 'gameEnd'">
-            <canvas ref="gameCanvas" width="960" height="600"></canvas>
-
+        <template v-if="gameState !== 'start'">
             <div class="hud">
                 <div class="hud-player player1">
                     <div class="hud-name">玩家1 - {{ getCharName(p1Char) }}</div>
@@ -398,7 +408,7 @@
 
             <div class="overlay" :class="{ black: isBlackScreen, flash: isFlash }"></div>
 
-            <div class="controls-hint">
+            <div class="controls-hint" v-if="gameState === 'battle'">
                 <div>
                     <span>W</span>跳 <span>A</span>/<span>D</span>移动 <span>J</span>轻攻 <span>K</span>重攻 <span>L</span>格挡
                 </div>
@@ -406,21 +416,21 @@
                     <span>↑</span>跳 <span>←</span>/<span>→</span>移动 <span>1</span>轻攻 <span>2</span>重攻 <span>3</span>格挡
                 </div>
             </div>
-        </div>
 
-        <div v-if="gameState === 'gameEnd'" class="screen result-screen">
-            <div class="result-text">{{ winnerText }}</div>
-            <div class="result-details">对战结果: 玩家1 {{ p1Wins }} : {{ p2Wins }} 玩家2</div>
-            <div class="result-details">最高连击 - 玩家1: {{ maxComboP1 }} | 玩家2: {{ maxComboP2 }}</div>
-            <div style="margin-top: 30px; display: flex; gap: 20px;">
-                <button class="btn" @click="backToStart">返 回</button>
+            <div v-if="gameState === 'gameEnd'" class="screen result-screen">
+                <div class="result-text">{{ winnerText }}</div>
+                <div class="result-details">对战结果: 玩家1 {{ p1Wins }} : {{ p2Wins }} 玩家2</div>
+                <div class="result-details">最高连击 - 玩家1: {{ maxComboP1 }} | 玩家2: {{ maxComboP2 }}</div>
+                <div style="margin-top: 30px; display: flex; gap: 20px;">
+                    <button class="btn" @click="backToStart">返 回 选 角</button>
+                </div>
             </div>
-        </div>
+        </template>
     </div>
 </div>
 
 <script>
-const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+const { createApp, ref, reactive, onMounted, nextTick, watch } = Vue;
 
 createApp({
     setup() {
@@ -478,8 +488,9 @@ createApp({
         let ctx = null;
         let animationId = null;
         let gameLoopId = null;
-        let lastTime = 0;
         let damageIdCounter = 0;
+        let gameRunning = false;
+        let inputLocked = false;
 
         const GROUND_Y = 400;
         const GRAVITY = 0.6;
@@ -563,20 +574,40 @@ createApp({
             player.speed = cfg.speed;
         }
 
+        function ensureCtx() {
+            if (!ctx && gameCanvas.value) {
+                ctx = gameCanvas.value.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+            }
+            return ctx != null;
+        }
+
         function startGame() {
             p1Wins.value = 0;
             p2Wins.value = 0;
             currentRound.value = 1;
             maxComboP1.value = 0;
             maxComboP2.value = 0;
-            startRound(true);
+            damageNumbers.value = [];
+
+            nextTick(() => {
+                ensureCtx();
+                startRound(true);
+            });
         }
 
         function startRound(isFirst = false) {
+            ensureCtx();
             resetPlayer(p1, 200, 1, p1Char.value);
             resetPlayer(p2, 760, -1, p2Char.value);
             timeLeft.value = 60;
+            damageNumbers.value = [];
+            inputLocked = true;
             gameState.value = 'battle';
+
+            stopAllLoops();
+            render();
+            startIdleRender();
 
             if (!isFirst && currentRound.value === 3) {
                 isBlackScreen.value = true;
@@ -587,43 +618,69 @@ createApp({
                         isFlash.value = false;
                         isBlackScreen.value = false;
                         roundAnnounce.value = '';
-                        startGameLoop();
-                        startTimer();
+                        inputLocked = false;
+                        startBattleLoops();
                     }, 150);
                 }, 1000);
             } else {
                 roundAnnounce.value = '第 ' + currentRound.value + ' 局';
                 setTimeout(() => {
                     roundAnnounce.value = '';
-                    startGameLoop();
-                    startTimer();
+                    inputLocked = false;
+                    startBattleLoops();
                 }, 1500);
             }
         }
 
-        function startTimer() {
+        function stopAllLoops() {
+            gameRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            if (gameLoopId) {
+                clearInterval(gameLoopId);
+                gameLoopId = null;
+            }
+        }
+
+        function startIdleRender() {
+            gameRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            function idleLoop() {
+                if (!ensureCtx()) return;
+                render();
+                if (gameState.value !== 'start' && gameState.value !== 'gameEnd') {
+                    animationId = requestAnimationFrame(idleLoop);
+                }
+            }
+            animationId = requestAnimationFrame(idleLoop);
+        }
+
+        function startBattleLoops() {
+            stopAllLoops();
+            gameRunning = true;
+            ensureCtx();
+
+            function loop() {
+                if (!ensureCtx()) return;
+                if (gameRunning && gameState.value === 'battle') {
+                    update();
+                    render();
+                    animationId = requestAnimationFrame(loop);
+                }
+            }
+            animationId = requestAnimationFrame(loop);
+
             if (gameLoopId) clearInterval(gameLoopId);
             gameLoopId = setInterval(() => {
-                if (gameState.value === 'battle') {
+                if (gameState.value === 'battle' && !inputLocked) {
                     timeLeft.value--;
                     if (timeLeft.value <= 0) {
                         endRound();
                     }
                 }
             }, 1000);
-        }
-
-        function startGameLoop() {
-            if (animationId) cancelAnimationFrame(animationId);
-            lastTime = performance.now();
-            function loop(now) {
-                update();
-                render();
-                if (gameState.value === 'battle') {
-                    animationId = requestAnimationFrame(loop);
-                }
-            }
-            animationId = requestAnimationFrame(loop);
         }
 
         function showDamage(x, y, value, isP1) {
@@ -759,6 +816,7 @@ createApp({
         }
 
         function handleInput(player, left, right, jump, light, heavy, block, isP1) {
+            if (inputLocked) return;
             if (player.state === 'hurt') return;
             if (player.state === 'attacking') return;
 
@@ -949,6 +1007,8 @@ createApp({
         }
 
         function render() {
+            if (!ensureCtx()) return;
+
             drawBackground();
             drawPlayer(p1, true);
             drawPlayer(p2, false);
@@ -975,9 +1035,9 @@ createApp({
         function endRound() {
             if (gameState.value !== 'battle') return;
             gameState.value = 'roundEnd';
+            inputLocked = true;
 
-            if (animationId) cancelAnimationFrame(animationId);
-            if (gameLoopId) clearInterval(gameLoopId);
+            stopAllLoops();
 
             let p1WinRound;
             if (p1.hp > p2.hp) {
@@ -994,6 +1054,8 @@ createApp({
                 roundAnnounce.value = '玩家1 胜!';
             }
 
+            startIdleRender();
+
             setTimeout(() => {
                 roundAnnounce.value = '';
                 if (p1Wins.value >= 2 || p2Wins.value >= 2) {
@@ -1006,6 +1068,8 @@ createApp({
         }
 
         function endGame() {
+            stopAllLoops();
+            render();
             const winner = p1Wins.value >= 2 ? 'player1' : 'player2';
             winnerText.value = winner === 'player1' ? '玩家1 胜利!' : '玩家2 胜利!';
             gameState.value = 'gameEnd';
@@ -1013,15 +1077,16 @@ createApp({
         }
 
         function backToStart() {
+            stopAllLoops();
             gameState.value = 'start';
             loadStats();
         }
 
         onMounted(() => {
             nextTick(() => {
-                if (gameCanvas.value) {
-                    ctx = gameCanvas.value.getContext('2d');
-                    ctx.imageSmoothingEnabled = false;
+                ensureCtx();
+                if (ctx) {
+                    drawBackground();
                 }
             });
 
@@ -1034,6 +1099,10 @@ createApp({
 
             window.addEventListener('keyup', (e) => {
                 keys[e.key] = false;
+            });
+
+            window.addEventListener('resize', () => {
+                ensureCtx();
             });
 
             loadStats();
