@@ -31,9 +31,10 @@
 
     let gameState = 'menu';
     let animationId = null;
-
     let width = 0;
     let height = 0;
+
+    const STORAGE_KEY = 'skiGameState';
 
     const game = {
         score: 0,
@@ -42,7 +43,6 @@
         maxSpeed: 0,
         baseSpeed: 120,
         playerX: 0,
-        playerLane: 0,
         targetPlayerX: 0,
         gatesPassed: 0,
         slopeLevel: 1,
@@ -61,12 +61,7 @@
         }
     };
 
-    const keys = {
-        left: false,
-        right: false,
-        space: false
-    };
-
+    const keys = { left: false, right: false, space: false };
     const ROAD_WIDTH = 160;
     const LANE_COUNT = 5;
     const LANE_WIDTH = ROAD_WIDTH / LANE_COUNT;
@@ -86,10 +81,11 @@
     }
 
     function project(x, z) {
-        const fov = 300;
+        const fov = 400;
         const scale = fov / (fov + z);
         const screenX = width / 2 + x * scale;
-        const screenY = height * 0.65 - scale * 100 + (height * 0.35);
+        const horizonY = height * 0.6;
+        const screenY = horizonY + (height - horizonY) * (1 - scale);
         return { x: screenX, y: screenY, scale: scale };
     }
 
@@ -98,7 +94,7 @@
         for (let i = 0; i < 200; i++) {
             snowflakes.push({
                 x: (Math.random() - 0.5) * width * 1.5,
-                y: Math.random() * height,
+                y: Math.random() * height * 0.7,
                 z: Math.random() * 500 + 50,
                 size: Math.random() * 3 + 1,
                 speed: Math.random() * 2 + 1
@@ -111,7 +107,7 @@
         for (let i = 0; i < snowflakes.length; i++) {
             const flake = snowflakes[i];
             flake.z -= (game.speed * 0.5 + flake.speed * 20) * dt;
-            flake.y += flake.speed * 30 * dt;
+            flake.y += flake.speed * 15 * dt;
             flake.x += Math.sin(flake.y * 0.01 + flake.z * 0.01) * 10 * dt;
             
             if (flake.z < 1) {
@@ -119,7 +115,7 @@
                 flake.y = Math.random() * height * 0.3;
                 flake.x = (Math.random() - 0.5) * width * 1.5;
             }
-            if (flake.y > height) {
+            if (flake.y > height * 0.7) {
                 flake.y = 0;
                 flake.x = (Math.random() - 0.5) * width * 1.5;
             }
@@ -144,7 +140,7 @@
 
     function spawnEnvironment() {
         const spawnZ = 600;
-        const spawnChance = game.speed * 0.002 * (game.slopeLevel === 2 ? 1.8 : 1);
+        const spawnChance = Math.max(0.02, game.speed * 0.002) * (game.slopeLevel === 2 ? 1.8 : 1);
         
         if (Math.random() < spawnChance * 0.3) {
             const side = Math.random() < 0.5 ? -1 : 1;
@@ -189,24 +185,16 @@
         for (let i = trees.length - 1; i >= 0; i--) {
             const tree = trees[i];
             tree.z -= moveSpeed;
-            
             if (tree.shaking) {
                 tree.shakeTimer -= dt;
-                if (tree.shakeTimer <= 0) {
-                    tree.shaking = false;
-                }
+                if (tree.shakeTimer <= 0) tree.shaking = false;
             }
-            
-            if (tree.z < -50) {
-                trees.splice(i, 1);
-            }
+            if (tree.z < -50) trees.splice(i, 1);
         }
         
         for (let i = rocks.length - 1; i >= 0; i--) {
             rocks[i].z -= moveSpeed;
-            if (rocks[i].z < -30) {
-                rocks.splice(i, 1);
-            }
+            if (rocks[i].z < -30) rocks.splice(i, 1);
         }
         
         for (let i = gates.length - 1; i >= 0; i--) {
@@ -233,9 +221,7 @@
                 game.slowTimer = 1;
             }
             
-            if (gate.z < -50) {
-                gates.splice(i, 1);
-            }
+            if (gate.z < -50) gates.splice(i, 1);
         }
     }
 
@@ -257,7 +243,6 @@
         if (!tree.shaking) {
             tree.shaking = true;
             tree.shakeTimer = 0.5;
-            
             for (let i = 0; i < 15; i++) {
                 snowShakes.push({
                     x: tree.x + (Math.random() - 0.5) * 20,
@@ -281,10 +266,7 @@
             s.vy -= 50 * dt;
             s.life -= dt;
             s.z -= game.speed * dt * 0.3;
-            
-            if (s.life <= 0 || s.y < 0) {
-                snowShakes.splice(i, 1);
-            }
+            if (s.life <= 0 || s.y < 0) snowShakes.splice(i, 1);
         }
     }
 
@@ -296,9 +278,7 @@
             const rock = rocks[i];
             if (Math.abs(rock.z - playerZ) < 15) {
                 const dx = Math.abs(rock.x - game.playerX);
-                if (dx < rock.size + playerWidth * 0.5) {
-                    return true;
-                }
+                if (dx < rock.size + playerWidth * 0.5) return true;
             }
         }
         
@@ -308,9 +288,7 @@
                 const dx = Math.abs(tree.x - game.playerX);
                 if (dx < 15 + playerWidth * 0.5) {
                     triggerTreeShake(tree);
-                    if (dx < 10) {
-                        return true;
-                    }
+                    if (dx < 10) return true;
                 }
             }
         }
@@ -319,92 +297,90 @@
     }
 
     function drawSkyAndMountains() {
-        const gradient = ctx.createLinearGradient(0, 0, 0, height * 0.6);
-        gradient.addColorStop(0, '#87CEEB');
-        gradient.addColorStop(0.5, '#B0E0E6');
-        gradient.addColorStop(1, '#E0F0FF');
+        const gradient = ctx.createLinearGradient(0, 0, 0, height * 0.62);
+        gradient.addColorStop(0, '#5DADE2');
+        gradient.addColorStop(0.4, '#AED6F1');
+        gradient.addColorStop(1, '#EBF5FB');
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height * 0.6);
+        ctx.fillRect(0, 0, width, height * 0.62);
         
-        ctx.fillStyle = '#C8D8E8';
+        ctx.fillStyle = '#BDC3C7';
         ctx.beginPath();
-        ctx.moveTo(0, height * 0.5);
-        for (let x = 0; x <= width; x += 50) {
-            const y = height * 0.5 - Math.sin(x * 0.01 + game.distance * 0.001) * 30 - Math.sin(x * 0.005) * 20;
+        ctx.moveTo(0, height * 0.52);
+        for (let x = 0; x <= width; x += 40) {
+            const y = height * 0.52 - Math.sin(x * 0.008 + game.distance * 0.0005) * 25 - Math.abs(Math.sin(x * 0.004)) * 15;
             ctx.lineTo(x, y);
         }
-        ctx.lineTo(width, height * 0.6);
-        ctx.lineTo(0, height * 0.6);
+        ctx.lineTo(width, height * 0.62);
+        ctx.lineTo(0, height * 0.62);
         ctx.closePath();
         ctx.fill();
         
-        ctx.fillStyle = '#D8E8F0';
+        ctx.fillStyle = '#D5DBDB';
         ctx.beginPath();
-        ctx.moveTo(0, height * 0.55);
-        for (let x = 0; x <= width; x += 30) {
-            const y = height * 0.55 - Math.sin(x * 0.015 + game.distance * 0.002 + 2) * 20 - Math.abs(Math.sin(x * 0.008)) * 15;
+        ctx.moveTo(0, height * 0.58);
+        for (let x = 0; x <= width; x += 25) {
+            const y = height * 0.58 - Math.sin(x * 0.012 + game.distance * 0.001 + 1.5) * 15 - Math.abs(Math.sin(x * 0.006)) * 8;
             ctx.lineTo(x, y);
         }
-        ctx.lineTo(width, height * 0.6);
-        ctx.lineTo(0, height * 0.6);
+        ctx.lineTo(width, height * 0.62);
+        ctx.lineTo(0, height * 0.62);
         ctx.closePath();
         ctx.fill();
     }
 
     function drawSlope() {
-        const bottomY = height;
-        const topY = height * 0.6;
-        
-        const slopeColor = game.slopeLevel === 2 ? '#E8EEF2' : '#F0F5F8';
+        const slopeColor = game.slopeLevel === 2 ? '#E5E8E8' : '#F4F6F7';
         ctx.fillStyle = slopeColor;
         
-        ctx.beginPath();
-        const leftTop = project(-ROAD_WIDTH * 0.6, 500);
-        const rightTop = project(ROAD_WIDTH * 0.6, 500);
+        const leftTop = project(-ROAD_WIDTH * 0.6, 600);
+        const rightTop = project(ROAD_WIDTH * 0.6, 600);
         const leftBottom = project(-ROAD_WIDTH * 0.8, -20);
         const rightBottom = project(ROAD_WIDTH * 0.8, -20);
         
-        ctx.moveTo(leftBottom.x, bottomY);
+        ctx.beginPath();
+        ctx.moveTo(leftBottom.x, leftBottom.y);
         ctx.lineTo(leftTop.x, leftTop.y);
         ctx.lineTo(rightTop.x, rightTop.y);
-        ctx.lineTo(rightBottom.x, bottomY);
+        ctx.lineTo(rightBottom.x, rightBottom.y);
         ctx.closePath();
         ctx.fill();
         
-        ctx.strokeStyle = 'rgba(200, 210, 220, 0.5)';
+        ctx.strokeStyle = 'rgba(180, 190, 200, 0.4)';
         ctx.lineWidth = 1;
-        
         const stripeOffset = (game.distance * 0.5) % 50;
-        for (let z = 500 - stripeOffset; z > -50; z -= 50) {
+        for (let z = 600 - stripeOffset; z > -50; z -= 50) {
             const left = project(-ROAD_WIDTH * 0.6, z);
             const right = project(ROAD_WIDTH * 0.6, z);
-            ctx.beginPath();
-            ctx.moveTo(left.x, left.y);
-            ctx.lineTo(right.x, right.y);
-            ctx.stroke();
+            if (left.y > 0 && left.y < height) {
+                ctx.beginPath();
+                ctx.moveTo(left.x, left.y);
+                ctx.lineTo(right.x, right.y);
+                ctx.stroke();
+            }
         }
         
         for (let i = -2; i <= 2; i++) {
             const x = i * LANE_WIDTH;
-            ctx.strokeStyle = 'rgba(180, 190, 200, 0.3)';
+            ctx.strokeStyle = 'rgba(170, 180, 190, 0.25)';
             ctx.lineWidth = 2;
             ctx.setLineDash([10, 10]);
             
-            ctx.beginPath();
-            const top = project(x, 500);
+            const top = project(x, 600);
             const bottom = project(x, -20);
+            ctx.beginPath();
             ctx.moveTo(top.x, top.y);
             ctx.lineTo(bottom.x, bottom.y);
             ctx.stroke();
             ctx.setLineDash([]);
         }
         
-        const edgeLeftTop = project(-ROAD_WIDTH * 0.6, 500);
+        const edgeLeftTop = project(-ROAD_WIDTH * 0.6, 600);
         const edgeLeftBottom = project(-ROAD_WIDTH * 0.6, -20);
-        const edgeRightTop = project(ROAD_WIDTH * 0.6, 500);
+        const edgeRightTop = project(ROAD_WIDTH * 0.6, 600);
         const edgeRightBottom = project(ROAD_WIDTH * 0.6, -20);
         
-        ctx.strokeStyle = 'rgba(150, 160, 170, 0.6)';
+        ctx.strokeStyle = 'rgba(140, 150, 160, 0.5)';
         ctx.lineWidth = 3;
         
         ctx.beginPath();
@@ -422,34 +398,43 @@
         const sortedTrees = [...trees].sort((a, b) => b.z - a.z);
         
         for (const tree of sortedTrees) {
-            if (tree.z < -20 || tree.z > 600) continue;
+            if (tree.z < -20 || tree.z > 700) continue;
             
             const base = project(tree.x, tree.z);
             const top = project(tree.x, tree.z + tree.height);
             
             if (base.y < 0 || top.y > height) continue;
+            if (base.scale < 0.05) continue;
             
-            const baseWidth = 12 * base.scale;
-            const topWidth = 2 * top.scale;
+            const baseWidth = Math.max(2, 12 * base.scale);
+            const topWidth = Math.max(1, 2 * top.scale);
             const treeHeight = base.y - top.y;
+            
+            if (treeHeight < 2) continue;
             
             let offsetX = 0;
             if (tree.shaking) {
                 offsetX = Math.sin(tree.shakeTimer * 30) * 5 * base.scale;
             }
             
-            ctx.fillStyle = '#654321';
-            ctx.fillRect(base.x - baseWidth * 0.15 + offsetX * 0.3, base.y - treeHeight * 0.15, baseWidth * 0.3, treeHeight * 0.15);
+            ctx.fillStyle = '#5D4037';
+            const trunkWidth = baseWidth * 0.3;
+            ctx.fillRect(
+                base.x - trunkWidth / 2 + offsetX * 0.3,
+                base.y - treeHeight * 0.15,
+                trunkWidth,
+                treeHeight * 0.15
+            );
             
             const layers = 3;
             for (let i = 0; i < layers; i++) {
-                const layerTopY = top.y + (treeHeight * 0.1) + (treeHeight * 0.25) * i;
+                const layerTopY = top.y + (treeHeight * 0.08) + (treeHeight * 0.27) * i;
                 const layerBottomY = top.y + (treeHeight * 0.35) + (treeHeight * 0.22) * i;
-                const layerTopWidth = topWidth * (1 + i * 0.5);
+                const layerTopWidth = topWidth * (1 + i * 0.6);
                 const layerBottomWidth = baseWidth * (0.5 + i * 0.25);
                 const layerOffset = offsetX * (1 - i * 0.2);
                 
-                ctx.fillStyle = `rgb(${30 + i * 10}, ${80 + i * 15}, ${40 + i * 10})`;
+                ctx.fillStyle = `rgb(${35 + i * 12}, ${85 + i * 18}, ${45 + i * 12})`;
                 ctx.beginPath();
                 ctx.moveTo(base.x - layerTopWidth + layerOffset, layerTopY);
                 ctx.lineTo(base.x + layerTopWidth + layerOffset, layerTopY);
@@ -458,12 +443,12 @@
                 ctx.closePath();
                 ctx.fill();
                 
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
                 ctx.beginPath();
                 ctx.moveTo(base.x - layerTopWidth + layerOffset, layerTopY);
                 ctx.lineTo(base.x + layerTopWidth + layerOffset, layerTopY);
-                ctx.lineTo(base.x + layerBottomWidth * 0.5 + layerOffset, layerTopY + (layerBottomY - layerTopY) * 0.3);
-                ctx.lineTo(base.x - layerBottomWidth * 0.5 + layerOffset, layerTopY + (layerBottomY - layerTopY) * 0.3);
+                ctx.lineTo(base.x + layerBottomWidth * 0.5 + layerOffset, layerTopY + (layerBottomY - layerTopY) * 0.25);
+                ctx.lineTo(base.x - layerBottomWidth * 0.5 + layerOffset, layerTopY + (layerBottomY - layerTopY) * 0.25);
                 ctx.closePath();
                 ctx.fill();
             }
@@ -474,26 +459,26 @@
         const sortedRocks = [...rocks].sort((a, b) => b.z - a.z);
         
         for (const rock of sortedRocks) {
-            if (rock.z < -20 || rock.z > 600) continue;
+            if (rock.z < -20 || rock.z > 700) continue;
             
             const proj = project(rock.x, rock.z);
             const size = rock.size * proj.scale;
             
             if (size < 2) continue;
             
-            ctx.fillStyle = '#696969';
+            ctx.fillStyle = '#717D7E';
             ctx.beginPath();
-            ctx.ellipse(proj.x, proj.y, size, size * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(proj.x, proj.y, size, size * 0.55, 0, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.fillStyle = '#808080';
+            ctx.fillStyle = '#909497';
             ctx.beginPath();
             ctx.ellipse(proj.x - size * 0.2, proj.y - size * 0.2, size * 0.4, size * 0.2, -0.3, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.beginPath();
-            ctx.ellipse(proj.x, proj.y - size * 0.45, size * 0.6, size * 0.15, 0, 0, Math.PI * 2);
+            ctx.ellipse(proj.x, proj.y - size * 0.5, size * 0.55, size * 0.14, 0, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -502,29 +487,34 @@
         const sortedGates = [...gates].sort((a, b) => b.z - a.z);
         
         for (const gate of sortedGates) {
-            if (gate.z < -30 || gate.z > 600) continue;
+            if (gate.z < -30 || gate.z > 700) continue;
             
             const leftPost = project(gate.x - gate.width / 2, gate.z);
             const rightPost = project(gate.x + gate.width / 2, gate.z);
             const top = project(gate.x, gate.z + 20);
             
-            const postWidth = 3 * leftPost.scale;
+            if (leftPost.scale < 0.05) continue;
             
-            let color = '#FF4444';
-            if (gate.passed) color = '#44FF44';
-            if (gate.missed) color = '#888888';
+            const postWidth = Math.max(1, 3 * leftPost.scale);
+            const postHeight = Math.abs(top.y - leftPost.y);
+            
+            if (postHeight < 3) continue;
+            
+            let color = '#E74C3C';
+            if (gate.passed) color = '#2ECC71';
+            if (gate.missed) color = '#95A5A6';
             
             ctx.fillStyle = color;
-            ctx.fillRect(leftPost.x - postWidth / 2, leftPost.y, postWidth, top.y - leftPost.y);
-            ctx.fillRect(rightPost.x - postWidth / 2, rightPost.y, postWidth, top.y - rightPost.y);
+            ctx.fillRect(leftPost.x - postWidth / 2, Math.min(leftPost.y, top.y), postWidth, postHeight);
+            ctx.fillRect(rightPost.x - postWidth / 2, Math.min(rightPost.y, top.y), postWidth, postHeight);
             
             ctx.fillStyle = '#FFFFFF';
-            const flagSize = 10 * leftPost.scale;
-            ctx.fillRect(leftPost.x, leftPost.y + flagSize, flagSize * 1.5, flagSize);
-            ctx.fillRect(rightPost.x - flagSize * 1.5, rightPost.y + flagSize * 2, flagSize * 1.5, flagSize);
+            const flagSize = Math.max(2, 10 * leftPost.scale);
+            ctx.fillRect(leftPost.x, leftPost.y - postHeight * 0.7, flagSize * 1.5, flagSize);
+            ctx.fillRect(rightPost.x - flagSize * 1.5, rightPost.y - postHeight * 0.5, flagSize * 1.5, flagSize);
             
             ctx.strokeStyle = color;
-            ctx.lineWidth = 2 * leftPost.scale;
+            ctx.lineWidth = Math.max(1, 2 * leftPost.scale);
             ctx.beginPath();
             ctx.moveTo(leftPost.x, top.y);
             ctx.lineTo(rightPost.x, top.y);
@@ -532,8 +522,8 @@
             
             if (gate.passed && gate.z > -10 && gate.z < 30) {
                 const glowIntensity = (30 - Math.abs(gate.z - 10)) / 30;
-                ctx.strokeStyle = `rgba(100, 255, 100, ${glowIntensity * 0.5})`;
-                ctx.lineWidth = 10 * leftPost.scale;
+                ctx.strokeStyle = `rgba(46, 204, 113, ${glowIntensity * 0.5})`;
+                ctx.lineWidth = Math.max(2, 10 * leftPost.scale);
                 ctx.beginPath();
                 ctx.moveTo(leftPost.x, top.y);
                 ctx.lineTo(rightPost.x, top.y);
@@ -550,7 +540,7 @@
             const alpha = Math.min(1, s.life);
             ctx.globalAlpha = alpha;
             ctx.beginPath();
-            ctx.arc(proj.x, proj.y - s.y * proj.scale, size, 0, Math.PI * 2);
+            ctx.arc(proj.x, proj.y - s.y * proj.scale, Math.max(0.5, size), 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
@@ -561,6 +551,8 @@
         const proj = project(game.playerX, playerZ);
         const scale = proj.scale;
         
+        if (scale < 0.1) return;
+        
         if (game.boostTimer > 0) {
             ctx.strokeStyle = 'rgba(100, 200, 255, 0.5)';
             ctx.lineWidth = 5;
@@ -569,10 +561,17 @@
             ctx.stroke();
         }
         
-        const tilt = game.isTurning ? (game.turnTimer > 0 ? 0.3 : -0.3) * (keys.left ? -1 : 1) : 0;
+        let tilt = 0;
+        if (game.isTurning) {
+            tilt = (keys.left ? -0.35 : 0.35);
+        } else if (keys.left) {
+            tilt = -0.1;
+        } else if (keys.right) {
+            tilt = 0.1;
+        }
         
         ctx.save();
-        ctx.translate(proj.x, proj.y);
+        ctx.translate(proj.x, proj.y - 10 * scale);
         ctx.rotate(tilt);
         
         ctx.fillStyle = '#FF6B35';
@@ -585,45 +584,46 @@
         ctx.ellipse(0, -5 * scale, 10 * scale, 15 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = '#333';
+        ctx.fillStyle = '#2C3E50';
         ctx.beginPath();
-        ctx.arc(0, -25 * scale, 10 * scale, 0, Math.PI * 2);
+        ctx.arc(0, -28 * scale, 11 * scale, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = '#87CEEB';
-        ctx.beginPath();
-        ctx.arc(0, -23 * scale, 6 * scale, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = '#85C1E9';
+        ctx.fillRect(-7 * scale, -30 * scale, 14 * scale, 6 * scale);
+        ctx.fillStyle = '#5DADE2';
+        ctx.fillRect(-6 * scale, -29 * scale, 5 * scale, 4 * scale);
+        ctx.fillRect(1 * scale, -29 * scale, 5 * scale, 4 * scale);
         
-        ctx.fillStyle = '#2F4F4F';
-        const skiLength = 40 * scale;
+        ctx.fillStyle = '#1B4F72';
+        const skiLength = 45 * scale;
         const skiWidth = 4 * scale;
         
-        ctx.fillRect(-12 * scale, 20 * scale, skiWidth, skiLength);
-        ctx.fillRect(8 * scale, 20 * scale, skiWidth, skiLength);
+        ctx.fillRect(-13 * scale, 18 * scale, skiWidth, skiLength);
+        ctx.fillRect(9 * scale, 18 * scale, skiWidth, skiLength);
         
-        ctx.fillStyle = '#DDD';
-        ctx.fillRect(-12 * scale, 20 * scale + skiLength * 0.3, skiWidth, 2 * scale);
-        ctx.fillRect(8 * scale, 20 * scale + skiLength * 0.3, skiWidth, 2 * scale);
+        ctx.fillStyle = '#F2F3F4';
+        ctx.fillRect(-13 * scale, 18 * scale + skiLength * 0.3, skiWidth, 3 * scale);
+        ctx.fillRect(9 * scale, 18 * scale + skiLength * 0.3, skiWidth, 3 * scale);
         
         ctx.strokeStyle = '#8B4513';
-        ctx.lineWidth = 2 * scale;
+        ctx.lineWidth = Math.max(1, 2 * scale);
         ctx.beginPath();
-        ctx.moveTo(-15 * scale, -10 * scale);
-        ctx.lineTo(-25 * scale, 15 * scale);
+        ctx.moveTo(-16 * scale, -8 * scale);
+        ctx.lineTo(-28 * scale, 18 * scale);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.moveTo(15 * scale, -10 * scale);
-        ctx.lineTo(25 * scale, 15 * scale);
+        ctx.moveTo(16 * scale, -8 * scale);
+        ctx.lineTo(28 * scale, 18 * scale);
         ctx.stroke();
         
-        ctx.fillStyle = '#8B4513';
+        ctx.fillStyle = '#A0522D';
         ctx.beginPath();
-        ctx.arc(-25 * scale, 15 * scale, 3 * scale, 0, Math.PI * 2);
+        ctx.arc(-28 * scale, 18 * scale, Math.max(1, 3 * scale), 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(25 * scale, 15 * scale, 3 * scale, 0, Math.PI * 2);
+        ctx.arc(28 * scale, 18 * scale, Math.max(1, 3 * scale), 0, Math.PI * 2);
         ctx.fill();
         
         ctx.restore();
@@ -644,11 +644,8 @@
         for (let i = snowTrail.length - 1; i >= 0; i--) {
             const trail = snowTrail[i];
             trail.z -= game.speed * dt;
-            trail.alpha -= 0.02;
-            
-            if (trail.alpha <= 0 || trail.z > 300) {
-                snowTrail.splice(i, 1);
-            }
+            trail.alpha -= 0.015;
+            if (trail.alpha <= 0 || trail.z > 400) snowTrail.splice(i, 1);
         }
         
         for (let i = 0; i < snowTrail.length - 1; i++) {
@@ -658,8 +655,9 @@
             const p1 = project(t1.x, t1.z);
             const p2 = project(t2.x, t2.z);
             
-            ctx.strokeStyle = `rgba(200, 210, 220, ${t1.alpha * 0.5})`;
-            ctx.lineWidth = t1.width * p1.scale * 0.5;
+            const lineWidth = Math.max(1, t1.width * p1.scale * 0.4);
+            ctx.strokeStyle = `rgba(180, 190, 200, ${t1.alpha * 0.4})`;
+            ctx.lineWidth = lineWidth;
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
@@ -673,28 +671,28 @@
         const avalancheZ = game.avalanche.distance;
         const proj = project(0, avalancheZ);
         
-        const gradient = ctx.createLinearGradient(0, proj.y - 100, 0, proj.y + 100);
+        const gradient = ctx.createLinearGradient(0, Math.max(0, proj.y - 150), 0, Math.min(height, proj.y + 100));
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        gradient.addColorStop(0.3, 'rgba(200, 210, 220, 0.6)');
-        gradient.addColorStop(0.7, 'rgba(180, 190, 200, 0.8)');
+        gradient.addColorStop(0.3, 'rgba(200, 210, 220, 0.5)');
+        gradient.addColorStop(0.6, 'rgba(180, 190, 200, 0.75)');
         gradient.addColorStop(1, 'rgba(150, 160, 170, 0.9)');
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.moveTo(0, proj.y - 100);
-        ctx.quadraticCurveTo(width * 0.3, proj.y - 80, width * 0.5, proj.y - 100);
-        ctx.quadraticCurveTo(width * 0.7, proj.y - 120, width, proj.y - 80);
+        ctx.moveTo(0, Math.max(0, proj.y - 100));
+        ctx.quadraticCurveTo(width * 0.3, proj.y - 70, width * 0.5, proj.y - 90);
+        ctx.quadraticCurveTo(width * 0.7, proj.y - 110, width, proj.y - 60);
         ctx.lineTo(width, height);
         ctx.lineTo(0, height);
         ctx.closePath();
         ctx.fill();
         
-        for (let i = 0; i < 5; i++) {
-            const x = (Math.sin(Date.now() * 0.001 + i) * 0.3 + 0.5) * width;
-            const y = proj.y + Math.random() * 50;
-            const size = 30 + Math.random() * 50;
+        for (let i = 0; i < 8; i++) {
+            const x = (Math.sin(Date.now() * 0.002 + i * 0.8) * 0.3 + 0.5) * width;
+            const y = proj.y + Math.random() * 60 - 20;
+            const size = 25 + Math.random() * 45;
             
-            ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + Math.random() * 0.3})`;
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.25 + Math.random() * 0.3})`;
             ctx.beginPath();
             ctx.arc(x, y, size, 0, Math.PI * 2);
             ctx.fill();
@@ -703,43 +701,36 @@
 
     function updatePlayer() {
         const dt = 1 / 60;
-        const moveSpeed = 250;
+        const moveSpeed = 280;
         
         if (game.isTurning) {
             game.turnTimer -= dt;
-            if (game.turnTimer <= 0) {
-                game.isTurning = false;
-            }
+            if (game.turnTimer <= 0) game.isTurning = false;
         }
         
         if (keys.space && !game.isTurning && game.speed > 50) {
             game.isTurning = true;
             game.turnTimer = 0.5;
-            game.speed *= 0.7;
-            
-            if (keys.left) {
-                game.targetPlayerX -= 30;
-            } else if (keys.right) {
-                game.targetPlayerX += 30;
-            }
+            game.speed *= 0.65;
+            if (keys.left) game.targetPlayerX -= 25;
+            else if (keys.right) game.targetPlayerX += 25;
         }
         
         let dir = 0;
         if (keys.left) dir -= 1;
         if (keys.right) dir += 1;
         
-        const speedMultiplier = game.isTurning ? 0.3 : 1;
+        const speedMultiplier = game.isTurning ? 0.25 : 1;
         game.targetPlayerX += dir * moveSpeed * dt * speedMultiplier;
         
         const maxX = ROAD_WIDTH * 0.55;
         game.targetPlayerX = Math.max(-maxX, Math.min(maxX, game.targetPlayerX));
         
-        game.playerX += (game.targetPlayerX - game.playerX) * 10 * dt;
+        game.playerX += (game.targetPlayerX - game.playerX) * 12 * dt;
     }
 
     function updateSpeed() {
         const dt = 1 / 60;
-        
         let targetSpeed = game.baseSpeed * (game.slopeLevel === 2 ? 2 : 1);
         
         if (game.boostTimer > 0) {
@@ -752,11 +743,9 @@
             targetSpeed *= 0.6;
         }
         
-        if (game.isTurning) {
-            targetSpeed *= 0.7;
-        }
+        if (game.isTurning) targetSpeed *= 0.7;
         
-        const accel = game.slopeLevel === 2 ? 80 : 40;
+        const accel = game.slopeLevel === 2 ? 90 : 50;
         if (game.speed < targetSpeed) {
             game.speed += accel * dt;
         } else {
@@ -764,10 +753,7 @@
         }
         
         game.speed = Math.max(30, game.speed);
-        
-        if (game.speed > game.maxSpeed) {
-            game.maxSpeed = game.speed;
-        }
+        if (game.speed > game.maxSpeed) game.maxSpeed = game.speed;
     }
 
     function updateSlope() {
@@ -808,10 +794,7 @@
             }
         } else {
             av.distance += (av.speed - game.speed) * dt * 0.5;
-            
-            if (av.distance > 200) {
-                av.distance = 200;
-            }
+            if (av.distance > 200) av.distance = 200;
             
             if (av.distance < 10) {
                 gameOver();
@@ -836,6 +819,74 @@
         distanceValue.textContent = Math.floor(game.distance);
     }
 
+    function saveGameState() {
+        if (gameState !== 'playing') {
+            localStorage.removeItem(STORAGE_KEY);
+            return;
+        }
+        
+        const state = {
+            game: {
+                score: game.score,
+                distance: game.distance,
+                speed: game.speed,
+                maxSpeed: game.maxSpeed,
+                playerX: game.playerX,
+                targetPlayerX: game.targetPlayerX,
+                gatesPassed: game.gatesPassed,
+                slopeLevel: game.slopeLevel,
+                slopeZ: game.slopeZ,
+                isTurning: game.isTurning,
+                turnTimer: game.turnTimer,
+                boostTimer: game.boostTimer,
+                slowTimer: game.slowTimer,
+                avalanche: { ...game.avalanche }
+            },
+            trees: trees.map(t => ({ ...t })),
+            rocks: rocks.map(r => ({ ...r })),
+            gates: gates.map(g => ({ ...g })),
+            timestamp: Date.now()
+        };
+        
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+            console.warn('Failed to save game state:', e);
+        }
+    }
+
+    function loadGameState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return false;
+            
+            const state = JSON.parse(raw);
+            if (!state || !state.game) return false;
+            
+            const elapsed = (Date.now() - state.timestamp) / 1000;
+            if (elapsed > 120) {
+                localStorage.removeItem(STORAGE_KEY);
+                return false;
+            }
+            
+            Object.assign(game, state.game);
+            trees.length = 0;
+            rocks.length = 0;
+            gates.length = 0;
+            snowShakes.length = 0;
+            snowTrail.length = 0;
+            
+            state.trees.forEach(t => trees.push({ ...t }));
+            state.rocks.forEach(r => rocks.push({ ...r }));
+            state.gates.forEach(g => gates.push({ ...g }));
+            
+            return true;
+        } catch (e) {
+            console.warn('Failed to load game state:', e);
+            return false;
+        }
+    }
+
     function resetGame() {
         game.score = 0;
         game.distance = 0;
@@ -843,7 +894,6 @@
         game.maxSpeed = game.baseSpeed;
         game.playerX = 0;
         game.targetPlayerX = 0;
-        game.playerLane = 2;
         game.gatesPassed = 0;
         game.slopeLevel = 1;
         game.slopeZ = 0;
@@ -863,26 +913,28 @@
         snowTrail.length = 0;
         
         avalancheWarning.classList.add('hidden');
-        
         initSnowflakes();
         
-        for (let i = 0; i < 15; i++) {
-            const side = Math.random() < 0.5 ? -1 : 1;
-            const offset = ROAD_WIDTH * 0.5 + 20 + Math.random() * 40;
+        for (let i = 0; i < 12; i++) {
+            const side = i % 2 === 0 ? -1 : 1;
+            const offset = ROAD_WIDTH * 0.5 + 25 + Math.random() * 30;
             trees.push({
                 x: side * offset,
-                z: 100 + i * 40 + Math.random() * 20,
+                z: 120 + i * 45,
                 type: Math.floor(Math.random() * 3),
                 height: 30 + Math.random() * 20,
                 shaking: false,
                 shakeTimer: 0
             });
         }
+        
+        localStorage.removeItem(STORAGE_KEY);
     }
 
     function gameOver() {
         gameState = 'gameover';
         cancelAnimationFrame(animationId);
+        localStorage.removeItem(STORAGE_KEY);
         
         finalScore.textContent = Math.floor(game.score);
         finalDistance.textContent = Math.floor(game.distance) + ' m';
@@ -896,11 +948,40 @@
         submitScoreBtn.textContent = '提交成绩';
     }
 
-    function startGame() {
-        const playerName = playerNameInput.value.trim() || '匿名玩家';
+    function validatePlayerName() {
+        const name = playerNameInput.value.trim();
+        if (!name) {
+            playerNameInput.style.borderColor = '#E74C3C';
+            playerNameInput.focus();
+            
+            let shakeCount = 0;
+            const originalLeft = playerNameInput.style.marginLeft || '0px';
+            const shakeInterval = setInterval(() => {
+                if (shakeCount >= 6) {
+                    clearInterval(shakeInterval);
+                    playerNameInput.style.marginLeft = originalLeft;
+                    return;
+                }
+                playerNameInput.style.marginLeft = (shakeCount % 2 === 0 ? '-5px' : '5px');
+                shakeCount++;
+            }, 50);
+            
+            return false;
+        }
+        playerNameInput.style.borderColor = '';
+        return true;
+    }
+
+    function startGame(restoreState = false) {
+        if (!validatePlayerName()) return;
+        
+        const playerName = playerNameInput.value.trim();
         localStorage.setItem('skiPlayerName', playerName);
         
-        resetGame();
+        if (!restoreState) {
+            resetGame();
+        }
+        
         startScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
         rankingScreen.classList.add('hidden');
@@ -917,7 +998,7 @@
         updateSlope();
         updateSnowflakes();
         updateSnowShakes();
-        updateSnowTrail();
+        drawSnowTrail();
         spawnEnvironment();
         updateEnvironment();
         updateAvalanche();
@@ -929,6 +1010,7 @@
         }
         
         render();
+        saveGameState();
         
         animationId = requestAnimationFrame(gameLoop);
     }
@@ -949,7 +1031,8 @@
     }
 
     async function submitScore() {
-        const playerName = playerNameInput.value.trim() || '匿名玩家';
+        const playerName = playerNameInput.value.trim();
+        if (!playerName) return;
         
         submitScoreBtn.disabled = true;
         submitScoreBtn.textContent = '提交中...';
@@ -957,9 +1040,7 @@
         try {
             const response = await fetch('/api/skigame/score/set', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     player_name: playerName,
                     score: Math.floor(game.score),
@@ -1032,37 +1113,24 @@
     }
 
     function handleKeyDown(e) {
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-            keys.left = true;
-        }
-        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-            keys.right = true;
-        }
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === ' ') {
             keys.space = true;
             e.preventDefault();
         }
-        if (e.key === 'Enter' && gameState === 'menu') {
-            startGame();
-        }
+        if (e.key === 'Enter' && gameState === 'menu') startGame();
     }
 
     function handleKeyUp(e) {
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-            keys.left = false;
-        }
-        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-            keys.right = false;
-        }
-        if (e.key === ' ') {
-            keys.space = false;
-        }
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+        if (e.key === ' ') keys.space = false;
     }
 
     function handleTouchStart(e) {
         const touch = e.touches[0];
         const x = touch.clientX;
-        
         if (x < width / 2) {
             keys.left = true;
             keys.right = false;
@@ -1087,19 +1155,27 @@
         canvas.addEventListener('touchstart', handleTouchStart);
         canvas.addEventListener('touchend', handleTouchEnd);
         
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
+        startBtn.addEventListener('click', () => startGame(false));
+        restartBtn.addEventListener('click', () => startGame(false));
+        
         backMenuBtn.addEventListener('click', () => {
             gameOverScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
             gameState = 'menu';
+            localStorage.removeItem(STORAGE_KEY);
         });
+        
         showRankingBtn.addEventListener('click', showRanking);
         backFromRankingBtn.addEventListener('click', () => {
             rankingScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
         });
+        
         submitScoreBtn.addEventListener('click', submitScore);
+        
+        playerNameInput.addEventListener('input', () => {
+            playerNameInput.style.borderColor = '';
+        });
         
         const savedName = localStorage.getItem('skiPlayerName');
         if (savedName) {
@@ -1109,9 +1185,58 @@
         initSnowflakes();
         gameState = 'menu';
         
-        ctx.fillStyle = '#87CEEB';
-        ctx.fillRect(0, 0, width, height);
+        const hasSavedState = localStorage.getItem(STORAGE_KEY);
+        if (hasSavedState) {
+            if (confirm('检测到未完成的游戏进度，是否继续？')) {
+                const loaded = loadGameState();
+                if (loaded) {
+                    if (!savedName) {
+                        startScreen.classList.remove('hidden');
+                        drawMenuBackground();
+                        return;
+                    }
+                    startGame(true);
+                    return;
+                }
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        }
+        
+        drawMenuBackground();
+    }
+
+    function drawMenuBackground() {
+        ctx.clearRect(0, 0, width, height);
+        drawSkyAndMountains();
+        drawSlope();
+        
+        const tempTrees = [];
+        for (let i = 0; i < 15; i++) {
+            tempTrees.push({
+                x: (i % 2 === 0 ? -1 : 1) * (ROAD_WIDTH * 0.5 + 25 + Math.random() * 30),
+                z: 100 + i * 40,
+                height: 30 + Math.random() * 20,
+                shaking: false
+            });
+        }
+        
+        const oldTrees = [...trees];
+        trees.length = 0;
+        tempTrees.forEach(t => trees.push(t));
+        drawTrees();
+        trees.length = 0;
+        oldTrees.forEach(t => trees.push(t));
+        
+        drawSnowflakes();
     }
 
     init();
+    
+    setInterval(() => {
+        if (gameState === 'menu') {
+            updateSnowflakes();
+            drawMenuBackground();
+        }
+    }, 1000 / 30);
 })();
