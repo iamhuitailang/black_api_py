@@ -26,6 +26,12 @@
         </div>
       </div>
       <div class="header-right">
+        <button @click="forceStartGame" class="btn-force" title="强制启动游戏循环">
+          ⚡ 强制启动
+        </button>
+        <button @click="handleClearSave" class="btn-clear" title="清除所有存档">
+          🗑️ 清档
+        </button>
         <button @click="skipTime" class="btn-skip" :disabled="isPaused || isGameOver">
           ⏩ 快进
         </button>
@@ -168,6 +174,51 @@
         <button @click="startNewGame" class="btn-start">开始守城</button>
       </div>
     </div>
+
+    <div class="debug-panel">
+      <div class="debug-header" @click="showDebug = !showDebug">
+        <span>🔧 调试面板</span>
+        <span>{{ showDebug ? '▼' : '▶' }}</span>
+      </div>
+      <div v-show="showDebug" class="debug-content">
+        <div class="debug-item">
+          <span class="debug-label">gameState ID:</span>
+          <span class="debug-value">{{ gameState?.id ?? 'null' }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">Day:</span>
+          <span class="debug-value">{{ gameState?.day ?? '-' }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">Phase:</span>
+          <span class="debug-value">{{ gameState?.phase ?? '-' }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">Time:</span>
+          <span class="debug-value">{{ (gameState?.time_of_day ?? 0).toFixed(3) }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">is_game_over:</span>
+          <span class="debug-value">{{ gameState?.is_game_over }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">isRunning:</span>
+          <span class="debug-value" :class="{ 'ok': isRunning, 'bad': !isRunning }">{{ isRunning }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">isPaused:</span>
+          <span class="debug-value" :class="{ 'bad': isPaused, 'ok': !isPaused }">{{ isPaused }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">tickCount:</span>
+          <span class="debug-value">{{ tickCount }}</span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">建筑数:</span>
+          <span class="debug-value">{{ buildings.length }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -202,12 +253,15 @@ const {
   selectBuildingType: setSelectedBuildingType,
   getWormPositions,
   startGameLoop,
-  stopGameLoop
+  stopGameLoop,
+  forceStartGame,
+  clearSave
 } = gameStore;
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const canvasWidth = 800;
 const canvasHeight = 500;
 const showStartScreen = ref(true);
+const showDebug = ref(true);
 const mousePosition = ref({ x: -1, y: -1 });
 const animationFrameId = ref<number | null>(null);
 const enemies = ref<any[]>([]);
@@ -302,8 +356,17 @@ async function craftOil() {
  }
 }
 async function startNewGame() {
+  console.log('[startNewGame] 点击开始按钮')
   showStartScreen.value = false;
   await newGame();
+  console.log('[startNewGame] newGame 完成, isRunning=', isRunning.value)
+}
+
+function handleClearSave() {
+  if (confirm('确定要清除所有存档并重新开始吗？')) {
+    clearSave()
+    showStartScreen.value = true
+  }
 }
 
 async function skipTime() {
@@ -949,6 +1012,36 @@ watch(() => gameState.value?.id, (newId) => {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.btn-force {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-force:hover {
+  background: rgba(76, 175, 80, 0.5);
+}
+
+.btn-clear {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(244, 67, 54, 0.3);
+  color: #f44336;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-clear:hover {
+  background: rgba(244, 67, 54, 0.5);
+}
+
 .game-main {
   position: relative;
   z-index: 5;
@@ -1316,5 +1409,63 @@ watch(() => gameState.value?.id, (newId) => {
 
 .night-mode {
   filter: brightness(0.9);
+}
+
+.debug-panel {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: monospace;
+  font-size: 12px;
+  min-width: 280px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.debug-content {
+  padding: 12px;
+}
+
+.debug-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.debug-item:last-child {
+  border-bottom: none;
+}
+
+.debug-label {
+  color: #aaa;
+}
+
+.debug-value {
+  color: #fff;
+  font-weight: bold;
+}
+
+.debug-value.ok {
+  color: #4caf50;
+}
+
+.debug-value.bad {
+  color: #f44336;
 }
 </style>

@@ -94,40 +94,63 @@ export const useGameStore = defineStore('game', () => {
   const isGameOver = computed(() => gameState.value?.is_game_over === 1)
 
   async function newGame() {
+    console.log('[newGame] === 开始新游戏 ===')
     try {
       const response = await axios.post(`${API_BASE}/fortress/newgame`)
+      console.log('[newGame] API 返回:', response.data)
+      
       const data = response.data.data
+      if (!data || !data.state) {
+        console.error('[newGame] 返回数据无效:', data)
+        throw new Error('API 返回数据无效')
+      }
+      
       updateGameData(data)
+      console.log('[newGame] gameState 已设置:', gameState.value)
+      
       if (data.state?.id) {
         localStorage.setItem(STORAGE_KEY, String(data.state.id))
+        console.log('[newGame] 已保存存档 ID:', data.state.id)
       }
+      
+      isPaused.value = false
+      console.log('[newGame] 调用 startGameLoop')
       startGameLoop()
+      
       return response.data
     } catch (error) {
-      console.error('Failed to create new game:', error)
+      console.error('[newGame] 失败:', error)
       throw error
     }
   }
 
   async function getGameState(stateId?: number) {
+    console.log('[getGameState] 调用, stateId:', stateId)
     try {
       const params = stateId ? { state_id: stateId } : {}
       const response = await axios.get(`${API_BASE}/fortress/getstate`, { params })
+      console.log('[getGameState] API 返回:', response.data)
+      
       if (response.data.data) {
         updateGameData(response.data.data)
+        console.log('[getGameState] gameState 已设置:', gameState.value)
+        
         if (response.data.data.state?.id) {
           localStorage.setItem(STORAGE_KEY, String(response.data.data.state.id))
+          console.log('[getGameState] 已保存存档 ID:', response.data.data.state.id)
         }
+        
         startGameLoop()
       }
       return response.data
     } catch (error) {
-      console.error('Failed to get game state:', error)
+      console.error('[getGameState] 失败:', error)
       throw error
     }
   }
 
   async function autoLoadGame(): Promise<boolean> {
+    console.log('[autoLoadGame] === 自动加载存档 ===')
     const savedId = localStorage.getItem(STORAGE_KEY)
     if (!savedId) {
       console.log('[autoLoadGame] 没有保存的游戏ID')
@@ -138,11 +161,11 @@ export const useGameStore = defineStore('game', () => {
       console.log('[autoLoadGame] 尝试加载存档 ID:', savedId)
       await getGameState(parseInt(savedId, 10))
       
-      if (gameState.value) {
+      if (gameState.value && gameState.value.is_game_over !== 1) {
         console.log('[autoLoadGame] 加载成功，当前天数:', gameState.value.day)
         return true
       } else {
-        console.log('[autoLoadGame] 加载失败：gameState 为空')
+        console.log('[autoLoadGame] 加载失败：gameState 为空或游戏已结束')
         localStorage.removeItem(STORAGE_KEY)
         return false
       }
@@ -184,7 +207,14 @@ export const useGameStore = defineStore('game', () => {
   }
 
   async function advanceTime(delta: number = 0.05) {
-    if (!gameState.value || gameState.value.is_game_over) return
+    if (!gameState.value) {
+      console.log('[advanceTime] 跳过: gameState 为空')
+      return
+    }
+    if (gameState.value.is_game_over === 1) {
+      console.log('[advanceTime] 跳过: 游戏已结束')
+      return
+    }
     
     try {
       const response = await axios.post(`${API_BASE}/fortress/advancetime`, {
@@ -198,7 +228,7 @@ export const useGameStore = defineStore('game', () => {
       
       return response.data
     } catch (error) {
-      console.error('Failed to advance time:', error)
+      console.error('[advanceTime] 失败:', error)
       throw error
     }
   }
@@ -259,20 +289,35 @@ export const useGameStore = defineStore('game', () => {
   let isAdvancingTime = false
 
   async function tickGameLoop() {
-    if (!isPaused.value && gameState.value && !gameState.value.is_game_over) {
-      if (!isAdvancingTime) {
-        isAdvancingTime = true
-        try {
-          await advanceTime(0.05)
-          tickCount.value++
-          lastTickTime.value = Date.now()
-        } catch (e) {
-          console.error('[gameLoop] tick error:', e)
-        } finally {
-          isAdvancingTime = false
-        }
+    console.log('[tickGameLoop] === 触发一次 tick ===')
+    console.log('[tickGameLoop] isPaused=', isPaused.value, 
+                'gameState exists=', !!gameState.value,
+                'is_game_over=', gameState.value?.is_game_over,
+                'isAdvancingTime=', isAdvancingTime)
+    
+    const canRun = !isPaused.value 
+                && gameState.value !== null 
+                && gameState.value.is_game_over !== 1
+                && !isAdvancingTime
+    
+    console.log('[tickGameLoop] canRun=', canRun)
+    
+    if (canRun) {
+      isAdvancingTime = true
+      try {
+        console.log('[tickGameLoop] 调用 advanceTime(0.05)')
+        await advanceTime(0.05)
+        tickCount.value++
+        lastTickTime.value = Date.now()
+        console.log('[tickGameLoop] tick 完成, count=', tickCount.value, 
+                    'time=', gameState.value?.time_of_day)
+      } catch (e) {
+        console.error('[tickGameLoop] tick error:', e)
+      } finally {
+        isAdvancingTime = false
       }
     }
+    
     gameLoopTimeoutId = window.setTimeout(tickGameLoop, 300)
   }
 
@@ -294,6 +339,29 @@ export const useGameStore = defineStore('game', () => {
 
   function togglePause() {
     isPaused.value = !isPaused.value
+    console.log('[togglePause] isPaused=', isPaused.value)
+  }
+
+  function forceStartGame() {
+    console.log('[forceStartGame] === 强制启动游戏 ===')
+    isPaused.value = false
+    if (!gameState.value) {
+      console.log('[forceStartGame] gameState 为空，先新建游戏')
+      newGame()
+    } else {
+      console.log('[forceStartGame] gameState 存在，直接启动循环')
+      startGameLoop()
+    }
+  }
+
+  function clearSave() {
+    console.log('[clearSave] 清除存档')
+    localStorage.removeItem(STORAGE_KEY)
+    stopGameLoop()
+    gameState.value = null
+    buildings.value = []
+    activeWave.value = null
+    logs.value = []
   }
 
   function selectBuildingType(type: string | null) {
@@ -325,6 +393,8 @@ export const useGameStore = defineStore('game', () => {
     startGameLoop,
     stopGameLoop,
     togglePause,
-    selectBuildingType
+    selectBuildingType,
+    forceStartGame,
+    clearSave
   }
 })
