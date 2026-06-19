@@ -7,6 +7,61 @@ class AuthBusiness:
         self.user_model = UserModel()
         self.token_model = TokenModel()
 
+    def register(self, username: str, password: str) -> Dict[str, Any]:
+        if not username or not username.strip():
+            return {
+                'code': 1,
+                'message': '用户名不能为空',
+                'data': None
+            }
+        
+        if not password or not password.strip():
+            return {
+                'code': 1,
+                'message': '密码不能为空',
+                'data': None
+            }
+        
+        if len(username) < 3:
+            return {
+                'code': 1,
+                'message': '用户名至少3个字符',
+                'data': None
+            }
+        
+        if len(password) < 6:
+            return {
+                'code': 1,
+                'message': '密码至少6个字符',
+                'data': None
+            }
+        
+        existing_user = self.user_model.get_by_username(username.strip())
+        if existing_user:
+            return {
+                'code': 1,
+                'message': '用户名已存在',
+                'data': None
+            }
+        
+        try:
+            user_id = self.user_model.create(username.strip(), password)
+            
+            return {
+                'code': 0,
+                'message': '注册成功',
+                'data': {
+                    'id': user_id,
+                    'username': username.strip()
+                }
+            }
+        except Exception as e:
+            return {
+                'code': 1,
+                'message': str(e),
+                'data': None
+            }
+    
     def login(self, username: str, password: str) -> Dict[str, Any]:
         if not username or not username.strip():
             return {

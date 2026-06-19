@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邻里快递 - 小区快递代收平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-inner">
+                <div class="logo" onclick="navigateTo('home')">
+                    <div class="logo-icon">📦</div>
+                    <span>邻里快递</span>
+                </div>
+                <nav class="nav" id="navMenu">
+                    <div class="nav-item active" data-page="home" onclick="navigateTo('home')">首页</div>
+                    <div class="nav-item" data-page="rank" onclick="navigateTo('rank')">排行榜</div>
+                    <div class="nav-item" data-page="profile" onclick="navigateTo('profile')">我的</div>
+                </nav>
+                <div class="user-area" id="userArea">
+                    <button class="btn btn-primary btn-sm" onclick="showLoginModal()">登录</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="container" id="pageContainer">
+            </div>
+        </main>
+
+        <button class="fab" id="fabBtn" onclick="showCreateOrderModal()" title="发布代收">
+            +
+        </button>
+    </div>
+
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="loginModalTitle">登录</h3>
+                <button class="modal-close" onclick="hideLoginModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-logo" style="margin-bottom: 24px;">
+                    <div class="auth-logo-icon" style="width: 48px; height: 48px; font-size: 24px; margin-bottom: 12px;">📦</div>
+                    <h2 style="font-size: 18px;">欢迎使用邻里快递</h2>
+                </div>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label">用户名<span class="required">*</span></label>
+                        <input type="text" class="form-control" id="loginUsername" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密码<span class="required">*</span></label>
+                        <input type="password" class="form-control" id="loginPassword" placeholder="请输入密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+                        <span id="loginBtnText">登录</span>
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    没有账号？<a onclick="toggleAuthMode()">立即注册</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="createOrderModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">发布代收请求</h3>
+                <button class="modal-close" onclick="hideCreateOrderModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createOrderForm" onsubmit="handleCreateOrder(event)">
+                    <div class="form-group">
+                        <label class="form-label">快递公司<span class="required">*</span></label>
+                        <select class="form-control" id="courierCompany" required>
+                            <option value="">请选择快递公司</option>
+                            <option value="顺丰速运">顺丰速运</option>
+                            <option value="京东物流">京东物流</option>
+                            <option value="中通快递">中通快递</option>
+                            <option value="圆通速递">圆通速递</option>
+                            <option value="申通快递">申通快递</option>
+                            <option value="韵达快递">韵达快递</option>
+                            <option value="百世快递">百世快递</option>
+                            <option value="邮政EMS">邮政EMS</option>
+                            <option value="极兔速递">极兔速递</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">取件地点<span class="required">*</span></label>
+                        <input type="text" class="form-control" id="pickupLocation" placeholder="如：小区东门菜鸟驿站、3号楼快递柜" required>
+                    </div>
+                    <div class="form-row" style="display: flex; gap: 16px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">预计到达时间<span class="required">*</span></label>
+                            <input type="datetime-local" class="form-control" id="estimatedArrival" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">取件截止时间<span class="required">*</span></label>
+                            <input type="datetime-local" class="form-control" id="pickupDeadline" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">报酬金额（元）<span class="required">*</span></label>
+                        <input type="number" class="form-control" id="reward" min="0" step="0.5" placeholder="请输入报酬金额" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">取件码</label>
+                        <input type="text" class="form-control" id="pickupCode" placeholder="选填，快递柜取件码">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="remark" placeholder="选填，如快递大小、特殊要求等"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideCreateOrderModal()">取消</button>
+                <button class="btn btn-primary" onclick="handleCreateOrder(event)">发布</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="orderDetailModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">订单详情</h3>
+                <button class="modal-close" onclick="hideOrderDetailModal()">×</button>
+            </div>
+            <div class="modal-body" id="orderDetailBody">
+            </div>
+            <div class="modal-footer" id="orderDetailFooter">
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
