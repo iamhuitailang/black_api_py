@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>悬浮飞艇竞速 - Neon Circuit</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="hud">
+            <div class="hud-left">
+                <div class="hud-item">
+                    <span class="hud-label">SPEED</span>
+                    <span id="speedValue" class="hud-value">0</span>
+                    <span class="hud-unit">KM/H</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">LAP</span>
+                    <span id="lapValue" class="hud-value">1</span>
+                    <span class="hud-unit">/ 3</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">POSITION</span>
+                    <span id="positionValue" class="hud-value">1</span>
+                    <span class="hud-unit">/ 4</span>
+                </div>
+            </div>
+            <div class="hud-center">
+                <div id="timer" class="timer">00:00.000</div>
+                <div id="lapTimer" class="lap-timer">LAP: 00:00.000</div>
+            </div>
+            <div class="hud-right">
+                <div class="hud-item">
+                    <span class="hud-label">BEST LAP</span>
+                    <span id="bestLapValue" class="hud-value">--:--.---</span>
+                </div>
+                <div id="shieldStatus" class="shield-status">
+                    <div class="shield-icon">🛡️</div>
+                    <span id="shieldCount" class="shield-count">0</span>
+                </div>
+                <div id="boostStatus" class="boost-status">
+                    <div class="boost-bar">
+                        <div id="boostFill" class="boost-fill"></div>
+                    </div>
+                    <span class="boost-label">BOOST</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <div class="screen-content">
+                <h1 class="game-title">NEON CIRCUIT</h1>
+                <p class="game-subtitle">悬浮飞艇竞速</p>
+                <div class="player-input">
+                    <label for="playerName">玩家名称</label>
+                    <input type="text" id="playerName" value="Player" maxlength="20">
+                </div>
+                <div class="difficulty-select">
+                    <label>赛道难度</label>
+                    <div class="difficulty-buttons">
+                        <button class="diff-btn active" data-diff="easy">简单</button>
+                        <button class="diff-btn" data-diff="normal">普通</button>
+                        <button class="diff-btn" data-diff="hard">困难</button>
+                    </div>
+                </div>
+                <button id="startBtn" class="neon-button">开始比赛</button>
+                <div class="controls-info">
+                    <p><span class="key">←</span><span class="key">→</span> 左右变道</p>
+                    <p><span class="key">↑</span> 加速 <span class="key">↓</span> 减速</p>
+                    <p><span class="key">SPACE</span> 加速冲刺</p>
+                </div>
+                <button id="showLeaderboardBtn" class="text-button">排行榜</button>
+            </div>
+        </div>
+
+        <div id="countdownScreen" class="screen hidden">
+            <div id="countdownNumber" class="countdown-number">3</div>
+        </div>
+
+        <div id="gameOverScreen" class="screen hidden">
+            <div class="screen-content">
+                <h2 class="result-title">比赛结束</h2>
+                <div class="result-stats">
+                    <div class="result-item">
+                        <span class="result-label">最终名次</span>
+                        <span id="finalPosition" class="result-value">1st</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">总时间</span>
+                        <span id="finalTime" class="result-value">00:00.000</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">最佳圈速</span>
+                        <span id="finalBestLap" class="result-value">00:00.000</span>
+                    </div>
+                </div>
+                <div id="newRecord" class="new-record hidden">🏆 新纪录！</div>
+                <button id="restartBtn" class="neon-button">再来一局</button>
+                <button id="backToMenuBtn" class="text-button">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="leaderboardScreen" class="screen hidden">
+            <div class="screen-content">
+                <h2 class="result-title">排行榜</h2>
+                <div class="leaderboard-tabs">
+                    <button class="tab-btn active" data-tab="lap">最快圈速</button>
+                    <button class="tab-btn" data-tab="race">最快完赛</button>
+                </div>
+                <div id="leaderboardList" class="leaderboard-list">
+                    <div class="loading">加载中...</div>
+                </div>
+                <button id="closeLeaderboardBtn" class="text-button">返回</button>
+            </div>
+        </div>
+
+        <div id="pauseScreen" class="screen hidden">
+            <div class="screen-content">
+                <h2 class="result-title">暂停</h2>
+                <button id="resumeBtn" class="neon-button">继续游戏</button>
+                <button id="quitBtn" class="text-button">退出比赛</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>

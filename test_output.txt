@@ -1,0 +1,14 @@
+=== Testing Backend ===
+Running database migrations...
+Database initialized successfully
+✓ Database initialized
+✓ Register player: success
+  Player ID: 1
+✓ Get player info: success
+✓ Submit race: Race result submitted successfully
+✓ Leaderboard entries: 2
+✓ Fastest races: 2
+✓ Player history - races: 2, laps: 6
+✓ Recent races: 2
+
+=== All tests passed! ===
