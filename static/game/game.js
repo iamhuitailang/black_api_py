@@ -1028,10 +1028,16 @@ class Game {
         this.bossSpawned = { 300: false, 600: false, 900: false };
         
         this.savedGameData = null;
+        this.lastApiSaveTime = 0;
         
         this.setupEventListeners();
         this.gameLoop = this.gameLoop.bind(this);
         this.loadPlayerFromStorage();
+        
+        window.addEventListener('beforeunload', () => {
+            this.saveGameStateToStorage();
+            this.saveToApi(true);
+        });
     }
 
     setupEventListeners() {
@@ -1103,7 +1109,8 @@ class Game {
     }
 
     saveGameStateToStorage() {
-        if (!this.player || this.state !== GameState.PLAYING) return;
+        if (!this.player) return;
+        if (this.state !== GameState.PLAYING && this.state !== GameState.PAUSED) return;
         try {
             const state = {
                 playerId: this.playerId,
@@ -1116,7 +1123,8 @@ class Game {
                 kills: this.player.kills,
                 playTime: this.getPlayTime(),
                 lastCheckpoint: this.lastCheckpoint,
-                bossSpawned: this.bossSpawned
+                bossSpawned: this.bossSpawned,
+                stateAtSave: this.state
             };
             localStorage.setItem('game_state', JSON.stringify(state));
         } catch (e) {
@@ -1144,9 +1152,38 @@ class Game {
         }
     }
 
+    saveToApi(force = false) {
+        if (!this.player || !this.saveId || this.state !== GameState.PLAYING) return;
+        
+        const now = Date.now();
+        if (!force && now - this.lastApiSaveTime < 5000) return;
+        this.lastApiSaveTime = now;
+        
+        try {
+            const data = {
+                game_save_id: this.saveId,
+                distance: this.player.distance,
+                health: this.player.health,
+                ammo: this.player.ammo,
+                total_ammo: this.player.totalAmmo,
+                kills: this.player.kills,
+                play_time: this.getPlayTime()
+            };
+            
+            fetch(`${API_BASE}/game/state`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+                keepalive: true
+            }).catch(() => {});
+        } catch (e) {
+            // silent fail for background saves
+        }
+    }
+
     async hasActiveGame() {
         const savedState = this.loadGameStateFromStorage();
-        if (savedState && savedState.playerId && savedState.distance > 0) {
+        if (savedState && savedState.playerId && savedState.saveId) {
             this.playerId = savedState.playerId;
             this.playerName = savedState.playerName;
             document.getElementById('playerName').value = savedState.playerName;
@@ -1155,7 +1192,7 @@ class Game {
         
         if (this.playerId) {
             const saveData = await this.getActiveSave();
-            if (saveData && saveData.current_distance > 0) {
+            if (saveData && saveData.save_id) {
                 return true;
             }
         }
@@ -1279,6 +1316,7 @@ class Game {
         let playTime = 0;
         let saveId = this.saveId;
         let bossSpawned = { 300: false, 600: false, 900: false };
+        let lastCheckpoint = 0;
         
         if (saveData) {
             if (saveData.current_distance !== undefined) {
@@ -1289,6 +1327,7 @@ class Game {
                 kills = saveData.current_kills;
                 playTime = saveData.play_time;
                 saveId = saveData.save_id;
+                lastCheckpoint = distance;
                 
                 if (saveData.checkpoints) {
                     saveData.checkpoints.forEach(cp => {
@@ -1315,7 +1354,7 @@ class Game {
                     bossSpawned = { ...bossSpawned, ...saveData.bossSpawned };
                 }
                 if (saveData.lastCheckpoint !== undefined) {
-                    this.lastCheckpoint = saveData.lastCheckpoint;
+                    lastCheckpoint = saveData.lastCheckpoint;
                 }
             }
         }
@@ -1336,7 +1375,7 @@ class Game {
         this.bosses = [];
         this.particles = new ParticleSystem();
         this.worldOffset = Math.max(0, startX - CONFIG.CANVAS_WIDTH * 0.3);
-        this.lastCheckpoint = distance;
+        this.lastCheckpoint = lastCheckpoint;
         this.saveId = saveId;
         this.gameStartTime = Date.now() - playTime * 1000;
         this.currentBoss = null;
@@ -1741,8 +1780,9 @@ class Game {
         
         if (this.state === GameState.PLAYING) {
             this.saveCounter = (this.saveCounter || 0) + 1;
-            if (this.saveCounter >= 60) {
+            if (this.saveCounter >= 30) {
                 this.saveGameStateToStorage();
+                this.saveToApi();
                 this.saveCounter = 0;
             }
         }
@@ -1763,13 +1803,14 @@ class Game {
     async continueGame() {
         const localState = this.loadGameStateFromStorage();
         
-        if (localState && localState.playerId && localState.distance > 0) {
+        if (localState && localState.playerId && localState.saveId) {
             this.playerId = localState.playerId;
             this.playerName = localState.playerName;
             this.saveId = localState.saveId;
             
             this.state = GameState.PLAYING;
             this.initGame(localState);
+            this.updateUI();
             
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('leaderboardScreen').classList.add('hidden');
@@ -1780,10 +1821,11 @@ class Game {
         }
         
         const saveData = await this.getActiveSave();
-        if (saveData && saveData.current_distance > 0) {
+        if (saveData && saveData.save_id) {
             this.state = GameState.PLAYING;
             this.saveId = saveData.save_id;
             this.initGame(saveData);
+            this.updateUI();
             
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('leaderboardScreen').classList.add('hidden');
@@ -1798,20 +1840,29 @@ class Game {
 
     async tryAutoResume() {
         const localState = this.loadGameStateFromStorage();
-        if (localState && localState.playerId && localState.distance > 0) {
+        if (localState && localState.playerId && localState.saveId) {
             return await this.continueGame();
         }
         return false;
     }
 
     async checkAndShowContinueButton() {
+        const localState = this.loadGameStateFromStorage();
+        if (localState && localState.saveId) {
+            this.playerId = localState.playerId;
+            this.playerName = localState.playerName;
+            document.getElementById('playerName').value = localState.playerName;
+            document.getElementById('continueBtn').classList.remove('hidden');
+            return;
+        }
+        
         if (!this.playerId) {
             document.getElementById('continueBtn').classList.add('hidden');
             return;
         }
         
         const saveData = await this.getActiveSave();
-        if (saveData && saveData.current_distance > 0) {
+        if (saveData && saveData.save_id) {
             this.savedGameData = saveData;
             document.getElementById('continueBtn').classList.remove('hidden');
         } else {
