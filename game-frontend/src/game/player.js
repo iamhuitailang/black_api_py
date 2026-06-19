@@ -48,6 +48,9 @@ export class Player {
     this.invincibleAfterDamage = 45;
 
     this.jumpReleased = true;
+    this.jumpLockFrames = 0;
+    this.prevX = x;
+    this.prevY = y;
 
     this.onEmitParticles = null;
   }
@@ -66,6 +69,9 @@ export class Player {
     if (this.attackCooldown > 0) this.attackCooldown--;
     if (this.dashCooldown > 0) this.dashCooldown--;
     if (this.hurtStun > 0) this.hurtStun--;
+    if (this.jumpLockFrames > 0) this.jumpLockFrames--;
+
+    this._sanitizeState();
 
     if (this.dashFrame > 0) {
       this.dashFrame--;
@@ -79,10 +85,13 @@ export class Player {
           width: this.width * 0.4,
         });
       }
+      this.prevX = this.x;
+      this.prevY = this.y;
       this.x += this.vx;
       this.y += this.vy;
       resolveCollision(this, platforms);
       this._clampToWorldBounds();
+      this._sanitizeState();
       if (this.dashFrame <= 0) {
         this.dashCooldown = this.dashCooldownMax;
         this.vx = 0;
@@ -97,6 +106,8 @@ export class Player {
       if (this.onGround) {
         this.vx *= 0.7;
       }
+      this.prevX = this.x;
+      this.prevY = this.y;
       this.x += this.vx;
       if (!this.onGround) {
         this.vy += this.gravity;
@@ -104,6 +115,7 @@ export class Player {
       this.y += this.vy;
       resolveCollision(this, platforms);
       this._clampToWorldBounds();
+      this._sanitizeState();
       if (this.attackFrame <= 0) {
         this.attackCooldown = this.attackCooldownMax;
         this.canSlashProjectiles = false;
@@ -117,11 +129,14 @@ export class Player {
       this.state = State.HURT;
       this.vx *= 0.82;
       if (Math.abs(this.vx) < 0.1) this.vx = 0;
+      this.prevX = this.x;
+      this.prevY = this.y;
       this.x += this.vx;
       this.vy += this.gravity;
       this.y += this.vy;
       resolveCollision(this, platforms);
       this._clampToWorldBounds();
+      this._sanitizeState();
       return;
     }
 
@@ -145,6 +160,7 @@ export class Player {
       this.vy = this.jumpForce;
       this.onGround = false;
       this.jumpReleased = false;
+      this.jumpLockFrames = 4;
     } else if (input.isPressed('l') || input.isPressed('L')) {
       this.startDash();
     }
@@ -160,10 +176,13 @@ export class Player {
       this.vy += this.gravity;
     }
 
+    this.prevX = this.x;
+    this.prevY = this.y;
     this.x += this.vx;
     this.y += this.vy;
     resolveCollision(this, platforms);
     this._clampToWorldBounds();
+    this._sanitizeState();
 
     if (this.attackFrame > 0) {
       this.state = State.ATTACK;
@@ -582,5 +601,18 @@ export class Player {
       this.x = maxX;
       this.vx = 0;
     }
+  }
+
+  _sanitizeState() {
+    if (isNaN(this.x) || !isFinite(this.x)) this.x = this.prevX || 100;
+    if (isNaN(this.y) || !isFinite(this.y)) this.y = this.prevY || 400;
+    if (isNaN(this.vx) || !isFinite(this.vx)) this.vx = 0;
+    if (isNaN(this.vy) || !isFinite(this.vy)) this.vy = 0;
+    if (this.vx > 20) this.vx = 20;
+    if (this.vx < -20) this.vx = -20;
+    if (this.vy > 25) this.vy = 25;
+    if (this.vy < -25) this.vy = -25;
+    if (this.hp > this.maxHp) this.hp = this.maxHp;
+    if (this.hp < 0) this.hp = 0;
   }
 }

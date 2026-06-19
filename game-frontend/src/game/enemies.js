@@ -20,6 +20,8 @@ class Enemy {
   constructor(x, y, width, height, hp, speed, type) {
     this.x = x;
     this.y = y;
+    this.prevX = x;
+    this.prevY = y;
     this.width = width;
     this.height = height;
     this.hp = hp;
@@ -76,6 +78,8 @@ class Enemy {
     if (!this.onGround) {
       this.vy += this.gravity;
     }
+    this.prevX = this.x;
+    this.prevY = this.y;
     this.x += this.vx;
     this.y += this.vy;
     resolveCollision(this, platforms);
