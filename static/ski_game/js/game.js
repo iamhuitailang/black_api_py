@@ -82,11 +82,13 @@
     }
 
     function project(x, z) {
-        const fov = 400;
+        const fov = 1000;
         const scale = fov / (fov + z);
         const screenX = width / 2 + x * scale;
         const horizonY = height * 0.58;
-        const screenY = horizonY + scale * (height - horizonY);
+        const roadBottom = height * 0.94;
+        const roadHeight = roadBottom - horizonY;
+        const screenY = horizonY + scale * roadHeight;
         return { x: screenX, y: screenY, scale: scale };
     }
 
@@ -1166,26 +1168,19 @@
 
     function showRestoreButtonIfNeeded() {
         const hasSave = hasSavedGame();
-        let restoreBtn = document.getElementById('restore-game-btn');
+        const restoreBtn = document.getElementById('restore-game-btn');
+        if (!restoreBtn) return;
         
         if (hasSave) {
-            if (!restoreBtn) {
-                restoreBtn = document.createElement('button');
-                restoreBtn.id = 'restore-game-btn';
-                restoreBtn.className = 'btn-secondary';
-                restoreBtn.textContent = '继续上次游戏';
-                restoreBtn.style.display = 'block';
-                restoreBtn.style.marginTop = '10px';
-                restoreBtn.style.background = 'linear-gradient(135deg, #FF9800, #F57C00)';
-                restoreBtn.style.boxShadow = '0 4px 15px rgba(255, 152, 0, 0.4)';
-                restoreBtn.addEventListener('click', () => startGame(true));
-                
-                const btnContainer = startBtn.parentElement;
-                btnContainer.insertBefore(restoreBtn, showRankingBtn);
+            restoreBtn.classList.remove('hidden');
+            const state = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (state && state.game) {
+                const score = Math.floor(state.game.score || 0);
+                const dist = Math.floor(state.game.distance || 0);
+                restoreBtn.textContent = `继续上次游戏 (${score}分 / ${dist}m)`;
             }
-            restoreBtn.style.display = 'block';
-        } else if (restoreBtn) {
-            restoreBtn.style.display = 'none';
+        } else {
+            restoreBtn.classList.add('hidden');
         }
     }
 
@@ -1201,6 +1196,11 @@
         
         startBtn.addEventListener('click', () => startGame(false));
         restartBtn.addEventListener('click', () => startGame(false));
+        
+        const restoreBtn = document.getElementById('restore-game-btn');
+        if (restoreBtn) {
+            restoreBtn.addEventListener('click', () => startGame(true));
+        }
         
         backMenuBtn.addEventListener('click', () => {
             gameOverScreen.classList.add('hidden');
@@ -1227,6 +1227,16 @@
         if (savedName) {
             playerNameInput.value = savedName;
         }
+        
+        window.addEventListener('beforeunload', saveGameState);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveGameState();
+            } else if (document.visibilityState === 'visible' && gameState === 'menu') {
+                showRestoreButtonIfNeeded();
+            }
+        });
+        window.addEventListener('pagehide', saveGameState);
         
         initSnowflakes();
         gameState = 'menu';
@@ -1271,8 +1281,15 @@
     }, 1000 / 30);
 
     window.addEventListener('pageshow', () => {
-        if (gameState === 'menu') {
-            showRestoreButtonIfNeeded();
-        }
+        setTimeout(() => {
+            if (gameState === 'menu') {
+                showRestoreButtonIfNeeded();
+                drawMenuBackground();
+            }
+        }, 50);
     });
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(() => showRestoreButtonIfNeeded(), 100);
+    }
 })();
