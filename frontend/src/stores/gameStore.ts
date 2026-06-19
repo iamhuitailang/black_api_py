@@ -85,7 +85,9 @@ export const useGameStore = defineStore('game', () => {
   const wormPositions = ref<WormPosition[]>([])
   const selectedBuildingType = ref<string | null>(null)
   const isPaused = ref(false)
-  const gameLoopId = ref<number | null>(null)
+  const isRunning = ref(false)
+  const lastTickTime = ref<number>(0)
+  const tickCount = ref(0)
 
   const isDay = computed(() => gameState.value?.phase === 'day')
   const isNight = computed(() => gameState.value?.phase === 'night')
@@ -127,18 +129,28 @@ export const useGameStore = defineStore('game', () => {
 
   async function autoLoadGame(): Promise<boolean> {
     const savedId = localStorage.getItem(STORAGE_KEY)
-    if (savedId) {
-      try {
-        const response = await getGameState(parseInt(savedId, 10))
-        if (response.data && response.data.state) {
-          return true
-        }
-      } catch (e) {
-        console.warn('Failed to auto-load game:', e)
-        localStorage.removeItem(STORAGE_KEY)
-      }
+    if (!savedId) {
+      console.log('[autoLoadGame] 没有保存的游戏ID')
+      return false
     }
-    return false
+    
+    try {
+      console.log('[autoLoadGame] 尝试加载存档 ID:', savedId)
+      await getGameState(parseInt(savedId, 10))
+      
+      if (gameState.value) {
+        console.log('[autoLoadGame] 加载成功，当前天数:', gameState.value.day)
+        return true
+      } else {
+        console.log('[autoLoadGame] 加载失败：gameState 为空')
+        localStorage.removeItem(STORAGE_KEY)
+        return false
+      }
+    } catch (e) {
+      console.warn('[autoLoadGame] 异常:', e)
+      localStorage.removeItem(STORAGE_KEY)
+      return false
+    }
   }
 
   function updateGameData(data: any) {
@@ -243,23 +255,41 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
-  function startGameLoop() {
-    if (gameLoopId.value) {
-      clearInterval(gameLoopId.value)
-    }
-    
-    gameLoopId.value = window.setInterval(() => {
-      if (!isPaused.value && gameState.value && !gameState.value.is_game_over) {
-        advanceTime(0.02)
+  let gameLoopTimeoutId: number | null = null
+  let isAdvancingTime = false
+
+  async function tickGameLoop() {
+    if (!isPaused.value && gameState.value && !gameState.value.is_game_over) {
+      if (!isAdvancingTime) {
+        isAdvancingTime = true
+        try {
+          await advanceTime(0.05)
+          tickCount.value++
+          lastTickTime.value = Date.now()
+        } catch (e) {
+          console.error('[gameLoop] tick error:', e)
+        } finally {
+          isAdvancingTime = false
+        }
       }
-    }, 500)
+    }
+    gameLoopTimeoutId = window.setTimeout(tickGameLoop, 300)
+  }
+
+  function startGameLoop() {
+    stopGameLoop()
+    console.log('[startGameLoop] 启动游戏循环')
+    isRunning.value = true
+    tickGameLoop()
   }
 
   function stopGameLoop() {
-    if (gameLoopId.value) {
-      clearInterval(gameLoopId.value)
-      gameLoopId.value = null
+    if (gameLoopTimeoutId) {
+      clearTimeout(gameLoopTimeoutId)
+      gameLoopTimeoutId = null
+      console.log('[stopGameLoop] 停止游戏循环')
     }
+    isRunning.value = false
   }
 
   function togglePause() {
@@ -279,6 +309,9 @@ export const useGameStore = defineStore('game', () => {
     wormPositions,
     selectedBuildingType,
     isPaused,
+    isRunning,
+    lastTickTime,
+    tickCount,
     isDay,
     isNight,
     isGameOver,

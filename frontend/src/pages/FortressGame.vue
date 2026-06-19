@@ -7,6 +7,10 @@
         <h1 class="game-title">🏜️ 孤城守卫</h1>
         <span class="day-info">第 {{ gameState?.day || 1 }} 天 - {{ phaseText }}</span>
         <span v-if="gameState?.is_siege_day" class="siege-warning">⚠️ 攻城日</span>
+        <span class="game-status-indicator" :title="statusText">
+          <span class="status-dot" :class="statusClass"></span>
+          <span class="status-text">{{ statusText }}</span>
+        </span>
       </div>
       <div class="header-center">
         <div class="time-progress-container">
@@ -181,6 +185,8 @@ const {
   buildingConfig,
   selectedBuildingType,
   isPaused,
+  isRunning,
+  tickCount,
   isDay,
   isNight,
   isGameOver,
@@ -219,6 +225,20 @@ const hpPercent = computed(() => {
 const timeProgress = computed(() => {
   if (!gameState.value) return 0;
   return (gameState.value.time_of_day || 0) * 100;
+});
+
+const statusText = computed(() => {
+  if (isGameOver.value) return '💀 游戏结束';
+  if (isPaused.value) return '⏸ 暂停中';
+  if (isRunning.value) return '▶ 运行中';
+  return '⏹ 未开始';
+});
+
+const statusClass = computed(() => {
+  if (isGameOver.value) return 'status-gameover';
+  if (isPaused.value) return 'status-paused';
+  if (isRunning.value) return 'status-running';
+  return 'status-idle';
 });
 const phaseText = computed(() => {
  if (!gameState.value)
@@ -711,7 +731,6 @@ function drawLighting(ctx: CanvasRenderingContext2D) {
  }
 }
 let wormCheckInterval: number | null = null;
-let isLoading = ref(true);
 
 onMounted(async () => {
   await nextTick();
@@ -721,8 +740,6 @@ onMounted(async () => {
   if (loaded) {
     showStartScreen.value = false;
   }
-  
-  isLoading.value = false;
   
   wormCheckInterval = window.setInterval(() => {
     if (isNight.value && gameState.value) {
@@ -808,6 +825,47 @@ watch(() => gameState.value?.id, (newId) => {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+.game-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-running {
+  background: #4caf50;
+  box-shadow: 0 0 8px #4caf50;
+  animation: pulse 1s infinite;
+}
+
+.status-paused {
+  background: #ff9800;
+  box-shadow: 0 0 8px #ff9800;
+}
+
+.status-gameover {
+  background: #f44336;
+  box-shadow: 0 0 8px #f44336;
+}
+
+.status-idle {
+  background: #9e9e9e;
+}
+
+.status-text {
+  color: white;
+  font-size: 12px;
 }
 
 .header-center {
