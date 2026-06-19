@@ -1,3 +1,14 @@
+class SeededRandom {
+    constructor(seed) {
+        this.seed = seed;
+    }
+
+    next() {
+        this.seed = (this.seed * 16807 + 0) % 2147483647;
+        return (this.seed - 1) / 2147483646;
+    }
+}
+
 class HoverRaceGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
@@ -12,7 +23,7 @@ class HoverRaceGame {
 
         this.gameState = 'menu';
         this.difficulty = 'easy';
-        this.playerName = 'Player';
+        this.playerName = '';
 
         this.trackLength = 0;
         this.segments = [];
@@ -41,8 +52,14 @@ class HoverRaceGame {
 
         this.lastTime = 0;
         this.animationId = null;
+        this.rng = null;
+        this.trackSeed = 0;
+        this.autoSaveCounter = 0;
 
-        this.initTrack();
+        const restored = this.tryRestoreState();
+        if (!restored) {
+            this.initTrack();
+        }
     }
 
     resize() {
@@ -68,6 +85,12 @@ class HoverRaceGame {
             this.keys[e.key] = false;
             this.keys[e.code] = false;
         });
+
+        window.addEventListener('beforeunload', () => {
+            if (this.gameState === 'racing' || this.gameState === 'paused' || this.gameState === 'countdown') {
+                this.saveState();
+            }
+        });
     }
 
     setupUI() {
@@ -78,6 +101,10 @@ class HoverRaceGame {
         document.getElementById('closeLeaderboardBtn').addEventListener('click', () => this.hideLeaderboard());
         document.getElementById('resumeBtn').addEventListener('click', () => this.resumeGame());
         document.getElementById('quitBtn').addEventListener('click', () => this.showMenu());
+
+        document.getElementById('playerName').addEventListener('input', () => {
+            document.getElementById('nameError').classList.add('hidden');
+        });
 
         document.querySelectorAll('.diff-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -96,6 +123,165 @@ class HoverRaceGame {
         });
     }
 
+    saveState() {
+        if (!this.player) return;
+
+        const collectedPowerups = [];
+        this.segments.forEach((seg, idx) => {
+            if (seg.hasPowerup && seg.powerupCollected) {
+                collectedPowerups.push(idx);
+            }
+        });
+
+        const state = {
+            playerName: this.playerName,
+            difficulty: this.difficulty,
+            trackSeed: this.trackSeed,
+            totalTime: this.totalTime,
+            lapTime: this.lapTime,
+            bestLap: this.bestLap,
+            currentLap: this.currentLap,
+            position: this.position,
+            gameState: this.gameState === 'countdown' ? 'racing' : this.gameState,
+            player: {
+                z: this.player.z,
+                x: this.player.x,
+                speed: this.player.speed,
+                lane: this.player.lane,
+                targetLane: this.player.targetLane,
+                shield: this.player.shield,
+                boost: this.player.boost,
+                isFlipped: this.player.isFlipped,
+                lap: this.player.lap
+            },
+            opponents: this.opponents.map(opp => ({
+                z: opp.z,
+                x: opp.x,
+                speed: opp.speed,
+                maxSpeed: opp.maxSpeed,
+                acceleration: opp.acceleration,
+                lane: opp.lane,
+                targetLane: opp.targetLane,
+                color: opp.color,
+                lap: opp.lap,
+                aiLevel: opp.aiLevel
+            })),
+            collectedPowerups: collectedPowerups
+        };
+
+        try {
+            sessionStorage.setItem('hoverRaceState', JSON.stringify(state));
+        } catch (e) {
+        }
+    }
+
+    tryRestoreState() {
+        try {
+            const saved = sessionStorage.getItem('hoverRaceState');
+            if (!saved) return false;
+
+            const state = JSON.parse(saved);
+            if (!state || !state.player || state.gameState === 'finished') {
+                this.clearState();
+                return false;
+            }
+
+            this.playerName = state.playerName;
+            this.difficulty = state.difficulty;
+            this.trackSeed = state.trackSeed;
+            this.totalTime = state.totalTime;
+            this.lapTime = state.lapTime;
+            this.bestLap = state.bestLap;
+            this.currentLap = state.currentLap;
+            this.position = state.position;
+
+            this.initTrack();
+
+            const sp = state.player;
+            this.player = {
+                z: sp.z,
+                x: sp.x,
+                y: 0,
+                speed: sp.speed,
+                maxSpeed: 4000,
+                acceleration: 2000,
+                deceleration: 3000,
+                braking: 5000,
+                lane: sp.lane,
+                targetLane: sp.targetLane,
+                laneChangeSpeed: 0,
+                shield: sp.shield,
+                boost: sp.boost,
+                boostActive: false,
+                isFlipped: sp.isFlipped,
+                isInAir: false,
+                position: state.position,
+                lap: sp.lap,
+                lapStartTime: 0
+            };
+
+            this.opponents = state.opponents.map(opp => ({
+                z: opp.z,
+                x: opp.x,
+                y: 0,
+                speed: opp.speed,
+                maxSpeed: opp.maxSpeed,
+                acceleration: opp.acceleration,
+                lane: opp.lane,
+                targetLane: opp.targetLane,
+                laneChangeTimer: 0,
+                color: opp.color,
+                lap: opp.lap,
+                aiLevel: opp.aiLevel
+            }));
+
+            this.boostParticles = [];
+            this.speedLines = [];
+            this.electricArcs = [];
+            this.isNewRecord = false;
+
+            state.collectedPowerups.forEach(idx => {
+                if (this.segments[idx]) {
+                    this.segments[idx].powerupCollected = true;
+                }
+            });
+
+            this.hideAllScreens();
+
+            if (state.gameState === 'paused') {
+                this.gameState = 'paused';
+                document.getElementById('pauseScreen').classList.remove('hidden');
+            } else {
+                this.gameState = 'racing';
+                this.lastTime = performance.now();
+                this.render();
+                this.updateHUD();
+                this.gameLoop();
+            }
+
+            return true;
+        } catch (e) {
+            this.clearState();
+            return false;
+        }
+    }
+
+    clearState() {
+        try {
+            sessionStorage.removeItem('hoverRaceState');
+        } catch (e) {
+        }
+    }
+
+    hideAllScreens() {
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('countdownScreen').classList.add('hidden');
+        document.getElementById('gameOverScreen').classList.add('hidden');
+        document.getElementById('leaderboardScreen').classList.add('hidden');
+        document.getElementById('pauseScreen').classList.add('hidden');
+        document.getElementById('newRecord').classList.add('hidden');
+    }
+
     initTrack() {
         this.segments = [];
         const difficultyConfig = {
@@ -104,6 +290,11 @@ class HoverRaceGame {
             hard: { curves: 0.7, hills: 0.6, gaps: 3, flips: 2, length: 500 }
         };
         const config = difficultyConfig[this.difficulty];
+
+        if (this.trackSeed === 0) {
+            this.trackSeed = Math.floor(Math.random() * 2147483646) + 1;
+        }
+        this.rng = new SeededRandom(this.trackSeed);
 
         let z = 0;
         const segLength = 200;
@@ -120,9 +311,9 @@ class HoverRaceGame {
         for (let i = 0; i < config.length; i++) {
             curveTimer--;
             if (curveTimer <= 0) {
-                curveTimer = 30 + Math.random() * 60;
-                if (Math.random() < config.curves) {
-                    curveDirection = (Math.random() - 0.5) * 2;
+                curveTimer = 30 + this.rng.next() * 60;
+                if (this.rng.next() < config.curves) {
+                    curveDirection = (this.rng.next() - 0.5) * 2;
                 } else {
                     curveDirection = 0;
                 }
@@ -130,9 +321,9 @@ class HoverRaceGame {
 
             hillTimer--;
             if (hillTimer <= 0) {
-                hillTimer = 40 + Math.random() * 80;
-                if (Math.random() < config.hills) {
-                    hillDirection = (Math.random() - 0.5) * 2;
+                hillTimer = 40 + this.rng.next() * 80;
+                if (this.rng.next() < config.hills) {
+                    hillDirection = (this.rng.next() - 0.5) * 2;
                 } else {
                     hillDirection = 0;
                 }
@@ -140,17 +331,17 @@ class HoverRaceGame {
 
             gapTimer--;
             if (gapTimer <= 0 && i > 50 && i < config.length - 50) {
-                gapTimer = 80 + Math.random() * 120;
-                if (Math.random() < config.gaps / 10) {
+                gapTimer = 80 + this.rng.next() * 120;
+                if (this.rng.next() < config.gaps / 10) {
                     inGap = true;
-                    setTimeout(() => { inGap = false; }, 0);
+                    inGap = false;
                 }
             }
 
             flipTimer--;
             if (flipTimer <= 0 && i > 80 && i < config.length - 80) {
-                flipTimer = 100 + Math.random() * 150;
-                if (Math.random() < config.flips / 10) {
+                flipTimer = 100 + this.rng.next() * 150;
+                if (this.rng.next() < config.flips / 10) {
                     inFlip = !inFlip;
                 }
             }
@@ -184,9 +375,9 @@ class HoverRaceGame {
         const numPowerups = Math.floor(this.segments.length / 30);
 
         for (let i = 0; i < numPowerups; i++) {
-            const segIndex = Math.floor(50 + Math.random() * (this.segments.length - 100));
-            const lane = Math.floor(Math.random() * this.lanes);
-            const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+            const segIndex = Math.floor(50 + this.rng.next() * (this.segments.length - 100));
+            const lane = Math.floor(this.rng.next() * this.lanes);
+            const type = powerupTypes[Math.floor(this.rng.next() * powerupTypes.length)];
 
             this.segments[segIndex].hasPowerup = true;
             this.segments[segIndex].powerupType = type;
@@ -195,8 +386,22 @@ class HoverRaceGame {
     }
 
     startGame() {
-        this.playerName = document.getElementById('playerName').value || 'Player';
+        const nameInput = document.getElementById('playerName');
+        const nameError = document.getElementById('nameError');
+        const name = (nameInput.value || '').trim();
+
+        if (!name) {
+            nameError.classList.remove('hidden');
+            nameInput.focus();
+            return;
+        }
+        nameError.classList.add('hidden');
+
+        this.playerName = name;
+        this.trackSeed = 0;
         this.initTrack();
+
+        this.hideAllScreens();
 
         this.player = {
             z: 0,
@@ -227,15 +432,15 @@ class HoverRaceGame {
                 z: -(i + 1) * 500,
                 x: 0,
                 y: 0,
-                speed: 3000 + Math.random() * 500,
-                maxSpeed: 3200 + Math.random() * 600,
-                acceleration: 1500 + Math.random() * 500,
+                speed: 3000 + this.rng.next() * 500,
+                maxSpeed: 3200 + this.rng.next() * 600,
+                acceleration: 1500 + this.rng.next() * 500,
                 lane: i % 3,
                 targetLane: i % 3,
                 laneChangeTimer: 0,
                 color: opponentColors[i],
                 lap: 1,
-                aiLevel: 0.7 + Math.random() * 0.3
+                aiLevel: 0.7 + this.rng.next() * 0.3
             });
         }
 
@@ -260,10 +465,13 @@ class HoverRaceGame {
         let count = 3;
         countdownNumber.textContent = count;
 
+        this.saveState();
+
         const countdownInterval = setInterval(() => {
             count--;
             if (count > 0) {
                 countdownNumber.textContent = count;
+                this.saveState();
             } else if (count === 0) {
                 countdownNumber.textContent = 'GO!';
             } else {
@@ -272,6 +480,7 @@ class HoverRaceGame {
                 this.gameState = 'racing';
                 this.player.lapStartTime = performance.now();
                 this.lastTime = performance.now();
+                this.saveState();
                 this.gameLoop();
             }
         }, 1000);
@@ -284,6 +493,7 @@ class HoverRaceGame {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
         }
+        this.saveState();
     }
 
     resumeGame() {
@@ -299,6 +509,7 @@ class HoverRaceGame {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
         }
+        this.clearState();
         document.getElementById('startScreen').classList.remove('hidden');
         document.getElementById('gameOverScreen').classList.add('hidden');
         document.getElementById('pauseScreen').classList.add('hidden');
@@ -374,6 +585,12 @@ class HoverRaceGame {
         this.update(dt);
         this.render();
         this.updateHUD();
+
+        this.autoSaveCounter++;
+        if (this.autoSaveCounter >= 60) {
+            this.autoSaveCounter = 0;
+            this.saveState();
+        }
 
         this.animationId = requestAnimationFrame(() => this.gameLoop());
     }
@@ -598,6 +815,7 @@ class HoverRaceGame {
 
     getSegment(z) {
         z = z % this.trackLength;
+        if (z < 0) z += this.trackLength;
         const index = Math.floor(z / 200);
         return this.segments[index];
     }
@@ -651,6 +869,7 @@ class HoverRaceGame {
             this.bestLap = this.lapTime;
         }
 
+        this.clearState();
         this.saveRaceRecord();
 
         document.getElementById('finalPosition').textContent = this.getPositionOrdinal(this.position);
@@ -731,9 +950,6 @@ class HoverRaceGame {
         const maxD = 300;
 
         ctx.save();
-
-        const playerSeg = this.getSegment(this.player.z);
-        const playerY = playerSeg ? playerSeg.p1.world.y : 0;
 
         const drawSegments = [];
         for (let i = 0; i < maxD; i++) {
@@ -1004,7 +1220,6 @@ class HoverRaceGame {
             const y = horizonY + (roadY - horizonY) * scale;
             const trackWidth = this.trackWidth * scale * (w / 800);
 
-            const laneWidth = trackWidth / this.lanes;
             const x = w / 2 + opp.x * scale * (w / 800);
 
             const shipSize = Math.max(5, 40 * scale);
