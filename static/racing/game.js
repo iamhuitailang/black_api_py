@@ -51,7 +51,9 @@ class RacingGame {
 
     init() {
         this.canvas = document.getElementById('track-canvas');
-        this.ctx = this.canvas.getContext('2d');
+        if (this.canvas) {
+            this.ctx = this.canvas.getContext('2d');
+        }
         this.bindEvents();
         this.loadTrackList();
     }
@@ -107,7 +109,7 @@ class RacingGame {
 
     async startNewGame() {
         const playerName = document.getElementById('player-name').value || 'Player';
-        const result = await this.apiCall('/racing/new_game', 'POST', { player_name: playerName });
+        const result = await this.apiCall('/racing/new/game', 'POST', { player_name: playerName });
         if (result.code === 0) {
             this.vehicle = result.data;
             this.currentTrack = 0;
@@ -473,8 +475,8 @@ class RacingGame {
         });
 
         if (result.code === 0) {
-            this.vehicle = await this.apiCall('/racing/vehicle');
-            this.vehicle = this.vehicle.data;
+            const vehicleResp = await this.apiCall('/racing/vehicle/get');
+            this.vehicle = vehicleResp.data;
 
             this.updateVehicleDisplay();
 
@@ -507,7 +509,7 @@ class RacingGame {
     }
 
     async handleResultContinue() {
-        const result = await this.apiCall('/racing/vehicle');
+        const result = await this.apiCall('/racing/vehicle/get');
         this.vehicle = result.data;
 
         if (this.currentTrack >= 7) {
@@ -549,13 +551,13 @@ class RacingGame {
     }
 
     async showCompleteScreen() {
-        const progress = await this.apiCall(`/racing/progress?vehicle_id=${this.vehicle.id}`);
+        const progress = await this.apiCall(`/racing/progress/get?vehicle_id=${this.vehicle.id}`);
         const races = progress.data.races.filter(r => r.status === 'finished');
 
         const totalTime = races.reduce((sum, r) => sum + r.total_time, 0);
         document.getElementById('final-total-time').textContent = this.formatTime(totalTime);
 
-        const leaderboard = await this.apiCall('/racing/leaderboard');
+        const leaderboard = await this.apiCall('/racing/leaderboard/get');
         const myRank = leaderboard.data.find(l => l.vehicle_id === this.vehicle.id);
         document.getElementById('final-rank').textContent = myRank ? `#${myRank.rank}` : '-';
 
@@ -574,7 +576,7 @@ class RacingGame {
     }
 
     async showLeaderboard() {
-        const result = await this.apiCall('/racing/leaderboard');
+        const result = await this.apiCall('/racing/leaderboard/get');
         const data = result.data;
 
         const tbody = document.getElementById('leaderboard-body');
@@ -835,7 +837,7 @@ class RacingGame {
     formatTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
-        const ms = Math.floor((seconds % 1) * 100;
+        const ms = Math.floor((seconds % 1) * 100);
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
     }
 }
