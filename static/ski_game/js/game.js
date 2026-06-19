@@ -838,6 +838,7 @@
         
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            console.log('[SAVE] score:', Math.floor(game.score), 'distance:', Math.floor(game.distance), 'trees:', trees.length, 'rocks:', rocks.length, 'gates:', gates.length);
         } catch (e) {
             console.warn('Failed to save game state:', e);
         }
@@ -852,10 +853,12 @@
             const elapsed = (Date.now() - state.timestamp) / 1000;
             if (elapsed > 300) {
                 localStorage.removeItem(STORAGE_KEY);
+                console.log('[SAVE] 存档过期（>5分钟），已清除');
                 return false;
             }
             return true;
         } catch (e) {
+            console.warn('[SAVE] hasSavedGame error:', e);
             return false;
         }
     }
@@ -863,14 +866,15 @@
     function loadGameState() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return false;
+            if (!raw) { console.log('[LOAD] 无存档'); return false; }
             
             const state = JSON.parse(raw);
-            if (!state || !state.game) return false;
+            if (!state || !state.game) { console.log('[LOAD] 存档格式错误'); return false; }
             
             const elapsed = (Date.now() - state.timestamp) / 1000;
             if (elapsed > 300) {
                 localStorage.removeItem(STORAGE_KEY);
+                console.log('[LOAD] 存档过期，已清除');
                 return false;
             }
             
@@ -890,9 +894,10 @@
                 avalancheWarning.classList.remove('hidden');
             }
             
+            console.log('[LOAD] 成功！score:', Math.floor(game.score), 'distance:', Math.floor(game.distance), 'trees:', trees.length, 'rocks:', rocks.length, 'gates:', gates.length, 'elapsed:', elapsed.toFixed(1) + 's');
             return true;
         } catch (e) {
-            console.warn('Failed to load game state:', e);
+            console.warn('[LOAD] Failed to load game state:', e);
             return false;
         }
     }
@@ -900,7 +905,10 @@
     function clearSavedGame() {
         try {
             localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {}
+            console.log('[SAVE] 已清除存档');
+        } catch (e) {
+            console.warn('[SAVE] clearSavedGame error:', e);
+        }
     }
 
     function resetGame() {
@@ -1014,24 +1022,32 @@
     function gameLoop() {
         if (gameState !== 'playing') return;
         
-        updatePlayer();
-        updateSpeed();
-        updateSlope();
-        updateSnowflakes();
-        updateSnowShakes();
-        updateSnowTrail();
-        spawnEnvironment();
-        updateEnvironment();
-        updateAvalanche();
-        updateHUD();
-        
-        if (checkCollisions()) {
-            gameOver();
-            return;
+        try {
+            updatePlayer();
+            updateSpeed();
+            updateSlope();
+            updateSnowflakes();
+            updateSnowShakes();
+            spawnEnvironment();
+            updateEnvironment();
+            updateAvalanche();
+            updateHUD();
+            
+            if (checkCollisions()) {
+                gameOver();
+                return;
+            }
+            
+            render();
+            saveGameState();
+        } catch (e) {
+            console.error('GAME LOOP ERROR:', e);
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, width, 50);
+            ctx.fillStyle = 'white';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('ERROR: ' + e.message + ' (见控制台详情)', 20, 30);
         }
-        
-        render();
-        saveGameState();
         
         animationId = requestAnimationFrame(gameLoop);
     }
@@ -1049,6 +1065,27 @@
         drawAvalanche();
         drawSnowflakes();
         drawPlayer();
+        
+        drawDebugInfo();
+    }
+    
+    function drawDebugInfo() {
+        const p0 = project(game.playerX, 0);
+        const p600 = project(game.playerX, 600);
+        const pNear = project(game.playerX, -20);
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(10, 130, 270, 110);
+        ctx.fillStyle = '#00FF88';
+        ctx.font = '12px monospace';
+        ctx.fillText(`DEBUG:`, 18, 148);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '11px monospace';
+        ctx.fillText(`trees: ${trees.length}  rocks: ${rocks.length}  gates: ${gates.length}`, 18, 164);
+        ctx.fillText(`playerX: ${game.playerX.toFixed(1)}  speed: ${game.speed.toFixed(1)}`, 18, 180);
+        ctx.fillText(`proj(z=0): (${p0.x.toFixed(0)}, ${p0.y.toFixed(0)}) scale=${p0.scale.toFixed(2)}`, 18, 196);
+        ctx.fillText(`proj(z=600): (${p600.x.toFixed(0)}, ${p600.y.toFixed(0)}) scale=${p600.scale.toFixed(2)}`, 18, 212);
+        ctx.fillText(`proj(z=-20): (${pNear.x.toFixed(0)}, ${pNear.y.toFixed(0)})  state: ${gameState}`, 18, 228);
     }
 
     async function submitScore() {
