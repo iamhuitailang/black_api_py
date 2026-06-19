@@ -486,7 +486,352 @@ const App = {
             countByJob, countSoldiers, roundPercent, calcStrengthWidth,
         };
     }
-};
+,
+    template: `
+        <div class="game-container">
+            <div class="toast-container">
+                <div v-for="t in toasts" :key="t.id"
+                     :class="'toast toast-' + (t.type === 'success' ? 'success' : t.type === 'error' ? 'error' : t.type === 'warning' ? 'warning' : 'info')">
+                    {{ t.message }}
+                </div>
+            </div>
+
+            <div v-if="view === 'start'" class="start-screen">
+                <h1 class="start-title">🏛️ 部落崛起</h1>
+                <p class="start-subtitle">从石器时代的几个帐篷到火器时代的城邦</p>
+                <div class="start-card">
+                    <input v-model="newGameName" class="start-input" placeholder="输入部落名称..." @keyup.enter="createGame">
+                    <button class="btn btn-primary" @click="createGame">🌱 创建新部落</button>
+                </div>
+                <div class="saved-games">
+                    <h3>已保存的游戏</h3>
+                    <div class="game-list" v-if="savedGames.length > 0">
+                        <div v-for="g in savedGames" :key="g.id" class="game-item" @click="loadGame(g.id)">
+                            <div class="game-item-info">
+                                <h4>{{ g.name }} <span class="era-badge" :class="ERA_STYLE_CLASS[g.era]">{{ ERA_NAMES[g.era] }}</span></h4>
+                                <p>第{{ g.year }}年 {{ SEASON_INFO[g.season].icon }}{{ SEASON_INFO[g.season].name }} · 人口 {{ g.population }} · 回合 {{ g.turn }}</p>
+                            </div>
+                            <button class="game-item-delete" @click="deleteGame(g.id, $event)">删除</button>
+                        </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <div class="empty-icon">📜</div>
+                        <div>暂无存档</div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else-if="view === 'game' && gameState" class="game-container">
+                <div class="top-bar">
+                    <div class="game-title-bar">
+                        <span class="game-name">🏛️ {{ gameState.tribe.name }}</span>
+                        <span class="era-badge" :class="ERA_STYLE_CLASS[gameState.tribe.era]">
+                            {{ ERA_NAMES[gameState.tribe.era] }}
+                        </span>
+                        <div class="season-display">
+                            <span class="season-icon">{{ SEASON_INFO[gameState.tribe.season].icon }}</span>
+                            <span>第{{ gameState.tribe.year }}年 {{ SEASON_INFO[gameState.tribe.season].name }} · 回合{{ gameState.tribe.turn }}</span>
+                        </div>
+                    </div>
+                    <div class="top-actions">
+                        <button v-if="gameState.can_advance_era" class="btn btn-era" @click="advanceEra">⭐ 晋级时代</button>
+                        <button class="btn btn-turn" @click="advanceTurn">⏭️ 下一回合</button>
+                    </div>
+                </div>
+
+                <div class="resource-bar">
+                    <div v-for="(info, key) in RESOURCE_INFO" :key="key" class="resource-item">
+                        <span class="resource-icon">{{ info.icon }}</span>
+                        <span class="resource-value">{{ gameState.tribe[key] || 0 }}</span>
+                        <span class="resource-delta"
+                              :class="{
+                                  'delta-positive': (gameState.production && gameState.production[key] || 0) > 0 && key !== 'food',
+                                  'delta-negative': key === 'food' && ((gameState.production && gameState.production.food || 0) - (gameState.food_consumption || 0)) < 0
+                              }">
+                            <span v-if="key === 'food'">({{ (gameState.production && gameState.production.food || 0) > 0 ? '+' : '' }}{{ gameState.production && gameState.production.food || 0 }}/-{{ gameState.food_consumption || 0 }})</span>
+                            <span v-else-if="gameState.production && gameState.production[key] > 0">(+{{ gameState.production[key] }})</span>
+                        </span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="resource-icon">👥</span>
+                        <span class="resource-value">{{ gameState.tribe.population }}/{{ gameState.tribe.max_population }}</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="resource-icon">😊</span>
+                        <span class="resource-value">{{ gameState.tribe.morale }}%</span>
+                    </div>
+                </div>
+
+                <div class="main-content">
+                    <nav class="sidebar">
+                        <div :class="['nav-item', { active: activeTab === 'panorama' }]" @click="activeTab = 'panorama'">
+                            <span class="nav-icon">🏘️</span><span>部落全景</span>
+                        </div>
+                        <div :class="['nav-item', { active: activeTab === 'tech' }]" @click="activeTab = 'tech'">
+                            <span class="nav-icon">🔬</span><span>科技树</span>
+                        </div>
+                        <div :class="['nav-item', { active: activeTab === 'people' }]" @click="activeTab = 'people'">
+                            <span class="nav-icon">👥</span><span>族人管理</span>
+                        </div>
+                        <div :class="['nav-item', { active: activeTab === 'diplomacy' }]" @click="activeTab = 'diplomacy'">
+                            <span class="nav-icon">🤝</span><span>外交贸易</span>
+                        </div>
+                        <div :class="['nav-item', { active: activeTab === 'resources' }]" @click="activeTab = 'resources'">
+                            <span class="nav-icon">📊</span><span>资源统计</span>
+                        </div>
+                    </nav>
+
+                    <div class="content-area">
+                        <div v-if="activeTab === 'panorama'">
+                            <h2 class="view-title">🏘️ 部落全景</h2>
+                            <div class="stats-grid" style="margin-bottom: 20px;">
+                                <div class="stat-card">
+                                    <div class="stat-label">军事实力</div>
+                                    <div class="stat-value" style="color: #ef4444;">⚔️ {{ gameState.military_strength }}</div>
+                                    <div class="stat-meta">士兵 × 军事加成</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">已研究科技</div>
+                                    <div class="stat-value" style="color: #3b82f6;">📚 {{ gameState.researched_ids.length }}</div>
+                                    <div class="stat-meta">可用 {{ gameState.available_techs.length }} 项</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">已建造</div>
+                                    <div class="stat-value" style="color: #22c55e;">🏗️ {{ gameState.buildings.length }}</div>
+                                    <div class="stat-meta">建筑数</div>
+                                </div>
+                            </div>
+                            <div class="building-grid">
+                                <div v-for="b in gameState.buildings" :key="b.id"
+                                     :class="['building-card', eraBuildingClass(b.building_type)]"
+                                     @click="b.is_constructing ? null : upgradeBuilding(b.id)">
+                                    <div>
+                                        <div class="building-name">{{ gameState.building_names && gameState.building_names[b.building_type] || b.building_type }}</div>
+                                        <div class="building-level">等级 {{ b.level }}</div>
+                                    </div>
+                                    <div v-if="b.is_constructing" class="building-constructing">建造中</div>
+                                    <div class="building-progress" v-if="b.is_constructing">
+                                        <div class="building-progress-bar" :style="{ width: (b.progress / b.total_progress * 100) + '%' }"></div>
+                                    </div>
+                                    <div class="building-level" v-if="!b.is_constructing" style="font-size: 0.7rem; background: rgba(0,0,0,0.4);">
+                                        点击升级
+                                    </div>
+                                </div>
+                                <div class="building-card building-card-empty" @click="showBuildModal = true">
+                                    <div class="building-plus">+</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeTab === 'tech'">
+                            <h2 class="view-title">🔬 科技树</h2>
+                            <div class="branch-legend">
+                                <div class="branch-legend-item"><div class="branch-dot" style="background: var(--branch-root);"></div>核心科技</div>
+                                <div class="branch-legend-item"><div class="branch-dot" style="background: var(--branch-military);"></div>军事分支</div>
+                                <div class="branch-legend-item"><div class="branch-dot" style="background: var(--branch-economy);"></div>经济分支</div>
+                                <div class="branch-legend-item"><div class="branch-dot" style="background: var(--branch-civic);"></div>文化分支</div>
+                                <div class="branch-legend-item" style="color: var(--danger); margin-left: auto;">═══ 红色虚线 = 互斥关系（只能选一个）</div>
+                            </div>
+                            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                                <div class="stat-card"><div class="stat-label">当前知识</div><div class="stat-value">📚 {{ gameState.tribe.knowledge }}</div></div>
+                                <div class="stat-card"><div class="stat-label">已研究</div><div class="stat-value" style="color: var(--success);">{{ gameState.researched_ids.length }}项</div></div>
+                                <div class="stat-card"><div class="stat-label">可研究</div><div class="stat-value" style="color: var(--accent);">{{ gameState.available_techs.length }}项</div></div>
+                                <div class="stat-card"><div class="stat-label">晋级要求</div><div class="stat-value" style="color: var(--warning);">{{ gameState.era_advance_requirements || '-' }}</div></div>
+                            </div>
+                            <div class="tech-tree-container">
+                                <svg class="tech-tree-svg" width="950" height="1150" viewBox="0 0 950 1150" v-html="getTechSvgPath()"></svg>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeTab === 'people'">
+                            <h2 class="view-title">👥 族人管理 <span style="font-size: 1rem; color: var(--text-dim); font-weight: normal;">（{{ gameState.tribespeople.length }}人）</span></h2>
+                            <div class="stats-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
+                                <div v-for="(name, job) in JOB_NAMES" :key="job" class="stat-card">
+                                    <div class="stat-label">{{ JOB_ICONS[job] }} {{ name }}</div>
+                                    <div class="stat-value" style="font-size: 1.3rem;">{{ countByJob(job) }}</div>
+                                </div>
+                            </div>
+                            <div class="people-list" style="margin-top: 24px;">
+                                <div v-for="p in gameState.tribespeople" :key="p.id" class="person-card">
+                                    <div class="person-header">
+                                        <div>
+                                            <div class="person-name">{{ p.name }}</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">擅长: {{ SKILL_LABELS[getBestSkill(p)] }}</div>
+                                        </div>
+                                        <div class="person-job"><span style="font-size: 1.5rem;">{{ JOB_ICONS[p.job] }}</span></div>
+                                    </div>
+                                    <div v-for="(label, key) in SKILL_LABELS" :key="key" class="skill-row">
+                                        <div class="skill-label">
+                                            <span :class="{ 'skill-best': key === getBestSkill(p) }">{{ label }}</span>
+                                            <span>{{ roundPercent(p[key]) }}%</span>
+                                        </div>
+                                        <div class="skill-bar"><div class="skill-fill" :style="{ width: (p[key] * 100) + '%', background: SKILL_COLORS[key] }"></div></div>
+                                    </div>
+                                    <select class="job-select" :value="p.job" @change="assignJob(p.id, $event.target.value)">
+                                        <option v-for="(jname, jkey) in JOB_NAMES" :key="jkey" :value="jkey">{{ JOB_ICONS[jkey] }} 分配为 {{ jname }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeTab === 'diplomacy'">
+                            <h2 class="view-title">🤝 外交与贸易</h2>
+                            <div class="diplomacy-list">
+                                <div v-for="ft in gameState.diplomacy" :key="ft.foreign_tribe_id" class="diplomacy-card">
+                                    <div class="diplomacy-header">
+                                        <div>
+                                            <div class="diplomacy-name">{{ ft.foreign_name }}</div>
+                                            <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 2px;">
+                                                <span class="era-badge" :class="ERA_STYLE_CLASS[ft.foreign_era]" style="font-size: 0.7rem; margin-right: 6px;">{{ ERA_NAMES[ft.foreign_era] }}</span>
+                                                特产: {{ RESOURCE_INFO[ft.specialty_resource] && RESOURCE_INFO[ft.specialty_resource].icon }} {{ RESOURCE_INFO[ft.specialty_resource] && RESOURCE_INFO[ft.specialty_resource].name || ft.specialty_resource }}
+                                            </div>
+                                        </div>
+                                        <span class="relation-badge" :class="'relation-' + (ft.relation === 'war' ? 'war' : ft.attitude === 'hostile' ? 'hostile' : ft.attitude === 'friendly' ? 'friendly' : 'neutral')">
+                                            {{ ft.relation === 'war' ? '⚔️ ' + RELATION_NAMES[ft.relation] : RELATION_NAMES[ft.attitude] || RELATION_NAMES[ft.relation] }}
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.85rem; margin: 8px 0 4px; color: var(--text-dim);">
+                                        军事实力: <strong style="color: var(--warning);">{{ ft.strength }}</strong>
+                                    </div>
+                                    <div class="strength-bar"><div class="strength-fill" :style="{ width: calcStrengthWidth(ft.strength) }"></div></div>
+                                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px;">
+                                        {{ ft.attitude === 'hostile' ? '🏹 敌方部落' : ft.attitude === 'friendly' ? '🕊️ 友好邻邦' : '🤝 中立部落' }}
+                                        <span v-if="ft.trade_cooldown > 0" style="margin-left: 10px; color: var(--warning);">⏳ 贸易冷却: {{ ft.trade_cooldown }}回合</span>
+                                    </div>
+                                    <div class="diplomacy-actions">
+                                        <button class="btn-diplomacy" style="background: var(--branch-economy);" :disabled="ft.relation === 'war' || ft.trade_cooldown > 0 || !ft.trade_available" @click="openTradeModal(ft)">💰 贸易</button>
+                                        <button v-if="ft.relation !== 'war'" class="btn-diplomacy btn-danger" @click="declareWar(ft.foreign_tribe_id)">⚔️ 宣战</button>
+                                        <button v-if="ft.relation === 'war'" class="btn-diplomacy" style="background: var(--danger);" @click="doBattle(ft.foreign_tribe_id)">🎯 发起战斗</button>
+                                        <button v-if="ft.relation === 'war'" class="btn-diplomacy" style="background: var(--warning); color: #333;" @click="makePeace(ft.foreign_tribe_id)">🕊️ 求和</button>
+                                    </div>
+                                    <div v-if="battleResult && battleResult.foreign_tribe_id === ft.foreign_tribe_id" class="battle-log">
+                                        <div :class="['battle-result', battleResult.result]">{{ battleResult.result === 'victory' ? '🎉 大捷！' : battleResult.result === 'defeat' ? '💀 战败...' : '⚔️ 僵持战' }}</div>
+                                        <div style="font-size: 0.85rem; line-height: 1.8;">
+                                            <div>我方伤亡: <span style="color: var(--danger);">{{ battleResult.losses }}</span>人</div>
+                                            <div v-if="battleResult.loot && battleResult.result === 'victory'">战利品: 🍖{{ battleResult.loot.food }} 🪵{{ battleResult.loot.wood }} ⚙️{{ battleResult.loot.metal }}</div>
+                                            <div v-if="battleResult.penalty">损失: 🍖{{ battleResult.penalty.food }} 🪵{{ battleResult.penalty.wood }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeTab === 'resources'">
+                            <h2 class="view-title">📊 资源统计</h2>
+                            <div class="stats-grid">
+                                <div class="stat-card"><div class="stat-label">🍖 食物</div><div class="stat-value">{{ gameState.tribe.food }}</div><div class="stat-meta">产出: +{{ gameState.production && gameState.production.food || 0 }} / 消耗: -{{ gameState.food_consumption || 0 }}</div></div>
+                                <div class="stat-card"><div class="stat-label">🪵 木材</div><div class="stat-value">{{ gameState.tribe.wood }}</div><div class="stat-meta">每回合: +{{ gameState.production && gameState.production.wood || 0 }}</div></div>
+                                <div class="stat-card"><div class="stat-label">🪨 石料</div><div class="stat-value">{{ gameState.tribe.stone }}</div><div class="stat-meta">每回合: +{{ gameState.production && gameState.production.stone || 0 }}</div></div>
+                                <div class="stat-card"><div class="stat-label">⚙️ 金属</div><div class="stat-value">{{ gameState.tribe.metal }}</div><div class="stat-meta">每回合: +{{ gameState.production && gameState.production.metal || 0 }}</div></div>
+                                <div class="stat-card"><div class="stat-label">📚 知识</div><div class="stat-value">{{ gameState.tribe.knowledge }}</div><div class="stat-meta">每回合: +{{ gameState.production && gameState.production.knowledge || 0 }}</div></div>
+                                <div class="stat-card"><div class="stat-label">👥 人口</div><div class="stat-value">{{ gameState.tribe.population }} / {{ gameState.tribe.max_population }}</div><div class="stat-meta">士气: {{ gameState.tribe.morale }}%</div></div>
+                                <div class="stat-card"><div class="stat-label">⚔️ 军事</div><div class="stat-value" style="color: var(--danger);">{{ gameState.military_strength }}</div><div class="stat-meta">士兵: {{ countSoldiers() }}人</div></div>
+                                <div class="stat-card"><div class="stat-label">📅 季节</div><div class="stat-value">{{ SEASON_INFO[gameState.tribe.season].icon }} {{ SEASON_INFO[gameState.tribe.season].name }}</div><div class="stat-meta">第{{ gameState.tribe.year }}年 · 回合{{ gameState.tribe.turn }}</div></div>
+                            </div>
+                            <div style="margin-top: 30px;">
+                                <h3 style="margin-bottom: 14px; color: var(--text-dim);">📜 已研究科技</h3>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    <span v-for="techId in gameState.researched_ids" :key="techId" style="background: var(--bg-card); padding: 6px 12px; border-radius: 6px; font-size: 0.85rem;">✅ {{ gameState.tech_names && gameState.tech_names[techId] || techId }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="showBuildModal" class="modal-overlay" @click.self="showBuildModal = false">
+                <div class="modal">
+                    <h3 class="modal-title">🏗️ 建造建筑</h3>
+                    <div class="modal-body">
+                        <div v-if="gameState && gameState.available_buildings && gameState.available_buildings.length > 0">
+                            <div v-for="b in gameState.available_buildings" :key="b.building_type"
+                                 class="build-option" :class="{ disabled: !b.can_afford }"
+                                 @click="b.can_afford && buildBuilding(b.building_type)">
+                                <div class="build-option-info">
+                                    <h4>{{ b.name }} <span class="era-badge" :class="ERA_STYLE_CLASS[b.era]" style="font-size: 0.7rem;">{{ ERA_NAMES[b.era] }}</span></h4>
+                                    <p>{{ b.description }}</p>
+                                    <p v-for="(v, k) in b.effects" :key="k" style="font-size: 0.75rem; color: var(--success); margin-top: 2px;">+ {{ k }}: {{ v }}</p>
+                                </div>
+                                <div class="build-option-cost">
+                                    <div v-for="(amt, r) in b.cost" :key="r" :class="['cost-item', { insufficient: amt > 0 && (gameState.tribe[r] || 0) < amt }]">
+                                        <span>{{ RESOURCE_INFO[r] && RESOURCE_INFO[r].icon || '' }}</span><span>{{ amt }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state"><div class="empty-icon">🔒</div><div>暂无可建造的建筑，研究更多科技以解锁</div></div>
+                    </div>
+                    <div class="modal-actions"><button class="btn btn-secondary" @click="showBuildModal = false">关闭</button></div>
+                </div>
+            </div>
+
+            <div v-if="showTechModal && currentTechInfo" class="modal-overlay" @click.self="showTechModal = false">
+                <div class="modal">
+                    <h3 class="modal-title">
+                        <span style="margin-right: 8px;">🔬</span>{{ currentTechInfo.name }}
+                        <span class="era-badge" :class="ERA_STYLE_CLASS[currentTechInfo.era]" style="margin-left: 10px;">{{ ERA_NAMES[currentTechInfo.era] }}</span>
+                        <span class="relation-badge" style="margin-left: 8px; background: var(--bg-card); color: var(--text-dim); font-weight: normal;">{{ BRANCH_NAMES[currentTechInfo.position.branch] }}分支</span>
+                    </h3>
+                    <div class="modal-body">
+                        <p style="line-height: 1.6; margin-bottom: 16px;">{{ currentTechInfo.description }}</p>
+                        <div v-if="currentTechInfo.mutually_exclusive_with && currentTechInfo.mutually_exclusive_with.length > 0" class="mutual-excl-note">
+                            ⚠️ 互斥选择：与以下科技二选一，不可同时研究<br>
+                            <strong v-for="eid in currentTechInfo.mutually_exclusive_with" :key="eid" style="color: #f87171;">❌ {{ gameState.tech_names && gameState.tech_names[eid] || eid }}</strong>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; margin-top: 14px;">
+                            <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;">科技效果：</div>
+                            <div v-for="(v, k) in currentTechInfo.effects" :key="k" style="color: var(--success); font-size: 0.9rem;">✦ {{ k }} +{{ v }}{{ typeof v === 'number' && v < 1 ? ' (' + (v * 100) + '%)' : '' }}</div>
+                        </div>
+                        <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 0.9rem;">研究消耗：<strong style="color: var(--warning);">📚 {{ currentTechInfo.cost }}</strong><span style="color: var(--text-dim); margin-left: 6px;">(当前: {{ gameState.tribe.knowledge }})</span></div>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" @click="showTechModal = false">关闭</button>
+                        <button v-if="currentTechInfo.is_available" class="btn btn-primary" @click="researchTech(currentTechInfo.id)">🧪 开始研究</button>
+                        <button v-else class="btn" style="background: #374151;" disabled>{{ (gameState.researched_ids || []).includes(currentTechInfo.id) ? '✅ 已完成' : '🔒 条件未满足' }}</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="showTradeModal && currentTradeTribe" class="modal-overlay" @click.self="showTradeModal = false">
+                <div class="modal">
+                    <h3 class="modal-title">💰 与 {{ currentTradeTribe.foreign_name }} 贸易</h3>
+                    <div class="modal-body">
+                        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem;">
+                            对方特产: <strong style="color: var(--success);">{{ RESOURCE_INFO[currentTradeTribe.specialty_resource] && RESOURCE_INFO[currentTradeTribe.specialty_resource].icon }} {{ RESOURCE_INFO[currentTradeTribe.specialty_resource] && RESOURCE_INFO[currentTradeTribe.specialty_resource].name }}</strong>
+                            <span style="color: var(--text-dim);">（购买特产 +50%）</span>
+                        </div>
+                        <div class="trade-form-group">
+                            <label>我方提供：</label>
+                            <div class="trade-form-row">
+                                <select v-model="tradeForm.offered_resource" class="trade-select">
+                                    <option v-for="(info, key) in RESOURCE_INFO" :key="key" :value="key">{{ info.icon }} {{ info.name }} ({{ gameState.tribe[key] }})</option>
+                                </select>
+                                <input v-model.number="tradeForm.offered_amount" type="number" min="1" class="trade-input">
+                            </div>
+                        </div>
+                        <div class="trade-preview">
+                            <div style="font-size: 0.9rem; color: var(--text-dim);">{{ tradeForm.offered_amount }} {{ RESOURCE_INFO[tradeForm.offered_resource].icon }}</div>
+                            <div class="trade-arrow">➡️</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: var(--success);">~ {{ tradePreview }} {{ RESOURCE_INFO[tradeForm.requested_resource].icon }}</div>
+                        </div>
+                        <div class="trade-form-group">
+                            <label>请求换取：</label>
+                            <select v-model="tradeForm.requested_resource" class="trade-select" style="width: 100%;">
+                                <option v-for="(info, key) in RESOURCE_INFO" :key="key" :value="key">{{ info.icon }} {{ info.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" @click="showTradeModal = false">取消</button>
+                        <button class="btn btn-primary" @click="doTrade" :disabled="tradeForm.offered_amount <= 0 || tradeForm.offered_amount > (gameState.tribe[tradeForm.offered_resource] || 0)">🤝 完成交易</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+`};
 
 try {
     const app = createApp(App);

@@ -1,0 +1,24 @@
+{
+  "name": "061809",
+  "version": "1.0.0",
+  "description": "黑黑的api仓",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamhuitailang/black_api_py.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/iamhuitailang/black_api_py/issues"
+  },
+  "homepage": "https://github.com/iamhuitailang/black_api_py#readme",
+  "dependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
