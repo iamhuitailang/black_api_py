@@ -1014,8 +1014,11 @@ class Game {
         this.currentBoss = null;
         this.bossSpawned = { 300: false, 600: false, 900: false };
         
+        this.savedGameData = null;
+        
         this.setupEventListeners();
         this.gameLoop = this.gameLoop.bind(this);
+        this.loadPlayerFromStorage();
     }
 
     setupEventListeners() {
@@ -1061,6 +1064,45 @@ class Game {
         });
     }
 
+    loadPlayerFromStorage() {
+        try {
+            const saved = localStorage.getItem('game_player');
+            if (saved) {
+                const data = JSON.parse(saved);
+                this.playerId = data.playerId;
+                this.playerName = data.playerName;
+                document.getElementById('playerName').value = data.playerName;
+            }
+        } catch (e) {
+            console.error('Load player from storage error:', e);
+        }
+    }
+
+    savePlayerToStorage() {
+        try {
+            localStorage.setItem('game_player', JSON.stringify({
+                playerId: this.playerId,
+                playerName: this.playerName
+            }));
+        } catch (e) {
+            console.error('Save player to storage error:', e);
+        }
+    }
+
+    async getActiveSave() {
+        if (!this.playerId) return null;
+        try {
+            const response = await fetch(`${API_BASE}/game/save/get?player_id=${this.playerId}`);
+            const data = await response.json();
+            if (data.code === 0) {
+                return data.data;
+            }
+        } catch (e) {
+            console.error('Get active save error:', e);
+        }
+        return null;
+    }
+
     async registerPlayer(name) {
         try {
             const response = await fetch(`${API_BASE}/game/register`, {
@@ -1072,6 +1114,7 @@ class Game {
             if (data.code === 0) {
                 this.playerId = data.data.id;
                 this.playerName = data.data.player_name;
+                this.savePlayerToStorage();
                 return true;
             }
         } catch (e) {
@@ -1154,8 +1197,18 @@ class Game {
         }
     }
 
-    initGame() {
-        this.player = new Player(200, CONFIG.GROUND_Y - 60);
+    initGame(saveData = null) {
+        const startX = saveData ? 200 + saveData.current_distance * 10 : 200;
+        this.player = new Player(startX, CONFIG.GROUND_Y - 60);
+        
+        if (saveData) {
+            this.player.health = saveData.health;
+            this.player.ammo = saveData.ammo;
+            this.player.totalAmmo = saveData.total_ammo;
+            this.player.kills = saveData.current_kills;
+            this.player.distance = saveData.current_distance;
+        }
+        
         this.enemies = [];
         this.bunkers = [];
         this.mines = [];
@@ -1163,32 +1216,50 @@ class Game {
         this.pickups = [];
         this.bosses = [];
         this.particles = new ParticleSystem();
-        this.worldOffset = 0;
-        this.lastCheckpoint = 0;
-        this.gameStartTime = Date.now();
+        this.worldOffset = saveData ? Math.max(0, startX - CONFIG.CANVAS_WIDTH * 0.3) : 0;
+        this.lastCheckpoint = saveData ? saveData.current_distance : 0;
+        this.saveId = saveData ? saveData.save_id : this.saveId;
+        
+        const savedPlayTime = saveData ? saveData.play_time : 0;
+        this.gameStartTime = Date.now() - savedPlayTime * 1000;
+        
         this.currentBoss = null;
         this.bossSpawned = { 300: false, 600: false, 900: false };
         
-        this.spawnInitialContent();
+        if (saveData && saveData.checkpoints) {
+            saveData.checkpoints.forEach(cp => {
+                if (cp.checkpoint_distance >= 290 && cp.checkpoint_distance <= 310) {
+                    this.bossSpawned[300] = true;
+                }
+                if (cp.checkpoint_distance >= 590 && cp.checkpoint_distance <= 610) {
+                    this.bossSpawned[600] = true;
+                }
+                if (cp.checkpoint_distance >= 890 && cp.checkpoint_distance <= 910) {
+                    this.bossSpawned[900] = true;
+                }
+            });
+        }
+        
+        this.spawnInitialContent(saveData ? saveData.current_distance : 0);
         
         document.getElementById('bossHealthBar').classList.add('hidden');
     }
 
-    spawnInitialContent() {
+    spawnInitialContent(startDistance = 0) {
         for (let i = 100; i < CONFIG.GAME_LENGTH; i += 50 + Math.random() * 50) {
-            if (Math.random() > 0.5 && !this.isBossZone(i)) {
+            if (i > startDistance - 5 && Math.random() > 0.5 && !this.isBossZone(i)) {
                 this.enemies.push(new Enemy(i * 10, CONFIG.GROUND_Y - 60, 'infantry'));
             }
         }
         
         for (let i = 150; i < CONFIG.GAME_LENGTH; i += 150 + Math.random() * 100) {
-            if (!this.isBossZone(i)) {
+            if (i > startDistance - 15 && !this.isBossZone(i)) {
                 this.bunkers.push(new Bunker(i * 10));
             }
         }
         
         for (let i = 80; i < CONFIG.GAME_LENGTH; i += 80 + Math.random() * 60) {
-            if (Math.random() > 0.6 && !this.isBossZone(i)) {
+            if (i > startDistance - 10 && Math.random() > 0.6 && !this.isBossZone(i)) {
                 this.mines.push(new Mine(i * 10));
             }
         }
@@ -1301,9 +1372,15 @@ class Game {
             if (!bullet.active) return false;
             bullet.update(this.worldOffset);
             
-            if (!bullet.isEnemy) {
+            const bulletScreenX = bullet.x - this.worldOffset;
+            const bulletIsOnScreen = bulletScreenX > -50 && bulletScreenX < CONFIG.CANVAS_WIDTH + 50;
+            
+            if (!bullet.isEnemy && bulletIsOnScreen) {
                 for (let enemy of this.enemies) {
                     if (!enemy.active) continue;
+                    const enemyScreenX = enemy.x - this.worldOffset;
+                    if (enemyScreenX < -100 || enemyScreenX > CONFIG.CANVAS_WIDTH + 100) continue;
+                    
                     const dist = Math.sqrt(
                         Math.pow(bullet.x - (enemy.x + 15), 2) +
                         Math.pow(bullet.y - (enemy.y + 25), 2)
@@ -1320,6 +1397,9 @@ class Game {
                 
                 for (let bunker of this.bunkers) {
                     if (!bunker.active) continue;
+                    const bunkerScreenX = bunker.x - this.worldOffset;
+                    if (bunkerScreenX < -150 || bunkerScreenX > CONFIG.CANVAS_WIDTH + 150) continue;
+                    
                     if (bullet.x > bunker.x && bullet.x < bunker.x + bunker.width &&
                         bullet.y > bunker.y && bullet.y < bunker.y + bunker.height) {
                         if (bunker.takeDamage(bullet.damage, this.particles, this.worldOffset)) {
@@ -1333,6 +1413,9 @@ class Game {
                 
                 for (let boss of this.bosses) {
                     if (!boss.active) continue;
+                    const bossScreenX = boss.x - this.worldOffset;
+                    if (bossScreenX < -200 || bossScreenX > CONFIG.CANVAS_WIDTH + 200) continue;
+                    
                     if (bullet.x > boss.x && bullet.x < boss.x + boss.config.width &&
                         bullet.y > boss.y && bullet.y < boss.y + boss.config.height) {
                         if (boss.takeDamage(bullet.damage, this.particles, this.worldOffset)) {
@@ -1564,12 +1647,46 @@ class Game {
         document.getElementById('gameOverScreen').classList.add('hidden');
     }
 
+    async continueGame() {
+        const saveData = await this.getActiveSave();
+        if (!saveData || saveData.current_distance === 0) {
+            return false;
+        }
+        
+        this.state = GameState.PLAYING;
+        this.saveId = saveData.save_id;
+        this.initGame(saveData);
+        
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('leaderboardScreen').classList.add('hidden');
+        document.getElementById('gameScreen').classList.remove('hidden');
+        document.getElementById('gameOverScreen').classList.add('hidden');
+        
+        return true;
+    }
+
+    async checkAndShowContinueButton() {
+        if (!this.playerId) {
+            document.getElementById('continueBtn').classList.add('hidden');
+            return;
+        }
+        
+        const saveData = await this.getActiveSave();
+        if (saveData && saveData.current_distance > 0) {
+            this.savedGameData = saveData;
+            document.getElementById('continueBtn').classList.remove('hidden');
+        } else {
+            document.getElementById('continueBtn').classList.add('hidden');
+        }
+    }
+
     showMenu() {
         this.state = GameState.MENU;
         document.getElementById('startScreen').classList.remove('hidden');
         document.getElementById('leaderboardScreen').classList.add('hidden');
         document.getElementById('gameScreen').classList.add('hidden');
         document.getElementById('gameOverScreen').classList.add('hidden');
+        this.checkAndShowContinueButton();
     }
 
     async showLeaderboard() {
@@ -1604,6 +1721,12 @@ document.addEventListener('DOMContentLoaded', () => {
     game = new Game();
     game.gameLoop();
     
+    game.checkAndShowContinueButton();
+    
+    document.getElementById('playerName').addEventListener('input', () => {
+        game.checkAndShowContinueButton();
+    });
+    
     document.getElementById('startBtn').addEventListener('click', async () => {
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim();
@@ -1618,6 +1741,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 game.start();
             }
         }
+    });
+    
+    document.getElementById('continueBtn').addEventListener('click', async () => {
+        await game.continueGame();
     });
     
     document.getElementById('leaderboardBtn').addEventListener('click', () => {
