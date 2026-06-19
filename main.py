@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -109,16 +109,7 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root():
-    return {
-        "code": 0,
-        "message": "success",
-        "data": {
-            "name": "FastAPI SQLite Backend",
-            "version": "1.0.0",
-            "docs": "/docs",
-            "redoc": "/redoc"
-        }
-    }
+    return RedirectResponse(url="/static/game/index.html")
 
 
 @app.get("/health")
