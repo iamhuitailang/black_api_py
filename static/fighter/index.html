@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素擂台 - Pixel Arena</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            color: #fff;
+        }
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            border: 4px solid #333;
+            box-shadow: 0 0 30px rgba(100, 100, 255, 0.3);
+            image-rendering: pixelated;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        .screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 4px 4px 0 #aa5500, 6px 6px 0 rgba(0, 0, 0, 0.5);
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+        }
+        .subtitle {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        .char-select {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        .player-panel {
+            width: 220px;
+            padding: 20px;
+            border: 3px solid #444;
+            background: rgba(20, 20, 30, 0.9);
+            text-align: center;
+        }
+        .player-panel h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        .player-panel.player1 h3 { color: #44aaff; }
+        .player-panel.player2 h3 { color: #ff4466; }
+        .char-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .char-item {
+            padding: 10px;
+            border: 2px solid #333;
+            background: #1a1a2a;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .char-item:hover {
+            border-color: #666;
+            background: #2a2a4a;
+        }
+        .char-item.selected {
+            border-color: #ffcc00;
+            background: #3a3a5a;
+        }
+        .player1 .char-item.selected { border-color: #44aaff; }
+        .player2 .char-item.selected { border-color: #ff4466; }
+        .char-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .char-desc {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .btn {
+            padding: 15px 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border: 3px solid #ffcc00;
+            background: #222;
+            color: #ffcc00;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+            letter-spacing: 2px;
+        }
+        .btn:hover {
+            background: #ffcc00;
+            color: #000;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .hud {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .hud-player { width: 300px; }
+        .hud-player.player2 { text-align: right; }
+        .hud-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .hud-player.player1 .hud-name { color: #44aaff; }
+        .hud-player.player2 .hud-name { color: #ff4466; }
+        .hp-bar-container {
+            width: 100%;
+            height: 20px;
+            background: #222;
+            border: 2px solid #555;
+            position: relative;
+            overflow: hidden;
+        }
+        .hp-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ff8844);
+            transition: width 0.2s;
+        }
+        .player2 .hp-bar {
+            background: linear-gradient(270deg, #ff4444, #ff8844);
+        }
+        .hud-center { text-align: center; }
+        .round-info {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+        }
+        .timer.warning {
+            color: #ff4444;
+            animation: blink 0.5s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .wins-display {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .win-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            margin: 0 3px;
+        }
+        .win-dot.active { background: #ffcc00; }
+        .combo-display {
+            position: absolute;
+            top: 80px;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .combo-display.p1 { left: 50px; color: #44aaff; }
+        .combo-display.p2 { right: 50px; color: #ff4466; }
+        .controls-hint {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 11px;
+            color: #666;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .controls-hint div {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+        .controls-hint span {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0);
+            pointer-events: none;
+            z-index: 20;
+        }
+        .overlay.black { background: rgba(0, 0, 0, 1); }
+        .overlay.flash { background: rgba(255, 255, 255, 0.8); }
+        .round-announce {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 4px 4px 0 #aa5500, 8px 8px 0 rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            z-index: 30;
+            letter-spacing: 8px;
+        }
+        .result-screen {
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 40;
+        }
+        .result-text {
+            font-size: 56px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 4px 4px 0 #aa5500;
+            margin-bottom: 30px;
+        }
+        .result-details {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        .stats-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(30, 30, 50, 0.8);
+            border: 2px solid #444;
+            width: 500px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .stats-title {
+            font-size: 16px;
+            color: #ffcc00;
+            margin-bottom: 10px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+        .start-screen {
+            background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
+        }
+        .damage-number {
+            position: absolute;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 15;
+            font-size: 20px;
+            animation: floatUp 0.8s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-40px); opacity: 0; }
+        }
+    </style>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="game-container">
+        <div v-if="gameState === 'start'" class="screen start-screen">
+            <div class="title">像 素 擂 台</div>
+            <div class="subtitle">PIXEL ARENA - 三局两胜</div>
+            
+            <div class="char-select">
+                <div class="player-panel player1">
+                    <h3>玩家 1 (WASD + J/K/L)</h3>
+                    <div class="char-list">
+                        <div v-for="char in characters"
+                             class="char-item"
+                             :class="{ selected: p1Char === char.id }"
+                             @click="p1Char = char.id">
+                            <div class="char-name">{{ char.name }}</div>
+                            <div class="char-desc">{{ char.description }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-panel player2">
+                    <h3>玩家 2 (方向键 + 1/2/3)</h3>
+                    <div class="char-list">
+                        <div v-for="char in characters"
+                             class="char-item"
+                             :class="{ selected: p2Char === char.id }"
+                             @click="p2Char = char.id">
+                            <div class="char-name">{{ char.name }}</div>
+                            <div class="char-desc">{{ char.description }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" @click="startGame" :disabled="!p1Char || !p2Char">开 始 战 斗</button>
+
+            <div class="stats-section">
+                <div class="stats-title">角色统计数据</div>
+                <div v-if="statsLoading">加载中...</div>
+                <div v-else-if="stats">
+                    <div class="stats-row">
+                        <span>总对战场次: {{ stats.total_battles }}</span>
+                    </div>
+                    <div v-for="s in stats.characters" :key="s.character_name" class="stats-row">
+                        <span>{{ getCharName(s.character_name) }}</span>
+                        <span>使用率: {{ s.usage_count }} | 胜率: {{ s.win_rate }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="gameState === 'battle' || gameState === 'roundEnd' || gameState === 'gameEnd'">
+            <canvas ref="gameCanvas" width="960" height="600"></canvas>
+
+            <div class="hud">
+                <div class="hud-player player1">
+                    <div class="hud-name">玩家1 - {{ getCharName(p1Char) }}</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" :style="{ width: p1.hp + '%' }"></div>
+                    </div>
+                    <div class="wins-display">
+                        <span class="win-dot" :class="{ active: p1Wins >= 1 }"></span>
+                        <span class="win-dot" :class="{ active: p1Wins >= 2 }"></span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="round-info">第 {{ currentRound }} 局</div>
+                    <div class="timer" :class="{ warning: timeLeft <= 10 }">{{ timeLeft }}</div>
+                </div>
+                <div class="hud-player player2">
+                    <div class="hud-name">玩家2 - {{ getCharName(p2Char) }}</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" :style="{ width: p2.hp + '%' }"></div>
+                    </div>
+                    <div class="wins-display">
+                        <span class="win-dot" :class="{ active: p2Wins >= 1 }"></span>
+                        <span class="win-dot" :class="{ active: p2Wins >= 2 }"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="p1.combo >= 3" class="combo-display p1">{{ p1.combo }} COMBO!</div>
+            <div v-if="p2.combo >= 3" class="combo-display p2">{{ p2.combo }} COMBO!</div>
+
+            <div v-for="dmg in damageNumbers" :key="dmg.id"
+                 class="damage-number"
+                 :style="{ left: dmg.x + 'px', top: dmg.y + 'px', color: dmg.color }">
+                -{{ dmg.value }}
+            </div>
+
+            <div v-if="roundAnnounce" class="round-announce">{{ roundAnnounce }}</div>
+
+            <div class="overlay" :class="{ black: isBlackScreen, flash: isFlash }"></div>
+
+            <div class="controls-hint">
+                <div>
+                    <span>W</span>跳 <span>A</span>/<span>D</span>移动 <span>J</span>轻攻 <span>K</span>重攻 <span>L</span>格挡
+                </div>
+                <div>
+                    <span>↑</span>跳 <span>←</span>/<span>→</span>移动 <span>1</span>轻攻 <span>2</span>重攻 <span>3</span>格挡
+                </div>
+            </div>
+        </div>
+
+        <div v-if="gameState === 'gameEnd'" class="screen result-screen">
+            <div class="result-text">{{ winnerText }}</div>
+            <div class="result-details">对战结果: 玩家1 {{ p1Wins }} : {{ p2Wins }} 玩家2</div>
+            <div class="result-details">最高连击 - 玩家1: {{ maxComboP1 }} | 玩家2: {{ maxComboP2 }}</div>
+            <div style="margin-top: 30px; display: flex; gap: 20px;">
+                <button class="btn" @click="backToStart">返 回</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+createApp({
+    setup() {
+        const gameCanvas = ref(null);
+        const gameState = ref('start');
+        const p1Char = ref('warrior');
+        const p2Char = ref('samurai');
+        const currentRound = ref(1);
+        const p1Wins = ref(0);
+        const p2Wins = ref(0);
+        const timeLeft = ref(60);
+        const roundAnnounce = ref('');
+        const isBlackScreen = ref(false);
+        const isFlash = ref(false);
+        const damageNumbers = ref([]);
+        const stats = ref(null);
+        const statsLoading = ref(false);
+        const maxComboP1 = ref(0);
+        const maxComboP2 = ref(0);
+        const winnerText = ref('');
+
+        const characters = ref([
+            { id: 'warrior', name: '战士', description: '攻守兼备' },
+            { id: 'ninja', name: '忍者', description: '速度快' },
+            { id: 'samurai', name: '武士', description: '伤害高' }
+        ]);
+
+        const charConfigs = {
+            warrior: { lightDamage: 8, heavyDamage: 20, speed: 3, color: '#4488ff' },
+            ninja: { lightDamage: 7, heavyDamage: 18, speed: 3.6, color: '#44ff88' },
+            samurai: { lightDamage: 9, heavyDamage: 22, speed: 2.7, color: '#ff4444' }
+        };
+
+        function makePlayer() {
+            return {
+                x: 0, y: 400, vx: 0, vy: 0,
+                hp: 100, maxHp: 100,
+                facing: 1,
+                state: 'idle', stateTimer: 0,
+                combo: 0, comboTimer: 0,
+                attackType: null, attackTimer: 0,
+                blocking: false,
+                jumping: false,
+                hurt: false, hurtTimer: 0,
+                knockback: 0,
+                trail: [],
+                speed: 3
+            };
+        }
+
+        const p1 = reactive(makePlayer());
+        const p2 = reactive(makePlayer());
+
+        const keys = reactive({});
+        let ctx = null;
+        let animationId = null;
+        let gameLoopId = null;
+        let lastTime = 0;
+        let damageIdCounter = 0;
+
+        const GROUND_Y = 400;
+        const GRAVITY = 0.6;
+        const JUMP_FORCE = -12;
+        const ATTACK_RANGE = 80;
+        const LIGHT_HIT_FRAME = 12;
+        const HEAVY_HIT_FRAME = 30;
+        const LIGHT_ATTACK_DURATION = 20;
+        const HEAVY_ATTACK_DURATION = 40;
+        const BLOCK_STUN = 20;
+        const HURT_DURATION = 15;
+        const COMBO_TIMEOUT = 90;
+
+        function getCharName(id) {
+            const c = characters.value.find(x => x.id === id);
+            return c ? c.name : id;
+        }
+
+        function getCharConfig(id) {
+            return charConfigs[id] || charConfigs.warrior;
+        }
+
+        async function loadStats() {
+            statsLoading.value = true;
+            try {
+                const res = await fetch('/api/fighter/stats/get');
+                const data = await res.json();
+                if (data.code === 0) {
+                    stats.value = data.data;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            statsLoading.value = false;
+        }
+
+        async function saveBattleResult(winner) {
+            const winnerChar = winner === 'player1' ? p1Char.value : p2Char.value;
+            try {
+                await fetch('/api/fighter/battle/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player1_character: p1Char.value,
+                        player2_character: p2Char.value,
+                        player1_wins: p1Wins.value,
+                        player2_wins: p2Wins.value,
+                        winner: winner,
+                        winner_character: winnerChar,
+                        total_rounds: currentRound.value,
+                        max_combo_p1: maxComboP1.value,
+                        max_combo_p2: maxComboP2.value
+                    })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function resetPlayer(player, x, facing, charId) {
+            const cfg = getCharConfig(charId);
+            player.x = x;
+            player.y = GROUND_Y;
+            player.vx = 0;
+            player.vy = 0;
+            player.hp = 100;
+            player.maxHp = 100;
+            player.facing = facing;
+            player.state = 'idle';
+            player.stateTimer = 0;
+            player.combo = 0;
+            player.comboTimer = 0;
+            player.attackType = null;
+            player.attackTimer = 0;
+            player.blocking = false;
+            player.jumping = false;
+            player.hurt = false;
+            player.hurtTimer = 0;
+            player.knockback = 0;
+            player.trail = [];
+            player.speed = cfg.speed;
+        }
+
+        function startGame() {
+            p1Wins.value = 0;
+            p2Wins.value = 0;
+            currentRound.value = 1;
+            maxComboP1.value = 0;
+            maxComboP2.value = 0;
+            startRound(true);
+        }
+
+        function startRound(isFirst = false) {
+            resetPlayer(p1, 200, 1, p1Char.value);
+            resetPlayer(p2, 760, -1, p2Char.value);
+            timeLeft.value = 60;
+            gameState.value = 'battle';
+
+            if (!isFirst && currentRound.value === 3) {
+                isBlackScreen.value = true;
+                roundAnnounce.value = '决 胜 局';
+                setTimeout(() => {
+                    isFlash.value = true;
+                    setTimeout(() => {
+                        isFlash.value = false;
+                        isBlackScreen.value = false;
+                        roundAnnounce.value = '';
+                        startGameLoop();
+                        startTimer();
+                    }, 150);
+                }, 1000);
+            } else {
+                roundAnnounce.value = '第 ' + currentRound.value + ' 局';
+                setTimeout(() => {
+                    roundAnnounce.value = '';
+                    startGameLoop();
+                    startTimer();
+                }, 1500);
+            }
+        }
+
+        function startTimer() {
+            if (gameLoopId) clearInterval(gameLoopId);
+            gameLoopId = setInterval(() => {
+                if (gameState.value === 'battle') {
+                    timeLeft.value--;
+                    if (timeLeft.value <= 0) {
+                        endRound();
+                    }
+                }
+            }, 1000);
+        }
+
+        function startGameLoop() {
+            if (animationId) cancelAnimationFrame(animationId);
+            lastTime = performance.now();
+            function loop(now) {
+                update();
+                render();
+                if (gameState.value === 'battle') {
+                    animationId = requestAnimationFrame(loop);
+                }
+            }
+            animationId = requestAnimationFrame(loop);
+        }
+
+        function showDamage(x, y, value, isP1) {
+            const id = ++damageIdCounter;
+            damageNumbers.value.push({
+                id: id,
+                x: x,
+                y: y,
+                value: value,
+                color: isP1 ? '#ff6666' : '#66aaff'
+            });
+            setTimeout(() => {
+                damageNumbers.value = damageNumbers.value.filter(d => d.id !== id);
+            }, 800);
+        }
+
+        function updatePlayer(player, opponent, isP1) {
+            if (player.hurtTimer > 0) {
+                player.hurtTimer--;
+                if (player.hurtTimer === 0) player.hurt = false;
+            }
+
+            if (player.attackTimer > 0) {
+                player.attackTimer--;
+                if (player.attackTimer === 0) {
+                    player.state = 'idle';
+                    player.attackType = null;
+                }
+            }
+
+            if (player.comboTimer > 0) {
+                player.comboTimer--;
+                if (player.comboTimer === 0) player.combo = 0;
+            }
+
+            if (Math.abs(player.knockback) > 0.1) {
+                player.x += player.knockback;
+                player.knockback *= 0.85;
+            } else {
+                player.knockback = 0;
+            }
+
+            if (player.y < GROUND_Y) {
+                player.vy += GRAVITY;
+                player.y += player.vy;
+                if (player.y >= GROUND_Y) {
+                    player.y = GROUND_Y;
+                    player.vy = 0;
+                    player.jumping = false;
+                }
+            }
+
+            if (player.state !== 'attacking' && player.state !== 'hurt') {
+                player.state = player.blocking ? 'blocking' : 'idle';
+            }
+
+            player.facing = opponent.x > player.x ? 1 : -1;
+
+            if (Math.abs(player.x - opponent.x) < 40) {
+                if (player.x < opponent.x) {
+                    player.x = opponent.x - 40;
+                } else {
+                    player.x = opponent.x + 40;
+                }
+            }
+
+            player.x = Math.max(50, Math.min(910, player.x));
+
+            if (player.state === 'attacking') {
+                const cfg = getCharConfig(isP1 ? p1Char.value : p2Char.value);
+                const hitFrame = player.attackType === 'light' ? LIGHT_HIT_FRAME : HEAVY_HIT_FRAME;
+                const totalFrames = player.attackType === 'light' ? LIGHT_ATTACK_DURATION : HEAVY_ATTACK_DURATION;
+                const currentFrame = totalFrames - player.attackTimer;
+
+                if (currentFrame === hitFrame) {
+                    const dx = opponent.x - player.x;
+                    const dy = Math.abs(opponent.y - player.y);
+
+                    if (Math.abs(dx) < ATTACK_RANGE && dy < 60) {
+                        let damage = player.attackType === 'light' ? cfg.lightDamage : cfg.heavyDamage;
+                        let hit = true;
+
+                        if (player.attackType === 'light') {
+                            if (opponent.blocking && !opponent.jumping) {
+                                hit = false;
+                                damage = 0;
+                            }
+                        } else if (player.attackType === 'heavy') {
+                            if (opponent.jumping && dy > 30) {
+                                hit = false;
+                                damage = 0;
+                            } else if (opponent.blocking) {
+                                hit = true;
+                                damage = Math.floor(damage * 0.7);
+                                opponent.state = 'hurt';
+                                opponent.hurtTimer = BLOCK_STUN;
+                                opponent.blocking = false;
+                            }
+                        }
+
+                        if (hit && damage > 0) {
+                            player.combo++;
+                            player.comboTimer = COMBO_TIMEOUT;
+
+                            if (isP1) {
+                                maxComboP1.value = Math.max(maxComboP1.value, player.combo);
+                            } else {
+                                maxComboP2.value = Math.max(maxComboP2.value, player.combo);
+                            }
+
+                            if (player.combo >= 5) {
+                                damage = Math.floor(damage * 1.1);
+                            }
+
+                            opponent.hp = Math.max(0, opponent.hp - damage);
+                            opponent.state = 'hurt';
+                            opponent.hurtTimer = HURT_DURATION;
+                            opponent.knockback = player.facing * 8;
+                            opponent.combo = 0;
+                            opponent.hurt = true;
+
+                            showDamage(opponent.x, opponent.y - 50, damage, !isP1);
+                        }
+                    }
+                }
+            }
+
+            player.trail.unshift({ x: player.x, y: player.y, alpha: 1 });
+            if (player.trail.length > 6) player.trail.pop();
+            for (let i = 0; i < player.trail.length; i++) {
+                player.trail[i].alpha *= 0.7;
+            }
+        }
+
+        function handleInput(player, left, right, jump, light, heavy, block, isP1) {
+            if (player.state === 'hurt') return;
+            if (player.state === 'attacking') return;
+
+            if (player.state !== 'attacking') {
+                if (left) player.x -= player.speed;
+                if (right) player.x += player.speed;
+            }
+
+            if (jump && !player.jumping && player.y >= GROUND_Y) {
+                player.vy = JUMP_FORCE;
+                player.jumping = true;
+            }
+
+            player.blocking = block && player.y >= GROUND_Y && player.state !== 'attacking';
+
+            if (light) {
+                if (player.state === 'idle' || player.state === 'blocking') {
+                    player.state = 'attacking';
+                    player.attackType = 'light';
+                    player.attackTimer = LIGHT_ATTACK_DURATION;
+                    player.blocking = false;
+                }
+            } else if (heavy) {
+                if (player.state === 'idle' || player.state === 'blocking') {
+                    player.state = 'attacking';
+                    player.attackType = 'heavy';
+                    player.attackTimer = HEAVY_ATTACK_DURATION;
+                    player.blocking = false;
+                }
+            }
+        }
+
+        function update() {
+            handleInput(p1,
+                keys['a'] || keys['A'],
+                keys['d'] || keys['D'],
+                keys['w'] || keys['W'],
+                keys['j'] || keys['J'],
+                keys['k'] || keys['K'],
+                keys['l'] || keys['L'],
+                true);
+
+            handleInput(p2,
+                keys['ArrowLeft'],
+                keys['ArrowRight'],
+                keys['ArrowUp'],
+                keys['1'],
+                keys['2'],
+                keys['3'],
+                false);
+
+            updatePlayer(p1, p2, true);
+            updatePlayer(p2, p1, false);
+
+            if (p1.hp <= 0 || p2.hp <= 0) {
+                endRound();
+            }
+        }
+
+        function drawPixelRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+        }
+
+        function drawBackground() {
+            const grad = ctx.createLinearGradient(0, 0, 0, 600);
+            grad.addColorStop(0, '#1a0a2e');
+            grad.addColorStop(0.5, '#2d1b4e');
+            grad.addColorStop(1, '#0f0a1a');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 960, 600);
+
+            for (let i = 0; i < 50; i++) {
+                const sx = (i * 73) % 960;
+                const sy = (i * 37) % 200;
+                drawPixelRect(sx, sy, 2, 2, i % 3 === 0 ? '#ffffff' : '#8888aa');
+            }
+
+            const buildings = [
+                { x: 0, w: 120, h: 280, c: '#1a1a2e' },
+                { x: 100, w: 80, h: 320, c: '#16162a' },
+                { x: 160, w: 100, h: 260, c: '#1e1e38' },
+                { x: 240, w: 70, h: 300, c: '#181830' },
+                { x: 300, w: 130, h: 350, c: '#141428' },
+                { x: 410, w: 90, h: 290, c: '#1c1c36' },
+                { x: 480, w: 110, h: 330, c: '#121224' },
+                { x: 570, w: 80, h: 270, c: '#1a1a32' },
+                { x: 630, w: 100, h: 310, c: '#181830' },
+                { x: 710, w: 90, h: 340, c: '#16162c' },
+                { x: 780, w: 120, h: 280, c: '#1e1e3a' },
+                { x: 880, w: 80, h: 300, c: '#141428' }
+            ];
+
+            buildings.forEach(b => {
+                drawPixelRect(b.x, 450 - b.h, b.w, b.h, b.c);
+                for (let wy = 450 - b.h + 20; wy < 430; wy += 25) {
+                    for (let wx = b.x + 10; wx < b.x + b.w - 10; wx += 20) {
+                        const seed = (wx * 13 + wy * 7) % 10;
+                        if (seed > 3) {
+                            drawPixelRect(wx, wy, 8, 10, '#ffee88');
+                        }
+                    }
+                }
+            });
+
+            drawPixelRect(0, 450, 960, 150, '#2a2a3a');
+            drawPixelRect(0, 445, 960, 5, '#444466');
+
+            for (let i = 0; i < 960; i += 30) {
+                drawPixelRect(i, 445, 15, 3, '#555577');
+            }
+        }
+
+        function drawPlayer(player, isP1) {
+            const charId = isP1 ? p1Char.value : p2Char.value;
+            const cfg = getCharConfig(charId);
+
+            for (let i = player.trail.length - 1; i >= 0; i--) {
+                const t = player.trail[i];
+                ctx.globalAlpha = t.alpha * 0.3;
+                drawFighter(t.x, t.y - 50, cfg.color, player.facing, isP1, 'idle', false, false, null);
+            }
+            ctx.globalAlpha = 1;
+
+            if (player.hurt && player.hurtTimer > 8 && player.hurtTimer % 4 < 2) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            drawFighter(player.x, player.y - 50, cfg.color, player.facing, isP1,
+                player.state, player.blocking, player.jumping, player.attackType);
+
+            ctx.globalAlpha = 1;
+        }
+
+        function drawFighter(x, y, color, facing, isP1, state, blocking, jumping, attackType) {
+            const flip = facing < 0;
+            ctx.save();
+            ctx.translate(x, y);
+            if (flip) ctx.scale(-1, 1);
+
+            const bodyColor = color;
+            const accent = isP1 ? '#66aaff' : '#ff8888';
+            const dark = '#222';
+
+            if (jumping) {
+                drawPixelRect(-12, 10, 24, 30, bodyColor);
+                drawPixelRect(-8, -20, 16, 30, bodyColor);
+                drawPixelRect(-14, -35, 28, 18, bodyColor);
+                drawPixelRect(-10, -30, 20, 3, dark);
+                drawPixelRect(4, -28, 4, 4, '#fff');
+                drawPixelRect(6, -28, 2, 2, dark);
+                drawPixelRect(-14, 5, 6, 15, bodyColor);
+                drawPixelRect(8, 5, 6, 15, bodyColor);
+                drawPixelRect(-10, 38, 8, 12, bodyColor);
+                drawPixelRect(2, 38, 8, 12, bodyColor);
+            } else {
+                drawPixelRect(-12, 10, 24, 35, bodyColor);
+                drawPixelRect(-8, -20, 16, 30, bodyColor);
+                drawPixelRect(-14, -35, 28, 18, bodyColor);
+                drawPixelRect(-10, -30, 20, 3, dark);
+                drawPixelRect(4, -28, 4, 4, '#fff');
+                drawPixelRect(6, -28, 2, 2, dark);
+
+                if (state === 'attacking') {
+                    if (attackType === 'light') {
+                        drawPixelRect(12, -5, 25, 6, accent);
+                        drawPixelRect(32, -10, 8, 16, '#ffff88');
+                    } else if (attackType === 'heavy') {
+                        drawPixelRect(12, -15, 30, 10, accent);
+                        drawPixelRect(38, -25, 12, 30, '#ff8844');
+                        drawPixelRect(14, 0, 6, 20, bodyColor);
+                    }
+                    drawPixelRect(-22, 0, 10, 20, bodyColor);
+                } else if (blocking) {
+                    drawPixelRect(14, -10, 8, 8, accent);
+                    drawPixelRect(18, -25, 6, 35, '#888');
+                    drawPixelRect(-18, 0, 10, 20, bodyColor);
+                } else {
+                    drawPixelRect(-18, 0, 10, 20, bodyColor);
+                    drawPixelRect(8, 0, 10, 20, bodyColor);
+                }
+
+                drawPixelRect(-10, 45, 8, 15, bodyColor);
+                drawPixelRect(2, 45, 8, 15, bodyColor);
+            }
+
+            ctx.restore();
+        }
+
+        function render() {
+            drawBackground();
+            drawPlayer(p1, true);
+            drawPlayer(p2, false);
+
+            if (p1.state === 'attacking') {
+                const color = p1.attackType === 'light' ? '#ffff88' : '#ff8844';
+                const effectX = p1.x + (p1.facing > 0 ? 40 : -40 - (p1.attackType === 'light' ? 40 : 60));
+                const effectW = p1.attackType === 'light' ? 40 : 60;
+                ctx.globalAlpha = 0.5;
+                drawPixelRect(effectX, p1.y - 60, effectW, 10, color);
+                ctx.globalAlpha = 1;
+            }
+
+            if (p2.state === 'attacking') {
+                const color = p2.attackType === 'light' ? '#ffff88' : '#ff8844';
+                const effectX = p2.x + (p2.facing > 0 ? 40 : -40 - (p2.attackType === 'light' ? 40 : 60));
+                const effectW = p2.attackType === 'light' ? 40 : 60;
+                ctx.globalAlpha = 0.5;
+                drawPixelRect(effectX, p2.y - 60, effectW, 10, color);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function endRound() {
+            if (gameState.value !== 'battle') return;
+            gameState.value = 'roundEnd';
+
+            if (animationId) cancelAnimationFrame(animationId);
+            if (gameLoopId) clearInterval(gameLoopId);
+
+            let p1WinRound;
+            if (p1.hp > p2.hp) {
+                p1WinRound = true;
+                p1Wins.value++;
+                roundAnnounce.value = '玩家1 胜!';
+            } else if (p2.hp > p1.hp) {
+                p1WinRound = false;
+                p2Wins.value++;
+                roundAnnounce.value = '玩家2 胜!';
+            } else {
+                p1WinRound = true;
+                p1Wins.value++;
+                roundAnnounce.value = '玩家1 胜!';
+            }
+
+            setTimeout(() => {
+                roundAnnounce.value = '';
+                if (p1Wins.value >= 2 || p2Wins.value >= 2) {
+                    endGame();
+                } else {
+                    currentRound.value++;
+                    startRound();
+                }
+            }, 2000);
+        }
+
+        function endGame() {
+            const winner = p1Wins.value >= 2 ? 'player1' : 'player2';
+            winnerText.value = winner === 'player1' ? '玩家1 胜利!' : '玩家2 胜利!';
+            gameState.value = 'gameEnd';
+            saveBattleResult(winner);
+        }
+
+        function backToStart() {
+            gameState.value = 'start';
+            loadStats();
+        }
+
+        onMounted(() => {
+            nextTick(() => {
+                if (gameCanvas.value) {
+                    ctx = gameCanvas.value.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(e.key) >= 0) {
+                    e.preventDefault();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+
+            loadStats();
+        });
+
+        return {
+            gameCanvas, gameState,
+            p1Char, p2Char,
+            characters,
+            p1, p2,
+            currentRound, p1Wins, p2Wins,
+            timeLeft, roundAnnounce,
+            isBlackScreen, isFlash,
+            damageNumbers,
+            stats, statsLoading,
+            maxComboP1, maxComboP2,
+            winnerText,
+            getCharName,
+            startGame, backToStart
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
