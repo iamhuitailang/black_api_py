@@ -12,6 +12,7 @@
         },
         emits: ['go-login', 'back'],
         setup(props, { emit }) {
+            const STORAGE_KEY = 'career_talk_feedback_form';
             const talkList = ref([]);
             const selectedTalkId = ref(props.talkId || null);
             const rating = ref(5);
@@ -23,6 +24,45 @@
             const submitting = ref(false);
 
             const hoverRating = ref(0);
+
+            const saveFormDraft = () => {
+                const draft = {
+                    selectedTalkId: selectedTalkId.value,
+                    rating: rating.value,
+                    content: content.value,
+                    studentId: studentId.value,
+                    studentName: studentName.value,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+            };
+
+            const loadFormDraft = () => {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return;
+                    const draft = JSON.parse(raw);
+                    if (Date.now() - draft.timestamp > 24 * 60 * 60 * 1000) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        return;
+                    }
+                    if (draft.selectedTalkId && !props.talkId) selectedTalkId.value = draft.selectedTalkId;
+                    if (draft.rating) rating.value = draft.rating;
+                    if (draft.content) content.value = draft.content;
+                    if (draft.studentId) studentId.value = draft.studentId;
+                    if (draft.studentName) studentName.value = draft.studentName;
+                } catch (e) {}
+            };
+
+            const clearFormDraft = () => {
+                localStorage.removeItem(STORAGE_KEY);
+            };
+
+            loadFormDraft();
+
+            [selectedTalkId, rating, content, studentId, studentName].forEach(ref => {
+                watch(ref, saveFormDraft, { deep: true });
+            });
 
             const setRating = (r) => {
                 rating.value = r;
@@ -83,6 +123,7 @@
                     });
                     if (res.code === 0) {
                         submitted.value = true;
+                        clearFormDraft();
                         Toast.success('反馈提交成功，感谢您的评价！');
                     } else {
                         Toast.error(res.message || '提交失败');
@@ -98,6 +139,7 @@
                 submitted.value = false;
                 rating.value = 5;
                 content.value = '';
+                clearFormDraft();
             };
 
             const starClass = (r) => {

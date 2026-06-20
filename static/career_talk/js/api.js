@@ -112,7 +112,7 @@ const CareerTalkApi = {
         return this.post('/auth/login', { username, password });
     },
 
-    register(data) {
+    registerUser(data) {
         return this.post('/auth/register', data);
     },
 
@@ -156,7 +156,7 @@ const CareerTalkApi = {
         return this.delete('/career/talk/delete', { id });
     },
 
-    register(data) {
+    registerTalk(data) {
         return this.post('/career/talk/register', data);
     },
 

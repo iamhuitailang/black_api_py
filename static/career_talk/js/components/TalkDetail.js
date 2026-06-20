@@ -136,7 +136,7 @@
 
                 submitting.value = true;
                 try {
-                    const result = await CareerTalkApi.register({
+                    const result = await CareerTalkApi.registerTalk({
                         talk_id: props.talkId,
                         ...registerForm.value
                     });

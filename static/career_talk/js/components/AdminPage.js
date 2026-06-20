@@ -1,10 +1,12 @@
 (function() {
     const ref = Vue.ref;
+    const watch = Vue.watch;
     const onMounted = Vue.onMounted;
 
     const AdminPage = {
         name: 'AdminPage',
         setup() {
+        const TALK_DRAFT_KEY = 'career_talk_admin_form';
         const talkList = ref([]);
         const loading = ref(false);
         const showModal = ref(false);
@@ -17,6 +19,37 @@
             description: '',
             short_code: '',
             status: 1
+        });
+
+        const saveFormDraft = () => {
+            if (modalMode.value !== 'create') return;
+            localStorage.setItem(TALK_DRAFT_KEY, JSON.stringify({
+                ...formData.value,
+                timestamp: Date.now()
+            }));
+        };
+
+        const loadFormDraft = () => {
+            try {
+                const raw = localStorage.getItem(TALK_DRAFT_KEY);
+                if (!raw) return null;
+                const draft = JSON.parse(raw);
+                if (Date.now() - draft.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(TALK_DRAFT_KEY);
+                    return null;
+                }
+                const { timestamp, ...data } = draft;
+                return data;
+            } catch (e) { return null; }
+        };
+
+        const clearFormDraft = () => {
+            localStorage.removeItem(TALK_DRAFT_KEY);
+        };
+
+        watch(() => formData.value, saveFormDraft, { deep: true });
+        watch(showModal, (val) => {
+            if (!val) clearFormDraft();
         });
 
         const loadTalkList = async () => {
@@ -35,7 +68,8 @@
 
         const openCreateModal = () => {
             modalMode.value = 'create';
-            formData.value = {
+            const draft = loadFormDraft();
+            formData.value = draft || {
                 company_name: '',
                 talk_time: '',
                 location: '',
@@ -88,6 +122,7 @@
 
                 if (result.code === 0) {
                     Toast.success(modalMode.value === 'create' ? '创建成功' : '更新成功');
+                    clearFormDraft();
                     showModal.value = false;
                     loadTalkList();
                 } else {

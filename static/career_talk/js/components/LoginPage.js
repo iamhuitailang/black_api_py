@@ -65,7 +65,7 @@
                 }
                 loading.value = true;
                 try {
-                    const res = await CareerTalkApi.register({
+                    const res = await CareerTalkApi.registerUser({
                         username: registerForm.username,
                         password: registerForm.password,
                         student_id: registerForm.student_id,
