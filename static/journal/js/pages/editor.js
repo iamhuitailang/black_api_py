@@ -55,7 +55,7 @@ const EditorDashboardPage = {
             this.$root.navigateTo('all-manuscripts', { status });
         },
         goDetail(id) {
-            this.$root.navigateTo(`manuscript-detail/${id}`);
+            this.$root.navigateTo('manuscript-detail', { id });
         },
         getStatusBadge(status) {
             const map = {
@@ -231,7 +231,7 @@ const AllManuscriptsPage = {
             this.loadData();
         },
         goDetail(id) {
-            this.$root.navigateTo(`manuscript-detail/${id}`);
+            this.$root.navigateTo('manuscript-detail', { id });
         },
         getStatusBadge(status) {
             const map = {

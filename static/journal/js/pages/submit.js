@@ -19,10 +19,58 @@ const SubmitPage = {
             uploadProgress: 0,
             submitting: false,
             errors: {},
-            fileInputKey: 0
+            fileInputKey: 0,
+            draftSaved: false,
+            initializing: true
         };
     },
+    watch: {
+        form: {
+            deep: true,
+            handler: function() {
+                if (this.initializing) return;
+                this.$nextTick(() => {
+                    this.autoSaveDraft();
+                });
+            }
+        }
+    },
+    computed: {
+        isEditMode() {
+            return !!(this.form && this.form.manuscript_id);
+        }
+    },
     methods: {
+        autoSaveDraft: Helpers.debounce(function() {
+            if (this.isEditMode) return;
+            const key = 'journal_submit_draft';
+            const data = JSON.parse(JSON.stringify(this.form));
+            localStorage.setItem(key, JSON.stringify(data));
+            this.draftSaved = true;
+            setTimeout(() => { this.draftSaved = false; }, 1500);
+        }, 800),
+        loadDraftFromStorage() {
+            if (this.isEditMode) return;
+            const key = 'journal_submit_draft';
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            try {
+                const data = JSON.parse(raw);
+                if (data && typeof data === 'object') {
+                    Object.keys(this.form).forEach(k => {
+                        if (data[k] !== undefined && data[k] !== null) {
+                            this.form[k] = data[k];
+                        }
+                    });
+                    Toast.info('已恢复上次未提交的草稿');
+                }
+            } catch (e) {
+                console.warn('Draft parse failed', e);
+            }
+        },
+        clearDraftStorage() {
+            localStorage.removeItem('journal_submit_draft');
+        },
         async loadSections() {
             const res = await JournalService.getSections();
             if (res.code === 0 && res.data) {
@@ -37,6 +85,7 @@ const SubmitPage = {
                 this.form.author_phone = res.data.phone || '';
                 this.form.author_affiliation = res.data.affiliation || '';
             }
+            return res;
         },
         handleFileChange(e) {
             const file = e.target.files && e.target.files[0];
@@ -119,6 +168,7 @@ const SubmitPage = {
                     if (res.data && res.data.id) {
                         this.form.manuscript_id = res.data.id;
                     }
+                    this.clearDraftStorage();
                 } else {
                     Toast.error(res.message || '保存失败');
                 }
@@ -153,6 +203,7 @@ const SubmitPage = {
                 const submitRes = await JournalService.submitManuscript(id);
                 if (submitRes.code === 0) {
                     Toast.success(submitRes.message || '提交成功');
+                    this.clearDraftStorage();
                     setTimeout(() => {
                         this.$root.navigateTo('submissions');
                     }, 800);
@@ -194,8 +245,17 @@ const SubmitPage = {
     },
     mounted() {
         this.loadSections();
-        this.loadProfile();
         this.loadEditMode();
+        if (this.isEditMode) {
+            setTimeout(() => { this.initializing = false; }, 500);
+        } else {
+            this.loadProfile().then(() => {
+                this.loadDraftFromStorage();
+                this.$nextTick(() => {
+                    this.initializing = false;
+                });
+            });
+        }
     },
     template: `
         <div class="page-container">
@@ -209,6 +269,7 @@ const SubmitPage = {
                     <div>
                         <div class="card-title">投稿表单</div>
                         <div class="card-subtitle" v-if="form.manuscript_id">稿件ID: #{{ form.manuscript_id }} (草稿状态)</div>
+                        <div class="card-subtitle text-success" v-else-if="draftSaved">✓ 草稿已自动保存</div>
                     </div>
                 </div>
                 <div class="card-body">
