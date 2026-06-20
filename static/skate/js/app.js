@@ -336,6 +336,10 @@ const App = {
         }
 
         async function handleGameEnd(result) {
+            if (gameEngine) {
+                try { gameEngine.stop(); } catch (e) {}
+            }
+
             gameState.crashed = false;
             crashRecoveryCountdown.value = 0;
             isInGame = false;
@@ -346,10 +350,6 @@ const App = {
                 crashTimer = null;
             }
 
-            if (gameEngine) {
-                try { gameEngine.stop(); } catch (e) {}
-            }
-
             gameResult.score = result.score;
             gameResult.trickScore = result.trickScore;
             gameResult.timeUsed = result.timeUsed;
@@ -357,6 +357,8 @@ const App = {
             gameResult.progress = result.progress;
             gameResult.completed = result.completed;
             gameResult.rank = 0;
+
+            currentView.value = 'gameover';
 
             if (result.completed && currentTrackData.value) {
                 try {
@@ -375,8 +377,6 @@ const App = {
                     console.error('提交得分失败:', e);
                 }
             }
-
-            currentView.value = 'gameover';
         }
 
         function confirmExitGame() {

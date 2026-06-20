@@ -208,21 +208,23 @@ class SkateGameEngine {
         const key = e.key.toLowerCase();
         const now = performance.now();
 
-        if ((key === 'arrowleft' || key === 'a') && !this.player.isOnRail) {
+        if (key === ' ' || key === 'arrowup' || key === 'arrowdown' ||
+            key === 'arrowleft' || key === 'arrowright') {
             e.preventDefault();
+        }
+
+        if ((key === 'arrowleft' || key === 'a') && !this.player.isOnRail) {
             if (this.player.targetLane > 0) {
                 this.player.targetLane--;
             }
         }
         if ((key === 'arrowright' || key === 'd') && !this.player.isOnRail) {
-            e.preventDefault();
             if (this.player.targetLane < this.LANE_COUNT - 1) {
                 this.player.targetLane++;
             }
         }
 
-        if ((key === ' ' || key === 'w' || key === 'arrowup') && !this.player.isJumping && !this.player.crashed) {
-            e.preventDefault();
+        if ((key === ' ' || key === 'w' || key === 'arrowup') && !this.player.isJumping) {
             this.startJump();
         }
 
@@ -238,15 +240,15 @@ class SkateGameEngine {
             this.player.leanRight = true;
         }
 
-        if (key === 'f' && this.player.isJumping && !this.player.isFlipping) {
+        if (key === 'f') {
             this.tryFlip();
         }
 
-        if (key === 'g' && this.player.isJumping && !this.player.isGrabbing) {
+        if (key === 'g') {
             this.tryGrab();
         }
 
-        if (key === 'r' && !this.player.isOnRail) {
+        if (key === 'r') {
             this.tryRailGrind();
         }
     }
@@ -273,65 +275,85 @@ class SkateGameEngine {
     }
 
     tryFlip() {
+        if (this.player.crashed || this.paused) return;
+
         if (!this.player.isJumping) {
             if (this.callbacks.onTrickFeedback) {
                 this.callbacks.onTrickFeedback('fail', '请先按空格跳跃！');
             }
             return;
         }
-        if (this.player.y > -30) {
+        if (this.player.isFlipping) return;
+        if (this.player.isOnRail) return;
+
+        if (this.player.y > -15) {
             if (this.callbacks.onTrickFeedback) {
                 this.callbacks.onTrickFeedback('fail', '空翻时机太早！');
             }
             return;
         }
-        if (this.player.isFlipping) return;
+
         const now = performance.now();
-        if (this.keyTimers.lastFlip && now - this.keyTimers.lastFlip < 500) {
-            return;
-        }
+        if (this.keyTimers.lastFlip && now - this.keyTimers.lastFlip < 600) return;
         this.keyTimers.lastFlip = now;
 
         this.player.isFlipping = true;
         this.player.flipAngle = 0;
+        this.flipStartTime = now;
 
         setTimeout(() => {
-            if (this.running && this.player.flipAngle >= 300) {
+            if (this.running && this.player.flipAngle >= 270) {
                 this.trickSuccess('完美空翻！+100', 100);
             } else if (this.running) {
                 this.trickFail('空翻未完成！-50');
             }
             this.player.isFlipping = false;
             this.player.flipAngle = 0;
-        }, 550);
+        }, 600);
     }
 
     tryGrab() {
+        if (this.player.crashed || this.paused) return;
+
         if (!this.player.isJumping) {
             if (this.callbacks.onTrickFeedback) {
                 this.callbacks.onTrickFeedback('fail', '请先按空格跳跃！');
             }
             return;
         }
-        if (this.player.y > -50) {
+        if (this.player.isGrabbing) return;
+        if (this.player.isOnRail) return;
+        if (this.player.isFlipping) return;
+
+        if (this.player.y > -30) {
             if (this.callbacks.onTrickFeedback) {
                 this.callbacks.onTrickFeedback('fail', '抓板时机不对！');
             }
             return;
         }
-        if (this.player.isGrabbing) return;
+
         this.player.isGrabbing = true;
         this.player.grabTimer = 0;
     }
 
     tryRailGrind() {
+        if (this.player.crashed || this.paused) return;
+
+        if (this.player.isOnRail) return;
+        if (this.player.isJumping) {
+            if (this.callbacks.onTrickFeedback) {
+                this.callbacks.onTrickFeedback('fail', '请落地后再尝试！');
+            }
+            return;
+        }
+
         const pos = this.state.position;
         let onRail = null;
 
         for (const rail of this.rails) {
-            if (pos >= rail.start - 80 && pos <= rail.end + 50) {
+            if (pos >= rail.start - 120 && pos <= rail.end + 60) {
                 if (this.player.lane === rail.lane) {
-                    if (pos >= rail.start - 50 && pos <= rail.start + 50) {
+                    if (pos >= rail.start - 80 && pos <= rail.start + 80) {
                         onRail = rail;
                         break;
                     }
@@ -340,6 +362,9 @@ class SkateGameEngine {
         }
 
         if (!onRail) {
+            if (this.callbacks.onTrickFeedback) {
+                this.callbacks.onTrickFeedback('fail', '附近没有栏杆！');
+            }
             return;
         }
 
@@ -385,6 +410,7 @@ class SkateGameEngine {
         if (this.player.crashed) return;
         this.player.crashed = true;
         this.player.crashTimer = 0;
+        this.state.crashed = true;
         this.state.crashCount++;
         this.state.score = Math.max(0, this.state.score - 100);
         this.player.speed = 0;
@@ -395,6 +421,10 @@ class SkateGameEngine {
         this.player.vy = 0;
         this.player.y = 0;
         this.spawnParticles(this.player.x, this.GROUND_Y - 30, '#ff0000', 30);
+
+        if (this.callbacks.onStateUpdate) {
+            this.callbacks.onStateUpdate({ ...this.state });
+        }
 
         this.crashTimeoutId = setTimeout(() => {
             if (this.player.crashed) {
@@ -513,16 +543,15 @@ class SkateGameEngine {
     }
 
     updateTrickAvailability() {
-        this.state.canFlip = this.player.isJumping && !this.player.isFlipping &&
-                             this.player.y < -30;
-        this.state.canGrab = this.player.isJumping && !this.player.isGrabbing &&
-                             this.player.y < -50;
+        this.state.canFlip = this.player.isJumping && !this.player.isFlipping && !this.player.isGrabbing;
+        this.state.canGrab = this.player.isJumping && !this.player.isGrabbing && !this.player.isFlipping
+                            && this.player.y < -20;
 
         this.state.canRail = false;
         if (!this.player.isOnRail && !this.player.isJumping) {
             const pos = this.state.position;
             for (const rail of this.rails) {
-                if (pos >= rail.start - 100 && pos <= rail.start + 60 && this.player.lane === rail.lane) {
+                if (pos >= rail.start - 120 && pos <= rail.start + 80 && this.player.lane === rail.lane) {
                     this.state.canRail = true;
                     break;
                 }
