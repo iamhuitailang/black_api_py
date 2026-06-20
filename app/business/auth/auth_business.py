@@ -7,6 +7,85 @@ class AuthBusiness:
         self.user_model = UserModel()
         self.token_model = TokenModel()
 
+    def register_student(self, username: str, password: str, student_id: str = '',
+                         real_name: str = '', phone: str = '', major: str = '') -> Dict[str, Any]:
+        if not username or not username.strip():
+            return {
+                'code': 1,
+                'message': '用户名不能为空',
+                'data': None
+            }
+        
+        if not password or len(password.strip()) < 6:
+            return {
+                'code': 1,
+                'message': '密码长度至少6位',
+                'data': None
+            }
+        
+        if not student_id or not student_id.strip():
+            return {
+                'code': 1,
+                'message': '学号不能为空',
+                'data': None
+            }
+        
+        if not real_name or not real_name.strip():
+            return {
+                'code': 1,
+                'message': '真实姓名不能为空',
+                'data': None
+            }
+        
+        username = username.strip()
+        password = password.strip()
+        student_id = student_id.strip()
+        real_name = real_name.strip()
+        
+        if self.user_model.get_by_username(username):
+            return {
+                'code': 1,
+                'message': '用户名已存在',
+                'data': None
+            }
+        
+        if self.user_model.get_by_student_id(student_id):
+            return {
+                'code': 1,
+                'message': '该学号已注册',
+                'data': None
+            }
+        
+        try:
+            new_id = self.user_model.create(
+                username=username,
+                password=password,
+                role=UserModel.ROLE_STUDENT,
+                student_id=student_id,
+                real_name=real_name,
+                phone=phone or '',
+                major=major or ''
+            )
+            
+            user = self.user_model.get_by_id(new_id)
+            return {
+                'code': 0,
+                'message': '注册成功',
+                'data': {
+                    'id': user.get('id'),
+                    'username': user.get('username'),
+                    'role': user.get('role'),
+                    'student_id': user.get('student_id'),
+                    'real_name': user.get('real_name')
+                }
+            }
+        except Exception as e:
+            return {
+                'code': 1,
+                'message': str(e),
+                'data': None
+            }
+
     def login(self, username: str, password: str) -> Dict[str, Any]:
         if not username or not username.strip():
             return {
@@ -46,10 +125,7 @@ class AuthBusiness:
             'code': 0,
             'message': '登录成功',
             'data': {
-                'user': {
-                    'id': user.get('id'),
-                    'username': user.get('username')
-                },
+                'user': user,
                 'token': token
             }
         }
@@ -116,6 +192,39 @@ class AuthBusiness:
         return {
             'code': 1,
             'message': '密码修改失败',
+            'data': None
+        }
+
+    def update_profile(self, user_id: int, real_name: str = None, phone: str = None,
+                       major: str = None, student_id: str = None) -> Dict[str, Any]:
+        user = self.user_model.get_by_id(user_id)
+        if not user:
+            return {
+                'code': 1,
+                'message': '用户不存在',
+                'data': None
+            }
+        
+        affected = self.user_model.update_profile(user_id, real_name, phone, major, student_id)
+        if affected > 0:
+            updated_user = self.user_model.get_by_id(user_id)
+            return {
+                'code': 0,
+                'message': '资料更新成功',
+                'data': {
+                    'id': updated_user.get('id'),
+                    'username': updated_user.get('username'),
+                    'role': updated_user.get('role'),
+                    'student_id': updated_user.get('student_id'),
+                    'real_name': updated_user.get('real_name'),
+                    'phone': updated_user.get('phone'),
+                    'major': updated_user.get('major')
+                }
+            }
+        
+        return {
+            'code': 1,
+            'message': '资料更新失败',
             'data': None
         }
 

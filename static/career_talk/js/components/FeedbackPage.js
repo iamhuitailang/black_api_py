@@ -1,259 +1,218 @@
 (function() {
     const ref = Vue.ref;
-    const onMounted = Vue.onMounted;
+    const computed = Vue.computed;
+    const watch = Vue.watch;
 
     const FeedbackPage = {
         name: 'FeedbackPage',
         props: {
-        talkId: {
-            type: Number,
-            default: null
-        }
-    },
-    emits: ['back'],
-    setup(props, { emit }) {
-        const talkList = ref([]);
-        const selectedTalkId = ref(null);
-        const feedbackForm = ref({
-            student_id: '',
-            student_name: '',
-            rating: 0,
-            content: ''
-        });
-        const hoverRating = ref(0);
-        const submitted = ref(false);
-        const loading = ref(false);
-        const submittedFeedback = ref(null);
+            talkId: { type: Number, default: null },
+            isLoggedIn: { type: Boolean, default: false },
+            currentUser: { type: Object, default: null }
+        },
+        emits: ['go-login', 'back'],
+        setup(props, { emit }) {
+            const talkList = ref([]);
+            const selectedTalkId = ref(props.talkId || null);
+            const rating = ref(5);
+            const content = ref('');
+            const studentId = ref('');
+            const studentName = ref('');
+            const submitted = ref(false);
+            const loading = ref(false);
+            const submitting = ref(false);
 
-        const loadTalkList = async () => {
-            try {
-                const result = await CareerTalkApi.getTalkList(1, 100);
-                if (result.code === 0) {
-                    talkList.value = result.data.items || [];
-                }
-            } catch (error) {
-                console.error('加载宣讲会列表失败:', error);
-            }
-        };
+            const hoverRating = ref(0);
 
-        const setRating = (rating) => {
-            feedbackForm.value.rating = rating;
-        };
-
-        const handleSubmit = async () => {
-            const tid = props.talkId || selectedTalkId.value;
-            
-            if (!tid) {
-                Toast.error('请选择宣讲会');
-                return;
-            }
-            if (!feedbackForm.value.student_id.trim()) {
-                Toast.error('请输入学号');
-                return;
-            }
-            if (!feedbackForm.value.rating) {
-                Toast.error('请选择评分');
-                return;
-            }
-
-            loading.value = true;
-            try {
-                const result = await CareerTalkApi.submitFeedback({
-                    talk_id: tid,
-                    student_id: feedbackForm.value.student_id.trim(),
-                    student_name: feedbackForm.value.student_name.trim(),
-                    rating: feedbackForm.value.rating,
-                    content: feedbackForm.value.content
-                });
-                if (result.code === 0) {
-                    submitted.value = true;
-                    submittedFeedback.value = result.data;
-                    localStorage.setItem('student_id', feedbackForm.value.student_id.trim());
-                    if (feedbackForm.value.student_name.trim()) {
-                        localStorage.setItem('student_name', feedbackForm.value.student_name.trim());
-                    }
-                    Toast.success('反馈提交成功！');
-                } else {
-                    Toast.error(result.message || '提交失败');
-                }
-            } catch (error) {
-                Toast.error('网络错误，请稍后重试');
-            } finally {
-                loading.value = false;
-            }
-        };
-
-        const loadSavedInfo = () => {
-            const savedStudentId = localStorage.getItem('student_id');
-            const savedStudentName = localStorage.getItem('student_name');
-            if (savedStudentId) feedbackForm.value.student_id = savedStudentId;
-            if (savedStudentName) feedbackForm.value.student_name = savedStudentName;
-        };
-
-        const resetForm = () => {
-            submitted.value = false;
-            submittedFeedback.value = null;
-            feedbackForm.value = {
-                student_id: localStorage.getItem('student_id') || '',
-                student_name: localStorage.getItem('student_name') || '',
-                rating: 0,
-                content: ''
+            const setRating = (r) => {
+                rating.value = r;
             };
-        };
 
-        const goBack = () => {
-            emit('back');
-        };
+            const fillUserInfo = () => {
+                if (props.currentUser) {
+                    if (!studentId.value) {
+                        studentId.value = props.currentUser.student_id || props.currentUser.username || '';
+                    }
+                    if (!studentName.value) {
+                        studentName.value = props.currentUser.real_name || props.currentUser.username || '';
+                    }
+                }
+            };
 
-        const ratingLabels = ['很差', '较差', '一般', '满意', '非常满意'];
+            watch(() => props.currentUser, fillUserInfo, { immediate: true });
+            watch(() => props.talkId, (val) => {
+                if (val) selectedTalkId.value = val;
+            });
 
-        onMounted(() => {
-            loadSavedInfo();
-            if (!props.talkId) {
-                loadTalkList();
-            } else {
-                selectedTalkId.value = props.talkId;
-            }
-        });
+            const loadTalks = async () => {
+                loading.value = true;
+                try {
+                    const res = await CareerTalkApi.getTalkList(1, 100);
+                    if (res.code === 0) {
+                        talkList.value = res.data.items || [];
+                    }
+                } catch (e) {}
+                finally { loading.value = false; }
+            };
 
-        return {
-            talkList,
-            selectedTalkId,
-            feedbackForm,
-            hoverRating,
-            submitted,
-            loading,
-            submittedFeedback,
-            setRating,
-            handleSubmit,
-            resetForm,
-            goBack,
-            ratingLabels
-        };
-    },
-    template: `
-        <div>
-            <button 
-                v-if="talkId"
-                class="btn btn-secondary btn-sm" 
-                @click="goBack" 
-                style="margin-bottom: 16px;"
-            >
-                ← 返回
-            </button>
+            loadTalks();
 
-            <div class="page-header">
-                <h2>💬 反馈评价</h2>
-            </div>
+            const handleSubmit = async () => {
+                if (!props.isLoggedIn) {
+                    emit('go-login');
+                    return;
+                }
+                fillUserInfo();
+                if (!selectedTalkId.value) {
+                    Toast.error('请选择宣讲会');
+                    return;
+                }
+                if (!studentId.value.trim()) {
+                    Toast.error('请输入学号');
+                    return;
+                }
 
-            <div class="card" style="max-width: 600px; margin: 0 auto;">
-                <div class="card-body">
-                    <div v-if="!submitted">
-                        <div v-if="!talkId" class="form-group">
-                            <label class="form-label">
-                                选择宣讲会<span class="required">*</span>
-                            </label>
-                            <select 
-                                class="form-control"
-                                v-model="selectedTalkId"
-                            >
-                                <option value="">请选择宣讲会</option>
-                                <option 
-                                    v-for="talk in talkList" 
-                                    :key="talk.id" 
-                                    :value="talk.id"
-                                >
-                                    {{ talk.company_name }} - {{ talk.talk_time }}
-                                </option>
-                            </select>
-                        </div>
+                submitting.value = true;
+                try {
+                    const res = await CareerTalkApi.submitFeedback({
+                        talk_id: parseInt(selectedTalkId.value),
+                        student_id: studentId.value.trim(),
+                        student_name: studentName.value.trim(),
+                        rating: rating.value,
+                        content: content.value.trim()
+                    });
+                    if (res.code === 0) {
+                        submitted.value = true;
+                        Toast.success('反馈提交成功，感谢您的评价！');
+                    } else {
+                        Toast.error(res.message || '提交失败');
+                    }
+                } catch (e) {
+                    Toast.error('网络错误，请稍后重试');
+                } finally {
+                    submitting.value = false;
+                }
+            };
 
-                        <div class="form-group">
-                            <label class="form-label">
-                                学号<span class="required">*</span>
-                            </label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                v-model="feedbackForm.student_id"
-                                placeholder="请输入学号"
-                            >
-                        </div>
+            const resetForm = () => {
+                submitted.value = false;
+                rating.value = 5;
+                content.value = '';
+            };
 
-                        <div class="form-group">
-                            <label class="form-label">姓名</label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                v-model="feedbackForm.student_name"
-                                placeholder="请输入姓名（选填）"
-                            >
-                        </div>
+            const starClass = (r) => {
+                const active = (hoverRating.value || rating.value) >= r;
+                return active ? 'star active' : 'star';
+            };
 
-                        <div class="form-group">
-                            <label class="form-label">
-                                总体评分<span class="required">*</span>
-                            </label>
-                            <div class="rating-stars" style="margin-bottom: 8px;">
-                                <span 
-                                    v-for="star in 5" 
-                                    :key="star"
-                                    class="star"
-                                    :class="{ filled: star <= feedbackForm.rating }"
-                                    @click="setRating(star)"
-                                    @mouseenter="hoverRating = star"
-                                    @mouseleave="hoverRating = 0"
-                                >
-                                    {{ star <= (hoverRating || feedbackForm.rating) ? '★' : '☆' }}
-                                </span>
-                            </div>
-                            <p v-if="feedbackForm.rating" style="color: var(--text-secondary); font-size: 13px;">
-                                {{ ratingLabels[feedbackForm.rating - 1] }}
-                            </p>
-                        </div>
+            return {
+                talkList,
+                selectedTalkId,
+                rating,
+                content,
+                studentId,
+                studentName,
+                submitted,
+                loading,
+                submitting,
+                hoverRating,
+                setRating,
+                handleSubmit,
+                resetForm,
+                starClass
+            };
+        },
+        template: `
+            <div>
+                <div class="page-header">
+                    <button class="btn btn-ghost" @click="$emit('back')" style="margin-right: 12px;">← 返回</button>
+                    <h2>💬 宣讲会反馈</h2>
+                </div>
 
-                        <div class="form-group">
-                            <label class="form-label">反馈内容</label>
-                            <textarea 
-                                class="form-control" 
-                                v-model="feedbackForm.content"
-                                placeholder="请输入您的反馈意见和建议..."
-                                rows="6"
-                            ></textarea>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary btn-lg" 
-                            style="width: 100%;"
-                            @click="handleSubmit"
-                            :disabled="loading"
-                        >
-                            {{ loading ? '提交中...' : '提交反馈' }}
-                        </button>
+                <div v-if="!isLoggedIn" class="card" style="max-width: 600px; margin: 40px auto; text-align: center;">
+                    <div class="card-body">
+                        <div style="font-size: 60px; margin-bottom: 16px;">🔐</div>
+                        <h3>请先登录</h3>
+                        <p style="color: #666; margin: 12px 0 24px;">反馈功能需要登录后使用</p>
+                        <button class="btn btn-primary" @click="$emit('go-login')">前往登录</button>
                     </div>
+                </div>
 
-                    <div v-else class="checkin-success">
-                        <div class="checkin-success-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                <div v-else class="card" style="max-width: 600px; margin: 0 auto;">
+                    <div class="card-body">
+                        <div v-if="submitted" style="text-align: center; padding: 24px 0;">
+                            <div class="success-icon" style="margin: 0 auto 16px;">🎉</div>
+                            <h3 style="color: #10b981;">感谢您的反馈！</h3>
+                            <p style="color: #666; margin: 12px 0 24px;">您的反馈将帮助我们改进</p>
+                            <button class="btn btn-outline" @click="resetForm">继续提交其他反馈</button>
                         </div>
-                        <h3>反馈提交成功！</h3>
-                        <p style="margin-bottom: 20px;">
-                            感谢您的宝贵意见，我们会持续改进！<br>
-                            您的评分：
-                            <span style="color: var(--warning-color); font-size: 20px; font-weight: 600;">
-                                {{ submittedFeedback?.rating }} 星
-                            </span>
-                        </p>
-                        <button class="btn btn-secondary" @click="resetForm">
-                            再提交一份
-                        </button>
+
+                        <form v-else @submit.prevent="handleSubmit" class="feedback-form">
+                            <div class="form-group">
+                                <label class="form-label">选择宣讲会<span class="required">*</span></label>
+                                <select 
+                                    v-model="selectedTalkId" 
+                                    class="form-control"
+                                    :disabled="!!talkId"
+                                    style="appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%23666%22 d=%22M6 9L1 4h10z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;"
+                                >
+                                    <option value="" disabled>请选择宣讲会</option>
+                                    <option v-for="t in talkList" :key="t.id" :value="t.id">
+                                        {{ t.company_name }} - {{ t.location }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label class="form-label">学号<span class="required">*</span></label>
+                                    <input v-model="studentId" type="text" class="form-control" placeholder="请输入学号" />
+                                </div>
+                                <div class="form-group half">
+                                    <label class="form-label">姓名</label>
+                                    <input v-model="studentName" type="text" class="form-control" placeholder="请输入姓名" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">评分<span class="required">*</span></label>
+                                <div class="rating-stars" @mouseleave="hoverRating = 0">
+                                    <span 
+                                        v-for="r in 5" 
+                                        :key="r"
+                                        :class="starClass(r)"
+                                        @mouseenter="hoverRating = r"
+                                        @click="setRating(r)"
+                                    >★</span>
+                                    <span class="rating-text" style="margin-left: 12px; color: #666;">
+                                        {{ rating === 5 ? '非常满意' : rating === 4 ? '满意' : rating === 3 ? '一般' : rating === 2 ? '不满意' : '非常不满意' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">反馈内容</label>
+                                <textarea 
+                                    v-model="content" 
+                                    class="form-control" 
+                                    rows="4"
+                                    placeholder="请分享您的参会感受和建议..."
+                                    style="resize: vertical;"
+                                ></textarea>
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                class="btn btn-primary btn-block"
+                                :disabled="submitting"
+                            >
+                                {{ submitting ? '提交中...' : '提交反馈' }}
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
-        </div>
-    `
+        `
     };
 
     window.FeedbackPage = FeedbackPage;

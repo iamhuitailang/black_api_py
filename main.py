@@ -22,10 +22,15 @@ def migrate_database():
     migrated = BannerModel.migrate_remove_aspect_ratio()
     if migrated:
         print("  - Migrated tb_mudan_banner: removed aspect_ratio column")
+    
+    UserModel.migrate_add_role()
+    UserModel.migrate_add_student_fields()
 
 
 def init_database():
     db = get_db()
+    UserModel.migrate_add_role()
+    UserModel.migrate_add_student_fields()
     HelloWorldModel.create_table()
     UserModel.create_table()
     TokenModel.create_table()

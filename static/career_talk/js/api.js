@@ -1,4 +1,49 @@
 const API_BASE_URL = '/api';
+const TOKEN_KEY = 'career_talk_token';
+const USER_KEY = 'career_talk_user';
+
+const AuthStore = {
+    getToken() {
+        return localStorage.getItem(TOKEN_KEY) || '';
+    },
+    setToken(token) {
+        localStorage.setItem(TOKEN_KEY, token);
+    },
+    removeToken() {
+        localStorage.removeItem(TOKEN_KEY);
+    },
+    getUser() {
+        const data = localStorage.getItem(USER_KEY);
+        return data ? JSON.parse(data) : null;
+    },
+    setUser(user) {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+    },
+    removeUser() {
+        localStorage.removeItem(USER_KEY);
+    },
+    isLoggedIn() {
+        return !!this.getToken();
+    },
+    isAdmin() {
+        const user = this.getUser();
+        return user && user.role === 'admin';
+    },
+    logout() {
+        this.removeToken();
+        this.removeUser();
+    },
+    getStudentInfo() {
+        const user = this.getUser();
+        if (!user) return { student_id: '', student_name: '', phone: '', major: '' };
+        return {
+            student_id: user.student_id || user.username || '',
+            student_name: user.real_name || user.username || '',
+            phone: user.phone || '',
+            major: user.major || ''
+        };
+    }
+};
 
 const CareerTalkApi = {
     async request(url, options = {}) {
@@ -6,6 +51,11 @@ const CareerTalkApi = {
             'Content-Type': 'application/json',
             ...options.headers
         };
+
+        const token = AuthStore.getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
 
         const config = {
             method: options.method || 'GET',
@@ -20,6 +70,17 @@ const CareerTalkApi = {
         try {
             const response = await fetch(`${API_BASE_URL}${url}`, config);
             const result = await response.json();
+            
+            if (result && (result.code === 401)) {
+                AuthStore.logout();
+                Toast.error('请先登录');
+                if (window.router) {
+                    window.router.navigate('login');
+                }
+            } else if (result && result.code === 403) {
+                Toast.error(result.message || '权限不足');
+            }
+            
             return result;
         } catch (error) {
             console.error('API请求错误:', error);
@@ -45,6 +106,30 @@ const CareerTalkApi = {
         const queryString = new URLSearchParams(params).toString();
         const fullUrl = queryString ? `${url}?${queryString}` : url;
         return this.request(fullUrl, { method: 'DELETE' });
+    },
+
+    login(username, password) {
+        return this.post('/auth/login', { username, password });
+    },
+
+    register(data) {
+        return this.post('/auth/register', data);
+    },
+
+    logout() {
+        return this.post('/auth/logout', {});
+    },
+
+    getCurrentUser() {
+        return this.get('/auth/current/user/get');
+    },
+
+    updateProfile(data) {
+        return this.post('/auth/profile/update', data);
+    },
+
+    changePassword(oldPassword, newPassword) {
+        return this.post('/auth/password/change', { old_password: oldPassword, new_password: newPassword });
     },
 
     getTalkList(page = 1, pageSize = 10, keyword = '') {

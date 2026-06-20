@@ -9,9 +9,25 @@ class LoginRequest(BaseModel):
     password: str = Field(..., description="密码")
 
 
+class RegisterRequest(BaseModel):
+    username: str = Field(..., description="用户名")
+    password: str = Field(..., description="密码")
+    student_id: str = Field(..., description="学号")
+    real_name: str = Field(..., description="真实姓名")
+    phone: str = Field('', description="手机号")
+    major: str = Field('', description="专业")
+
+
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., description="原密码")
     new_password: str = Field(..., description="新密码")
+
+
+class UpdateProfileRequest(BaseModel):
+    real_name: Optional[str] = Field(None, description="真实姓名")
+    phone: Optional[str] = Field(None, description="手机号")
+    major: Optional[str] = Field(None, description="专业")
+    student_id: Optional[str] = Field(None, description="学号")
 
 
 class AuthController:
@@ -27,6 +43,21 @@ class AuthController:
             return token
         
         return ''
+
+    def ActionAuthRegisterPost(self, request: Request, body: RegisterRequest):
+        """
+        学生注册接口
+        POST /api/auth/register
+        学生账号注册
+        """
+        return self.auth_business.register_student(
+            username=body.username,
+            password=body.password,
+            student_id=body.student_id,
+            real_name=body.real_name,
+            phone=body.phone,
+            major=body.major
+        )
 
     def ActionAuthLoginPost(self, request: Request, body: LoginRequest):
         """
@@ -77,4 +108,28 @@ class AuthController:
             user_id=user.get('id'),
             old_password=body.old_password,
             new_password=body.new_password
+        )
+
+    def ActionAuthProfileUpdatePost(self, request: Request, body: UpdateProfileRequest, authorization: Optional[str] = Header(None)):
+        """
+        更新用户资料接口
+        POST /api/auth/profile/update
+        登录后修改个人资料
+        """
+        token = self._get_token_from_header(request, authorization)
+        user = self.auth_business.verify_token(token)
+        
+        if not user:
+            return {
+                'code': 1,
+                'message': '请先登录',
+                'data': None
+            }
+        
+        return self.auth_business.update_profile(
+            user_id=user.get('id'),
+            real_name=body.real_name,
+            phone=body.phone,
+            major=body.major,
+            student_id=body.student_id
         )
