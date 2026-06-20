@@ -69,14 +69,27 @@ class CityStateGame {
     
     async initGame() {
         try {
-            const response = await fetch(`${this.apiBase}/citystate/init${this.playerId ? `?player_id=${this.playerId}` : ''}`);
+            const storedPlayerId = localStorage.getItem('citystate_player_id') || sessionStorage.getItem('citystate_player_id');
+            if (storedPlayerId) {
+                this.playerId = storedPlayerId;
+            }
+            
+            const url = `${this.apiBase}/citystate/init${this.playerId ? `?player_id=${encodeURIComponent(this.playerId)}` : ''}`;
+            const response = await fetch(url);
             const result = await response.json();
             
             if (result.code === 0 && result.data) {
                 this.playerId = result.data.player_id;
                 localStorage.setItem('citystate_player_id', this.playerId);
+                sessionStorage.setItem('citystate_player_id', this.playerId);
+                
                 await this.refreshState();
-                this.addLog('success', '游戏初始化成功！');
+                
+                if (storedPlayerId === this.playerId) {
+                    this.addLog('success', '游戏状态已恢复！');
+                } else {
+                    this.addLog('success', '游戏初始化成功！');
+                }
             } else {
                 this.addLog('danger', `初始化失败: ${result.message}`);
             }
@@ -87,10 +100,14 @@ class CityStateGame {
     }
     
     async refreshState() {
-        if (!this.playerId) return;
+        if (!this.playerId) {
+            console.warn('No player ID, cannot refresh state');
+            return;
+        }
         
         try {
-            const response = await fetch(`${this.apiBase}/citystate/state/get?player_id=${this.playerId}`);
+            const url = `${this.apiBase}/citystate/state/get?player_id=${encodeURIComponent(this.playerId)}`;
+            const response = await fetch(url);
             const result = await response.json();
             
             if (result.code === 0 && result.data) {
@@ -98,6 +115,7 @@ class CityStateGame {
                 this.render();
             } else {
                 this.addLog('danger', `获取状态失败: ${result.message}`);
+                console.error('Refresh state failed:', result);
             }
         } catch (error) {
             console.error('Refresh error:', error);
@@ -112,7 +130,10 @@ class CityStateGame {
     }
     
     render() {
-        if (!this.gameState) return;
+        if (!this.gameState || !this.gameState.city_state) {
+            console.warn('Game state not ready, skipping render');
+            return;
+        }
         
         this.renderResources();
         this.renderStatus();
@@ -358,7 +379,7 @@ class CityStateGame {
     
     async advanceSeason() {
         try {
-            const response = await fetch(`${this.apiBase}/citystate/season/advance`, {
+            const response = await fetch(`${this.apiBase}/citystate/season/advance/set`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -609,7 +630,8 @@ class CityStateGame {
         if (!this.playerId) return;
         
         try {
-            const response = await fetch(`${this.apiBase}/citystate/invasion/history/get?player_id=${this.playerId}&limit=10`);
+            const url = `${this.apiBase}/citystate/invasion/history/get?player_id=${encodeURIComponent(this.playerId)}&limit=10`;
+            const response = await fetch(url);
             const result = await response.json();
             
             if (result.code === 0 && result.data && result.data.history) {
