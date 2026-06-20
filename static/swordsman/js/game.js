@@ -1121,8 +1121,22 @@ document.getElementById('start-btn').addEventListener('click', () => {
     }
     game.playerName = name;
     game.state = 'playing';
+
+    clearGameState();
+
     game.totalKills = 0;
     game.areasCleared = 0;
+    game.currentArea = 0;
+    game.currentWave = 0;
+    game.bossActive = false;
+    game.poisoned = false;
+    game.poisonTimer = 0;
+    game.waveKills = 0;
+    game.waveKillsNeeded = 0;
+    game.pendingSoulStones = 0;
+    game.entities = [];
+    game.effects = [];
+
     player.baseStrength = 10;
     player.baseAgility = 10;
     player.baseWill = 10;
@@ -1130,9 +1144,24 @@ document.getElementById('start-btn').addEventListener('click', () => {
     player.equipment = [];
     calcPlayerStats();
     player.hp = player.maxHp;
-    loadPlayer(name).then(() => {
-        startArea(game.currentArea || 0);
+    player.x = W / 2;
+    player.y = H / 2;
+    player.skillCd = { q: 0, e: 0, r: 0 };
+    player.charging = false;
+    player.chargeTimer = 0;
+    player.hitFlash = 0;
+    player.invuln = 0;
+    player.attackCd = 0;
+    player.attackAnim = 0;
+
+    loadPlayer(name).then(hasData => {
+        if (hasData && (game.currentArea > 0 || game.currentWave > 0 || game.totalKills > 0)) {
+            startWave();
+        } else {
+            startArea(0);
+        }
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('continue-btn_main').style.display = 'none';
         updateUI();
         saveGameState();
     });
@@ -1181,6 +1210,18 @@ function saveGameState() {
             charging: false,
             chargeTimer: 0
         },
+        entities: game.entities.map(e => ({
+            type: e.type,
+            isBoss: e.isBoss,
+            x: e.x,
+            y: e.y,
+            hp: e.hp,
+            maxHp: e.maxHp,
+            bossAttackCount: e.bossAttackCount || 0,
+            bossDodgeNext: e.bossDodgeNext || false,
+            bossSpawnCd: e.bossSpawnCd || 5,
+            _summoned: e._summoned || false
+        })),
         timestamp: Date.now()
     };
     try {
@@ -1216,7 +1257,7 @@ function resumeGame(state) {
     game.bossActive = state.bossActive;
     game.poisoned = state.poisoned;
     game.poisonTimer = state.poisonTimer;
-    game.waveKills = state.waveKills;
+    game.waveKills = state.waveKills || 0;
     game.waveKillsNeeded = state.waveKillsNeeded;
     game.state = 'playing';
     game.paused = false;
@@ -1244,24 +1285,62 @@ function resumeGame(state) {
 
     game.entities = [];
     game.effects = [];
-    if (game.bossActive) {
-        const type = AREAS[game.currentArea].enemyType;
-        spawnEnemy(type, W / 2, 80, true);
-        game.waveKillsNeeded = 1;
-        game.waveKills = 0;
+
+    if (state.entities && state.entities.length > 0) {
+        const area = AREAS[game.currentArea];
+        state.entities.forEach(se => {
+            const base = {
+                ninja: { hp: 30, speed: 2.5, dmg: 8, r: 14, color: '#2a2a2a', atkRange: 60, atkCd: 1.2, name: '忍者' },
+                stone: { hp: 60, speed: 1.2, dmg: 15, r: 20, color: '#888', atkRange: 50, atkCd: 1.8, name: '石像兵' },
+                bug: { hp: 25, speed: 3, dmg: 6, r: 12, color: '#8b4513', atkRange: 45, atkCd: 0.9, name: '矿虫' },
+                frog: { hp: 40, speed: 1.8, dmg: 10, r: 16, color: '#2e5d2e', atkRange: 55, atkCd: 1.3, name: '毒蛙' },
+                shadow: { hp: 50, speed: 2.8, dmg: 12, r: 15, color: '#1a0a2a', atkRange: 55, atkCd: 1.1, name: '暗灵' }
+            }[se.type];
+
+            const mult = se.isBoss ? 6 : (1 + game.currentArea * 0.25);
+            game.entities.push({
+                type: se.type,
+                isBoss: se.isBoss,
+                name: se.isBoss ? area.bossName : base.name,
+                x: se.x,
+                y: se.y,
+                r: base.r * (se.isBoss ? 2.2 : 1),
+                hp: se.hp,
+                maxHp: se.maxHp,
+                speed: base.speed * (se.isBoss ? 0.7 : 1),
+                dmg: base.dmg * mult,
+                color: base.color,
+                atkRange: base.atkRange,
+                atkCd: base.atkCd,
+                atkTimer: 0,
+                hitFlash: 0,
+                bossAttackCount: se.bossAttackCount || 0,
+                bossDodgeNext: se.bossDodgeNext || false,
+                bossSpawnCd: se.bossSpawnCd || 5,
+                _summoned: se._summoned || false,
+                poisoned: false,
+                poisonTimer: 0,
+                animFrame: 0
+            });
+        });
     } else {
-        const type = AREAS[game.currentArea].enemyType;
-        const count = 3 + game.currentArea + game.currentWave;
-        game.waveKillsNeeded = count;
-        game.waveKills = 0;
-        for (let i = 0; i < count; i++) {
-            const side = Math.floor(Math.random() * 4);
-            let x, y;
-            if (side === 0) { x = rand(50, W - 50); y = 30; }
-            else if (side === 1) { x = rand(50, W - 50); y = H - 30; }
-            else if (side === 2) { x = 30; y = rand(100, H - 50); }
-            else { x = W - 30; y = rand(100, H - 50); }
-            spawnEnemy(type, x, y, false);
+        if (game.bossActive) {
+            const type = AREAS[game.currentArea].enemyType;
+            spawnEnemy(type, W / 2, 80, true);
+            game.waveKillsNeeded = 1;
+        } else {
+            const type = AREAS[game.currentArea].enemyType;
+            const count = 3 + game.currentArea + game.currentWave;
+            game.waveKillsNeeded = count;
+            for (let i = 0; i < count; i++) {
+                const side = Math.floor(Math.random() * 4);
+                let x, y;
+                if (side === 0) { x = rand(50, W - 50); y = 30; }
+                else if (side === 1) { x = rand(50, W - 50); y = H - 30; }
+                else if (side === 2) { x = 30; y = rand(100, H - 50); }
+                else { x = W - 30; y = rand(100, H - 50); }
+                spawnEnemy(type, x, y, false);
+            }
         }
     }
 
@@ -1297,6 +1376,7 @@ const savedState = loadGameState();
 if (savedState) {
     document.getElementById('continue-btn_main').style.display = 'inline-block';
     document.getElementById('player-name-input').value = savedState.playerName;
+    resumeGame(savedState);
 }
 
 calcPlayerStats();
