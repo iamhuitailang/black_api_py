@@ -50,12 +50,18 @@ class RacingGame {
     }
 
     init() {
+        this.bindEvents();
+        this.loadTrackList();
+        this.restoreState();
+    }
+
+    initCanvas() {
         this.canvas = document.getElementById('track-canvas');
         if (this.canvas) {
             this.ctx = this.canvas.getContext('2d');
+            return true;
         }
-        this.bindEvents();
-        this.loadTrackList();
+        return false;
     }
 
     bindEvents() {
@@ -83,6 +89,58 @@ class RacingGame {
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
+        if (screenId === 'game-screen') {
+            setTimeout(() => {
+                this.initCanvas();
+                if (this.ctx && this.vehicle) {
+                    this.drawTrack();
+                }
+            }, 50);
+        }
+    }
+
+    saveState() {
+        try {
+            const state = {
+                vehicle: this.vehicle,
+                currentTrack: this.currentTrack,
+                gameState: this.gameState,
+                currentRace: this.currentRace
+            };
+            localStorage.setItem('racing_game_state', JSON.stringify(state));
+        } catch (e) {
+            console.warn('保存状态失败:', e);
+        }
+    }
+
+    async restoreState() {
+        try {
+            const saved = localStorage.getItem('racing_game_state');
+            if (!saved) return;
+            const state = JSON.parse(saved);
+            if (state.vehicle) {
+                this.vehicle = state.vehicle;
+                this.currentTrack = state.currentTrack || 0;
+                this.gameState = state.gameState || 'upgrade';
+                this.currentRace = state.currentRace;
+                this.showScreen('game-screen');
+                setTimeout(() => {
+                    this.updateVehicleDisplay();
+                    this.updateUpgradeOptions();
+                    this.updateTerrainDisplay();
+                    if (this.ctx) {
+                        this.drawTrack();
+                    }
+                }, 100);
+            }
+        } catch (e) {
+            console.warn('恢复状态失败:', e);
+            localStorage.removeItem('racing_game_state');
+        }
+    }
+
+    clearState() {
+        localStorage.removeItem('racing_game_state');
     }
 
     async apiCall(endpoint, method = 'GET', data = null) {
@@ -108,17 +166,32 @@ class RacingGame {
     }
 
     async startNewGame() {
-        const playerName = document.getElementById('player-name').value || 'Player';
+        const nameInput = document.getElementById('player-name');
+        const playerName = nameInput.value ? nameInput.value.trim() : '';
+
+        if (!playerName) {
+            nameInput.style.borderColor = '#ff6b6b';
+            this.showMessage('请输入昵称！', 'warning');
+            setTimeout(() => {
+                nameInput.style.borderColor = '';
+            }, 2000);
+            return;
+        }
+
+        this.clearState();
         const result = await this.apiCall('/racing/new/game', 'POST', { player_name: playerName });
         if (result.code === 0) {
             this.vehicle = result.data;
             this.currentTrack = 0;
-            this.showScreen('game-screen');
-            this.updateVehicleDisplay();
-            this.updateUpgradeOptions();
-            this.updateTerrainDisplay();
-            this.drawTrack();
             this.gameState = 'upgrade';
+            this.showScreen('game-screen');
+            setTimeout(() => {
+                this.updateVehicleDisplay();
+                this.updateUpgradeOptions();
+                this.updateTerrainDisplay();
+                this.drawTrack();
+                this.saveState();
+            }, 80);
         }
     }
 
@@ -181,6 +254,7 @@ class RacingGame {
             this.vehicle = result.data;
             this.updateVehicleDisplay();
             this.updateUpgradeOptions();
+            this.saveState();
             this.showMessage('改装成功！', 'success');
         } else {
             this.showMessage(result.message || '改装失败', 'warning');
@@ -221,13 +295,17 @@ class RacingGame {
     async startRace() {
         if (!this.vehicle) return;
 
+        if (!this.initCanvas()) {
+            this.showMessage('游戏初始化失败，请刷新页面重试', 'warning');
+            return;
+        }
+
         if (this.vehicle.tire_wear >= 100) {
             this.showMessage('轮胎磨损100%！必须先换胎才能继续！', 'warning');
             return;
         }
 
         if (this.currentTrack === 4 && this.vehicle.tire_wear >= 60) {
-            const gripMultiplier = 0.4;
             this.showMessage('碎石后未换胎！抓地力×0.4', 'warning');
         }
 
@@ -257,9 +335,10 @@ class RacingGame {
             document.querySelectorAll('.upgrade-btn').forEach(btn => btn.disabled = true);
 
             this.updateUpgradeOptions();
+            this.saveState();
             this.gameLoop();
 
-            this.showMessage('开始！', 'success');
+            this.showMessage('开始！按→或D加速', 'success');
         }
     }
 
@@ -289,6 +368,9 @@ class RacingGame {
 
     gameLoop() {
         if (!this.isRacing) return;
+        if (!this.ctx) {
+            this.initCanvas();
+        }
 
         const now = Date.now();
         const elapsed = (now - this.raceStartTime) / 1000;
@@ -299,7 +381,9 @@ class RacingGame {
 
         this.updateCarPhysics(track, params);
         this.checkEvents(track);
-        this.drawTrack();
+        if (this.ctx) {
+            this.drawTrack();
+        }
 
         this.animationId = requestAnimationFrame(() => this.gameLoop());
     }
@@ -313,17 +397,18 @@ class RacingGame {
     }
 
     updateCarPhysics(track, params) {
-        const acceleration = params.effectivePower / params.effectiveWeight * 50;
+        const acceleration = params.effectivePower / params.effectiveWeight * 300;
         const maxSpeed = 80 + params.effectivePower * 0.8;
 
         if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
             this.carSpeed += acceleration * 0.016;
         }
         if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-            this.carSpeed -= acceleration * 0.016 * 0.5;
+            this.carSpeed -= acceleration * 0.016 * 0.8;
         }
 
-        const friction = 0.99 - (params.effectiveGrip / 200);
+        let friction = 0.985 - (params.effectiveGrip / 300);
+        if (friction < 0.9) friction = 0.9;
         this.carSpeed *= friction;
 
         if (track.speedLimit && this.carSpeed > track.speedLimit) {
@@ -332,7 +417,7 @@ class RacingGame {
 
         this.carSpeed = Math.max(0, Math.min(maxSpeed, this.carSpeed));
 
-        this.carX += this.carSpeed * 0.016 * 3;
+        this.carX += this.carSpeed * 0.016 * 5;
 
         document.getElementById('current-speed').textContent = Math.round(this.carSpeed);
 
@@ -477,7 +562,8 @@ class RacingGame {
         if (result.code === 0) {
             const vehicleResp = await this.apiCall('/racing/vehicle/get');
             this.vehicle = vehicleResp.data;
-
+            this.gameState = 'result';
+            this.saveState();
             this.updateVehicleDisplay();
 
             this.showRaceResult(result.data, totalTime);
@@ -513,17 +599,21 @@ class RacingGame {
         this.vehicle = result.data;
 
         if (this.currentTrack >= 7) {
+            this.clearState();
             this.showCompleteScreen();
         } else {
             this.currentTrack++;
-            this.showScreen('game-screen');
             this.gameState = 'upgrade';
-            this.updateTerrainDisplay();
-            this.updateVehicleDisplay();
-            this.updateUpgradeOptions();
-            this.drawTrack();
-            document.getElementById('btn-start-race').style.display = 'block';
-            document.getElementById('btn-next-track').style.display = 'none';
+            this.saveState();
+            this.showScreen('game-screen');
+            setTimeout(() => {
+                this.updateTerrainDisplay();
+                this.updateVehicleDisplay();
+                this.updateUpgradeOptions();
+                if (this.ctx) this.drawTrack();
+                document.getElementById('btn-start-race').style.display = 'block';
+                document.getElementById('btn-next-track').style.display = 'none';
+            }, 80);
         }
     }
 
