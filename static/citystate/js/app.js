@@ -393,6 +393,22 @@ class CityStateGame {
                 const data = result.data;
                 this.addLog('info', `季节推进到第${data.new_year}年 ${data.new_season_name}`);
                 
+                if (data.production) {
+                    const prod = data.production;
+                    if (prod.food_produced > 0) {
+                        this.addLog('success', `🌾 农田产出粮食 +${prod.food_produced}`);
+                    }
+                    if (prod.soldiers_trained > 0) {
+                        this.addLog('success', `⚔️ 兵营训练士兵 +${prod.soldiers_trained}`);
+                    }
+                    if (prod.population_growth > 0) {
+                        this.addLog('success', `👥 人口自然增长 +${prod.population_growth}`);
+                    }
+                    if (prod.food_produced === 0 && prod.soldiers_trained === 0 && prod.population_growth === 0) {
+                        this.addLog('warning', '本季节没有建筑产出，请建造农田、兵营或房屋');
+                    }
+                }
+                
                 if (data.is_winter) {
                     this.addLog('warning', '⚠️ 冬季已至！蛮族即将入侵，请做好防御准备！');
                 }

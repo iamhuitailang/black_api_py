@@ -575,11 +575,51 @@ class CityStateBusiness:
         new_year = city.get('current_year', 1) + (1 if new_season_idx == 0 else 0)
         new_season = self.SEASONS[new_season_idx]
 
+        buildings = self.building_model.get_by_city_id(city['id'])
+        
+        minutes_per_season = 30
+        farm_count = len([b for b in buildings if b.get('building_type') == 'farm' and b.get('status') == 'active'])
+        barracks_count = len([b for b in buildings if b.get('building_type') == 'barracks' and b.get('status') == 'active'])
+
+        food_production = farm_count * 6 * minutes_per_season
+        new_food = city.get('food', 0) + food_production
+
+        new_soldiers = city.get('soldiers', 0)
+        new_population = city.get('population', 0)
+
+        if barracks_count > 0 and new_population > 0:
+            max_new_soldiers = barracks_count * minutes_per_season
+            actual_new = min(max_new_soldiers, new_population)
+            food_needed = actual_new * 3
+
+            if new_food >= food_needed:
+                new_soldiers += actual_new
+                new_food -= food_needed
+                new_population -= actual_new
+
+        new_food = max(0, new_food)
+        
+        max_population = self._calculate_max_population(buildings)
+        if new_population < max_population:
+            natural_growth = min(2, max_population - new_population)
+            new_population += natural_growth
+
+        now = datetime.now().isoformat()
         self.city_state_model.update_resources(
             record_id=city['id'],
             current_year=new_year,
-            current_season=new_season
+            current_season=new_season,
+            food=new_food,
+            soldiers=new_soldiers,
+            population=new_population,
+            max_population=max_population
         )
+
+        production_details = {
+            'food_produced': food_production,
+            'soldiers_trained': new_soldiers - city.get('soldiers', 0),
+            'population_growth': new_population - city.get('population', 0)
+        }
 
         return {
             'code': 0,
@@ -588,6 +628,13 @@ class CityStateBusiness:
                 'new_year': new_year,
                 'new_season': new_season,
                 'new_season_name': self.SEASON_NAMES[new_season],
-                'is_winter': new_season == 'winter'
+                'is_winter': new_season == 'winter',
+                'production': production_details,
+                'resources': {
+                    'food': new_food,
+                    'soldiers': new_soldiers,
+                    'population': new_population,
+                    'max_population': max_population
+                }
             }
         }
