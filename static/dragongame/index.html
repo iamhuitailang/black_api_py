@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔥 火龙峡谷 - Dragon Canyon Shooter</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 开始界面 -->
+    <div id="startScreen" class="screen start-screen">
+      <div class="background-effects">
+        <div class="ember ember-1"></div>
+        <div class="ember ember-2"></div>
+        <div class="ember ember-3"></div>
+        <div class="ember ember-4"></div>
+        <div class="ember ember-5"></div>
+        <div class="ember ember-6"></div>
+        <div class="ember ember-7"></div>
+        <div class="ember ember-8"></div>
+        <div class="ember ember-9"></div>
+        <div class="ember ember-10"></div>
+      </div>
+
+      <div class="content">
+        <div class="title-container">
+          <h1 class="game-title">🔥 火龙峡谷 🔥</h1>
+          <p class="game-subtitle">DRAGON CANYON SHOOTER</p>
+        </div>
+
+        <div class="dragon-icon">
+          <svg viewBox="0 0 100 100" class="dragon-svg">
+            <ellipse cx="50" cy="55" rx="30" ry="20" fill="#ff4500" />
+            <ellipse cx="50" cy="55" rx="25" ry="16" fill="#ff6347" />
+            <polygon points="80,55 95,45 90,60" fill="#ff4500" />
+            <polygon points="80,55 95,65 90,50" fill="#cc3700" />
+            <circle cx="72" cy="48" r="4" fill="#fff" />
+            <circle cx="72" cy="48" r="2" fill="#111" />
+            <polygon points="55,40 60,20 65,42" fill="#ff6347" />
+            <polygon points="45,40 40,18 35,42" fill="#ff4500" />
+            <polygon points="30,55 10,40 20,55" fill="#ff6347" />
+            <polygon points="30,55 10,70 20,55" fill="#ff4500" />
+            <circle cx="20" cy="55" r="8" fill="#ff8c00" opacity="0.8" />
+            <circle cx="10" cy="55" r="5" fill="#ffd700" opacity="0.9" />
+          </svg>
+        </div>
+
+        <div class="input-group">
+          <label for="playerName">玩家名称</label>
+          <input id="playerName" type="text" value="DragonRider" placeholder="输入你的名字" maxlength="20" />
+        </div>
+
+        <button class="start-btn" onclick="startGame()">
+          <span>开始冒险</span>
+          <span class="btn-glow"></span>
+        </button>
+
+        <div class="instructions">
+          <h3>操作说明</h3>
+          <div class="instructions-grid">
+            <div class="instruction-item">
+              <span class="key">W A S D</span>
+              <span class="desc">移动火龙</span>
+            </div>
+            <div class="instruction-item">
+              <span class="key">空格</span>
+              <span class="desc">喷火（按住蓄力）</span>
+            </div>
+            <div class="instruction-item">
+              <span class="key">Shift</span>
+              <span class="desc">冲锋撞击</span>
+            </div>
+            <div class="instruction-item">
+              <span class="key">E</span>
+              <span class="desc">升级龙焰</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="enemy-info">
+          <h3>敌人图鉴</h3>
+          <div class="enemies">
+            <div class="enemy-item">
+              <div class="enemy-avatar stone"></div>
+              <div class="enemy-detail">
+                <span class="enemy-name">石像兵</span>
+                <span class="enemy-hp">HP: 40 | 慢速近战</span>
+              </div>
+            </div>
+            <div class="enemy-item">
+              <div class="enemy-avatar hawk"></div>
+              <div class="enemy-detail">
+                <span class="enemy-name">飞鹰射手</span>
+                <span class="enemy-hp">HP: 20 | 远程弓箭</span>
+              </div>
+            </div>
+            <div class="enemy-item">
+              <div class="enemy-avatar rock"></div>
+              <div class="enemy-detail">
+                <span class="enemy-name">巨岩投手</span>
+                <span class="enemy-hp">HP: 80 | 投掷巨石</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="gameScreen" class="screen game-screen hidden">
+      <canvas id="gameCanvas"></canvas>
+
+      <div class="hud">
+        <div class="hud-left">
+          <div class="hp-bar-wrapper">
+            <div class="hp-label">
+              <span>🐉 龙的生命</span>
+              <span id="hpText" class="hp-text">150 / 150</span>
+            </div>
+            <div class="hp-bar-bg">
+              <div id="hpBarFill" class="hp-bar-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <div class="flame-bar-wrapper">
+            <div class="flame-label">
+              <span>🔥 蓄力</span>
+              <span id="flameText" class="flame-text">0%</span>
+            </div>
+            <div class="flame-bar-bg">
+              <div id="flameBarFill" class="flame-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="wave-display">
+            <span class="wave-label">波次</span>
+            <span id="waveNumber" class="wave-number">1</span>
+            <span id="waveIncoming" class="wave-incoming hidden">
+              下一波即将来袭！
+            </span>
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <div class="stat-item">
+            <span class="stat-icon">💀</span>
+            <span class="stat-label">击杀</span>
+            <span id="killsValue" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-icon">⭐</span>
+            <span class="stat-label">得分</span>
+            <span id="scoreValue" class="stat-value">0</span>
+          </div>
+          <div class="stat-item essence">
+            <span class="stat-icon">✨</span>
+            <span class="stat-label">精华</span>
+            <span id="essenceValue" class="stat-value">0</span>
+          </div>
+          <div class="stat-item flame-level">
+            <span class="stat-icon">🔥</span>
+            <span class="stat-label">龙焰</span>
+            <span id="flameLevelValue" class="stat-value">Lv.1</span>
+            <span id="flameBonusValue" class="stat-sub">(+0%)</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="upgradeHint" class="upgrade-hint hidden">
+        按 [E] 升级龙焰 (消耗 <span id="upgradeCost">2</span> 精华)
+      </div>
+
+      <div id="waveBanner" class="wave-banner hidden">
+        <span id="bannerWave" class="banner-wave">第 1 波</span>
+        <span id="bannerEnemyCount" class="banner-enemy-count">敌人来袭！</span>
+      </div>
+
+      <div id="chargingIndicator" class="charging-indicator hidden">
+        蓄力中...
+      </div>
+
+      <div id="cooldownIndicator" class="cooldown-indicator hidden">
+        冲锋冷却中...
+      </div>
+    </div>
+
+    <!-- 结束界面 -->
+    <div id="gameOverScreen" class="screen gameover-screen hidden">
+      <div class="smoke-overlay"></div>
+
+      <div class="content">
+        <h1 class="gameover-title">游戏结束</h1>
+        <p class="gameover-subtitle">GAME OVER</p>
+
+        <div class="stats-card">
+          <h2 class="stats-title">战斗报告</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">波次达到</span>
+              <span id="finalWave" class="stat-value wave">1</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">击杀敌人</span>
+              <span id="finalKills" class="stat-value kills">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">最终得分</span>
+              <span id="finalScore" class="stat-value score">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">火焰等级</span>
+              <span id="finalFlameLevel" class="stat-value flame">Lv.1</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">精华收集</span>
+              <span id="finalEssence" class="stat-value essence">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">伤害加成</span>
+              <span id="finalDmg" class="stat-value dmg">+0%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grade-display">
+          <span id="grade" class="grade grade-c">C</span>
+          <p id="gradeDesc" class="grade-desc">不错的表现！</p>
+        </div>
+
+        <div class="buttons">
+          <button class="btn-restart" onclick="restartGame()">
+            🔥 再来一局
+          </button>
+          <button class="btn-menu" onclick="backToMenu()">
+            📋 返回主菜单
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./game.js"></script>
+</body>
+</html>

@@ -36,7 +36,7 @@ class DragonGameController:
     def __init__(self):
         self.business = DragonGameBusiness()
 
-    def ActionDragongameStart(self, request: Request, body: StartGameRequest):
+    def ActionDragongameStartPost(self, request: Request, body: StartGameRequest):
         """
         开始新游戏
         POST /api/dragongame/start
@@ -44,7 +44,7 @@ class DragonGameController:
         """
         return self.business.start_new_game(body.player_name or 'Player')
 
-    def ActionDragongameSaveprogress(self, request: Request, body: SaveProgressRequest):
+    def ActionDragongameSaveprogressPost(self, request: Request, body: SaveProgressRequest):
         """
         保存游戏进度
         POST /api/dragongame/saveprogress
@@ -57,7 +57,7 @@ class DragonGameController:
             body.score
         )
 
-    def ActionDragongameFinish(self, request: Request, body: FinishGameRequest):
+    def ActionDragongameFinishPost(self, request: Request, body: FinishGameRequest):
         """
         结束游戏并保存最终成绩
         POST /api/dragongame/finish
@@ -94,7 +94,7 @@ class DragonGameController:
         """
         return self.business.get_leaderboard(limit)
 
-    def ActionDragongameCollectessence(self, request: Request, body: CollectEssenceRequest):
+    def ActionDragongameCollectessencePost(self, request: Request, body: CollectEssenceRequest):
         """
         收集火焰精华
         POST /api/dragongame/collectessence
@@ -102,7 +102,7 @@ class DragonGameController:
         """
         return self.business.collect_essence(body.status_id, body.amount or 1)
 
-    def ActionDragongameUpgradeflame(self, request: Request, body: UpgradeFlameRequest):
+    def ActionDragongameUpgradeflamePost(self, request: Request, body: UpgradeFlameRequest):
         """
         升级龙焰
         POST /api/dragongame/upgradeflame
