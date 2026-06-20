@@ -65,6 +65,7 @@ class SkateGameEngine {
         this.obstacles = [];
         this.rails = [];
         this.trackLength = 5000;
+        this.crashTimeoutId = null;
 
         this.currentTerrainType = 'flat';
         this.currentCurveDirection = null;
@@ -177,17 +178,21 @@ class SkateGameEngine {
 
     startJump() {
         this.player.isJumping = true;
-        this.player.vy = -12;
+        this.player.vy = -420;
         this.player.flipStartY = 0;
     }
 
     tryFlip() {
-        if (this.player.y < -15 || this.player.y > -5) {
+        if (this.player.y > -40 || this.player.y < -100) {
             this.trickFail('空翻时机错误！-50');
             return;
         }
+        if (!this.player.isJumping) {
+            this.trickFail('空翻需要在空中！-50');
+            return;
+        }
         const now = performance.now();
-        if (this.keyTimers.lastFlip && now - this.keyTimers.lastFlip < 50) {
+        if (this.keyTimers.lastFlip && now - this.keyTimers.lastFlip < 300) {
             this.trickFail('按键过快！-50');
             return;
         }
@@ -197,20 +202,18 @@ class SkateGameEngine {
         this.player.flipAngle = 0;
 
         setTimeout(() => {
-            if (Math.abs(this.player.flipAngle - 360) < 45 && this.player.isJumping && this.player.y < -10) {
+            if (Math.abs(this.player.flipAngle - 360) < 90) {
                 this.trickSuccess('完美空翻！+100', 100);
-            } else if (Math.abs(this.player.flipAngle - 360) < 90) {
-                this.trickSuccess('完成空翻！+100', 100);
             } else {
                 this.trickFail('空翻未完成！-50');
             }
             this.player.isFlipping = false;
             this.player.flipAngle = 0;
-        }, 450);
+        }, 500);
     }
 
     tryGrab() {
-        if (this.player.y < -20 || this.player.y > -8) {
+        if (this.player.y > -50 || !this.player.isJumping) {
             this.trickFail('抓板时机错误！');
             return;
         }
@@ -223,9 +226,9 @@ class SkateGameEngine {
         let onRail = null;
 
         for (const rail of this.rails) {
-            if (pos >= rail.start - 100 && pos <= rail.end + 50) {
+            if (pos >= rail.start - 80 && pos <= rail.end + 50) {
                 if (this.player.lane === rail.lane) {
-                    if (pos >= rail.start - 30 && pos <= rail.start + 30) {
+                    if (pos >= rail.start - 50 && pos <= rail.start + 50) {
                         onRail = rail;
                         break;
                     }
@@ -242,12 +245,14 @@ class SkateGameEngine {
         this.player.railTimer = 0;
         this.player.isJumping = false;
         this.player.y = -onRail.height;
+        this.player.vy = 0;
     }
 
     trickSuccess(message, points) {
         this.state.trickScore += points;
         this.state.score += points;
-        this.spawnParticles(this.player.x, this.GROUND_Y + this.player.y - 40, '#ffd700', 20);
+        const effectY = this.GROUND_Y + 20 + this.player.y * 0.3 - 40;
+        this.spawnParticles(this.player.x, effectY, '#ffd700', 20);
         if (this.callbacks.onTrickFeedback) {
             this.callbacks.onTrickFeedback('success', message);
         }
@@ -255,7 +260,8 @@ class SkateGameEngine {
 
     trickFail(message) {
         this.state.score = Math.max(0, this.state.score - 50);
-        this.spawnParticles(this.player.x, this.GROUND_Y + this.player.y - 40, '#ff4d4f', 15);
+        const effectY = this.GROUND_Y + 20 + this.player.y * 0.3 - 40;
+        this.spawnParticles(this.player.x, effectY, '#ff4d4f', 15);
         if (this.callbacks.onTrickFeedback) {
             this.callbacks.onTrickFeedback('fail', message);
         }
@@ -265,7 +271,8 @@ class SkateGameEngine {
         if (this.overtakenSkaters.has(obstacleId)) return;
         this.overtakenSkaters.add(obstacleId);
         this.state.score += 50;
-        this.spawnParticles(this.player.x, this.GROUND_Y + this.player.y - 40, '#4facfe', 15);
+        const effectY = this.GROUND_Y + 20 + this.player.y * 0.3 - 40;
+        this.spawnParticles(this.player.x, effectY, '#4facfe', 15);
         if (this.callbacks.onTrickFeedback) {
             this.callbacks.onTrickFeedback('overtake', '超越！+50');
         }
@@ -278,14 +285,24 @@ class SkateGameEngine {
         this.state.crashCount++;
         this.state.score = Math.max(0, this.state.score - 100);
         this.player.speed = 0;
-        this.spawnParticles(this.player.x, this.GROUND_Y + this.player.y - 30, '#ff0000', 30);
+        this.player.isJumping = false;
+        this.player.isFlipping = false;
+        this.player.isGrabbing = false;
+        this.player.isOnRail = false;
+        this.player.vy = 0;
+        this.player.y = 0;
+        this.spawnParticles(this.player.x, this.GROUND_Y - 30, '#ff0000', 30);
 
-        setTimeout(() => {
+        this.crashTimeoutId = setTimeout(() => {
             if (this.player.crashed) {
                 this.player.crashed = false;
                 this.player.speed = this.getTerrainSpeed();
+                this.state.crashed = false;
+                if (this.callbacks.onStateUpdate) {
+                    this.callbacks.onStateUpdate({ ...this.state });
+                }
             }
-        }, 3000);
+        }, 2000);
     }
 
     spawnParticles(x, y, color, count) {
@@ -342,13 +359,13 @@ class SkateGameEngine {
 
     checkObstacleCollisions() {
         const pos = this.state.position;
-        const checkRange = 80;
+        const checkRange = 120;
 
         for (const obs of this.obstacles) {
             const dist = obs.position - pos;
             if (Math.abs(dist) > checkRange) continue;
 
-            if (Math.abs(dist) < 25) {
+            if (Math.abs(dist) < 35) {
                 if (obs.type === 'cone') {
                     if (obs.lane === this.player.lane) {
                         if (!this.player.isJumping && !this.player.isOnRail) {
@@ -363,10 +380,10 @@ class SkateGameEngine {
                     }
                 } else if (obs.type === 'skater') {
                     if (obs.lane === this.player.lane) {
-                        if (!this.player.isJumping && dist > 0 && dist < 20) {
+                        if (!this.player.isJumping && dist > -10 && dist < 30) {
                             this.crash('撞到其他滑板者');
                         }
-                    } else if (dist <= 0 && dist > -30) {
+                    } else if (dist <= 0 && dist > -40) {
                         this.overtakeSkater(obs.position + '_' + obs.lane);
                     }
                 }
@@ -394,15 +411,15 @@ class SkateGameEngine {
 
     updateTrickAvailability() {
         this.state.canFlip = this.player.isJumping && !this.player.isFlipping &&
-                             this.player.y < -5 && this.player.y > -20;
+                             this.player.y < -40 && this.player.y > -100;
         this.state.canGrab = this.player.isJumping && !this.player.isGrabbing &&
-                             this.player.y < -8 && this.player.y > -25;
+                             this.player.y < -50;
 
         this.state.canRail = false;
         if (!this.player.isOnRail && !this.player.isJumping) {
             const pos = this.state.position;
             for (const rail of this.rails) {
-                if (pos >= rail.start - 50 && pos <= rail.start + 20 && this.player.lane === rail.lane) {
+                if (pos >= rail.start - 80 && pos <= rail.start + 50 && this.player.lane === rail.lane) {
                     this.state.canRail = true;
                     break;
                 }
@@ -460,14 +477,19 @@ class SkateGameEngine {
         this.player.lane = Math.max(0, Math.min(this.LANE_COUNT - 1, actualLane));
 
         if (this.player.isJumping) {
-            this.player.y += this.player.vy;
-            this.player.vy += 0.5;
+            this.player.y += this.player.vy * dt;
+            this.player.vy += 1500 * dt;
 
             if (this.player.y >= 0) {
                 this.player.y = 0;
                 this.player.vy = 0;
                 this.player.isJumping = false;
                 this.player.isGrabbing = false;
+                if (this.player.isFlipping) {
+                    this.trickFail('空翻未完成落地！-50');
+                    this.player.isFlipping = false;
+                    this.player.flipAngle = 0;
+                }
             }
         } else if (this.player.isOnRail) {
             this.player.y = -this.player.currentRail.height;
@@ -477,12 +499,12 @@ class SkateGameEngine {
         }
 
         if (this.player.isFlipping) {
-            this.player.flipAngle += 14;
+            this.player.flipAngle += 720 * dt;
         }
 
         if (this.player.isGrabbing) {
             this.player.grabTimer += dt;
-            if (this.player.grabTimer > 0.4 && !this.player.isJumping) {
+            if (this.player.grabTimer > 0.4 && this.player.isJumping) {
                 this.trickSuccess('抓板成功！+60', 60);
                 this.player.isGrabbing = false;
             }
@@ -886,7 +908,6 @@ class SkateGameEngine {
             .filter(r => r.relEnd > -50 && r.relStart < renderRange);
 
         for (const rail of visibleRails) {
-            const laneX = rail.lane * this.LANE_WIDTH + this.LANE_WIDTH / 2;
             const h = rail.height;
 
             for (let z = Math.max(0, rail.relStart); z < Math.min(renderRange, rail.relEnd); z += 50) {
@@ -913,7 +934,19 @@ class SkateGameEngine {
         const ctx = this.ctx;
         const p = this.player;
         const x = p.x;
-        const baseY = this.GROUND_Y + 20 + p.y;
+        let jumpOffset = p.y * 0.3;
+        if (p.isOnRail && p.currentRail) {
+            jumpOffset = -p.currentRail.height * 0.3;
+        }
+        const baseY = this.GROUND_Y + 20 + jumpOffset;
+
+        if (p.isJumping || p.isOnRail) {
+            const shadowScale = Math.max(0.3, 1 - Math.abs(jumpOffset) / 80);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse(x, this.GROUND_Y + 25, 20 * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         ctx.save();
         ctx.translate(x, baseY - 80);
@@ -929,7 +962,7 @@ class SkateGameEngine {
         }
 
         const scale = p.crouched && !p.isOnRail ? 0.85 : 1;
-        ctx.scale(scale, scale);
+        ctx.scale(scale, p.crouched && !p.isOnRail ? 0.85 : 1);
 
         const grabOffset = p.isGrabbing ? 5 : 0;
         const crashShake = p.crashed ? (Math.random() - 0.5) * 10 : 0;
@@ -1159,6 +1192,12 @@ class SkateGameEngine {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        if (this.crashTimeoutId) {
+            clearTimeout(this.crashTimeoutId);
+            this.crashTimeoutId = null;
+        }
+        this.player.crashed = false;
+        this.state.crashed = false;
     }
 
     togglePause() {

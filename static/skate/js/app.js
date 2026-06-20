@@ -1,4 +1,4 @@
-const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
+const { createApp, ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
 
 const App = {
     setup() {
@@ -65,6 +65,44 @@ const App = {
         });
 
         let crashTimer = null;
+        let isInGame = false;
+
+        function saveGameSession() {
+            if (isInGame && currentTrackData.value) {
+                sessionStorage.setItem('skate_game_session', JSON.stringify({
+                    trackId: currentTrackData.value.id,
+                    playerName: playerName.value,
+                    timestamp: Date.now()
+                }));
+            }
+        }
+
+        function clearGameSession() {
+            sessionStorage.removeItem('skate_game_session');
+            isInGame = false;
+        }
+
+        function handleBeforeUnload(e) {
+            if (isInGame) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        }
+
+        function restoreSession() {
+            try {
+                const session = sessionStorage.getItem('skate_game_session');
+                if (session) {
+                    const data = JSON.parse(session);
+                    if (Date.now() - data.timestamp < 60000) {
+                        currentView.value = 'home';
+                    }
+                    clearGameSession();
+                }
+            } catch (e) {
+                clearGameSession();
+            }
+        }
 
         async function loadTracks() {
             loadingTracks.value = true;
@@ -100,6 +138,7 @@ const App = {
 
         async function startGame() {
             if (!selectedTrack.value) return;
+            if (!playerName.value.trim()) return;
 
             loadingTracks.value = true;
             try {
@@ -108,6 +147,8 @@ const App = {
                     currentTrackData.value = res.data;
                     showTrackSelect.value = false;
                     currentView.value = 'game';
+                    isInGame = true;
+                    saveGameSession();
 
                     await nextTick();
 
@@ -123,7 +164,7 @@ const App = {
 
                             if (state.crashed) {
                                 if (!crashTimer) {
-                                    crashRecoveryCountdown.value = 3;
+                                    crashRecoveryCountdown.value = 2;
                                     crashTimer = setInterval(() => {
                                         crashRecoveryCountdown.value = Math.max(0, crashRecoveryCountdown.value - 0.1);
                                         if (crashRecoveryCountdown.value <= 0) {
@@ -132,6 +173,12 @@ const App = {
                                         }
                                     }, 100);
                                 }
+                            } else {
+                                if (crashTimer) {
+                                    clearInterval(crashTimer);
+                                    crashTimer = null;
+                                }
+                                crashRecoveryCountdown.value = 0;
                             }
                         },
                         onTrickFeedback: (type, message) => {
@@ -185,6 +232,16 @@ const App = {
         }
 
         async function handleGameEnd(result) {
+            gameState.crashed = false;
+            crashRecoveryCountdown.value = 0;
+            isInGame = false;
+            clearGameSession();
+
+            if (crashTimer) {
+                clearInterval(crashTimer);
+                crashTimer = null;
+            }
+
             gameResult.score = result.score;
             gameResult.trickScore = result.trickScore;
             gameResult.timeUsed = result.timeUsed;
@@ -210,11 +267,6 @@ const App = {
             }
 
             currentView.value = 'gameover';
-
-            if (crashTimer) {
-                clearInterval(crashTimer);
-                crashTimer = null;
-            }
         }
 
         function confirmExitGame() {
@@ -226,12 +278,18 @@ const App = {
                     clearInterval(crashTimer);
                     crashTimer = null;
                 }
+                gameState.crashed = false;
+                crashRecoveryCountdown.value = 0;
+                isInGame = false;
+                clearGameSession();
                 currentView.value = 'home';
             }
         }
 
         function restartGame() {
             if (selectedTrack.value) {
+                gameState.crashed = false;
+                crashRecoveryCountdown.value = 0;
                 startGame();
             }
         }
@@ -240,6 +298,10 @@ const App = {
             if (gameEngine) {
                 gameEngine.stop();
             }
+            gameState.crashed = false;
+            crashRecoveryCountdown.value = 0;
+            isInGame = false;
+            clearGameSession();
             currentView.value = 'home';
             showScores.value = false;
             selectedTrack.value = null;
@@ -279,6 +341,19 @@ const App = {
 
         onMounted(() => {
             loadTracks();
+            restoreSession();
+            window.addEventListener('beforeunload', handleBeforeUnload);
+        });
+
+        onBeforeUnmount(() => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            if (gameEngine) {
+                gameEngine.stop();
+            }
+            if (crashTimer) {
+                clearInterval(crashTimer);
+                crashTimer = null;
+            }
         });
 
         return {

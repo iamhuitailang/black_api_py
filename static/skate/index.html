@@ -47,8 +47,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <input v-model="playerName" class="name-input" placeholder="输入玩家名称" maxlength="20">
-                    <button class="btn btn-primary" :disabled="!selectedTrack" @click="startGame">
+                    <input v-model="playerName" class="name-input" placeholder="请输入玩家名称（必填）" maxlength="20">
+                    <button class="btn btn-primary" :disabled="!selectedTrack || !playerName.trim()" @click="startGame">
                         开始挑战 🚀
                     </button>
                 </div>
