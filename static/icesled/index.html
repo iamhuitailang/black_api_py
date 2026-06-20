@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冰橇竞速 - 冰川赛道挑战赛</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/vue-router@4.3.0/dist/vue-router.global.prod.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div class="app-header">
+      <div class="header-inner">
+        <h1 class="logo" @click="$router.push('/')">
+          <span class="logo-icon">🏂</span>
+          <span>冰橇竞速</span>
+        </h1>
+        <nav class="nav-menu">
+          <router-link to="/" class="nav-link" exact-active-class="active">🏠 首页</router-link>
+          <router-link to="/tracks" class="nav-link" active-class="active">🛤️ 赛道</router-link>
+          <router-link to="/race" class="nav-link" active-class="active">🚀 比赛</router-link>
+          <router-link to="/history" class="nav-link" active-class="active">📜 历史</router-link>
+          <router-link to="/leaderboard" class="nav-link" active-class="active">🏆 排行</router-link>
+        </nav>
+      </div>
+    </div>
+    <main class="app-main">
+      <router-view></router-view>
+    </main>
+    <footer class="app-footer">
+      <p>❄️ 冰川赛道冰橇竞速 · FastAPI + Vue 3 + SQLite</p>
+    </footer>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/views/home.js"></script>
+  <script src="js/views/tracks.js"></script>
+  <script src="js/views/race.js"></script>
+  <script src="js/views/history.js"></script>
+  <script src="js/views/leaderboard.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

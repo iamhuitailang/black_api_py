@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.icesled import TrackTemplateModel, RaceRecordModel, RaceDetailModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,8 +35,14 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    TrackTemplateModel.create_table()
+    RaceRecordModel.create_table()
+    RaceDetailModel.create_table()
     
     migrate_database()
+    
+    from app.business.icesled.track_engine import TrackEngine
+    TrackEngine.seed_default_tracks()
     
     print("Database initialized successfully")
 
@@ -113,6 +120,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=4080,
         reload=True
     )
