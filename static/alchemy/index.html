@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>炼金熔炉</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="top-bar">
+            <div id="game-title">🔥 炼金熔炉</div>
+            <div id="game-controls">
+                <input type="text" id="player-name" placeholder="输入玩家名" maxlength="20">
+                <button id="start-btn" class="btn btn-primary">开始游戏</button>
+            </div>
+            <div id="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">剩余时间</span>
+                    <span id="timer" class="stat-value">15:00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">总分</span>
+                    <span id="score" class="stat-value">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <div id="furnace-panel">
+                <div id="furnace-header">
+                    <h2>熔炉</h2>
+                    <button id="cooldown-btn" class="btn btn-warning" disabled>❄️ 冷却熔炉 (30秒)</button>
+                </div>
+                <div id="furnace-container">
+                    <div id="temp-scale">
+                        <div class="scale-mark" data-temp="1800">1800℃</div>
+                        <div class="scale-mark" data-temp="1500">1500℃</div>
+                        <div class="scale-mark" data-temp="1200">1200℃</div>
+                        <div class="scale-mark" data-temp="900">900℃</div>
+                        <div class="scale-mark" data-temp="600">600℃</div>
+                        <div class="scale-mark" data-temp="300">300℃</div>
+                    </div>
+                    <div id="furnace-layers">
+                        <div class="furnace-layer" data-layer="0" data-base-temp="200">
+                            <div class="layer-info">
+                                <span class="layer-name">第一层</span>
+                                <span class="layer-temp">200℃</span>
+                            </div>
+                            <div class="temp-bar-container">
+                                <div class="temp-bar">
+                                    <div class="temp-fill"></div>
+                                    <div class="temp-range-indicator"></div>
+                                </div>
+                                <div class="temp-marker"></div>
+                            </div>
+                            <div class="layer-content">
+                                <div class="ore-slot">
+                                    <span class="slot-label">矿石</span>
+                                    <div class="drop-zone" data-accept="ore"></div>
+                                </div>
+                                <div class="fuel-slot">
+                                    <span class="slot-label">燃料</span>
+                                    <div class="drop-zone" data-accept="fuel"></div>
+                                </div>
+                            </div>
+                            <div class="smelt-progress">
+                                <div class="smelt-bar"></div>
+                                <span class="smelt-text"></span>
+                            </div>
+                        </div>
+                        <div class="furnace-layer" data-layer="1" data-base-temp="520">
+                            <div class="layer-info">
+                                <span class="layer-name">第二层</span>
+                                <span class="layer-temp">520℃</span>
+                            </div>
+                            <div class="temp-bar-container">
+                                <div class="temp-bar">
+                                    <div class="temp-fill"></div>
+                                    <div class="temp-range-indicator"></div>
+                                </div>
+                                <div class="temp-marker"></div>
+                            </div>
+                            <div class="layer-content">
+                                <div class="ore-slot">
+                                    <span class="slot-label">矿石</span>
+                                    <div class="drop-zone" data-accept="ore"></div>
+                                </div>
+                                <div class="fuel-slot">
+                                    <span class="slot-label">燃料</span>
+                                    <div class="drop-zone" data-accept="fuel"></div>
+                                </div>
+                            </div>
+                            <div class="smelt-progress">
+                                <div class="smelt-bar"></div>
+                                <span class="smelt-text"></span>
+                            </div>
+                        </div>
+                        <div class="furnace-layer" data-layer="2" data-base-temp="840">
+                            <div class="layer-info">
+                                <span class="layer-name">第三层</span>
+                                <span class="layer-temp">840℃</span>
+                            </div>
+                            <div class="temp-bar-container">
+                                <div class="temp-bar">
+                                    <div class="temp-fill"></div>
+                                    <div class="temp-range-indicator"></div>
+                                </div>
+                                <div class="temp-marker"></div>
+                            </div>
+                            <div class="layer-content">
+                                <div class="ore-slot">
+                                    <span class="slot-label">矿石</span>
+                                    <div class="drop-zone" data-accept="ore"></div>
+                                </div>
+                                <div class="fuel-slot">
+                                    <span class="slot-label">燃料</span>
+                                    <div class="drop-zone" data-accept="fuel"></div>
+                                </div>
+                            </div>
+                            <div class="smelt-progress">
+                                <div class="smelt-bar"></div>
+                                <span class="smelt-text"></span>
+                            </div>
+                        </div>
+                        <div class="furnace-layer" data-layer="3" data-base-temp="1160">
+                            <div class="layer-info">
+                                <span class="layer-name">第四层</span>
+                                <span class="layer-temp">1160℃</span>
+                            </div>
+                            <div class="temp-bar-container">
+                                <div class="temp-bar">
+                                    <div class="temp-fill"></div>
+                                    <div class="temp-range-indicator"></div>
+                                </div>
+                                <div class="temp-marker"></div>
+                            </div>
+                            <div class="layer-content">
+                                <div class="ore-slot">
+                                    <span class="slot-label">矿石</span>
+                                    <div class="drop-zone" data-accept="ore"></div>
+                                </div>
+                                <div class="fuel-slot">
+                                    <span class="slot-label">燃料</span>
+                                    <div class="drop-zone" data-accept="fuel"></div>
+                                </div>
+                            </div>
+                            <div class="smelt-progress">
+                                <div class="smelt-bar"></div>
+                                <span class="smelt-text"></span>
+                            </div>
+                        </div>
+                        <div class="furnace-layer" data-layer="4" data-base-temp="1480">
+                            <div class="layer-info">
+                                <span class="layer-name">第五层</span>
+                                <span class="layer-temp">1480℃</span>
+                            </div>
+                            <div class="temp-bar-container">
+                                <div class="temp-bar">
+                                    <div class="temp-fill"></div>
+                                    <div class="temp-range-indicator"></div>
+                                </div>
+                                <div class="temp-marker"></div>
+                            </div>
+                            <div class="layer-content">
+                                <div class="ore-slot">
+                                    <span class="slot-label">矿石</span>
+                                    <div class="drop-zone" data-accept="ore"></div>
+                                </div>
+                                <div class="fuel-slot">
+                                    <span class="slot-label">燃料</span>
+                                    <div class="drop-zone" data-accept="fuel"></div>
+                                </div>
+                            </div>
+                            <div class="smelt-progress">
+                                <div class="smelt-bar"></div>
+                                <span class="smelt-text"></span>
+                            </div>
+                        </div>
+                        <div class="furnace-layer" data-layer="5" data-base-temp="1800">
+                            <div class="layer-info">
+                                <span class="layer-name">第六层</span>
+                                <span class="layer-temp">1800℃</span>
+                            </div>
+                            <div class="temp-bar-container">
+                                <div class="temp-bar">
+                                    <div class="temp-fill"></div>
+                                    <div class="temp-range-indicator"></div>
+                                </div>
+                                <div class="temp-marker"></div>
+                            </div>
+                            <div class="layer-content">
+                                <div class="ore-slot">
+                                    <span class="slot-label">矿石</span>
+                                    <div class="drop-zone" data-accept="ore"></div>
+                                </div>
+                                <div class="fuel-slot">
+                                    <span class="slot-label">燃料</span>
+                                    <div class="drop-zone" data-accept="fuel"></div>
+                                </div>
+                            </div>
+                            <div class="smelt-progress">
+                                <div class="smelt-bar"></div>
+                                <span class="smelt-text"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel">
+                <div id="material-shelf">
+                    <h3>📦 材料架</h3>
+                    <div class="shelf-section">
+                        <h4>矿石</h4>
+                        <div class="shelf-items">
+                            <div class="material-item ore-item" draggable="true" data-type="copper_ore" data-category="ore">
+                                <div class="item-icon">🪨</div>
+                                <div class="item-name">铜矿</div>
+                                <div class="item-info">400-600℃</div>
+                            </div>
+                            <div class="material-item ore-item" draggable="true" data-type="iron_ore" data-category="ore">
+                                <div class="item-icon">⛏️</div>
+                                <div class="item-name">铁矿</div>
+                                <div class="item-info">800-1200℃</div>
+                            </div>
+                            <div class="material-item ore-item" draggable="true" data-type="mithril_ore" data-category="ore">
+                                <div class="item-icon">💎</div>
+                                <div class="item-name">秘银矿</div>
+                                <div class="item-info">1400-1700℃</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shelf-section">
+                        <h4>燃料</h4>
+                        <div class="shelf-items">
+                            <div class="material-item fuel-item" draggable="true" data-type="charcoal" data-category="fuel" data-heat="50">
+                                <div class="item-icon">🪵</div>
+                                <div class="item-name">木炭</div>
+                                <div class="item-info">+50℃</div>
+                            </div>
+                            <div class="material-item fuel-item" draggable="true" data-type="coal" data-category="fuel" data-heat="120">
+                                <div class="item-icon">🏗️</div>
+                                <div class="item-name">煤炭</div>
+                                <div class="item-info">+120℃</div>
+                            </div>
+                            <div class="material-item fuel-item" draggable="true" data-type="magic_crystal" data-category="fuel" data-heat="300">
+                                <div class="item-icon">🔮</div>
+                                <div class="item-name">魔力晶</div>
+                                <div class="item-info">+300℃</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="inventory-panel">
+                    <h3>🗃️ 金属库存</h3>
+                    <div id="inventory-items">
+                        <div class="inventory-item" data-metal="铜锭">
+                            <span class="metal-icon">🟤</span>
+                            <span class="metal-name">铜锭</span>
+                            <span class="metal-count">0</span>
+                        </div>
+                        <div class="inventory-item" data-metal="铁锭">
+                            <span class="metal-icon">⬜</span>
+                            <span class="metal-name">铁锭</span>
+                            <span class="metal-count">0</span>
+                        </div>
+                        <div class="inventory-item" data-metal="秘银条">
+                            <span class="metal-icon">🟣</span>
+                            <span class="metal-name">秘银条</span>
+                            <span class="metal-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="forging-panel">
+                    <h3>⚒️ 锻造台</h3>
+                    <div id="forge-slots">
+                        <div class="forge-slot" data-slot="0">
+                            <span class="slot-label">材料1</span>
+                            <div class="forge-drop-zone" data-accept="metal"></div>
+                        </div>
+                        <div class="forge-plus">+</div>
+                        <div class="forge-slot" data-slot="1">
+                            <span class="slot-label">材料2</span>
+                            <div class="forge-drop-zone" data-accept="metal"></div>
+                        </div>
+                    </div>
+                    <div id="forge-temp-control">
+                        <label>锻造温度: <span id="forge-temp-value">800</span>℃</label>
+                        <input type="range" id="forge-temp-slider" min="200" max="1800" value="800" step="10">
+                    </div>
+                    <button id="forge-btn" class="btn btn-success" disabled>🔨 锻造</button>
+                </div>
+
+                <div id="equipment-panel">
+                    <h3>🏆 已锻造装备</h3>
+                    <div id="equipment-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="leaderboard-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h2>🏅 赛季排行榜</h2>
+                <div id="leaderboard-list"></div>
+                <button class="btn btn-primary" id="close-leaderboard">关闭</button>
+            </div>
+        </div>
+
+        <div id="game-over-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h2>⏰ 游戏结束!</h2>
+                <div id="final-score"></div>
+                <div id="final-equipment"></div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" id="view-leaderboard-btn">查看排行榜</button>
+                    <button class="btn btn-secondary" id="play-again-btn">再来一局</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
