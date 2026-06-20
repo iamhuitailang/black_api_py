@@ -1,10 +1,81 @@
 const API_BASE = '/api/parking';
+const STORAGE_KEY = 'parking_resident_form';
 
 let currentTab = 'apply';
 
 document.addEventListener('DOMContentLoaded', () => {
     initTabs();
+    restoreFormData();
+    setupFormAutoSave();
 });
+
+function saveFormData() {
+    const data = {
+        tab: currentTab,
+        car_plate: document.getElementById('car_plate').value,
+        applicant_name: document.getElementById('applicant_name').value,
+        applicant_phone: document.getElementById('applicant_phone').value,
+        applicant_address: document.getElementById('applicant_address').value,
+        desired_spot_type: document.getElementById('desired_spot_type').value,
+        query_phone: document.getElementById('query-phone').value,
+        payment_query_type: document.getElementById('payment-query-type').value,
+        payment_query_value: document.getElementById('payment-query-value').value
+    };
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
+function restoreFormData() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
+        const data = JSON.parse(saved);
+
+        if (data.car_plate) document.getElementById('car_plate').value = data.car_plate;
+        if (data.applicant_name) document.getElementById('applicant_name').value = data.applicant_name;
+        if (data.applicant_phone) document.getElementById('applicant_phone').value = data.applicant_phone;
+        if (data.applicant_address) document.getElementById('applicant_address').value = data.applicant_address;
+        if (data.desired_spot_type) document.getElementById('desired_spot_type').value = data.desired_spot_type;
+        if (data.query_phone) document.getElementById('query-phone').value = data.query_phone;
+        if (data.payment_query_type) {
+            document.getElementById('payment-query-type').value = data.payment_query_type;
+            changePaymentQueryType();
+        }
+        if (data.payment_query_value) document.getElementById('payment-query-value').value = data.payment_query_value;
+        if (data.tab && data.tab !== currentTab) {
+            switchTab(data.tab);
+        }
+    } catch (e) {}
+}
+
+function clearFormStorage() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const data = JSON.parse(saved);
+            const keep = {
+                tab: 'myapps',
+                query_phone: data.applicant_phone || '',
+                payment_query_type: data.payment_query_type || 'phone',
+                payment_query_value: data.payment_query_value || ''
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(keep));
+        }
+    } catch (e) {}
+}
+
+function setupFormAutoSave() {
+    const formFields = ['car_plate', 'applicant_name', 'applicant_phone', 'applicant_address',
+                        'desired_spot_type', 'query-phone', 'payment-query-type', 'payment-query-value'];
+    formFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', saveFormData);
+            el.addEventListener('change', saveFormData);
+        }
+    });
+}
 
 function initTabs() {
     document.querySelectorAll('.tab-item').forEach(tab => {
@@ -26,6 +97,7 @@ function switchTab(tabName) {
         content.classList.remove('active');
     });
     document.getElementById(`tab-${tabName}`).classList.add('active');
+    saveFormData();
 }
 
 async function apiGet(url) {
@@ -170,11 +242,13 @@ async function submitApplication(e) {
     
     if (result.code === 0) {
         showToast('申请提交成功！', 'success');
+        clearFormStorage();
         document.getElementById('application-form').reset();
         
         setTimeout(() => {
             switchTab('myapps');
             document.getElementById('query-phone').value = applicant_phone;
+            saveFormData();
             queryMyApplications();
         }, 1500);
     } else {
