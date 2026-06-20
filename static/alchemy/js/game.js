@@ -25,6 +25,7 @@
         inventory: { '铜锭': 0, '铁锭': 0, '秘银条': 0 },
         forgeSlots: [null, null],
         forgedEquipment: [],
+        forgeTemp: 800,
         coolingDown: false,
         cooldownEndTime: null,
         gameStartTime: null,
@@ -53,6 +54,8 @@
 
     function saveGame() {
         if (!game.started) return;
+        var slider = document.getElementById('forge-temp-slider');
+        if (slider) game.forgeTemp = parseInt(slider.value) || 800;
         game.lastSaveTime = Date.now();
         try {
             localStorage.setItem(SAVE_KEY, JSON.stringify(game));
@@ -80,8 +83,14 @@
             game.inventory = saved.inventory || { '铜锭': 0, '铁锭': 0, '秘银条': 0 };
             game.forgeSlots = saved.forgeSlots || [null, null];
             game.forgedEquipment = saved.forgedEquipment || [];
+            game.forgeTemp = saved.forgeTemp || 800;
             game.gameStartTime = saved.gameStartTime;
             game.lastSaveTime = Date.now();
+
+            var sliderEl = document.getElementById('forge-temp-slider');
+            var tempValEl = document.getElementById('forge-temp-value');
+            if (sliderEl) sliderEl.value = game.forgeTemp;
+            if (tempValEl) tempValEl.textContent = game.forgeTemp;
 
             var elapsedSinceSave = Math.floor((Date.now() - (saved.lastSaveTime || saved.gameStartTime)) / 1000);
 
@@ -352,10 +361,16 @@
         game.inventory = { '铜锭': 0, '铁锭': 0, '秘银条': 0 };
         game.forgeSlots = [null, null];
         game.forgedEquipment = [];
+        game.forgeTemp = 800;
         game.coolingDown = false;
         game.cooldownEndTime = null;
         game.gameStartTime = Date.now();
         game.lastSaveTime = Date.now();
+
+        var sEl = document.getElementById('forge-temp-slider');
+        var tEl = document.getElementById('forge-temp-value');
+        if (sEl) sEl.value = 800;
+        if (tEl) tEl.textContent = '800';
 
         initFurnace();
 
@@ -906,6 +921,8 @@
 
         document.getElementById('forge-temp-slider').addEventListener('input', function() {
             document.getElementById('forge-temp-value').textContent = this.value;
+            game.forgeTemp = parseInt(this.value) || 800;
+            saveGame();
         });
 
         document.getElementById('close-leaderboard').addEventListener('click', function() {
