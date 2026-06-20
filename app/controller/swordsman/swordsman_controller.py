@@ -13,6 +13,9 @@ class SaveProgressRequest(BaseModel):
     current_area: int
     equipment: List[str]
     total_kills: int
+    current_wave: int = 0
+    hp: int = 100
+    areas_cleared: int = 0
 
 
 class SubmitScoreRequest(BaseModel):
@@ -47,7 +50,10 @@ class SwordsmanController:
             body.soul_stones,
             body.current_area,
             body.equipment,
-            body.total_kills
+            body.total_kills,
+            body.current_wave,
+            body.hp,
+            body.areas_cleared
         )
 
     def ActionSwordsmanEquipmentGet(self, request: Request):

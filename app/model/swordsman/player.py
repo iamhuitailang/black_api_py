@@ -26,6 +26,9 @@ class PlayerModel:
                 will INTEGER DEFAULT 10,
                 soul_stones INTEGER DEFAULT 0,
                 current_area INTEGER DEFAULT 0,
+                current_wave INTEGER DEFAULT 0,
+                hp INTEGER DEFAULT 100,
+                areas_cleared INTEGER DEFAULT 0,
                 equipment TEXT DEFAULT '[]',
                 total_kills INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -36,6 +39,19 @@ class PlayerModel:
 
         index_sql = f"CREATE INDEX IF NOT EXISTS idx_{cls.TABLE_NAME}_player_name ON {cls.TABLE_NAME}(player_name)"
         db.execute(index_sql)
+
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN current_wave INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN hp INTEGER DEFAULT 100")
+        except Exception:
+            pass
+        try:
+            db.execute(f"ALTER TABLE {cls.TABLE_NAME} ADD COLUMN areas_cleared INTEGER DEFAULT 0")
+        except Exception:
+            pass
 
     def create(self, player_name: str) -> int:
         now = datetime.now().isoformat()

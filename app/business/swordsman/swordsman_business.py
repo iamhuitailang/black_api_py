@@ -36,7 +36,8 @@ class SwordsmanBusiness:
 
     def save_player_progress(self, player_name: str, strength: int, agility: int, will: int,
                              soul_stones: int, current_area: int, equipment: List[str],
-                             total_kills: int) -> Dict[str, Any]:
+                             total_kills: int, current_wave: int = 0, hp: int = 100,
+                             areas_cleared: int = 0) -> Dict[str, Any]:
         player = self.player_model.get_by_name(player_name)
         if not player:
             return {
@@ -52,6 +53,9 @@ class SwordsmanBusiness:
             will=will,
             soul_stones=soul_stones,
             current_area=current_area,
+            current_wave=current_wave,
+            hp=hp,
+            areas_cleared=areas_cleared,
             equipment=equipment,
             total_kills=total_kills
         )

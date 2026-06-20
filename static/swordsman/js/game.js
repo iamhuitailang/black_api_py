@@ -211,7 +211,6 @@ function spawnEnemy(type, x, y, isBoss = false) {
 }
 
 function startWave() {
-    game.entities = game.entities.filter(e => !e.isEnemy);
     game.entities = [];
     game.effects = [];
     game.bossActive = false;
@@ -266,6 +265,7 @@ function damagePlayer(dmg, ignoreDodge = false) {
         handleDeath();
     }
     updateUI();
+    saveGameState();
 }
 
 function damageEnemy(enemy, dmg) {
@@ -306,6 +306,8 @@ function killEnemy(enemy) {
         } else {
             onWaveClear();
         }
+    } else {
+        saveGameState();
     }
     updateUI();
 }
@@ -357,6 +359,8 @@ document.querySelectorAll('.soul-btn').forEach(btn => {
             game.currentWave++;
             startWave();
         }
+        saveGameState();
+        saveProgress();
     });
 });
 
@@ -378,9 +382,10 @@ document.getElementById('continue-btn').addEventListener('click', () => {
     if (game.currentArea >= AREAS.length - 1) {
         onVictory();
     } else {
-        saveProgress();
         game.currentArea++;
         startArea(game.currentArea);
+        saveGameState();
+        saveProgress();
     }
 });
 
@@ -407,6 +412,8 @@ document.getElementById('revive-btn').addEventListener('click', () => {
     player.invuln = 2;
     document.getElementById('death-modal').classList.remove('active');
     game.paused = false;
+    saveGameState();
+    saveProgress();
     updateUI();
 });
 
@@ -414,6 +421,8 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     document.getElementById('death-modal').classList.remove('active');
     game.paused = false;
     startArea(game.currentArea);
+    saveGameState();
+    saveProgress();
 });
 
 function onVictory() {
@@ -440,6 +449,8 @@ document.getElementById('victory-ok').addEventListener('click', () => {
     showScreen('start-screen');
     game.state = 'menu';
     game.paused = false;
+    clearGameState();
+    document.getElementById('continue-btn_main').style.display = 'none';
 });
 
 function playerAttack() {
@@ -1046,9 +1057,15 @@ async function loadPlayer(name) {
         player.soulStones = d.soul_stones;
         player.equipment = d.equipment || [];
         game.currentArea = d.current_area || 0;
+        game.currentWave = d.current_wave || 0;
         game.totalKills = d.total_kills || 0;
+        game.areasCleared = d.areas_cleared || 0;
         calcPlayerStats();
-        player.hp = player.maxHp;
+        if (d.hp && d.hp > 0) {
+            player.hp = Math.min(d.hp, player.maxHp);
+        } else {
+            player.hp = player.maxHp;
+        }
         return true;
     }
     return false;
@@ -1062,6 +1079,9 @@ async function saveProgress() {
         will: player.baseWill,
         soul_stones: player.soulStones,
         current_area: game.currentArea,
+        current_wave: game.currentWave,
+        hp: Math.max(0, Math.floor(player.hp)),
+        areas_cleared: game.areasCleared,
         equipment: player.equipment,
         total_kills: game.totalKills
     });
@@ -1114,6 +1134,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
         startArea(game.currentArea || 0);
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         updateUI();
+        saveGameState();
     });
 });
 
@@ -1125,6 +1146,158 @@ document.getElementById('leaderboard-btn').addEventListener('click', () => {
 document.getElementById('back-from-leaderboard').addEventListener('click', () => {
     showScreen('start-screen');
 });
+
+document.getElementById('continue-btn_main').addEventListener('click', () => {
+    const state = loadGameState();
+    if (state) {
+        resumeGame(state);
+    } else {
+        alert('存档不存在或已过期');
+        document.getElementById('continue-btn_main').style.display = 'none';
+    }
+});
+
+function saveGameState() {
+    const state = {
+        playerName: game.playerName,
+        currentArea: game.currentArea,
+        currentWave: game.currentWave,
+        totalKills: game.totalKills,
+        areasCleared: game.areasCleared,
+        bossActive: game.bossActive,
+        poisoned: game.poisoned,
+        poisonTimer: game.poisonTimer,
+        waveKills: game.waveKills,
+        waveKillsNeeded: game.waveKillsNeeded,
+        player: {
+            x: player.x,
+            y: player.y,
+            hp: player.hp,
+            baseStrength: player.baseStrength,
+            baseAgility: player.baseAgility,
+            baseWill: player.baseWill,
+            soulStones: player.soulStones,
+            equipment: [...player.equipment],
+            charging: false,
+            chargeTimer: 0
+        },
+        timestamp: Date.now()
+    };
+    try {
+        localStorage.setItem('swordsman_save', JSON.stringify(state));
+    } catch (e) {}
+}
+
+function loadGameState() {
+    try {
+        const raw = localStorage.getItem('swordsman_save');
+        if (!raw) return null;
+        const state = JSON.parse(raw);
+        if (!state.playerName || state.currentArea === undefined) return null;
+        if (Date.now() - state.timestamp > 86400000) return null;
+        return state;
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearGameState() {
+    try {
+        localStorage.removeItem('swordsman_save');
+    } catch (e) {}
+}
+
+function resumeGame(state) {
+    game.playerName = state.playerName;
+    game.currentArea = state.currentArea;
+    game.currentWave = state.currentWave;
+    game.totalKills = state.totalKills;
+    game.areasCleared = state.areasCleared;
+    game.bossActive = state.bossActive;
+    game.poisoned = state.poisoned;
+    game.poisonTimer = state.poisonTimer;
+    game.waveKills = state.waveKills;
+    game.waveKillsNeeded = state.waveKillsNeeded;
+    game.state = 'playing';
+    game.paused = false;
+    game.pendingSoulStones = 0;
+
+    const p = state.player;
+    player.x = p.x;
+    player.y = p.y;
+    player.hp = p.hp;
+    player.baseStrength = p.baseStrength;
+    player.baseAgility = p.baseAgility;
+    player.baseWill = p.baseWill;
+    player.soulStones = p.soulStones;
+    player.equipment = p.equipment || [];
+    player.charging = false;
+    player.chargeTimer = 0;
+    player.hitFlash = 0;
+    player.invuln = 0;
+    player.attackCd = 0;
+    player.attackAnim = 0;
+    player.skillCd = { q: 0, e: 0, r: 0 };
+
+    calcPlayerStats();
+    if (player.hp > player.maxHp) player.hp = player.maxHp;
+
+    game.entities = [];
+    game.effects = [];
+    if (game.bossActive) {
+        const type = AREAS[game.currentArea].enemyType;
+        spawnEnemy(type, W / 2, 80, true);
+        game.waveKillsNeeded = 1;
+        game.waveKills = 0;
+    } else {
+        const type = AREAS[game.currentArea].enemyType;
+        const count = 3 + game.currentArea + game.currentWave;
+        game.waveKillsNeeded = count;
+        game.waveKills = 0;
+        for (let i = 0; i < count; i++) {
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = rand(50, W - 50); y = 30; }
+            else if (side === 1) { x = rand(50, W - 50); y = H - 30; }
+            else if (side === 2) { x = 30; y = rand(100, H - 50); }
+            else { x = W - 30; y = rand(100, H - 50); }
+            spawnEnemy(type, x, y, false);
+        }
+    }
+
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('player-name-input').value = game.playerName;
+    updateUI();
+}
+
+let autoSaveTimer = 0;
+const AUTO_SAVE_INTERVAL = 10;
+
+const _origUpdate = update;
+update = function(dt) {
+    _origUpdate(dt);
+    if (game.state === 'playing' && !game.paused) {
+        autoSaveTimer += dt;
+        if (autoSaveTimer >= AUTO_SAVE_INTERVAL) {
+            autoSaveTimer = 0;
+            saveGameState();
+            saveProgress();
+        }
+    }
+};
+
+window.addEventListener('beforeunload', () => {
+    if (game.state === 'playing') {
+        saveGameState();
+        saveProgress();
+    }
+});
+
+const savedState = loadGameState();
+if (savedState) {
+    document.getElementById('continue-btn_main').style.display = 'inline-block';
+    document.getElementById('player-name-input').value = savedState.playerName;
+}
 
 calcPlayerStats();
 updateUI();
