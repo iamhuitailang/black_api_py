@@ -176,6 +176,7 @@ const App = {
         }
     },
     mounted() {
+        this.parseRoute();
         this.init();
         window.addEventListener('hashchange', () => {
             this.parseRoute();

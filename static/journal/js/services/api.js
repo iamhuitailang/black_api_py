@@ -213,24 +213,28 @@ const Helpers = {
     }
 };
 
-const ManuscriptStatus = {
-    DRAFT: 'draft',
-    SUBMITTED: 'submitted',
-    UNDER_REVIEW: 'under_review',
-    REVIEW_COMPLETED: 'review_completed',
-    ACCEPTED: 'accepted',
-    REVISION_REQUIRED: 'revision_required',
-    REJECTED: 'rejected',
-    PUBLISHED: 'published'
-};
+if (typeof ManuscriptStatus === 'undefined') {
+    var ManuscriptStatus = {
+        DRAFT: 'draft',
+        SUBMITTED: 'submitted',
+        UNDER_REVIEW: 'under_review',
+        REVIEW_COMPLETED: 'review_completed',
+        ACCEPTED: 'accepted',
+        REVISION_REQUIRED: 'revision_required',
+        REJECTED: 'rejected',
+        PUBLISHED: 'published'
+    };
+}
 
-const STATUS_MAP = {
-    draft: { label: '草稿', class: 'status-draft' },
-    submitted: { label: '已提交', class: 'status-submitted' },
-    under_review: { label: '审稿中', class: 'status-reviewing' },
-    review_completed: { label: '审稿完成', class: 'status-review-done' },
-    accepted: { label: '已录用', class: 'status-accepted' },
-    revision_required: { label: '需修改', class: 'status-revision' },
-    rejected: { label: '已退稿', class: 'status-rejected' },
-    published: { label: '已发表', class: 'status-published' }
-};
+if (typeof STATUS_MAP === 'undefined') {
+    var STATUS_MAP = {
+        draft: { label: '草稿', class: 'status-draft' },
+        submitted: { label: '已提交', class: 'status-submitted' },
+        under_review: { label: '审稿中', class: 'status-reviewing' },
+        review_completed: { label: '审稿完成', class: 'status-review-done' },
+        accepted: { label: '已录用', class: 'status-accepted' },
+        revision_required: { label: '需修改', class: 'status-revision' },
+        rejected: { label: '已退稿', class: 'status-rejected' },
+        published: { label: '已发表', class: 'status-published' }
+    };
+}
