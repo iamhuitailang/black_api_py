@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冰川渗透行动 - 策略生存游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1 class="game-title">❄ 冰川渗透行动 ❄</h1>
+            <div class="game-info">
+                <span class="turn-count">回合: <span id="turnCount">0</span></span>
+                <span class="layer-info">当前层: <span id="currentLayer">1</span> / <span id="totalLayers">10</span></span>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <section class="left-panel">
+                <div class="panel-card stamina-panel">
+                    <h3>⚡ 体能储备</h3>
+                    <div class="stamina-bar">
+                        <div class="stamina-fill" id="staminaFill"></div>
+                    </div>
+                    <div class="stamina-text">
+                        <span id="staminaValue">300</span> / <span id="staminaMax">300</span>
+                    </div>
+                    <div class="stamina-warning" id="staminaWarning" style="display:none;">
+                        ⚠ 体能耗尽，效率减半
+                    </div>
+                </div>
+
+                <div class="panel-card team-panel">
+                    <h3>👥 渗透小队</h3>
+                    <div class="team-list" id="teamList">
+                    </div>
+                </div>
+            </section>
+
+            <section class="center-panel">
+                <div class="ice-visualization" id="iceVisualization">
+                    <div class="ice-layers" id="iceLayers">
+                    </div>
+                </div>
+
+                <div class="event-log">
+                    <h4>📜 行动日志</h4>
+                    <div class="log-content" id="logContent">
+                        <p class="log-item log-system">欢迎执行冰川渗透任务。指挥你的5人小队穿越10层冰盖结构。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="right-panel">
+                <div class="panel-card action-panel">
+                    <h3>🎮 行动指令</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="btnDig" onclick="dig()">
+                            ⛏ 挖掘前进
+                        </button>
+                        <button class="btn btn-secondary" id="btnCrack" onclick="useCrack()" disabled>
+                            🕳 使用裂缝
+                        </button>
+                        <button class="btn btn-supply" id="btnSupply" onclick="useSupply()" disabled>
+                            🏕 补给站
+                        </button>
+                        <button class="btn btn-new" onclick="newGame()">
+                            🔄 新游戏
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-card layer-info-panel">
+                    <h3>🧊 当前冰层</h3>
+                    <div class="layer-details">
+                        <div class="detail-item">
+                            <span class="detail-label">厚度:</span>
+                            <span class="detail-value" id="layerThickness">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">温度:</span>
+                            <span class="detail-value" id="layerTemp">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">进度:</span>
+                            <span class="detail-value" id="layerProgress">-</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="layerProgressFill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card legend-panel">
+                    <h3>📋 图例说明</h3>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-icon ice-normal"></span>
+                            <span>普通冰层</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon ice-crack"></span>
+                            <span>裂缝通道</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon ice-supply"></span>
+                            <span>补给站</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon ice-passed"></span>
+                            <span>已通过</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon ice-current"></span>
+                            <span>当前层</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="game-overlay" id="gameOverlay" style="display:none;">
+            <div class="overlay-content">
+                <h2 id="overlayTitle">任务结束</h2>
+                <p id="overlayMessage"></p>
+                <button class="btn btn-primary" onclick="newGame()">🔄 重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
