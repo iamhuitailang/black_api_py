@@ -96,6 +96,23 @@ let stageProgress = 0;
 let stageComplete = false;
 let popups = [];
 
+let prngSeed = 0;
+let prngState = 0;
+function initPRNG(seed){
+  prngSeed = seed >>> 0;
+  prngState = prngSeed;
+}
+function nextPRNG(){
+  prngState = (prngState + 0x6D2B79F5) >>> 0;
+  let t = prngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+function rand(){ return nextPRNG(); }
+function randRange(min, max){ return min + rand() * (max - min); }
+function randInt(min, max){ return Math.floor(randRange(min, max + 1)); }
+
 const API_BASE = window.location.origin + '/api';
 const SAVE_KEY = 'triquest_save';
 
@@ -108,6 +125,8 @@ function saveGameState(){
     score: score,
     elapsed: elapsed,
     ts: Date.now(),
+    prngSeed: prngSeed,
+    prngState: prngState,
     stageData: null
   };
   if(state === GAME_STATES.JUNGLE){
@@ -247,6 +266,7 @@ function startGame(){
   hp = 100; score = 0; startTime = Date.now(); elapsed = 0;
   stageProgress = 0; stageComplete = false;
   keys = {}; popups = [];
+  initPRNG(Date.now() & 0xffffffff);
   clearSave();
   hideOverlay();
   startJungle();
@@ -261,10 +281,17 @@ function resumeGame(){
   startTime = Date.now() - elapsed * 1000;
   stageProgress = 0; stageComplete = false;
   keys = {}; popups = [];
+  if(save.prngSeed != null){
+    prngSeed = save.prngSeed;
+    prngState = save.prngState;
+  } else {
+    initPRNG(Date.now() & 0xffffffff);
+  }
   hideOverlay();
-  if(save.stage === GAME_STATES.JUNGLE) startJungle();
-  else if(save.stage === GAME_STATES.MINE) startMine();
-  else if(save.stage === GAME_STATES.VOLCANO) startVolcano();
+  const sd = save.stageData || null;
+  if(save.stage === GAME_STATES.JUNGLE) startJungle(sd);
+  else if(save.stage === GAME_STATES.MINE) startMine(sd);
+  else if(save.stage === GAME_STATES.VOLCANO) startVolcano(sd);
   else startGame();
 }
 
@@ -366,13 +393,13 @@ function startJungle(restoreData){
       jungle.trees = restoreData.trees.map(t => ({...t}));
     } else {
       for(let i = 0; i < 12; i++){
-        jungle.trees.push({x: Math.random() * W, y: Math.random() * H, s: 20 + Math.random()*30});
+        jungle.trees.push({x: rand() * W, y: rand() * H, s: 20 + rand()*30});
       }
     }
     stageProgress = Math.min(1, jungle.distance / (JUNGLE_DURATION * 60));
   } else {
     for(let i = 0; i < 12; i++){
-      jungle.trees.push({x: Math.random() * W, y: Math.random() * H, s: 20 + Math.random()*30});
+      jungle.trees.push({x: rand() * W, y: rand() * H, s: 20 + rand()*30});
     }
   }
   showStageLabel(restoreData ? '继续：密林' : '第一章：密林');
@@ -400,13 +427,13 @@ function jungleLoop(){
   j.rockTimer++;
 
   if(j.spawnTimer % 60 === 0){
-    const sx = 40 + Math.random() * (W - 80);
-    j.snakes.push({x: sx, y: -20, w: 40, h: 16, vx: (Math.random()-.5)*2, vy: 1.5 + Math.random()*1.5, wobble:0});
+    const sx = 40 + rand() * (W - 80);
+    j.snakes.push({x: sx, y: -20, w: 40, h: 16, vx: (rand()-.5)*2, vy: 1.5 + rand()*1.5, wobble:0});
     saveGameState();
   }
   if(j.rockTimer % 90 === 0){
-    const rx = 30 + Math.random() * (W - 80);
-    j.rocks.push({x: rx, y: -30, w: 28, h: 28, vy: 3 + Math.random()*2});
+    const rx = 30 + rand() * (W - 80);
+    j.rocks.push({x: rx, y: -30, w: 28, h: 28, vy: 3 + rand()*2});
     saveGameState();
   }
 
@@ -608,13 +635,13 @@ function mineLoop(){
   m.spawnTimer++;
 
   if(m.spawnTimer % 70 === 0){
-    const trackIdx = Math.floor(Math.random() * TRACK_COUNT);
-    const isOre = Math.random() < 0.45;
+    const trackIdx = randInt(0, TRACK_COUNT - 1);
+    const isOre = rand() < 0.45;
     if(isOre){
       m.ores.push({x: W + 20, y: m.tracks[trackIdx] - 18, w: 30, h: 30, track: trackIdx, collected: false});
     } else {
-      const hasAltOre = Math.random() < 0.5;
-      const altTrack = (trackIdx + (Math.random() < 0.5 ? 1 : 2)) % TRACK_COUNT;
+      const hasAltOre = rand() < 0.5;
+      const altTrack = (trackIdx + (rand() < 0.5 ? 1 : 2)) % TRACK_COUNT;
       m.obstacles.push({x: W + 20, y: m.tracks[trackIdx] - 25, w: 50, h: 50, track: trackIdx, hit: false});
       if(hasAltOre){
         m.ores.push({x: W + 20, y: m.tracks[altTrack] - 18, w: 30, h: 30, track: altTrack, collected: false});
@@ -812,13 +839,13 @@ function volcanoLoop(){
   v.lavaTimer++;
 
   if(v.crackTimer % 100 === 0){
-    const cw = 40 + Math.random() * 80;
+    const cw = 40 + rand() * 80;
     v.cracks.push({x: W + 20, w: cw, hit: false});
     saveGameState();
   }
 
   if(v.lavaTimer % 180 === 0){
-    const lx = 200 + Math.random() * (W - 300);
+    const lx = 200 + rand() * (W - 300);
     v.lavas.push({x: lx, y: v.groundY, timer: 45, active: true, warned: true, warnTimer: 60});
     saveGameState();
   }
