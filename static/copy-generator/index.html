@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文案组合生成工具</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <header class="header">
+                <h1>文案组合生成工具</h1>
+                <p class="subtitle">模板 + 变量池 = 一键生成全排列文案</p>
+            </header>
+
+            <div class="main-layout">
+                <div class="left-panel">
+                    <section class="card">
+                        <h2 class="card-title">
+                            <span class="icon">📝</span>
+                            模板编辑区
+                        </h2>
+                        <p class="card-desc">使用 {{变量名}} 标记可替换位置</p>
+                        <textarea 
+                            v-model="template" 
+                            class="template-textarea"
+                            placeholder="例如：{{产品名}}是一款专为{{目标人群}}打造的{{卖点}}产品..."
+                            @input="onTemplateChange"
+                        ></textarea>
+                        <div class="template-actions">
+                            <span class="hint">已识别变量：{{ variableNames.length }} 个</span>
+                            <button class="btn btn-sm" @click="extractVariables">从模板提取变量</button>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <h2 class="card-title">
+                            <span class="icon">🎯</span>
+                            变量池
+                        </h2>
+                        <p class="card-desc">为每个变量填写多个候选值，每行一个</p>
+                        
+                        <div class="var-list">
+                            <div 
+                                v-for="(v, index) in varPools" 
+                                :key="v.name" 
+                                class="var-item"
+                            >
+                                <div class="var-header">
+                                    <div class="var-name">
+                                        <span class="var-badge">{{ v.name }}</span>
+                                        <span class="var-count">{{ v.values.length }} 个候选值</span>
+                                    </div>
+                                    <button 
+                                        class="btn-icon btn-danger" 
+                                        @click="removeVariable(index)"
+                                        title="删除变量"
+                                    >✕</button>
+                                </div>
+                                <textarea 
+                                    v-model="v.rawText"
+                                    class="var-textarea"
+                                    placeholder="每行一个候选值"
+                                    @input="onVarValuesChange(v)"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div v-if="varPools.length === 0" class="empty-state">
+                            <p>暂无变量</p>
+                            <p class="empty-hint">在模板中使用 {{变量名}} 后点击"从模板提取变量"</p>
+                        </div>
+
+                        <div class="add-var-section">
+                            <input 
+                                v-model="newVarName" 
+                                type="text" 
+                                class="input-text"
+                                placeholder="输入变量名手动添加"
+                                @keyup.enter="addVariable"
+                            >
+                            <button class="btn btn-primary" @click="addVariable">添加变量</button>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="right-panel">
+                    <section class="card">
+                        <h2 class="card-title">
+                            <span class="icon">⚡</span>
+                            组合生成
+                        </h2>
+                        <div class="generate-bar">
+                            <div class="stats">
+                                <span>预计组合数：<strong>{{ totalCombinations }}</strong></span>
+                            </div>
+                            <button 
+                                class="btn btn-primary btn-lg" 
+                                @click="generateCombinations"
+                                :disabled="!canGenerate"
+                            >
+                                生成全排列组合
+                            </button>
+                        </div>
+
+                        <div v-if="combinations.length > 0" class="result-section">
+                            <div class="result-toolbar">
+                                <div class="select-actions">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" v-model="selectAll" @change="toggleSelectAll">
+                                        全选
+                                    </label>
+                                    <span class="selected-count">已选 {{ selectedCount }} / {{ combinations.length }}</span>
+                                </div>
+                                <div class="export-actions">
+                                    <button class="btn" @click="exportJSON" :disabled="selectedCount === 0">导出JSON</button>
+                                    <button class="btn" @click="exportText" :disabled="selectedCount === 0">导出TXT</button>
+                                    <button class="btn btn-danger" @click="deleteSelected" :disabled="selectedCount === 0">删除选中</button>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="combo-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-check">
+                                                <input type="checkbox" v-model="selectAll" @change="toggleSelectAll">
+                                            </th>
+                                            <th class="col-index">#</th>
+                                            <th v-for="v in varPools" :key="v.name">{{ v.name }}</th>
+                                            <th>生成文案</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr 
+                                            v-for="(combo, idx) in paginatedCombinations" 
+                                            :key="combo.id"
+                                            :class="{ 'row-selected': combo.selected }"
+                                        >
+                                            <td class="col-check">
+                                                <input type="checkbox" v-model="combo.selected">
+                                            </td>
+                                            <td class="col-index">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                                            <td v-for="v in varPools" :key="v.name" class="col-value">
+                                                <span class="value-tag">{{ combo.vars[v.name] }}</span>
+                                            </td>
+                                            <td class="col-text">{{ combo.text }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div v-if="totalPages > 1" class="pagination">
+                                <button class="btn btn-sm" @click="currentPage = 1" :disabled="currentPage === 1">首页</button>
+                                <button class="btn btn-sm" @click="currentPage--" :disabled="currentPage === 1">上一页</button>
+                                <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</span>
+                                <button class="btn btn-sm" @click="currentPage++" :disabled="currentPage === totalPages">下一页</button>
+                                <button class="btn btn-sm" @click="currentPage = totalPages" :disabled="currentPage === totalPages">末页</button>
+                            </div>
+                        </div>
+
+                        <div v-else class="empty-state">
+                            <p>还没有生成组合</p>
+                            <p class="empty-hint">填写模板和变量值后，点击"生成全排列组合"</p>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <h2 class="card-title">
+                            <span class="icon">👁️</span>
+                            预览（已选中 {{ selectedCount }} 条）
+                        </h2>
+                        <div v-if="selectedCombinations.length > 0" class="preview-list">
+                            <div 
+                                v-for="(combo, idx) in selectedCombinations" 
+                                :key="combo.id"
+                                class="preview-item"
+                            >
+                                <span class="preview-num">{{ idx + 1 }}</span>
+                                <p class="preview-text">{{ combo.text }}</p>
+                            </div>
+                        </div>
+                        <div v-else class="empty-state">
+                            <p>暂无选中的文案</p>
+                            <p class="empty-hint">在上方表格中勾选需要保留的组合</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
