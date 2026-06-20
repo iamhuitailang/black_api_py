@@ -555,59 +555,81 @@ class RacingGame {
     }
 
     async reachCheckpoint() {
-        const now = Date.now();
-        const segmentTime = (now - this.segmentStartTime) / 1000;
-        const isShortcut = this.shortcutTaken[this.currentCheckpoint];
+        if (this._checkpointProcessing) return;
+        this._checkpointProcessing = true;
 
-        this.checkpoints.push({
-            index: this.currentCheckpoint,
-            time: segmentTime,
-            shortcut: isShortcut
-        });
+        try {
+            const now = Date.now();
+            const segmentTime = (now - this.segmentStartTime) / 1000;
+            const cpIndex = this.currentCheckpoint;
+            const isShortcut = this.shortcutTaken[cpIndex];
 
-        await this.apiCall('/racing/checkpoint', 'POST', {
-            race_id: this.currentRace.id,
-            checkpoint_index: this.currentCheckpoint,
-            segment_time: segmentTime,
-            is_shortcut: isShortcut,
-            has_rollover: false,
-            penalty_time: 0
-        });
+            this.checkpoints.push({
+                index: cpIndex,
+                time: segmentTime,
+                shortcut: isShortcut
+            });
 
-        document.getElementById('checkpoint-text').textContent = `${this.currentCheckpoint + 1} / 3`;
-        document.getElementById('checkpoint-progress').style.width = `${(this.currentCheckpoint + 1) / 3 * 100}%`;
+            document.getElementById('checkpoint-text').textContent = `${cpIndex + 1} / 3`;
+            document.getElementById('checkpoint-progress').style.width = `${(cpIndex + 1) / 3 * 100}%`;
 
-        this.showMessage(`检查点 ${this.currentCheckpoint + 1}！用时 ${segmentTime.toFixed(2)}秒`, 'success');
+            this.showMessage(`检查点 ${cpIndex + 1}！用时 ${segmentTime.toFixed(2)}秒`, 'success');
 
-        if (this.currentCheckpoint >= 2) {
-            this.finishRace();
-        } else {
-            this.currentCheckpoint++;
-            this.segmentStartTime = now;
+            await this.apiCall('/racing/checkpoint', 'POST', {
+                race_id: this.currentRace.id,
+                checkpoint_index: cpIndex,
+                segment_time: segmentTime,
+                is_shortcut: isShortcut,
+                has_rollover: false,
+                penalty_time: 0
+            });
+
+            if (cpIndex >= 2) {
+                await this.finishRace();
+            } else {
+                this.currentCheckpoint++;
+                this.segmentStartTime = now;
+            }
+        } catch (e) {
+            console.error('检查点处理失败:', e);
+            this.showMessage('检查点记录失败，继续比赛', 'warning');
+        } finally {
+            this._checkpointProcessing = false;
         }
     }
 
     async finishRace() {
+        if (this._finishing) return;
+        this._finishing = true;
         this.isRacing = false;
         cancelAnimationFrame(this.animationId);
 
-        const totalTime = (Date.now() - this.raceStartTime) / 1000;
+        try {
+            const totalTime = (Date.now() - this.raceStartTime) / 1000;
 
-        const result = await this.apiCall('/racing/finish', 'POST', {
-            race_id: this.currentRace.id,
-            total_time: totalTime,
-            shortcuts_found: this.shortcutsFound,
-            rollovers: this.rollovers
-        });
+            const result = await this.apiCall('/racing/finish', 'POST', {
+                race_id: this.currentRace.id,
+                total_time: totalTime,
+                shortcuts_found: this.shortcutsFound,
+                rollovers: this.rollovers
+            });
 
-        if (result.code === 0) {
-            const vehicleResp = await this.apiCall('/racing/vehicle/get');
-            this.vehicle = vehicleResp.data;
-            this.gameState = 'result';
-            this.saveState();
-            this.updateVehicleDisplay();
+            if (result.code === 0) {
+                const vehicleResp = await this.apiCall('/racing/vehicle/get');
+                this.vehicle = vehicleResp.data;
+                this.gameState = 'result';
+                this.saveState();
+                this.updateVehicleDisplay();
 
-            this.showRaceResult(result.data, totalTime);
+                this.showRaceResult(result.data, totalTime);
+            } else {
+                this.showMessage('比赛结算失败: ' + (result.message || '未知错误'), 'warning');
+            }
+        } catch (e) {
+            console.error('结束比赛失败:', e);
+            this.showMessage('结算失败，请刷新页面重试', 'warning');
+        } finally {
+            this._finishing = false;
         }
     }
 
