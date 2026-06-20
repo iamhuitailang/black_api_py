@@ -1213,7 +1213,41 @@ function gameLoop(timestamp) {
 
 // ==================== 游戏状态管理 ====================
 function startGame() {
-  playerName = document.getElementById('playerName').value || 'DragonRider';
+  // ========== 修复2: 昵称校验 ==========
+  const nameInput = document.getElementById('playerName');
+  const name = (nameInput.value || '').trim();
+  if (!name) {
+    nameInput.style.borderColor = '#ff3333';
+    nameInput.style.boxShadow = '0 0 15px rgba(255,50,50,0.6)';
+    nameInput.placeholder = '⚠ 请输入玩家昵称！';
+    nameInput.classList.add('shake');
+    setTimeout(() => {
+      nameInput.classList.remove('shake');
+    }, 500);
+    nameInput.focus();
+    // 显示提示
+    let tip = document.getElementById('nameTip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'nameTip';
+      tip.textContent = '❌ 请先输入玩家昵称！';
+      tip.style.cssText = `
+        margin-top: 10px;
+        color: #ff6666;
+        font-size: 0.9rem;
+        font-weight: bold;
+        animation: tipBlink 0.5s ease-in-out 3;
+      `;
+      nameInput.parentElement.appendChild(tip);
+    }
+    return;
+  } else {
+    nameInput.style.borderColor = '';
+    nameInput.style.boxShadow = '';
+    const tip = document.getElementById('nameTip');
+    if (tip) tip.remove();
+  }
+  playerName = name;
 
   // 重置游戏状态
   wave = 1;
@@ -1248,12 +1282,37 @@ function startGame() {
   document.getElementById('chargingIndicator').classList.add('hidden');
   document.getElementById('cooldownIndicator').classList.add('hidden');
 
-  // 切换界面
+  // 切换界面 - 先显示再调整尺寸，确保能获取到正确的宽高
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('gameOverScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
 
   gameState = 'playing';
+
+  // ========== 修复1: 界面显示后立即调整 canvas，并强制渲染首帧 ==========
+  // 同步执行一次：使用视口尺寸保底
+  (function initCanvasSize() {
+    const w = Math.max(800, window.innerWidth);
+    const h = Math.max(500, window.innerHeight);
+    const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    canvas.style.width = (GAME_WIDTH * scale) + 'px';
+    canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+    canvas.style.display = 'block';
+    canvas.style.visibility = 'visible';
+    canvas.style.opacity = '1';
+    // 强制绘制首帧背景，保证用户至少能看到画面
+    if (ctx) {
+      drawCanyonBackground();
+      drawDragon();
+      render();
+    }
+  })();
+
+  // 下一帧用准确尺寸 resize 一次
+  requestAnimationFrame(() => {
+    resizeCanvas();
+    if (ctx) render();
+  });
 
   // 请求后端创建游戏记录
   fetch('/api/dragongame/start', {
@@ -1418,11 +1477,14 @@ function initGame() {
 function resizeCanvas() {
   if (!canvas) return;
   const wrapper = canvas.parentElement;
-  const w = wrapper.clientWidth;
-  const h = wrapper.clientHeight;
+  const w = Math.max(600, wrapper.clientWidth || window.innerWidth);
+  const h = Math.max(400, wrapper.clientHeight || window.innerHeight);
   const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
   canvas.style.width = (GAME_WIDTH * scale) + 'px';
   canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+  canvas.style.display = 'block';
+  canvas.style.visibility = 'visible';
+  canvas.style.opacity = '1';
 }
 
 // 页面加载完成后初始化

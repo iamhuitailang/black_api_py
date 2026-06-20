@@ -752,3 +752,38 @@ html, body {
   background: rgba(255, 99, 71, 0.5);
   border-radius: 3px;
 }
+
+/* ========== 昵称校验动画 ========== */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes tipBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* 确保 game-screen 始终可见 */
+.game-screen {
+  display: flex !important;
+}
+.game-screen.hidden {
+  display: none !important;
+}
+
+/* 确保 canvas 不被隐藏 - ID 和 class 双重保险 */
+#gameCanvas,
+.game-canvas {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #0a0a2e !important;
+  box-shadow: 0 0 60px rgba(255, 100, 50, 0.3);
+  border-radius: 8px;
+}
