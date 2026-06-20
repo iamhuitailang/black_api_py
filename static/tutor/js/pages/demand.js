@@ -185,7 +185,13 @@ const DemandPage = {
             <button class="btn btn-primary" id="btn-submit-demand">发布需求</button>
         `;
 
-        Modal.show(contentHtml, { title: '发布家教需求', footerHtml });
+        Modal.show(contentHtml, {
+            title: '发布家教需求',
+            footerHtml,
+            onClose: () => {
+                FormCache.clear('tutor_demand_create');
+            }
+        });
 
         document.querySelectorAll('#pref-times-group .checkbox-item').forEach(item => {
             const input = item.querySelector('input');
@@ -196,6 +202,16 @@ const DemandPage = {
                 item.classList.toggle('active', input.checked);
             });
         });
+
+        const form = document.getElementById('demand-form');
+        const cache = FormCache.setup('tutor_demand_create', form);
+        if (cache.hasCached) {
+            Toast.info('已自动恢复您上次填写的内容');
+            document.querySelectorAll('#pref-times-group .checkbox-item').forEach(item => {
+                const input = item.querySelector('input');
+                item.classList.toggle('active', input.checked);
+            });
+        }
 
         document.getElementById('btn-submit-demand').addEventListener('click', async () => {
             const form = document.getElementById('demand-form');
@@ -224,6 +240,7 @@ const DemandPage = {
             try {
                 const result = await TutorService.createDemand(data);
                 if (result.code === 0) {
+                    cache.clear();
                     Toast.success('需求发布成功');
                     Modal.close();
                     await this.loadDemands();
@@ -304,7 +321,13 @@ const DemandPage = {
             <button class="btn btn-primary" id="btn-save-demand">保存修改</button>
         `;
 
-        Modal.show(contentHtml, { title: '编辑需求', footerHtml });
+        Modal.show(contentHtml, {
+            title: '编辑需求',
+            footerHtml,
+            onClose: () => {
+                FormCache.clear(`tutor_demand_edit_${demandId}`);
+            }
+        });
 
         document.querySelectorAll('#edit-times-group .checkbox-item').forEach(item => {
             const input = item.querySelector('input');
@@ -315,6 +338,16 @@ const DemandPage = {
                 item.classList.toggle('active', input.checked);
             });
         });
+
+        const form = document.getElementById('demand-edit-form');
+        const cache = FormCache.setup(`tutor_demand_edit_${demandId}`, form);
+        if (cache.hasCached) {
+            Toast.info('已自动恢复您上次填写的内容');
+            document.querySelectorAll('#edit-times-group .checkbox-item').forEach(item => {
+                const input = item.querySelector('input');
+                item.classList.toggle('active', input.checked);
+            });
+        }
 
         document.getElementById('btn-save-demand').addEventListener('click', async () => {
             const form = document.getElementById('demand-edit-form');
@@ -344,6 +377,7 @@ const DemandPage = {
             try {
                 const result = await TutorService.updateDemand(demandId, data);
                 if (result.code === 0) {
+                    cache.clear();
                     Toast.success('修改成功');
                     Modal.close();
                     await this.loadDemands();

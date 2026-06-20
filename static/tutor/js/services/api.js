@@ -86,6 +86,144 @@ const Modal = {
     }
 };
 
+const FormCache = {
+    PREFIX: 'form_cache_',
+
+    save(formId, data) {
+        try {
+            const key = this.PREFIX + formId;
+            Storage.set(key, {
+                data: data,
+                timestamp: Date.now()
+            });
+        } catch (e) {
+            console.warn('表单缓存保存失败:', e);
+        }
+    },
+
+    load(formId) {
+        try {
+            const key = this.PREFIX + formId;
+            const cached = Storage.get(key);
+            if (cached && cached.data) {
+                const age = Date.now() - (cached.timestamp || 0);
+                if (age < 30 * 60 * 1000) {
+                    return cached.data;
+                } else {
+                    this.clear(formId);
+                }
+            }
+        } catch (e) {
+            console.warn('表单缓存加载失败:', e);
+        }
+        return null;
+    },
+
+    clear(formId) {
+        try {
+            const key = this.PREFIX + formId;
+            Storage.remove(key);
+        } catch (e) {
+            console.warn('表单缓存清除失败:', e);
+        }
+    },
+
+    collectFormData(form) {
+        const formData = new FormData(form);
+        const data = {};
+
+        form.querySelectorAll('input, select, textarea').forEach(el => {
+            const name = el.name;
+            if (!name) return;
+
+            if (el.type === 'checkbox') {
+                if (!data[name]) {
+                    data[name] = formData.getAll(name);
+                }
+            } else {
+                data[name] = formData.get(name);
+            }
+        });
+
+        return data;
+    },
+
+    restoreFormData(form, data) {
+        if (!data) return;
+
+        Object.keys(data).forEach(name => {
+            const value = data[name];
+            const elements = form.querySelectorAll(`[name="${name}"]`);
+
+            elements.forEach(el => {
+                if (el.type === 'checkbox') {
+                    if (Array.isArray(value)) {
+                        el.checked = value.includes(el.value);
+                    } else {
+                        el.checked = value === el.value || value === 'on';
+                    }
+                    const item = el.closest('.checkbox-item');
+                    if (item) {
+                        item.classList.toggle('active', el.checked);
+                    }
+                } else if (el.type === 'radio') {
+                    el.checked = value === el.value;
+                } else if (el.tagName === 'SELECT' || el.type !== 'file') {
+                    if (value !== undefined && value !== null) {
+                        el.value = value;
+                    }
+                }
+            });
+        });
+    },
+
+    bindAutoSave(formId, form) {
+        const saveHandler = () => {
+            const data = this.collectFormData(form);
+            this.save(formId, data);
+        };
+
+        form.addEventListener('input', saveHandler);
+        form.addEventListener('change', saveHandler);
+        form.addEventListener('click', (e) => {
+            if (e.target.closest('.checkbox-item')) {
+                setTimeout(saveHandler, 10);
+            }
+        });
+
+        return () => {
+            form.removeEventListener('input', saveHandler);
+            form.removeEventListener('change', saveHandler);
+        };
+    },
+
+    setup(formId, form, initialData = null, autoSave = true) {
+        let cachedData = this.load(formId);
+        const data = cachedData || initialData;
+
+        if (data) {
+            this.restoreFormData(form, data);
+        }
+
+        let unbind = null;
+        if (autoSave) {
+            unbind = this.bindAutoSave(formId, form);
+        }
+
+        return {
+            hasCached: !!cachedData,
+            clear: () => this.clear(formId),
+            save: (customData) => {
+                const d = customData || this.collectFormData(form);
+                this.save(formId, d);
+            },
+            unbind: () => {
+                if (unbind) unbind();
+            }
+        };
+    }
+};
+
 const ApiService = {
     async request(url, options = {}) {
         const token = Storage.getToken();

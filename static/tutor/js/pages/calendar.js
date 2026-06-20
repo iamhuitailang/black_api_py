@@ -299,10 +299,22 @@ const CalendarPage = {
             <button class="btn btn-primary" id="btn-submit-course">确认添加</button>
         `;
 
-        Modal.show(contentHtml, { title: '新增课程', footerHtml });
+        Modal.show(contentHtml, {
+            title: '新增课程',
+            footerHtml,
+            onClose: () => {
+                FormCache.clear('tutor_add_course');
+            }
+        });
 
         if (role === 'parent') {
             this.loadTeacherOptions();
+        }
+
+        const form = document.getElementById('course-form');
+        const cache = FormCache.setup('tutor_add_course', form);
+        if (cache.hasCached) {
+            Toast.info('已自动恢复您上次填写的内容');
         }
 
         document.getElementById('btn-submit-course').addEventListener('click', async () => {
@@ -342,6 +354,7 @@ const CalendarPage = {
             try {
                 const result = await TutorService.createCourse(data);
                 if (result.code === 0) {
+                    cache.clear();
                     Toast.success('课程已添加，等待对方确认');
                     Modal.close();
                     await this.loadWeekCourses();

@@ -240,7 +240,19 @@ const MatchPage = {
             <button class="btn btn-primary" id="btn-submit-schedule">发送约课</button>
         `;
 
-        Modal.show(contentHtml, { title: '发起约课', footerHtml });
+        Modal.show(contentHtml, {
+            title: '发起约课',
+            footerHtml,
+            onClose: () => {
+                FormCache.clear('tutor_schedule');
+            }
+        });
+
+        const form = document.getElementById('schedule-form');
+        const cache = FormCache.setup('tutor_schedule', form);
+        if (cache.hasCached) {
+            Toast.info('已自动恢复您上次填写的内容');
+        }
 
         document.getElementById('btn-submit-schedule').addEventListener('click', async () => {
             const form = document.getElementById('schedule-form');
@@ -280,6 +292,7 @@ const MatchPage = {
             try {
                 const result = await TutorService.createCourse(data);
                 if (result.code === 0) {
+                    cache.clear();
                     Toast.success('约课已发送，等待对方确认');
                     Modal.close();
                     if (onSuccess) onSuccess();
