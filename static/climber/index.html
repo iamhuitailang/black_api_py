@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地底裂缝 - 12层闯关</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="hud">
+            <div class="hud-left">
+                <div class="stamina-bar">
+                    <div class="stamina-label">⚡ 体力</div>
+                    <div class="stamina-outer">
+                        <div id="stamina-fill" class="stamina-fill"></div>
+                        <span id="stamina-text">100 / 100</span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <span id="floor-info">🏔 第 1 / 12 层</span>
+                    <span id="fall-info">💔 滑落: 0 / 3</span>
+                    <span id="attack-info">⚔ 攻击: 15</span>
+                </div>
+                <div class="timer-row">
+                    <span id="timer-info">⏱ 00:00</span>
+                    <span id="floor-timer-info">本层: 00:00</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <button id="pause-btn" class="btn">⏸ 暂停</button>
+            </div>
+        </div>
+
+        <canvas id="game-canvas" width="960" height="600"></canvas>
+
+        <div id="controls-hint">
+            <span>← → 移动</span>
+            <span>↑ / 空格 跳跃 (消耗8体力)</span>
+            <span>贴墙+↑ 攀壁 (消耗5体力/秒)</span>
+            <span>X 攻击 (Boss战)</span>
+        </div>
+
+        <div id="start-screen" class="overlay">
+            <h1>🏔 地底裂缝 🏔</h1>
+            <h2>12层闯关挑战</h2>
+            <div class="story">
+                <p>你被困在地底裂缝深处...</p>
+                <p>只有攀爬12层才能重见天日！</p>
+                <p>小心体力耗尽，滑落3次将坠入深渊！</p>
+            </div>
+            <div class="legend">
+                <div><span class="legend-color rest"></span> 休息点 (+20体力)</div>
+                <div><span class="legend-color shard"></span> 力量碎片 (攻击×2)</div>
+                <div><span class="legend-color danger"></span> 掉落石块 (-30体力)</div>
+            </div>
+            <button id="start-btn" class="btn btn-large">▶ 开始冒险</button>
+            <button id="show-records-btn" class="btn btn-secondary">🏆 通关记录</button>
+        </div>
+
+        <div id="pause-screen" class="overlay hidden">
+            <h2>⏸ 游戏暂停</h2>
+            <button id="resume-btn" class="btn btn-large">▶ 继续游戏</button>
+            <button id="restart-btn" class="btn btn-secondary">🔄 重新开始</button>
+        </div>
+
+        <div id="gameover-screen" class="overlay hidden">
+            <h1 id="gameover-title">💀 坠入深渊 💀</h1>
+            <div id="gameover-stats" class="stats"></div>
+            <button id="gameover-restart-btn" class="btn btn-large">🔄 重新挑战</button>
+        </div>
+
+        <div id="victory-screen" class="overlay hidden">
+            <h1>🎉 重见天日！🎉</h1>
+            <h2>你击败了巨型岩怪！</h2>
+            <div id="victory-stats" class="stats"></div>
+            <div class="name-input">
+                <input type="text" id="player-name" placeholder="输入你的名字" maxlength="12">
+                <button id="save-record-btn" class="btn">💾 保存记录</button>
+            </div>
+            <button id="victory-restart-btn" class="btn btn-large">🔄 再次挑战</button>
+        </div>
+
+        <div id="records-screen" class="overlay hidden">
+            <h2>🏆 通关记录榜</h2>
+            <div id="records-list" class="records-list"></div>
+            <button id="close-records-btn" class="btn btn-large">← 返回</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

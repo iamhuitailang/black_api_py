@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.climber import ClimberRecordModel, ClimberFloorStatModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,9 +35,11 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
-    
+    ClimberRecordModel.create_table()
+    ClimberFloorStatModel.create_table()
+
     migrate_database()
-    
+
     print("Database initialized successfully")
 
 
