@@ -1,6 +1,10 @@
 const HomeView = {
   template: `
     <div>
+      <div v-if="hasSavedRace" class="saved-race-banner" @click="goToSavedRace">
+        <span>🎬 发现一场未看完的比赛，点击继续观看 →</span>
+      </div>
+
       <section class="hero">
         <h1>🏂 冰川赛道冰橇竞速</h1>
         <p>驾驶冰橇在极地冰川赛道上高速滑行，躲避裂缝、征服弯道、借助加速坡一飞冲天！挑战3位AI对手，争夺冠军宝座！</p>
@@ -89,16 +93,37 @@ const HomeView = {
   `,
   setup() {
     const stats = ref(null);
+    const hasSavedRace = ref(false);
     const loadStats = async () => {
       try {
         const res = await IceSledAPI.getPlayerStats(appState.playerName);
         if (res.code === 0) stats.value = res.data;
       } catch (e) {}
     };
-    onMounted(loadStats);
+    const checkSavedRace = () => {
+      try {
+        const raw = localStorage.getItem('icesled_race_state');
+        if (raw) {
+          const state = JSON.parse(raw);
+          if (state && state.raceData && Date.now() - (state.timestamp || 0) < 10 * 60 * 1000) {
+            hasSavedRace.value = true;
+            return;
+          }
+        }
+      } catch (e) {}
+      hasSavedRace.value = false;
+    };
+    const goToSavedRace = () => {
+      window.location.hash = '#/race';
+    };
+    onMounted(() => {
+      loadStats();
+      checkSavedRace();
+      window.addEventListener('storage', checkSavedRace);
+    });
     watch(() => appState.playerName, loadStats);
     return {
-      stats,
+      stats, hasSavedRace, goToSavedRace,
       appState,
       formatTime: Utils.formatTime,
     };

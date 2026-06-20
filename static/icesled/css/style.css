@@ -162,6 +162,23 @@ body {
 .btn-block { width: 100%; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
+.saved-race-banner {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  color: white;
+  padding: 14px 24px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+.saved-race-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
 .hero {
   background: var(--gradient-aurora);
   border-radius: 24px;

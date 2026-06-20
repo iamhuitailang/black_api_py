@@ -4,14 +4,15 @@ from typing import Dict, Any, List, Tuple, Optional
 from app.business.icesled.ai_engine import AIRacer, PlayerRacer
 
 
-INITIAL_SPEED = 60
-MAX_SPEED = 150
-WALL_HIT_SPEED_LOSS = 30
-WALL_HIT_SPEED_PENALTY = 10
+INITIAL_SPEED = 60.0
+MAX_SPEED = 150.0
+MIN_SPEED = 15.0
+WALL_HIT_SPEED_LOSS = 30.0
 CRACK_FALL_TIME_LOSS = 3.0
-BOOST_SPEED_GAIN = 20
-SPEED_DECAY_PER_SECOND = 2
+BOOST_SPEED_GAIN = 20.0
+SPEED_DECAY_PER_SECOND = 1.5
 TICK_SECONDS = 0.1
+BASE_ACCELERATION = 2.0
 
 
 class RacerState:
@@ -30,7 +31,34 @@ class RacerState:
         self.crack_fall_count = 0
         self.boost_count = 0
         self.pending_time_penalty = 0.0
-        self._last_tick_events = []
+        self._hit_segments = set()
+        self._crack_hits = set()
+        self._boost_segments = set()
+        self._curve_passed = set()
+
+    def has_hit_wall_in_segment(self, seg_idx: int) -> bool:
+        return seg_idx in self._hit_segments
+
+    def mark_wall_hit(self, seg_idx: int):
+        self._hit_segments.add(seg_idx)
+
+    def has_crack_at(self, crack_key: str) -> bool:
+        return crack_key in self._crack_hits
+
+    def mark_crack(self, crack_key: str):
+        self._crack_hits.add(crack_key)
+
+    def has_boost_in_segment(self, seg_idx: int) -> bool:
+        return seg_idx in self._boost_segments
+
+    def mark_boost(self, seg_idx: int):
+        self._boost_segments.add(seg_idx)
+
+    def has_passed_curve(self, seg_idx: int) -> bool:
+        return seg_idx in self._curve_passed
+
+    def mark_curve_passed(self, seg_idx: int):
+        self._curve_passed.add(seg_idx)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -83,16 +111,17 @@ class RaceSimulator:
             end = start + seg['length']
             if start <= position < end:
                 return seg
+        if position >= self.total_length:
+            return self.segments[-1]
         return None
 
     def _get_ahead_info(self, state: RacerState) -> Dict[str, Any]:
         ahead = {'turn_warning_distance': 999, 'crack_warning_distance': 999}
-        look_ahead = 200
+        look_ahead = 250
         pos = state.position
         for seg in self.segments:
             seg_start = seg['start_position']
-            seg_end = seg_start + seg['length']
-            if seg_start >= pos - 10 and seg_start <= pos + look_ahead:
+            if seg_start >= pos - 20 and seg_start <= pos + look_ahead:
                 dist = max(0, seg_start - pos)
                 if seg['type'] == 'curve' and dist < ahead['turn_warning_distance']:
                     ahead['turn_warning_distance'] = dist
@@ -100,102 +129,125 @@ class RaceSimulator:
                     ahead['crack_warning_distance'] = dist
         return ahead
 
-    def _process_segment_effects(self, state: RacerState, action: Dict[str, Any],
-                                  segment: Dict[str, Any], dt: float):
-        if not segment:
+    def _process_curve(self, state: RacerState, action: Dict[str, Any],
+                        segment: Dict[str, Any], dt: float):
+        seg_idx = segment['index']
+        seg_start = segment['start_position']
+        seg_len = segment['length']
+        seg_end = seg_start + seg_len
+        pos_in_seg = state.position - seg_start
+
+        difficulty = segment.get('difficulty', 2)
+        turn_success = action.get('turn', False)
+
+        if pos_in_seg < seg_len * 0.3:
             return
 
-        seg_type = segment['type']
-        tick_events = []
+        if state.has_passed_curve(seg_idx):
+            state.speed = max(MIN_SPEED, state.speed * (0.98 + 0.02 * difficulty * 0.2))
+            return
 
-        if seg_type == 'curve':
-            if not action.get('turn'):
-                if state.position >= segment['start_position'] + segment['length'] * 0.3:
-                    if not any(e.get('type') == 'wall_hit' for e in state._last_tick_events):
-                        state.speed = max(0, state.speed - WALL_HIT_SPEED_LOSS)
-                        state.speed = max(0, state.speed - WALL_HIT_SPEED_PENALTY)
-                        state.wall_hit_count += 1
-                        event = {
-                            'type': 'wall_hit',
-                            'time': round(state.total_time, 3),
-                            'position': round(state.position, 1),
-                            'segment': segment['index'],
-                            'speed_after': round(state.speed, 1)
-                        }
-                        state.event_log.append(event)
-                        tick_events.append(event)
-            else:
-                hold = action.get('speed_hold', 0.85)
-                if state.speed > 0 and random.random() < 0.1:
-                    event = {
-                        'type': 'curve_pass',
-                        'time': round(state.total_time, 3),
-                        'position': round(state.position, 1),
-                        'segment': segment['index'],
-                        'direction': segment.get('direction', 'left')
-                    }
-                    state.event_log.append(event)
+        if turn_success:
+            speed_factor = 0.85 + (3 - difficulty) * 0.05
+            state.speed = max(MIN_SPEED, state.speed * speed_factor)
 
-        elif seg_type == 'crack':
-            crack_positions = []
-            crack_count = segment.get('crack_count', 1)
-            for i in range(crack_count):
-                crack_positions.append(
-                    segment['start_position'] + segment['length'] * (i + 1) / (crack_count + 1)
-                )
-            for cp in crack_positions:
-                near = abs(state.position - cp) < (state.speed * dt * 0.5 + 2)
-                if near:
-                    already_fallen = any(
-                        e.get('type') == 'crack_fall'
-                        and abs(e.get('position', 0) - cp) < 5
-                        for e in state.event_log
-                    )
-                    if not action.get('jump') and not already_fallen:
-                        state.pending_time_penalty += CRACK_FALL_TIME_LOSS
-                        state.crack_fall_count += 1
-                        state.speed = max(state.speed * 0.5, 10)
-                        event = {
-                            'type': 'crack_fall',
-                            'time': round(state.total_time, 3),
-                            'position': round(state.position, 1),
-                            'segment': segment['index']
-                        }
-                        state.event_log.append(event)
-                        tick_events.append(event)
-                    elif action.get('jump') and not already_fallen:
-                        event = {
-                            'type': 'jump_success',
-                            'time': round(state.total_time, 3),
-                            'position': round(state.position, 1),
-                            'segment': segment['index']
-                        }
-                        state.event_log.append(event)
-
-        elif seg_type == 'boost':
-            boost_start = segment['start_position']
-            passed_boost = state.position >= boost_start + 10
-            already_boosted = any(
-                e.get('type') == 'boost'
-                and e.get('segment') == segment['index']
-                for e in state.event_log
-            )
-            if passed_boost and not already_boosted:
-                power = segment.get('boost_power', BOOST_SPEED_GAIN)
-                state.speed = min(state.speed + power, MAX_SPEED)
-                state.boost_count += 1
+            if pos_in_seg >= seg_len * 0.7 and not state.has_passed_curve(seg_idx):
+                state.mark_curve_passed(seg_idx)
                 event = {
-                    'type': 'boost',
+                    'type': 'curve_pass',
                     'time': round(state.total_time, 3),
                     'position': round(state.position, 1),
-                    'segment': segment['index'],
-                    'power': power,
+                    'segment': seg_idx,
+                    'direction': segment.get('direction', 'left')
+                }
+                state.event_log.append(event)
+        else:
+            if not state.has_hit_wall_in_segment(seg_idx):
+                state.speed = max(MIN_SPEED, state.speed - WALL_HIT_SPEED_LOSS)
+                state.wall_hit_count += 1
+                state.mark_wall_hit(seg_idx)
+                event = {
+                    'type': 'wall_hit',
+                    'time': round(state.total_time, 3),
+                    'position': round(state.position, 1),
+                    'segment': seg_idx,
                     'speed_after': round(state.speed, 1)
                 }
                 state.event_log.append(event)
-                tick_events.append(event)
 
-        state._last_tick_events = tick_events
+            friction = 0.88 - difficulty * 0.04
+            state.speed = max(MIN_SPEED, state.speed * friction)
+
+            if pos_in_seg >= seg_len * 0.95:
+                state.mark_curve_passed(seg_idx)
+
+    def _process_crack(self, state: RacerState, action: Dict[str, Any],
+                        segment: Dict[str, Any], dt: float):
+        seg_idx = segment['index']
+        crack_count = segment.get('crack_count', 1)
+
+        for i in range(crack_count):
+            crack_pos = segment['start_position'] + segment['length'] * (i + 1) / (crack_count + 1)
+            crack_key = f"{seg_idx}_{i}"
+
+            dist = abs(state.position - crack_pos)
+            detect_range = max(state.speed * dt / 3.6 * 1.5, 3)
+
+            if dist < detect_range and not state.has_crack_at(crack_key):
+                if action.get('jump'):
+                    state.mark_crack(crack_key)
+                    event = {
+                        'type': 'jump_success',
+                        'time': round(state.total_time, 3),
+                        'position': round(state.position, 1),
+                        'segment': seg_idx
+                    }
+                    state.event_log.append(event)
+                else:
+                    state.mark_crack(crack_key)
+                    state.pending_time_penalty += CRACK_FALL_TIME_LOSS
+                    state.crack_fall_count += 1
+                    state.speed = max(MIN_SPEED, state.speed * 0.4)
+                    event = {
+                        'type': 'crack_fall',
+                        'time': round(state.total_time, 3),
+                        'position': round(state.position, 1),
+                        'segment': seg_idx
+                    }
+                    state.event_log.append(event)
+
+    def _process_boost(self, state: RacerState, segment: Dict[str, Any]):
+        seg_idx = segment['index']
+        pos_in_seg = state.position - segment['start_position']
+
+        if pos_in_seg >= segment['length'] * 0.2 and not state.has_boost_in_segment(seg_idx):
+            power = segment.get('boost_power', BOOST_SPEED_GAIN)
+            state.speed = min(state.speed + power, MAX_SPEED)
+            state.boost_count += 1
+            state.mark_boost(seg_idx)
+            event = {
+                'type': 'boost',
+                'time': round(state.total_time, 3),
+                'position': round(state.position, 1),
+                'segment': seg_idx,
+                'power': power,
+                'speed_after': round(state.speed, 1)
+            }
+            state.event_log.append(event)
+
+    def _process_segment_effects(self, state: RacerState, action: Dict[str, Any],
+                                  segment: Dict[str, Any], dt: float):
+        if not segment or state.finished:
+            return
+
+        seg_type = segment['type']
+
+        if seg_type == 'curve':
+            self._process_curve(state, action, segment, dt)
+        elif seg_type == 'crack':
+            self._process_crack(state, action, segment, dt)
+        elif seg_type == 'boost':
+            self._process_boost(state, segment)
 
     def _advance(self, state: RacerState, action: Dict[str, Any], dt: float):
         if state.finished:
@@ -212,9 +264,11 @@ class RaceSimulator:
         if hasattr(state.racer, 'base_speed_modifier'):
             effective_speed *= state.racer.base_speed_modifier
 
+        state.speed += BASE_ACCELERATION * dt
         state.speed -= SPEED_DECAY_PER_SECOND * dt
-        if state.speed < 20:
-            state.speed = 20
+
+        if state.speed < MIN_SPEED:
+            state.speed = MIN_SPEED
         if state.speed > MAX_SPEED:
             state.speed = MAX_SPEED
 
@@ -238,6 +292,7 @@ class RaceSimulator:
 
     def simulate(self) -> Dict[str, Any]:
         max_ticks = 5000
+
         while self.tick_count < max_ticks:
             self.tick_count += 1
             frame_snapshot = []
@@ -248,9 +303,7 @@ class RaceSimulator:
                     continue
 
                 ahead = self._get_ahead_info(state)
-                current_seg = self._get_segment_at(state.position) or state.__dict__.get('_last_seg', self.segments[0])
-                if current_seg:
-                    state._last_seg = current_seg
+                current_seg = self._get_segment_at(state.position)
 
                 if state.racer_type == 'player':
                     p_action = self._get_player_action_for_tick(self.tick_count - 1)
@@ -283,6 +336,7 @@ class RaceSimulator:
             info['wall_hit_count'] = state.wall_hit_count
             info['crack_fall_count'] = state.crack_fall_count
             info['boost_count'] = state.boost_count
+            info['final_speed'] = state.speed
             results.append(info)
 
         winner = results[0]
