@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>末日列车 - Wasteland Express</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="vendor/vue.global.prod.js"></script>
 </head>
 <body>
     <div id="app">
@@ -15,18 +15,18 @@
                 <div class="game-stats">
                     <div class="stat-item">
                         <span class="stat-label">距离</span>
-                        <span class="stat-value">{{ distance.toFixed(1) }} km</span>
+                        <span class="stat-value">{{ displayDistance }} km</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">速度</span>
-                        <span class="stat-value">{{ speed.toFixed(1) }} km/h</span>
+                        <span class="stat-value">{{ displaySpeed }} km/h</span>
                     </div>
                     <div class="stat-item fuel">
                         <span class="stat-label">⛽ 燃料</span>
                         <div class="progress-bar">
                             <div class="progress-fill fuel-fill" :style="{ width: fuelPercent + '%' }"></div>
                         </div>
-                        <span class="stat-value">{{ fuel.toFixed(1) }}/{{ maxFuel }}</span>
+                        <span class="stat-value">{{ displayFuel }}/{{ maxFuel }}</span>
                     </div>
                     <div class="stat-item cargo">
                         <span class="stat-label">📦 物资</span>
@@ -58,6 +58,9 @@
                         </ul>
                     </div>
                 </div>
+                <div v-if="apiError" class="api-error">
+                        {{ apiError }}
+                    </div>
             </div>
 
             <div v-else-if="gameOver" class="game-over-screen">
@@ -65,7 +68,7 @@
                     <h2 class="game-over-title">💀 列车停止了...</h2>
                     <p class="game-over-reason">{{ gameOverReason }}</p>
                     <div class="final-stats">
-                        <p>最终行驶距离: <strong>{{ distance.toFixed(1) }} km</strong></p>
+                        <p>最终行驶距离: <strong>{{ displayDistance }} km</strong></p>
                     </div>
                     <button @click="restartGame" class="btn btn-primary btn-large">
                         重新启动
@@ -80,9 +83,9 @@
                         <div class="train" :class="{ 'shake': isShaking }">
                             <div 
                                 v-for="carriage in carriages" 
-                                :key="carriage.carriage_type"
+                                :key="carriage.id"
                                 class="carriage"
-                                :class="[carriage.carriage_type, { 'damaged': carriage.hp < carriage.max_hp * 0.5, 'destroyed': carriage.hp <= 0 }]"
+                                :class="[carriage.carriage_type, { 'damaged': carriageDamaged(carriage), 'destroyed': carriageDestroyed(carriage) }]"
                             >
                                 <div class="carriage-icon">
                                     <span v-if="carriage.carriage_type === 'cockpit'">🚀</span>
@@ -94,8 +97,8 @@
                                     <div class="hp-bar">
                                         <div 
                                             class="hp-fill" 
-                                            :style="{ width: (carriage.hp / carriage.max_hp * 100) + '%' }"
-                                            :class="{ 'low': carriage.hp < carriage.max_hp * 0.3 }"
+                                            :style="{ width: carriageHpPercent(carriage) + '%' }"
+                                            :class="{ 'low': carriageHpLow(carriage) }"
                                         ></div>
                                     </div>
                                     <div class="carriage-stats">
@@ -109,7 +112,7 @@
                                         @click="upgradeCarriage(carriage.carriage_type)" 
                                         class="btn btn-small btn-upgrade"
                                         :disabled="carriage.level >= 10"
-                                        :title="`升级费用: ${getUpgradeCost(carriage.level)} 物资`"
+                                        :title="'升级费用: ' + getUpgradeCost(carriage.level) + ' 物资'"
                                     >
                                         ⬆️ 升级
                                     </button>
@@ -117,7 +120,7 @@
                                         @click="repairCarriage(carriage.carriage_type)" 
                                         class="btn btn-small btn-repair"
                                         :disabled="carriage.hp >= carriage.max_hp"
-                                        :title="修复费用: 40 物资"
+                                        title="修复费用: 40 物资"
                                     >
                                         🔧 修复
                                     </button>
@@ -144,7 +147,7 @@
                                     <div class="bandit-hp">
                                         <div 
                                             class="bandit-hp-fill" 
-                                            :style="{ width: (bandit.hp / bandit.max_hp * 100) + '%' }"
+                                            :style="{ width: banditHpPercent(bandit) + '%' }"
                                         ></div>
                                     </div>
                                     <span class="bandit-hp-text">{{ bandit.hp }}/{{ bandit.max_hp }}</span>
@@ -166,7 +169,7 @@
                         <div v-else-if="currentEvent === 'bridge'" class="event-bridge">
                             <h4>🌉 桥梁即将断裂！</h4>
                             <div class="countdown" :class="{ 'urgent': bridgeCountdown <= 2 }">
-                                {{ bridgeCountdown.toFixed(1) }} 秒
+                                {{ displayBridgeCountdown }} 秒
                             </div>
                             <p v-if="trackSwitched" class="success">✅ 轨道已切换！</p>
                             <button 
@@ -199,6 +202,9 @@
                         >
                             <span class="log-time">{{ formatTime(event.created_at) }}</span>
                             <span class="log-message">{{ event.description }}</span>
+                        </div>
+                        <div v-if="recentEvents.length === 0" class="log-empty">
+                            暂无事件记录
                         </div>
                     </div>
                 </div>
