@@ -34,7 +34,7 @@ class IcesledController:
         """
         return self.business.get_track_list()
 
-    def ActionIcesledTrackGenerate(self, request: Request, body: GenerateTrackRequest):
+    def ActionIcesledTrackGeneratePost(self, request: Request, body: GenerateTrackRequest):
         """
         生成新赛道
         POST /api/icesled/track/generate
@@ -42,7 +42,7 @@ class IcesledController:
         """
         return self.business.generate_new_track(body.difficulty or 'normal')
 
-    def ActionIcesledRaceStart(self, request: Request, body: StartRaceRequest):
+    def ActionIcesledRaceStartPost(self, request: Request, body: StartRaceRequest):
         """
         开始一场比赛
         POST /api/icesled/race/start
