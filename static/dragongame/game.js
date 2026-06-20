@@ -4,12 +4,15 @@ const GAME_HEIGHT = 700;
 const CANYON_LEFT = 80;
 const CANYON_RIGHT = GAME_WIDTH - 80;
 
-const BASE_FLAME_DAMAGE_PER_SEC = 8;
-const CHARGE_DAMAGE = 30;
+const BASE_FLAME_DAMAGE_PER_SEC = 80;
+const CHARGE_DAMAGE = 45;
 const MAX_CHARGE_TIME = 2.0;
-const CHARGE_COOLDOWN = 3.0;
-const ESSENCE_DROP_RATE = 0.3;
+const CHARGE_COOLDOWN = 2.5;
+const ESSENCE_DROP_RATE = 0.45;
 const DRAGON_MAX_HP = 150;
+
+// localStorage key
+const SAVE_KEY = 'dragon_canyon_save_v1';
 
 // ==================== 游戏状态 ====================
 let canvas, ctx;
@@ -336,6 +339,8 @@ function fireFlameBreath() {
   const dps = BASE_FLAME_DAMAGE_PER_SEC * getFlameDamageMultiplier() * chargeMul;
   const length = 180 + chargePercent * 0.8;
   const width = 50 + chargePercent * 0.3;
+  // 火焰持续时间：非蓄力 0.6s，满蓄力 1.1s（越长越有持续灼烧感）
+  const duration = 0.6 + (chargePercent / 100) * 0.5;
 
   flameBreaths.push({
     id: generateId(),
@@ -344,10 +349,14 @@ function fireFlameBreath() {
     length,
     width,
     dps,
-    duration: chargePercent >= 100 ? 0.8 : 0.4,
+    duration: duration,
     life: 0,
-    hitSet: new Set()
+    lastHitMap: {}
   });
+
+  // 喷火粒子特效
+  spawnParticles(dragon.x + dragon.width + 40, dragon.y + dragon.height / 2,
+    '#ffcc00', 15, 150);
 }
 
 function doChargeAttack() {
@@ -589,9 +598,11 @@ function updateFlameBreaths(dt) {
     f.x = dragon.x + dragon.width;
     f.y = dragon.y + dragon.height / 2;
 
-    // 检测命中
+    // 检测命中 - 火焰是持续伤害，用时间戳控制对同一敌人的最小命中间隔（20ms）
+    const now = Date.now();
     for (const e of enemies) {
-      if (f.hitSet.has(e.id)) continue;
+      const lastHit = f.lastHitMap ? f.lastHitMap[e.id] : 0;
+      if (lastHit && now - lastHit < 20) continue; // 20ms 冷却，避免极短时间重复结算
 
       const ex = e.x + e.width / 2;
       const ey = e.y + e.height / 2;
@@ -602,8 +613,8 @@ function updateFlameBreaths(dt) {
         const perpY = Math.abs(dy);
         if (perpY <= f.width / 2) {
           damageEnemy(e, f.dps * dt, 'flame');
-          f.hitSet.add(e.id);
-          setTimeout(() => f.hitSet.delete(e.id), 100);
+          if (!f.lastHitMap) f.lastHitMap = {};
+          f.lastHitMap[e.id] = now;
         }
       }
     }
@@ -1190,6 +1201,7 @@ function checkUpgradeHint() {
 }
 
 // ==================== 游戏主循环 ====================
+let autoSaveTimer = 0;
 function gameLoop(timestamp) {
   if (gameState !== 'playing') return;
 
@@ -1208,7 +1220,113 @@ function gameLoop(timestamp) {
 
   render();
 
+  // 每 2 秒自动保存一次到 localStorage（刷新不丢进度）
+  autoSaveTimer += dt;
+  if (autoSaveTimer >= 2.0) {
+    autoSaveTimer = 0;
+    saveToLocalStorage();
+    saveProgress();
+  }
+
   animationId = requestAnimationFrame(gameLoop);
+}
+
+// ==================== localStorage 存档系统 ====================
+function saveToLocalStorage() {
+  try {
+    const save = {
+      playerName,
+      wave,
+      enemiesKilled,
+      score,
+      essenceCount,
+      flameLevel,
+      currentHp,
+      dragon: { x: dragon.x, y: dragon.y },
+      enemies: enemies.map(e => ({
+        id: e.id, type: e.type, hp: e.hp, maxHp: e.maxHp,
+        x: e.x, y: e.y, vx: e.vx, vy: e.vy
+      })),
+      projectiles: projectiles.map(p => ({
+        x: p.x, y: p.y, vx: p.vx, vy: p.vy, damage: p.damage, type: p.type
+      })),
+      essenceOrbs: essenceOrbs.map(o => ({
+        id: o.id, x: o.x, y: o.y, vy: o.vy
+      })),
+      waveData: {
+        totalInWave, spawnedCount, remainingThisWave, waveActive, spawnTimer, enemiesSpawned
+      },
+      recordId,
+      statusId,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  } catch (e) {}
+}
+
+function hasLocalSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const save = JSON.parse(raw);
+    if (Date.now() - save.savedAt > 1000 * 60 * 60 * 6) return null; // 超过6小时失效
+    return save;
+  } catch (e) { return null; }
+}
+
+function loadFromLocalStorage(save) {
+  playerName = save.playerName || 'DragonRider';
+  wave = save.wave || 1;
+  enemiesKilled = save.enemiesKilled || 0;
+  score = save.score || 0;
+  essenceCount = save.essenceCount || 0;
+  flameLevel = save.flameLevel || 1;
+  currentHp = save.currentHp || DRAGON_MAX_HP;
+  if (save.dragon) {
+    dragon.x = save.dragon.x ?? GAME_WIDTH * 0.3;
+    dragon.y = save.dragon.y ?? GAME_HEIGHT * 0.5;
+  }
+  enemies = (save.enemies || []).map(e => ({
+    ...e,
+    hp: e.hp || e.maxHp,
+    wingPhase: Math.random() * Math.PI * 2,
+    throwTimer: e.type === 'golem_thrower' ? rand(0, 3) : 0,
+    hitFlash: 0
+  }));
+  projectiles = (save.projectiles || []).map(p => ({
+    ...p, angle: Math.atan2(p.vy, p.vx), rotation: 0
+  }));
+  essenceOrbs = (save.essenceOrbs || []).map(o => ({ ...o, phase: Math.random() * Math.PI * 2 }));
+  if (save.waveData) {
+    totalInWave = save.waveData.totalInWave || 0;
+    spawnedCount = save.waveData.spawnedCount || 0;
+    remainingThisWave = save.waveData.remainingThisWave || 0;
+    waveActive = save.waveData.waveActive || false;
+    spawnTimer = save.waveData.spawnTimer || 0;
+    enemiesSpawned = save.waveData.enemiesSpawned || 0;
+  }
+  recordId = save.recordId || null;
+  statusId = save.statusId || null;
+  particles = [];
+  floatingTexts = [];
+  flameBreaths = [];
+  chargePercent = 0;
+  chargingTime = 0;
+  isCharging = false;
+  isChargeOnCooldown = false;
+  chargeCooldownTimer = 0;
+  dragon.wingPhase = 0;
+  dragon.isChargingForward = false;
+  dragon.chargeTimer = 0;
+  dragon.invulnerable = 0;
+  dragon.hitFlash = 0;
+  gameState = 'playing';
+  updateHUD();
+  checkUpgradeHint();
+}
+
+function clearLocalSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
 }
 
 // ==================== 游戏状态管理 ====================
@@ -1248,6 +1366,10 @@ function startGame() {
     if (tip) tip.remove();
   }
   playerName = name;
+
+  // 新开始游戏：清除旧存档
+  clearLocalSave();
+  document.getElementById('continueBtn').classList.add('hidden');
 
   // 重置游戏状态
   wave = 1;
@@ -1363,6 +1485,9 @@ function onGameOver() {
     animationId = null;
   }
 
+  // 游戏结束：清除存档（避免死档）
+  clearLocalSave();
+
   // 提交最终成绩
   if (recordId) {
     fetch('/api/dragongame/finish', {
@@ -1472,6 +1597,84 @@ function initGame() {
 
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
+
+  // ========== 检测是否有未完成的存档 ==========
+  const save = hasLocalSave();
+  const continueBtn = document.getElementById('continueBtn');
+  if (save && save.wave >= 1) {
+    continueBtn.classList.remove('hidden');
+    const minutesAgo = Math.floor((Date.now() - save.savedAt) / 60000);
+    const timeText = minutesAgo < 1 ? '刚刚' : minutesAgo + ' 分钟前';
+    const label = `🐉 继续上次游戏 · 第${save.wave}波 · ${save.score}分 · ${timeText}`;
+    continueBtn.querySelector('span').textContent = label;
+    // 自动填充昵称
+    document.getElementById('playerName').value = save.playerName || '';
+  } else {
+    continueBtn.classList.add('hidden');
+    clearLocalSave();
+  }
+}
+
+// ========== 继续游戏：从存档恢复 ==========
+function continueGame() {
+  const save = hasLocalSave();
+  if (!save) {
+    startGame();
+    return;
+  }
+  // 校验昵称
+  const nameInput = document.getElementById('playerName');
+  const name = (nameInput.value || '').trim();
+  if (!name) {
+    nameInput.style.borderColor = '#ff3333';
+    nameInput.style.boxShadow = '0 0 15px rgba(255,50,50,0.6)';
+    nameInput.placeholder = '⚠ 请输入玩家昵称！';
+    nameInput.classList.add('shake');
+    setTimeout(() => nameInput.classList.remove('shake'), 500);
+    nameInput.focus();
+    const tip = document.getElementById('nameTip') || (() => {
+      const t = document.createElement('div');
+      t.id = 'nameTip';
+      t.textContent = '❌ 请先输入玩家昵称！';
+      t.style.cssText = 'margin-top:10px;color:#ff6666;font-size:0.9rem;font-weight:bold;animation:tipBlink 0.5s ease-in-out 3;';
+      nameInput.parentElement.appendChild(t);
+      return t;
+    })();
+    return;
+  }
+  nameInput.style.borderColor = '';
+  nameInput.style.boxShadow = '';
+  const oldTip = document.getElementById('nameTip');
+  if (oldTip) oldTip.remove();
+
+  // 恢复存档数据
+  loadFromLocalStorage(save);
+  playerName = name;
+
+  // 切换界面
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+
+  // 首帧渲染 + 启动循环
+  (function initCanvasSize() {
+    const w = Math.max(800, window.innerWidth);
+    const h = Math.max(500, window.innerHeight);
+    const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    canvas.style.width = (GAME_WIDTH * scale) + 'px';
+    canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+    canvas.style.display = 'block';
+    canvas.style.visibility = 'visible';
+    canvas.style.opacity = '1';
+    if (ctx) { drawCanyonBackground(); drawDragon(); render(); }
+  })();
+  requestAnimationFrame(() => { resizeCanvas(); if (ctx) render(); });
+
+  showWaveBanner(wave);
+
+  lastTime = 0;
+  autoSaveTimer = 0;
+  animationId = requestAnimationFrame(gameLoop);
 }
 
 function resizeCanvas() {

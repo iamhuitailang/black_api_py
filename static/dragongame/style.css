@@ -787,3 +787,39 @@ html, body {
   box-shadow: 0 0 60px rgba(255, 100, 50, 0.3);
   border-radius: 8px;
 }
+
+/* ========== 继续游戏按钮 ========== */
+.continue-btn {
+  position: relative;
+  width: 100%;
+  padding: 14px 30px;
+  margin-top: 12px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 25px rgba(67, 160, 71, 0.5);
+}
+.continue-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 35px rgba(67, 160, 71, 0.7);
+}
+.continue-btn:active { transform: translateY(0); }
+.continue-btn span { position: relative; z-index: 1; }
+.continue-btn.hidden { display: none !important; }
+
+/* 存档信息提示 */
+.save-info {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #ffeb3b;
+  text-align: center;
+}
+
+/* 隐藏通用样式 */
+.hidden { display: none !important; }
