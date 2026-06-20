@@ -46,11 +46,15 @@
                                 v-for="(v, index) in varPools" 
                                 :key="v.name" 
                                 class="var-item"
+                                :class="{ 'var-empty': getVarValues(v).length === 0 }"
                             >
                                 <div class="var-header">
                                     <div class="var-name">
                                         <span class="var-badge">{{ v.name }}</span>
-                                        <span class="var-count">{{ v.values.length }} 个候选值</span>
+                                        <span class="var-count">
+                                            <span v-if="getVarValues(v).length === 0" class="var-empty-hint">待填值</span>
+                                            <span v-else>{{ getVarValues(v).length }} 个候选值</span>
+                                        </span>
                                     </div>
                                     <button 
                                         class="btn-icon btn-danger" 
@@ -62,7 +66,7 @@
                                     v-model="v.rawText"
                                     class="var-textarea"
                                     placeholder="每行一个候选值"
-                                    @input="onVarValuesChange(v)"
+                                    @input="onVarValuesChange"
                                 ></textarea>
                             </div>
                         </div>
@@ -94,6 +98,9 @@
                         <div class="generate-bar">
                             <div class="stats">
                                 <span>预计组合数：<strong>{{ totalCombinations }}</strong></span>
+                                <div v-if="!canGenerate && cannotGenerateReason" class="hint-warning">
+                                    ⚠️ {{ cannotGenerateReason }}
+                                </div>
                             </div>
                             <button 
                                 class="btn btn-primary btn-lg" 

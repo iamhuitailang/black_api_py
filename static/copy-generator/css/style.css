@@ -213,6 +213,12 @@ body {
     border-radius: 6px;
     padding: 12px;
     background: #fafafa;
+    transition: all 0.2s;
+}
+
+.var-item.var-empty {
+    border-color: #f56c6c;
+    background: #fef0f0;
 }
 
 .var-header {
@@ -241,6 +247,11 @@ body {
 .var-count {
     color: #909399;
     font-size: 12px;
+}
+
+.var-empty-hint {
+    color: #f56c6c;
+    font-weight: 500;
 }
 
 .var-textarea {
@@ -314,6 +325,12 @@ body {
     color: #409eff;
     font-size: 18px;
     margin: 0 4px;
+}
+
+.hint-warning {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #e6a23c;
 }
 
 .result-section {

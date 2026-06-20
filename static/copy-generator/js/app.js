@@ -15,6 +15,13 @@ createApp({
         const pageSize = ref(DEFAULT_PAGE_SIZE);
         const selectAll = ref(false);
 
+        function parseValues(rawText) {
+            return rawText
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line !== '');
+        }
+
         const variableNames = computed(() => {
             const regex = /\{\{([^{}]+)\}\}/g;
             const names = new Set();
@@ -25,12 +32,19 @@ createApp({
             return Array.from(names);
         });
 
+        const emptyVarNames = computed(() => {
+            return varPools.value
+                .filter(v => parseValues(v.rawText).length === 0)
+                .map(v => v.name);
+        });
+
         const totalCombinations = computed(() => {
             if (varPools.value.length === 0) return 0;
             let total = 1;
             for (const v of varPools.value) {
-                if (v.values.length === 0) return 0;
-                total *= v.values.length;
+                const values = parseValues(v.rawText);
+                if (values.length === 0) return 0;
+                total *= values.length;
             }
             return total;
         });
@@ -39,6 +53,19 @@ createApp({
             return template.value.trim() !== '' 
                 && varPools.value.length > 0 
                 && totalCombinations.value > 0;
+        });
+
+        const cannotGenerateReason = computed(() => {
+            if (template.value.trim() === '') {
+                return '请先填写文案模板';
+            }
+            if (varPools.value.length === 0) {
+                return '请先添加变量（点击"从模板提取变量"或手动添加）';
+            }
+            if (emptyVarNames.value.length > 0) {
+                return '请填写变量值：' + emptyVarNames.value.join('、');
+            }
+            return '';
         });
 
         const totalPages = computed(() => {
@@ -60,32 +87,30 @@ createApp({
             return combinations.value.filter(c => c.selected);
         });
 
-        function parseRawText(rawText) {
-            return rawText
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line !== '');
-        }
-
         function onTemplateChange() {
             saveToStorage();
         }
 
         function extractVariables() {
             const names = variableNames.value;
-            const existingNames = new Set(varPools.value.map(v => v.name));
+            const existingMap = {};
+            for (const v of varPools.value) {
+                existingMap[v.name] = v;
+            }
             
+            const newPools = [];
             for (const name of names) {
-                if (!existingNames.has(name)) {
-                    varPools.value.push({
+                if (existingMap[name]) {
+                    newPools.push(existingMap[name]);
+                } else {
+                    newPools.push({
                         name: name,
-                        rawText: '',
-                        values: []
+                        rawText: ''
                     });
                 }
             }
 
-            varPools.value = varPools.value.filter(v => names.includes(v.name));
+            varPools.value = newPools;
             saveToStorage();
         }
 
@@ -101,8 +126,7 @@ createApp({
 
             varPools.value.push({
                 name: name,
-                rawText: '',
-                values: []
+                rawText: ''
             });
             newVarName.value = '';
             saveToStorage();
@@ -113,9 +137,12 @@ createApp({
             saveToStorage();
         }
 
-        function onVarValuesChange(v) {
-            v.values = parseRawText(v.rawText);
+        function onVarValuesChange() {
             saveToStorage();
+        }
+
+        function getVarValues(v) {
+            return parseValues(v.rawText);
         }
 
         function generateCombinations() {
@@ -123,7 +150,7 @@ createApp({
 
             const vars = varPools.value;
             const varNames = vars.map(v => v.name);
-            const varValues = vars.map(v => v.values);
+            const varValuesList = vars.map(v => parseValues(v.rawText));
 
             const result = [];
             
@@ -149,7 +176,7 @@ createApp({
                     return;
                 }
 
-                for (const val of varValues[index]) {
+                for (const val of varValuesList[index]) {
                     current.push(val);
                     cartesian(index + 1, current);
                     current.pop();
@@ -227,7 +254,7 @@ createApp({
                 
                 const poolsData = varPools.value.map(v => ({
                     name: v.name,
-                    values: v.values
+                    values: parseValues(v.rawText)
                 }));
                 localStorage.setItem(STORAGE_VARPOOLS_KEY, JSON.stringify(poolsData));
             } catch (e) {
@@ -247,7 +274,6 @@ createApp({
                     const poolsData = JSON.parse(savedPools);
                     varPools.value = poolsData.map(p => ({
                         name: p.name,
-                        values: p.values || [],
                         rawText: (p.values || []).join('\n')
                     }));
                 }
@@ -279,6 +305,8 @@ createApp({
             variableNames,
             totalCombinations,
             canGenerate,
+            cannotGenerateReason,
+            emptyVarNames,
             totalPages,
             paginatedCombinations,
             selectedCount,
@@ -288,6 +316,7 @@ createApp({
             addVariable,
             removeVariable,
             onVarValuesChange,
+            getVarValues,
             generateCombinations,
             toggleSelectAll,
             deleteSelected,
