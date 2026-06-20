@@ -107,8 +107,42 @@ function saveGameState(){
     hp: hp,
     score: score,
     elapsed: elapsed,
-    ts: Date.now()
+    ts: Date.now(),
+    stageData: null
   };
+  if(state === GAME_STATES.JUNGLE){
+    data.stageData = {
+      distance: jungle.distance,
+      spawnTimer: jungle.spawnTimer,
+      rockTimer: jungle.rockTimer,
+      player: {...jungle.player},
+      snakes: jungle.snakes.filter(s => !s.hit).map(s => ({x:s.x,y:s.y,w:s.w,h:s.h,vx:s.vx,vy:s.vy,wobble:s.wobble})),
+      rocks: jungle.rocks.filter(r => !r.hit).map(r => ({x:r.x,y:r.y,w:r.w,h:r.h,vy:r.vy})),
+      trees: jungle.trees.map(t => ({x:t.x,y:t.y,s:t.s}))
+    };
+  } else if(state === GAME_STATES.MINE){
+    data.stageData = {
+      distance: mine.distance,
+      spawnTimer: mine.spawnTimer,
+      currentTrack: mine.currentTrack,
+      targetTrack: mine.targetTrack,
+      switchAnim: mine.switchAnim,
+      cart: {...mine.cart},
+      obstacles: mine.obstacles.filter(o => !o.hit).map(o => ({x:o.x,y:o.y,w:o.w,h:o.h,track:o.track})),
+      ores: mine.ores.filter(o => !o.collected).map(o => ({x:o.x,y:o.y,w:o.w,h:o.h,track:o.track}))
+    };
+  } else if(state === GAME_STATES.VOLCANO){
+    data.stageData = {
+      distance: volcano.distance,
+      crackTimer: volcano.crackTimer,
+      lavaTimer: volcano.lavaTimer,
+      player: {...volcano.player},
+      cracks: volcano.cracks.filter(c => !c.hit).map(c => ({x:c.x,w:c.w})),
+      lavas: volcano.lavas.map(l => ({x:l.x,y:l.y,timer:l.timer,active:l.active,warned:l.warned,warnTimer:l.warnTimer})),
+      particles: volcano.particles.map(p => ({x:p.x,y:p.y,vx:p.vx,vy:p.vy,life:p.life,maxLife:p.maxLife})),
+      scrollSpeed: volcano.scrollSpeed
+    };
+  }
   try{ localStorage.setItem(SAVE_KEY, JSON.stringify(data)); }catch(e){}
   const hint = document.getElementById('saveHint');
   hint.style.opacity = '1';
@@ -134,6 +168,23 @@ function clearSave(){
 
 function hasSave(){
   return loadGameState() !== null;
+}
+
+function resumeGame(){
+  const save = loadGameState();
+  if(!save) return startGame();
+  hp = save.hp;
+  score = save.score;
+  elapsed = save.elapsed;
+  startTime = Date.now() - elapsed * 1000;
+  stageProgress = 0; stageComplete = false;
+  keys = {}; popups = [];
+  hideOverlay();
+  const sd = save.stageData || null;
+  if(save.stage === GAME_STATES.JUNGLE) startJungle(sd);
+  else if(save.stage === GAME_STATES.MINE) startMine(sd);
+  else if(save.stage === GAME_STATES.VOLCANO) startVolcano(sd);
+  else startGame();
 }
 
 document.addEventListener('keydown', e => {
@@ -165,6 +216,7 @@ function damage(amount){
   const flash = document.getElementById('dmgFlash');
   flash.style.opacity = '1';
   setTimeout(() => flash.style.opacity = '0', 150);
+  saveGameState();
   if(hp <= 0){
     hp = 0;
     gameOver();
@@ -285,7 +337,7 @@ function closeLeaderboard(){
 let jungle = {};
 const JUNGLE_DURATION = 20;
 
-function startJungle(){
+function startJungle(restoreData){
   state = GAME_STATES.JUNGLE;
   stageProgress = 0;
   jungle = {
@@ -297,13 +349,37 @@ function startJungle(){
     rockTimer: 0,
     distance: 0
   };
-  for(let i = 0; i < 12; i++){
-    jungle.trees.push({x: Math.random() * W, y: Math.random() * H, s: 20 + Math.random()*30});
+  if(restoreData){
+    jungle.distance = restoreData.distance || 0;
+    jungle.spawnTimer = restoreData.spawnTimer || 0;
+    jungle.rockTimer = restoreData.rockTimer || 0;
+    if(restoreData.player){
+      jungle.player = {...jungle.player, ...restoreData.player};
+    }
+    if(restoreData.snakes){
+      jungle.snakes = restoreData.snakes.map(s => ({...s, hit: false}));
+    }
+    if(restoreData.rocks){
+      jungle.rocks = restoreData.rocks.map(r => ({...r, hit: false}));
+    }
+    if(restoreData.trees && restoreData.trees.length > 0){
+      jungle.trees = restoreData.trees.map(t => ({...t}));
+    } else {
+      for(let i = 0; i < 12; i++){
+        jungle.trees.push({x: Math.random() * W, y: Math.random() * H, s: 20 + Math.random()*30});
+      }
+    }
+    stageProgress = Math.min(1, jungle.distance / (JUNGLE_DURATION * 60));
+  } else {
+    for(let i = 0; i < 12; i++){
+      jungle.trees.push({x: Math.random() * W, y: Math.random() * H, s: 20 + Math.random()*30});
+    }
   }
-  showStageLabel('第一章：密林');
+  showStageLabel(restoreData ? '继续：密林' : '第一章：密林');
   document.getElementById('controlsHint').textContent = 'WASD 移动';
   document.getElementById('controlsHint').style.opacity = '1';
   setTimeout(() => document.getElementById('controlsHint').style.opacity = '0', 4000);
+  saveGameState();
   jungleLoop();
 }
 
@@ -326,10 +402,12 @@ function jungleLoop(){
   if(j.spawnTimer % 60 === 0){
     const sx = 40 + Math.random() * (W - 80);
     j.snakes.push({x: sx, y: -20, w: 40, h: 16, vx: (Math.random()-.5)*2, vy: 1.5 + Math.random()*1.5, wobble:0});
+    saveGameState();
   }
   if(j.rockTimer % 90 === 0){
     const rx = 30 + Math.random() * (W - 80);
     j.rocks.push({x: rx, y: -30, w: 28, h: 28, vy: 3 + Math.random()*2});
+    saveGameState();
   }
 
   j.snakes.forEach(s => {
@@ -455,28 +533,45 @@ let mine = {};
 const MINE_DURATION = 25;
 const TRACK_COUNT = 3;
 
-function startMine(){
+function startMine(restoreData){
   state = GAME_STATES.MINE;
   stageProgress = 0;
+  const trackY = [200, 320, 440];
   mine = {
     currentTrack: 1,
-    cart: {x: 0, y: 0, w: 60, h: 40},
+    cart: {x: 120, y: trackY[1] - 20, w: 60, h: 40},
     obstacles: [],
     ores: [],
     spawnTimer: 0,
     distance: 0,
-    tracks: [],
+    tracks: trackY,
     switchAnim: 0,
     targetTrack: 1
   };
-  const trackY = [200, 320, 440];
-  mine.tracks = trackY;
-  mine.cart.x = 120;
-  mine.cart.y = trackY[1] - mine.cart.h/2;
-  showStageLabel('第二章：矿洞');
+  if(restoreData){
+    mine.distance = restoreData.distance || 0;
+    mine.spawnTimer = restoreData.spawnTimer || 0;
+    mine.currentTrack = (restoreData.currentTrack != null) ? restoreData.currentTrack : 1;
+    mine.targetTrack = (restoreData.targetTrack != null) ? restoreData.targetTrack : 1;
+    mine.switchAnim = restoreData.switchAnim || 0;
+    if(restoreData.cart){
+      mine.cart = {...mine.cart, ...restoreData.cart};
+    } else {
+      mine.cart.y = trackY[mine.currentTrack] - mine.cart.h/2;
+    }
+    if(restoreData.obstacles){
+      mine.obstacles = restoreData.obstacles.map(o => ({...o, hit: false}));
+    }
+    if(restoreData.ores){
+      mine.ores = restoreData.ores.map(o => ({...o, collected: false}));
+    }
+    stageProgress = Math.min(1, mine.distance / (MINE_DURATION * 60));
+  }
+  showStageLabel(restoreData ? '继续：矿洞' : '第二章：矿洞');
   document.getElementById('controlsHint').textContent = '← → 切换轨道';
   document.getElementById('controlsHint').style.opacity = '1';
   setTimeout(() => document.getElementById('controlsHint').style.opacity = '0', 4000);
+  saveGameState();
   mineLoop();
 }
 
@@ -525,6 +620,7 @@ function mineLoop(){
         m.ores.push({x: W + 20, y: m.tracks[altTrack] - 18, w: 30, h: 30, track: altTrack, collected: false});
       }
     }
+    saveGameState();
   }
 
   m.obstacles.forEach(o => o.x -= 3.5);
@@ -545,6 +641,7 @@ function mineLoop(){
       o.collected = true;
       score += 50;
       popups.push({x: o.x, y: o.y, text: '+50', life: 40, color: '#ffd54f'});
+      saveGameState();
     }
   });
 
@@ -650,7 +747,7 @@ function drawMine(m){
 let volcano = {};
 const VOLCANO_DURATION = 25;
 
-function startVolcano(){
+function startVolcano(restoreData){
   state = GAME_STATES.VOLCANO;
   stageProgress = 0;
   volcano = {
@@ -664,10 +761,30 @@ function startVolcano(){
     particles: [],
     scrollSpeed: 4
   };
-  showStageLabel('第三章：火山');
+  if(restoreData){
+    volcano.distance = restoreData.distance || 0;
+    volcano.crackTimer = restoreData.crackTimer || 0;
+    volcano.lavaTimer = restoreData.lavaTimer || 0;
+    volcano.scrollSpeed = restoreData.scrollSpeed || 4;
+    if(restoreData.player){
+      volcano.player = {...volcano.player, ...restoreData.player};
+    }
+    if(restoreData.cracks){
+      volcano.cracks = restoreData.cracks.map(c => ({...c, hit: false}));
+    }
+    if(restoreData.lavas){
+      volcano.lavas = restoreData.lavas.map(l => ({...l}));
+    }
+    if(restoreData.particles){
+      volcano.particles = restoreData.particles.map(p => ({...p}));
+    }
+    stageProgress = Math.min(1, volcano.distance / (VOLCANO_DURATION * 60));
+  }
+  showStageLabel(restoreData ? '继续：火山' : '第三章：火山');
   document.getElementById('controlsHint').textContent = '空格 跳跃';
   document.getElementById('controlsHint').style.opacity = '1';
   setTimeout(() => document.getElementById('controlsHint').style.opacity = '0', 4000);
+  saveGameState();
   volcanoLoop();
 }
 
@@ -697,11 +814,13 @@ function volcanoLoop(){
   if(v.crackTimer % 100 === 0){
     const cw = 40 + Math.random() * 80;
     v.cracks.push({x: W + 20, w: cw, hit: false});
+    saveGameState();
   }
 
   if(v.lavaTimer % 180 === 0){
     const lx = 200 + Math.random() * (W - 300);
     v.lavas.push({x: lx, y: v.groundY, timer: 45, active: true, warned: true, warnTimer: 60});
+    saveGameState();
   }
 
   v.cracks.forEach(c => c.x -= v.scrollSpeed);
