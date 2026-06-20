@@ -46,6 +46,7 @@ class RacingGame {
         this.bridgeGap = false;
         this.canvas = null;
         this.ctx = null;
+        this.saveFrameCounter = 0;
         this.init();
     }
 
@@ -105,7 +106,19 @@ class RacingGame {
                 vehicle: this.vehicle,
                 currentTrack: this.currentTrack,
                 gameState: this.gameState,
-                currentRace: this.currentRace
+                currentRace: this.currentRace,
+                carX: this.carX,
+                carSpeed: this.carSpeed,
+                raceStartTime: this.raceStartTime,
+                currentCheckpoint: this.currentCheckpoint,
+                isRacing: this.isRacing,
+                checkpoints: this.checkpoints,
+                shortcutsFound: this.shortcutsFound,
+                rollovers: this.rollovers,
+                totalPenalty: this.totalPenalty,
+                segmentStartTime: this.segmentStartTime,
+                shortcutPositions: this.shortcutPositions,
+                shortcutTaken: this.shortcutTaken
             };
             localStorage.setItem('racing_game_state', JSON.stringify(state));
         } catch (e) {
@@ -123,13 +136,34 @@ class RacingGame {
                 this.currentTrack = state.currentTrack || 0;
                 this.gameState = state.gameState || 'upgrade';
                 this.currentRace = state.currentRace;
+                this.carX = state.carX || 50;
+                this.carSpeed = state.carSpeed || 0;
+                this.raceStartTime = state.raceStartTime || 0;
+                this.currentCheckpoint = state.currentCheckpoint || 0;
+                this.isRacing = state.isRacing || false;
+                this.checkpoints = state.checkpoints || [];
+                this.shortcutsFound = state.shortcutsFound || 0;
+                this.rollovers = state.rollovers || 0;
+                this.totalPenalty = state.totalPenalty || 0;
+                this.segmentStartTime = state.segmentStartTime || 0;
+                this.shortcutPositions = state.shortcutPositions || [];
+                this.shortcutTaken = state.shortcutTaken || [];
+
                 this.showScreen('game-screen');
                 setTimeout(() => {
                     this.updateVehicleDisplay();
                     this.updateUpgradeOptions();
                     this.updateTerrainDisplay();
+                    if (this.currentCheckpoint > 0) {
+                        document.getElementById('checkpoint-text').textContent = `${this.currentCheckpoint} / 3`;
+                        document.getElementById('checkpoint-progress').style.width = `${this.currentCheckpoint / 3 * 100}%`;
+                    }
                     if (this.ctx) {
                         this.drawTrack();
+                    }
+                    if (this.isRacing) {
+                        this.gameLoop();
+                        this.showMessage('比赛已恢复！按→或D继续加速', 'success');
                     }
                 }, 100);
             }
@@ -385,6 +419,12 @@ class RacingGame {
             this.drawTrack();
         }
 
+        this.saveFrameCounter++;
+        if (this.saveFrameCounter >= 30) {
+            this.saveFrameCounter = 0;
+            this.saveState();
+        }
+
         this.animationId = requestAnimationFrame(() => this.gameLoop());
     }
 
@@ -397,8 +437,9 @@ class RacingGame {
     }
 
     updateCarPhysics(track, params) {
-        const acceleration = params.effectivePower / params.effectiveWeight * 300;
-        const maxSpeed = 80 + params.effectivePower * 0.8;
+        const acceleration = params.effectivePower / params.effectiveWeight * 400;
+        const weightBonus = (1500 - params.effectiveWeight) / 1000 * 30;
+        const maxSpeed = 80 + params.effectivePower * 0.8 + Math.max(0, weightBonus);
 
         if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
             this.carSpeed += acceleration * 0.016;
@@ -604,6 +645,12 @@ class RacingGame {
         } else {
             this.currentTrack++;
             this.gameState = 'upgrade';
+            this.carX = 50;
+            this.carSpeed = 0;
+            this.currentCheckpoint = 0;
+            this.checkpoints = [];
+            this.shortcutPositions = [];
+            this.shortcutTaken = [];
             this.saveState();
             this.showScreen('game-screen');
             setTimeout(() => {
@@ -625,10 +672,17 @@ class RacingGame {
         }
 
         this.gameState = 'upgrade';
+        this.carX = 50;
+        this.carSpeed = 0;
+        this.currentCheckpoint = 0;
+        this.checkpoints = [];
+        this.shortcutPositions = [];
+        this.shortcutTaken = [];
+        this.saveState();
         this.updateTerrainDisplay();
         this.updateVehicleDisplay();
         this.updateUpgradeOptions();
-        this.drawTrack();
+        if (this.ctx) this.drawTrack();
         document.getElementById('btn-start-race').style.display = 'block';
         document.getElementById('btn-next-track').style.display = 'none';
     }
