@@ -325,6 +325,16 @@ const App = {
             }
         }
 
+        function clearCrashState() {
+            gameState.crashed = false;
+            gameState.paused = false;
+            crashRecoveryCountdown.value = 0;
+            if (crashTimer) {
+                clearInterval(crashTimer);
+                crashTimer = null;
+            }
+        }
+
         function showTrickFeedback(type, message) {
             if (trickFeedbackTimer) clearTimeout(trickFeedbackTimer);
             trickFeedback.type = type;
@@ -340,15 +350,9 @@ const App = {
                 try { gameEngine.stop(); } catch (e) {}
             }
 
-            gameState.crashed = false;
-            crashRecoveryCountdown.value = 0;
+            clearCrashState();
             isInGame = false;
             clearGameSession();
-
-            if (crashTimer) {
-                clearInterval(crashTimer);
-                crashTimer = null;
-            }
 
             gameResult.score = result.score;
             gameResult.trickScore = result.trickScore;
@@ -441,6 +445,16 @@ const App = {
 
         watch(showTrackSelect, (val) => {
             if (val) loadTracks();
+        });
+
+        watch(currentView, (newView, oldView) => {
+            if (oldView === 'game' && newView !== 'game') {
+                if (gameEngine) {
+                    try { gameEngine.stop(); } catch (e) {}
+                }
+                clearCrashState();
+                isInGame = false;
+            }
         });
 
         onMounted(async () => {

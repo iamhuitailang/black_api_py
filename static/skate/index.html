@@ -233,12 +233,12 @@
                     </div>
                 </div>
 
-                <div v-if="gameState.crashed" class="crash-overlay">
+                <div v-if="currentView === 'game' && gameState.crashed" class="crash-overlay">
                     <div class="crash-text">💥 摔出赛道！</div>
                     <div class="crash-countdown">恢复中 {{ crashRecoveryCountdown.toFixed(1) }}s</div>
                 </div>
 
-                <div v-if="gameState.paused" class="pause-overlay">
+                <div v-if="currentView === 'game' && gameState.paused" class="pause-overlay">
                     <div class="pause-text">⏸ 游戏暂停</div>
                     <div class="pause-hint">按 ESC 继续</div>
                 </div>

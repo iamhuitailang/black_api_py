@@ -427,13 +427,15 @@ class SkateGameEngine {
         }
 
         this.crashTimeoutId = setTimeout(() => {
-            if (this.player.crashed) {
-                this.player.crashed = false;
+            this.crashTimeoutId = null;
+            const wasCrashed = this.player.crashed;
+            this.player.crashed = false;
+            this.state.crashed = false;
+            if (wasCrashed) {
                 this.player.speed = this.getTerrainSpeed();
-                this.state.crashed = false;
-                if (this.callbacks.onStateUpdate) {
-                    this.callbacks.onStateUpdate({ ...this.state });
-                }
+            }
+            if (this.callbacks.onStateUpdate) {
+                this.callbacks.onStateUpdate({ ...this.state });
             }
         }, 2000);
     }
