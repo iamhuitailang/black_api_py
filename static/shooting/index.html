@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热能射击 - Thermal Shooter</title>
+    <link rel="stylesheet" href="/static/shooting/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="menu-screen" class="screen active">
+            <div class="menu-container">
+                <h1 class="game-title">🔥 热能射击 🔥</h1>
+                <p class="game-subtitle">移动攒热 · 射击释放 · 战术节奏</p>
+
+                <div class="menu-section">
+                    <h3>选择关卡</h3>
+                    <div id="level-list" class="level-list"></div>
+                </div>
+
+                <div class="menu-section">
+                    <h3>操作说明</h3>
+                    <div class="instructions">
+                        <div class="inst-row"><span class="key">WASD</span><span>移动（每步+2热能）</span></div>
+                        <div class="inst-row"><span class="key">鼠标</span><span>瞄准方向</span></div>
+                        <div class="inst-row"><span class="key">左键/1</span><span>普通弹（-10热能）</span></div>
+                        <div class="inst-row"><span class="key">滚轮下/2</span><span>爆裂弹（-35热能，范围伤害）</span></div>
+                        <div class="inst-row"><span class="key">滚轮上/3</span><span>穿甲弹（-50热能，穿透3敌）</span></div>
+                        <div class="inst-row"><span class="key">击杀</span><span>+15热能</span></div>
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <h3>排行榜</h3>
+                    <div id="ranking-display" class="ranking-display">
+                        <p class="hint">选择关卡查看排行</p>
+                    </div>
+                </div>
+
+                <div class="player-input-section">
+                    <label>玩家名：</label>
+                    <input type="text" id="player-name" maxlength="20" value="玩家1" placeholder="输入你的名字">
+                </div>
+
+                <button id="start-btn" class="btn-primary" disabled>开始游戏</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-hud">
+                <div class="hud-top">
+                    <div class="hud-item">
+                        <span class="hud-label">关卡</span>
+                        <span id="hud-level" class="hud-value">-</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">波次</span>
+                        <span id="hud-wave" class="hud-value">0/6</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">得分</span>
+                        <span id="hud-score" class="hud-value">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">击杀</span>
+                        <span id="hud-kills" class="hud-value">0</span>
+                    </div>
+                    <div class="hud-item health-item">
+                        <span class="hud-label">生命</span>
+                        <div class="health-bar">
+                            <div id="health-fill" class="health-fill"></div>
+                            <span id="health-text" class="health-text">100/100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-bottom">
+                    <div class="heat-container">
+                        <div class="heat-label-row">
+                            <span class="heat-label">🔥 热能</span>
+                            <span id="heat-text" class="heat-text">30 / 100</span>
+                        </div>
+                        <div class="heat-bar">
+                            <div id="heat-fill" class="heat-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="bullet-selector">
+                        <div class="bullet-type" data-type="normal" id="bullet-normal">
+                            <div class="bullet-icon normal-icon"></div>
+                            <div class="bullet-info">
+                                <span class="bullet-name">普通弹</span>
+                                <span class="bullet-cost">-10</span>
+                            </div>
+                            <div class="bullet-key">1</div>
+                        </div>
+                        <div class="bullet-type" data-type="explosive" id="bullet-explosive">
+                            <div class="bullet-icon explosive-icon"></div>
+                            <div class="bullet-info">
+                                <span class="bullet-name">爆裂弹</span>
+                                <span class="bullet-cost">-35</span>
+                            </div>
+                            <div class="bullet-key">2</div>
+                        </div>
+                        <div class="bullet-type" data-type="piercing" id="bullet-piercing">
+                            <div class="bullet-icon piercing-icon"></div>
+                            <div class="bullet-info">
+                                <span class="bullet-name">穿甲弹</span>
+                                <span class="bullet-cost">-50</span>
+                            </div>
+                            <div class="bullet-key">3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="game-canvas"></canvas>
+
+            <div id="supply-overlay" class="overlay hidden">
+                <div class="overlay-content">
+                    <h2>⚡ 补给时间 ⚡</h2>
+                    <p id="supply-text">准备下一波敌人...</p>
+                    <div id="supply-timer" class="supply-timer">15</div>
+                    <p class="supply-hint">移动攒热，准备战斗！</p>
+                </div>
+            </div>
+
+            <div id="gameover-overlay" class="overlay hidden">
+                <div class="overlay-content">
+                    <h2 id="gameover-title">💀 游戏结束 💀</h2>
+                    <div id="gameover-stats" class="gameover-stats"></div>
+                    <div class="gameover-buttons">
+                        <button id="submit-score-btn" class="btn-primary">提交分数</button>
+                        <button id="retry-btn" class="btn-secondary">重试本关</button>
+                        <button id="back-menu-btn" class="btn-secondary">返回菜单</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/shooting/game.js"></script>
+</body>
+</html>

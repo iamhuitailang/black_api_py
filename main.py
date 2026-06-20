@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -12,6 +12,8 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.shooting import LevelConfigModel, ScoreRankingModel
+from app.business.shooting import ShootingBusiness
 from app.common.sqlite.db import get_db
 
 
@@ -34,8 +36,13 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    LevelConfigModel.create_table()
+    ScoreRankingModel.create_table()
     
     migrate_database()
+    
+    shooting_business = ShootingBusiness()
+    shooting_business.init_default_data()
     
     print("Database initialized successfully")
 
@@ -108,11 +115,23 @@ async def health_check():
     }
 
 
+@app.get("/shooting")
+async def shooting_game_page():
+    """
+    热能射击游戏页面
+    """
+    game_html_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'static', 'shooting', 'index.html'
+    )
+    return FileResponse(game_html_path)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=7080,
         reload=True
     )
