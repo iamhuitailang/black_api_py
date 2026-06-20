@@ -25,6 +25,7 @@ canvas{display:block;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,.6)}
 .btn-start{background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff}
 .btn-retry{background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff}
 .btn-board{background:linear-gradient(135deg,#3498db,#2980b9);color:#fff}
+#saveHint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(46,204,113,.7);padding:4px 14px;border-radius:12px;color:#fff;font-size:12px;pointer-events:none;z-index:10;opacity:0;transition:opacity .3s}
 #leaderboard{position:absolute;inset:0;background:rgba(10,10,10,.95);z-index:30;display:none;flex-direction:column;align-items:center;padding:40px 20px;border-radius:8px;overflow-y:auto}
 #leaderboard h2{color:#f1c40f;font-size:28px;margin-bottom:20px}
 #leaderboard table{width:90%;border-collapse:collapse;color:#eee}
@@ -61,6 +62,7 @@ canvas{display:block;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,.6)}
   <div id="stageLabel"></div>
   <div id="dmgFlash"></div>
   <div id="controlsHint"></div>
+  <div id="saveHint">已存档</div>
   <div id="overlay">
     <h1 id="overlayTitle">三段闯关</h1>
     <h2 id="overlaySubtitle">密林 · 矿洞 · 火山</h2>
@@ -95,6 +97,44 @@ let stageComplete = false;
 let popups = [];
 
 const API_BASE = window.location.origin + '/api';
+const SAVE_KEY = 'triquest_save';
+
+let saveHintTimer = null;
+function saveGameState(){
+  if(state < GAME_STATES.JUNGLE || state > GAME_STATES.VOLCANO) return;
+  const data = {
+    stage: state,
+    hp: hp,
+    score: score,
+    elapsed: elapsed,
+    ts: Date.now()
+  };
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(data)); }catch(e){}
+  const hint = document.getElementById('saveHint');
+  hint.style.opacity = '1';
+  if(saveHintTimer) clearTimeout(saveHintTimer);
+  saveHintTimer = setTimeout(() => { hint.style.opacity = '0'; }, 800);
+}
+
+function loadGameState(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(!data || !data.stage || data.hp == null) return null;
+    if(data.stage < GAME_STATES.JUNGLE || data.stage > GAME_STATES.VOLCANO) return null;
+    if(data.hp <= 0) return null;
+    return data;
+  }catch(e){ return null; }
+}
+
+function clearSave(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+}
+
+function hasSave(){
+  return loadGameState() !== null;
+}
 
 document.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
@@ -135,7 +175,7 @@ function showOverlay(title, subtitle, desc, actions){
   const ov = document.getElementById('overlay');
   document.getElementById('overlayTitle').textContent = title;
   document.getElementById('overlaySubtitle').textContent = subtitle;
-  document.getElementById('overlayDesc').textContent = desc;
+  document.getElementById('overlayDesc').innerHTML = desc;
   document.getElementById('overlayActions').innerHTML = actions;
   ov.classList.remove('hidden');
 }
@@ -155,13 +195,31 @@ function startGame(){
   hp = 100; score = 0; startTime = Date.now(); elapsed = 0;
   stageProgress = 0; stageComplete = false;
   keys = {}; popups = [];
+  clearSave();
   hideOverlay();
   startJungle();
+}
+
+function resumeGame(){
+  const save = loadGameState();
+  if(!save) return startGame();
+  hp = save.hp;
+  score = save.score;
+  elapsed = save.elapsed;
+  startTime = Date.now() - elapsed * 1000;
+  stageProgress = 0; stageComplete = false;
+  keys = {}; popups = [];
+  hideOverlay();
+  if(save.stage === GAME_STATES.JUNGLE) startJungle();
+  else if(save.stage === GAME_STATES.MINE) startMine();
+  else if(save.stage === GAME_STATES.VOLCANO) startVolcano();
+  else startGame();
 }
 
 function gameOver(){
   state = GAME_STATES.GAMEOVER;
   if(animId) cancelAnimationFrame(animId);
+  clearSave();
   showOverlay('游戏结束', '你的HP归零了', '不要放弃，再来一次！',
     '<button class="btn btn-retry" onclick="startGame()">重新开始</button>' +
     '<button class="btn btn-board" onclick="openLeaderboard()">排行榜</button>');
@@ -170,6 +228,7 @@ function gameOver(){
 function victory(){
   state = GAME_STATES.VICTORY;
   if(animId) cancelAnimationFrame(animId);
+  clearSave();
   const timeFinal = elapsed.toFixed(1);
   showOverlay('🎉 通关成功！', '得分: ' + score + ' | 用时: ' + timeFinal + 's | 剩余HP: ' + Math.ceil(hp),
     '输入你的名字，登上排行榜！',
@@ -304,6 +363,7 @@ function jungleLoop(){
 
   drawJungle(j);
   updateHUD();
+  if(j.distance % 30 === 0) saveGameState();
   animId = requestAnimationFrame(jungleLoop);
 }
 
@@ -496,6 +556,7 @@ function mineLoop(){
 
   drawMine(m);
   updateHUD();
+  if(m.distance % 30 === 0) saveGameState();
   animId = requestAnimationFrame(mineLoop);
 }
 
@@ -688,6 +749,7 @@ function volcanoLoop(){
 
   drawVolcano(v);
   updateHUD();
+  if(v.distance % 30 === 0) saveGameState();
   animId = requestAnimationFrame(volcanoLoop);
 }
 
@@ -847,12 +909,35 @@ function drawMenuBg(){
   }
 }
 
+function initMenu(){
+  const save = loadGameState();
+  const actions = document.getElementById('overlayActions');
+  if(save){
+    const stageNames = {1:'密林',2:'矿洞',3:'火山'};
+    const stageName = stageNames[save.stage] || '密林';
+    document.getElementById('overlayDesc').innerHTML =
+      '检测到存档：' + stageName + ' | HP ' + Math.ceil(save.hp) + ' | 得分 ' + Math.floor(save.score) +
+      '<br><br>第一章：WASD移动躲避毒蛇与落石<br>第二章：←→键切换轨道避开墙壁拾取矿石<br>第三章：空格跳跃跨越裂缝与岩浆';
+    actions.innerHTML =
+      '<button class="btn btn-start" onclick="resumeGame()">继续冒险</button>' +
+      '<button class="btn btn-retry" onclick="startGame()">重新开始</button>' +
+      '<button class="btn btn-board" onclick="openLeaderboard()">排行榜</button>';
+  } else {
+    document.getElementById('overlayDesc').innerHTML =
+      '第一章：WASD移动躲避毒蛇与落石<br>第二章：←→键切换轨道避开墙壁拾取矿石<br>第三章：空格跳跃跨越裂缝与岩浆<br>HP归零则从头开始，活到最后即为胜利！';
+    actions.innerHTML =
+      '<button class="btn btn-start" onclick="startGame()">开始冒险</button>' +
+      '<button class="btn btn-board" onclick="openLeaderboard()">排行榜</button>';
+  }
+}
+
 function menuLoop(){
   if(state !== GAME_STATES.MENU) return;
   drawMenuBg();
   requestAnimationFrame(menuLoop);
 }
 
+initMenu();
 menuLoop();
 </script>
 </body>
