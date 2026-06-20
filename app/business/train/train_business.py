@@ -153,6 +153,25 @@ class TrainBusiness:
             })
             result['message'] = f'桥梁断裂！请在{event_data["countdown"]:.1f}秒内切换轨道！'
 
+        elif event_type == 'roadblock':
+            event_data['countdown'] = event_data.get('countdown', 8) - delta_seconds
+            if event_data['countdown'] <= 0:
+                ram_damage = event_data.get('ram_damage', 30)
+                self._damage_random_carriage(game_state_id, ram_damage)
+                result['clear_event'] = True
+                result['message'] = f'强行通过路障！列车受到{ram_damage}点伤害！'
+                self.event_log_model.log_event(
+                    game_state_id, 'damage', result['message'],
+                    event_data.get('distance', 0), 1
+                )
+                return result
+
+            state = self.game_state_model.get_current_state()
+            self.game_state_model.update_state(state['id'], {
+                'event_data': json.dumps(event_data)
+            })
+            result['message'] = f'路障！请在{event_data["countdown"]:.1f}秒内清除，或强行通过（受损）'
+
         elif event_type == 'bandit':
             event_data['attack_timer'] = event_data.get('attack_timer', 0) + delta_seconds
             if event_data['attack_timer'] >= 2:
@@ -193,7 +212,9 @@ class TrainBusiness:
 
         elif event_type == 'roadblock':
             event_data['clear_cost'] = random.randint(10, 30)
-            desc = f'前方有路障！需要消耗{event_data["clear_cost"]}物资清除'
+            event_data['countdown'] = 8
+            event_data['ram_damage'] = random.randint(20, 40)
+            desc = f'前方有路障！需要消耗{event_data["clear_cost"]}物资清除，或在8秒后强行通过（受损）'
             self.event_log_model.log_event(game_state_id, 'roadblock', desc, distance, 0)
 
         elif event_type == 'bridge':

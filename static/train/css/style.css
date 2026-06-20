@@ -530,6 +530,21 @@ body {
     width: 100%;
 }
 
+.event-roadblock .countdown {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #ffa502;
+    text-align: center;
+    margin: 15px 0;
+}
+
+.event-roadblock .hint {
+    color: #ff6b6b;
+    font-size: 0.9em;
+    margin: 10px 0;
+    text-align: center;
+}
+
 .event-log {
     background: rgba(0, 0, 0, 0.7);
     border-radius: 15px;

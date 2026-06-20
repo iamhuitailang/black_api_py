@@ -172,7 +172,11 @@
 
                         <div v-else-if="currentEvent === 'roadblock'" class="event-roadblock">
                             <h4>🚧 前方有路障！</h4>
+                            <div class="countdown" :class="{ 'urgent': roadblockCountdown <= 2 }">
+                                {{ displayRoadblockCountdown }} 秒
+                            </div>
                             <p>需要消耗 <strong>{{ roadblockCost }}</strong> 物资清除</p>
+                            <p class="hint">⚠️ 超时将强行通过，列车受损！</p>
                             <button @click="clearRoadblock" class="btn btn-warning btn-large">
                                 🧹 清除路障
                             </button>

@@ -46,6 +46,7 @@
                 const currentEvent = ref(null);
                 const bandits = ref([]);
                 const roadblockCost = ref(20);
+                const roadblockCountdown = ref(8);
                 const bridgeCountdown = ref(5);
                 const trackSwitched = ref(false);
                 
@@ -87,6 +88,12 @@
                     try {
                         return safeNum(bridgeCountdown.value, 5).toFixed(1);
                     } catch(e) { return '5.0'; }
+                });
+
+                const displayRoadblockCountdown = computed(function() {
+                    try {
+                        return safeNum(roadblockCountdown.value, 8).toFixed(1);
+                    } catch(e) { return '8.0'; }
                 });
 
                 const getUpgradeCost = function(level) {
@@ -212,7 +219,11 @@
                                 roadblockCost.value = safeNum(ed.clear_cost, 20);
                             }
                             if (ed.countdown !== undefined) {
-                                bridgeCountdown.value = safeNum(ed.countdown, 5);
+                                if (data.current_event === 'bridge') {
+                                    bridgeCountdown.value = safeNum(ed.countdown, 5);
+                                } else if (data.current_event === 'roadblock') {
+                                    roadblockCountdown.value = safeNum(ed.countdown, 8);
+                                }
                             }
                             if (ed.track_switched !== undefined) {
                                 trackSwitched.value = !!ed.track_switched;
@@ -220,6 +231,8 @@
                         } else {
                             bandits.value = [];
                             trackSwitched.value = false;
+                            bridgeCountdown.value = 5;
+                            roadblockCountdown.value = 8;
                         }
                         
                         if (data.event_result && data.event_result.message) {
@@ -426,6 +439,7 @@
                     currentEvent,
                     bandits,
                     roadblockCost,
+                    roadblockCountdown,
                     bridgeCountdown,
                     trackSwitched,
                     recentEvents,
@@ -436,6 +450,7 @@
                     displayFuel,
                     fuelPercent,
                     displayBridgeCountdown,
+                    displayRoadblockCountdown,
                     getUpgradeCost,
                     formatTime,
                     carriageDamaged,
