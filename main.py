@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -12,6 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.game import LeaderboardModel
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +35,7 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    LeaderboardModel.create_table()
     
     migrate_database()
     
@@ -95,6 +97,13 @@ async def root():
             "redoc": "/redoc"
         }
     }
+
+
+@app.get("/game")
+async def game_page():
+    game_path = os.path.join(os.path.dirname(__file__), "static", "game", "index.html")
+    with open(game_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
 
 @app.get("/health")
