@@ -115,6 +115,21 @@ function formatDate(dateStr) {
     });
 }
 
+function validateCarPlate(plate) {
+    if (!plate) return false;
+    plate = plate.trim().toUpperCase();
+    const pattern = /^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-Z0-9]{4,5}[A-Z0-9挂学警港澳]$/;
+    if (pattern.test(plate)) return true;
+    const pattern2 = /^[A-Z]{2}\d{5}$/;
+    if (pattern2.test(plate)) return true;
+    return false;
+}
+
+function validatePhone(phone) {
+    if (!phone) return false;
+    return /^1[3-9]\d{9}$/.test(phone.trim());
+}
+
 async function submitApplication(e) {
     e.preventDefault();
     
@@ -128,12 +143,20 @@ async function submitApplication(e) {
         showToast('请输入车牌号', 'warning');
         return;
     }
+    if (!validateCarPlate(car_plate)) {
+        showToast('车牌号格式不正确，请输入正确的车牌号（如：京A12345）', 'warning');
+        return;
+    }
     if (!applicant_name) {
         showToast('请输入申请人姓名', 'warning');
         return;
     }
     if (!applicant_phone) {
         showToast('请输入联系电话', 'warning');
+        return;
+    }
+    if (!validatePhone(applicant_phone)) {
+        showToast('手机号格式不正确，请输入11位有效手机号', 'warning');
         return;
     }
     
@@ -164,6 +187,10 @@ async function queryMyApplications() {
     
     if (!phone) {
         showToast('请输入手机号', 'warning');
+        return;
+    }
+    if (!validatePhone(phone)) {
+        showToast('手机号格式不正确，请输入11位有效手机号', 'warning');
         return;
     }
     
@@ -274,6 +301,15 @@ async function queryMyPayments() {
     
     if (!value) {
         showToast('请输入查询内容', 'warning');
+        return;
+    }
+    
+    if (type === 'phone' && !validatePhone(value)) {
+        showToast('手机号格式不正确，请输入11位有效手机号', 'warning');
+        return;
+    }
+    if (type === 'car_plate' && !validateCarPlate(value)) {
+        showToast('车牌号格式不正确，请输入正确的车牌号', 'warning');
         return;
     }
     

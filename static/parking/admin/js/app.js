@@ -132,6 +132,21 @@ function getSpotTypeText(type) {
     return map[type] || type;
 }
 
+function validateCarPlate(plate) {
+    if (!plate) return false;
+    plate = plate.trim().toUpperCase();
+    const pattern = /^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-Z0-9]{4,5}[A-Z0-9挂学警港澳]$/;
+    if (pattern.test(plate)) return true;
+    const pattern2 = /^[A-Z]{2}\d{5}$/;
+    if (pattern2.test(plate)) return true;
+    return false;
+}
+
+function validatePhone(phone) {
+    if (!phone) return false;
+    return /^1[3-9]\d{9}$/.test(phone.trim());
+}
+
 async function loadApplicationStats() {
     const result = await apiGet('/application/getstatistics');
     if (result.code === 0 && result.data) {

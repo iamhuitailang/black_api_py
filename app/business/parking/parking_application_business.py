@@ -1,6 +1,26 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import re
 from app.model.parking import ParkingApplicationModel, ParkingSpotModel, ParkingPaymentModel
+
+
+def validate_car_plate(car_plate: str) -> bool:
+    if not car_plate:
+        return False
+    plate = car_plate.strip().upper()
+    pattern = r'^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-Z0-9]{4,5}[A-Z0-9挂学警港澳]$'
+    if re.match(pattern, plate):
+        return True
+    pattern2 = r'^[A-Z]{2}\d{5}$'
+    if re.match(pattern2, plate):
+        return True
+    return False
+
+
+def validate_phone(phone: str) -> bool:
+    if not phone:
+        return False
+    return bool(re.match(r'^1[3-9]\d{9}$', phone.strip()))
 
 
 def add_months(dt: datetime, months: int) -> datetime:
@@ -58,6 +78,12 @@ class ParkingApplicationBusiness:
                 'message': '车牌号不能为空',
                 'data': None
             }
+        if not validate_car_plate(car_plate):
+            return {
+                'code': 1,
+                'message': '车牌号格式不正确，请输入正确的车牌号（如：京A12345）',
+                'data': None
+            }
         if not applicant_name or not applicant_name.strip():
             return {
                 'code': 1,
@@ -68,6 +94,12 @@ class ParkingApplicationBusiness:
             return {
                 'code': 1,
                 'message': '联系电话不能为空',
+                'data': None
+            }
+        if not validate_phone(applicant_phone):
+            return {
+                'code': 1,
+                'message': '手机号格式不正确，请输入11位有效手机号',
                 'data': None
             }
 
