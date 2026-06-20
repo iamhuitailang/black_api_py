@@ -330,6 +330,8 @@ function onBossDefeated() {
 function showSoulStoneModal() {
     game.paused = true;
     document.getElementById('soul-stone-modal').classList.add('active');
+    saveGameState();
+    saveProgress();
 }
 
 document.querySelectorAll('.soul-btn').forEach(btn => {
@@ -374,6 +376,8 @@ function showEquipmentModal(eq) {
     document.getElementById('equipment-modal').classList.add('active');
     calcPlayerStats();
     updateUI();
+    saveGameState();
+    saveProgress();
 }
 
 document.getElementById('continue-btn').addEventListener('click', () => {
@@ -403,6 +407,8 @@ function handleDeath() {
         reviveBtn.style.opacity = '0.5';
     }
     document.getElementById('death-modal').classList.add('active');
+    saveGameState();
+    saveProgress();
 }
 
 document.getElementById('revive-btn').addEventListener('click', () => {
@@ -442,6 +448,7 @@ function onVictory() {
     document.getElementById('victory-modal').classList.add('active');
     submitScore(kills, areas, hp);
     saveProgress();
+    saveGameState();
 }
 
 document.getElementById('victory-ok').addEventListener('click', () => {
@@ -1187,6 +1194,15 @@ document.getElementById('continue-btn_main').addEventListener('click', () => {
 });
 
 function saveGameState() {
+    let activeModal = null;
+    const modals = ['soul-stone-modal', 'equipment-modal', 'death-modal', 'victory-modal'];
+    for (const id of modals) {
+        if (document.getElementById(id).classList.contains('active')) {
+            activeModal = id;
+            break;
+        }
+    }
+
     const state = {
         playerName: game.playerName,
         currentArea: game.currentArea,
@@ -1198,6 +1214,9 @@ function saveGameState() {
         poisonTimer: game.poisonTimer,
         waveKills: game.waveKills,
         waveKillsNeeded: game.waveKillsNeeded,
+        paused: game.paused,
+        activeModal: activeModal,
+        scoreSubmitted: game.state === 'victory',
         player: {
             x: player.x,
             y: player.y,
@@ -1347,6 +1366,50 @@ function resumeGame(state) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('player-name-input').value = game.playerName;
     updateUI();
+
+    if (state.activeModal) {
+        game.paused = true;
+        document.getElementById(state.activeModal).classList.add('active');
+
+        if (state.activeModal === 'death-modal') {
+            const desc = document.getElementById('death-desc');
+            const reviveBtn = document.getElementById('revive-btn');
+            if (player.soulStones > 0) {
+                desc.textContent = '是否消耗1魂石复活（回复30HP）？';
+                reviveBtn.disabled = false;
+                reviveBtn.style.opacity = '1';
+            } else {
+                desc.textContent = '魂石不足，无法复活。从本区域重新开始。';
+                reviveBtn.disabled = true;
+                reviveBtn.style.opacity = '0.5';
+            }
+        }
+
+        if (state.activeModal === 'equipment-modal') {
+            const eq = EQUIPMENT_DATA[game.currentArea];
+            if (eq) {
+                const rewardEl = document.getElementById('equipment-reward');
+                rewardEl.innerHTML = `
+                    <div class="eq-reward-name">${eq.name}</div>
+                    <div class="eq-reward-desc">${eq.desc}</div>
+                `;
+            }
+        }
+
+        if (state.activeModal === 'victory-modal') {
+            const kills = game.totalKills;
+            const areas = game.areasCleared;
+            const hp = Math.max(0, Math.floor(player.hp));
+            const score = kills * 10 + areas * 50 + hp * 2;
+            document.getElementById('victory-stats').innerHTML = `
+                <div class="v-row"><span>击杀数:</span><span>${kills} × 10</span></div>
+                <div class="v-row"><span>通关区域:</span><span>${areas} × 50</span></div>
+                <div class="v-row"><span>剩余HP:</span><span>${hp} × 2</span></div>
+                <div class="v-row total"><span>总得分:</span><span>${score}</span></div>
+            `;
+            game.state = 'victory';
+        }
+    }
 }
 
 let autoSaveTimer = 0;
