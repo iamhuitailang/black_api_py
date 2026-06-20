@@ -324,7 +324,7 @@
                 '<span class="equipment-score">+' + eq.score + '分</span></div>';
         });
         document.getElementById('final-equipment').innerHTML = eqHtml;
-        modal.style.display = 'flex';
+        modal.classList.add('active');
 
         updateAllUI();
     }
@@ -530,7 +530,7 @@
                         list.appendChild(row);
                     });
                 }
-                document.getElementById('leaderboard-modal').style.display = 'flex';
+                document.getElementById('leaderboard-modal').classList.add('active');
             })
             .catch(function() {
                 showToast('加载排行榜失败', 'error');
@@ -698,16 +698,16 @@
         });
 
         document.getElementById('close-leaderboard').addEventListener('click', function() {
-            document.getElementById('leaderboard-modal').style.display = 'none';
+            document.getElementById('leaderboard-modal').classList.remove('active');
         });
 
         document.getElementById('view-leaderboard-btn').addEventListener('click', function() {
-            document.getElementById('game-over-modal').style.display = 'none';
+            document.getElementById('game-over-modal').classList.remove('active');
             loadLeaderboard();
         });
 
         document.getElementById('play-again-btn').addEventListener('click', function() {
-            document.getElementById('game-over-modal').style.display = 'none';
+            document.getElementById('game-over-modal').classList.remove('active');
             document.getElementById('player-name').value = game.playerName;
         });
 
