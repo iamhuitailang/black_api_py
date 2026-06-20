@@ -32,6 +32,7 @@ class SkateGameEngine {
             leanRight: false,
             crouched: false,
             isJumping: false,
+            jumpPhase: 'ground',
             isFlipping: false,
             flipAngle: 0,
             flipStartY: 0,
@@ -86,6 +87,94 @@ class SkateGameEngine {
         this.terrain = trackData.terrain_data || [];
         this.obstacles = trackData.obstacle_data || [];
         this.rails = trackData.rail_data || [];
+    }
+
+    getSnapshot() {
+        return {
+            player: {
+                lane: this.player.lane,
+                targetLane: this.player.targetLane,
+                y: this.player.y,
+                vy: this.player.vy,
+                speed: this.player.speed,
+                crouched: this.player.crouched,
+                leanLeft: this.player.leanLeft,
+                leanRight: this.player.leanRight,
+                isJumping: this.player.isJumping,
+                jumpPhase: this.player.jumpPhase,
+                isFlipping: this.player.isFlipping,
+                flipAngle: this.player.flipAngle,
+                isGrabbing: this.player.isGrabbing,
+                grabTimer: this.player.grabTimer,
+                isOnRail: this.player.isOnRail,
+                railTimer: this.player.railTimer,
+                crashed: this.player.crashed,
+                crashTimer: this.player.crashTimer,
+                wheelRotation: this.player.wheelRotation,
+                x: this.player.x
+            },
+            state: { ...this.state },
+            trackId: this.trackData ? this.trackData.id : null,
+            overtakenSkaters: Array.from(this.overtakenSkaters),
+            backgroundOffset: this.backgroundOffset,
+            savedAt: Date.now()
+        };
+    }
+
+    restoreFromSnapshot(snap) {
+        if (!snap || !snap.player || !snap.state) return false;
+        const p = snap.player;
+        Object.assign(this.player, {
+            lane: p.lane,
+            targetLane: p.targetLane,
+            y: p.y,
+            vy: p.vy,
+            speed: p.speed,
+            crouched: !!p.crouched,
+            leanLeft: !!p.leanLeft,
+            leanRight: !!p.leanRight,
+            isJumping: !!p.isJumping,
+            jumpPhase: p.jumpPhase || 'ground',
+            isFlipping: !!p.isFlipping,
+            flipAngle: p.flipAngle || 0,
+            isGrabbing: !!p.isGrabbing,
+            grabTimer: p.grabTimer || 0,
+            isOnRail: !!p.isOnRail,
+            railTimer: p.railTimer || 0,
+            crashed: false,
+            crashTimer: 0,
+            wheelRotation: p.wheelRotation || 0,
+            x: p.x != null ? p.x : (this.LANE_WIDTH * p.lane + this.LANE_WIDTH / 2),
+            currentRail: null,
+            flipStartY: 0
+        });
+        Object.assign(this.state, snap.state);
+        this.state.crashed = false;
+        this.state.paused = false;
+
+        if (Array.isArray(snap.overtakenSkaters)) {
+            this.overtakenSkaters = new Set(snap.overtakenSkaters);
+        }
+        if (typeof snap.backgroundOffset === 'number') {
+            this.backgroundOffset = snap.backgroundOffset;
+        }
+        this.crashTimeoutId = null;
+
+        if (this.player.isOnRail) {
+            for (const rail of this.rails) {
+                if (this.state.position >= rail.start && this.state.position <= rail.end
+                    && this.player.lane === rail.lane) {
+                    this.player.currentRail = rail;
+                    break;
+                }
+            }
+            if (!this.player.currentRail) {
+                this.player.isOnRail = false;
+                this.player.y = 0;
+            }
+        }
+
+        return true;
     }
 
     bindInput() {
@@ -178,22 +267,27 @@ class SkateGameEngine {
 
     startJump() {
         this.player.isJumping = true;
-        this.player.vy = -420;
+        this.player.vy = -550;
         this.player.flipStartY = 0;
+        this.jumpPhase = 'rising';
     }
 
     tryFlip() {
-        if (this.player.y > -40 || this.player.y < -100) {
-            this.trickFail('空翻时机错误！-50');
-            return;
-        }
         if (!this.player.isJumping) {
-            this.trickFail('空翻需要在空中！-50');
+            if (this.callbacks.onTrickFeedback) {
+                this.callbacks.onTrickFeedback('fail', '请先按空格跳跃！');
+            }
             return;
         }
+        if (this.player.y > -30) {
+            if (this.callbacks.onTrickFeedback) {
+                this.callbacks.onTrickFeedback('fail', '空翻时机太早！');
+            }
+            return;
+        }
+        if (this.player.isFlipping) return;
         const now = performance.now();
-        if (this.keyTimers.lastFlip && now - this.keyTimers.lastFlip < 300) {
-            this.trickFail('按键过快！-50');
+        if (this.keyTimers.lastFlip && now - this.keyTimers.lastFlip < 500) {
             return;
         }
         this.keyTimers.lastFlip = now;
@@ -202,21 +296,30 @@ class SkateGameEngine {
         this.player.flipAngle = 0;
 
         setTimeout(() => {
-            if (Math.abs(this.player.flipAngle - 360) < 90) {
+            if (this.running && this.player.flipAngle >= 300) {
                 this.trickSuccess('完美空翻！+100', 100);
-            } else {
+            } else if (this.running) {
                 this.trickFail('空翻未完成！-50');
             }
             this.player.isFlipping = false;
             this.player.flipAngle = 0;
-        }, 500);
+        }, 550);
     }
 
     tryGrab() {
-        if (this.player.y > -50 || !this.player.isJumping) {
-            this.trickFail('抓板时机错误！');
+        if (!this.player.isJumping) {
+            if (this.callbacks.onTrickFeedback) {
+                this.callbacks.onTrickFeedback('fail', '请先按空格跳跃！');
+            }
             return;
         }
+        if (this.player.y > -50) {
+            if (this.callbacks.onTrickFeedback) {
+                this.callbacks.onTrickFeedback('fail', '抓板时机不对！');
+            }
+            return;
+        }
+        if (this.player.isGrabbing) return;
         this.player.isGrabbing = true;
         this.player.grabTimer = 0;
     }
@@ -411,7 +514,7 @@ class SkateGameEngine {
 
     updateTrickAvailability() {
         this.state.canFlip = this.player.isJumping && !this.player.isFlipping &&
-                             this.player.y < -40 && this.player.y > -100;
+                             this.player.y < -30;
         this.state.canGrab = this.player.isJumping && !this.player.isGrabbing &&
                              this.player.y < -50;
 
@@ -419,7 +522,7 @@ class SkateGameEngine {
         if (!this.player.isOnRail && !this.player.isJumping) {
             const pos = this.state.position;
             for (const rail of this.rails) {
-                if (pos >= rail.start - 80 && pos <= rail.start + 50 && this.player.lane === rail.lane) {
+                if (pos >= rail.start - 100 && pos <= rail.start + 60 && this.player.lane === rail.lane) {
                     this.state.canRail = true;
                     break;
                 }
@@ -478,15 +581,24 @@ class SkateGameEngine {
 
         if (this.player.isJumping) {
             this.player.y += this.player.vy * dt;
-            this.player.vy += 1500 * dt;
+            this.player.vy += 1200 * dt;
+
+            if (this.player.jumpPhase === 'rising' && this.player.vy > 0) {
+                this.player.jumpPhase = 'falling';
+            }
 
             if (this.player.y >= 0) {
                 this.player.y = 0;
                 this.player.vy = 0;
                 this.player.isJumping = false;
                 this.player.isGrabbing = false;
+                this.player.jumpPhase = 'ground';
                 if (this.player.isFlipping) {
-                    this.trickFail('空翻未完成落地！-50');
+                    if (this.player.flipAngle >= 270) {
+                        this.trickSuccess('平稳落地！+100', 100);
+                    } else {
+                        this.trickFail('空翻未完成落地！-50');
+                    }
                     this.player.isFlipping = false;
                     this.player.flipAngle = 0;
                 }
@@ -496,15 +608,16 @@ class SkateGameEngine {
             this.player.railTimer += dt;
         } else {
             this.player.y = 0;
+            this.player.jumpPhase = 'ground';
         }
 
         if (this.player.isFlipping) {
-            this.player.flipAngle += 720 * dt;
+            this.player.flipAngle += 680 * dt;
         }
 
         if (this.player.isGrabbing) {
             this.player.grabTimer += dt;
-            if (this.player.grabTimer > 0.4 && this.player.isJumping) {
+            if (this.player.grabTimer > 0.35) {
                 this.trickSuccess('抓板成功！+60', 60);
                 this.player.isGrabbing = false;
             }
@@ -1198,6 +1311,9 @@ class SkateGameEngine {
         }
         this.player.crashed = false;
         this.state.crashed = false;
+        if (this.callbacks.onStateUpdate) {
+            this.callbacks.onStateUpdate({ ...this.state });
+        }
     }
 
     togglePause() {

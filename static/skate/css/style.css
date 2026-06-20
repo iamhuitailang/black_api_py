@@ -791,3 +791,25 @@ kbd {
     .info-value { font-size: 14px; }
     .gameover-title { font-size: 36px; }
 }
+
+.restore-info {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+
+.restore-info p {
+    padding: 5px 0;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.restore-info p:last-child { border-bottom: none; }
+
+.restore-info strong {
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+}

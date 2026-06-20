@@ -114,6 +114,30 @@
             </div>
         </div>
 
+        <div v-if="showRestoreDialog" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>🎮 发现未完成的对局</h2>
+                </div>
+                <div class="modal-body">
+                    <div v-if="restoreInfo" class="restore-info">
+                        <p><strong>玩家：</strong>{{ restoreInfo.playerName }}</p>
+                        <p><strong>赛道：</strong>{{ restoreInfo.trackName || '未知赛道' }}</p>
+                        <p><strong>进度：</strong>{{ restoreInfo.progress }}%</p>
+                        <p><strong>得分：</strong>{{ restoreInfo.score }} 分</p>
+                        <p><strong>保存时间：</strong>{{ formatDate(restoreInfo.savedAt) }}</p>
+                    </div>
+                    <p style="margin-top:16px; color: rgba(255,255,255,0.6); font-size:14px;">
+                        是否从上次的进度继续游戏？
+                    </p>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button class="btn btn-primary" @click="doRestoreGame">✅ 继续对局</button>
+                    <button class="btn btn-secondary" @click="discardRestore">🆕 重新开始</button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showHelp" class="modal-overlay" @click.self="showHelp = false">
             <div class="modal">
                 <div class="modal-header">

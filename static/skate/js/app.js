@@ -6,6 +6,9 @@ const App = {
         const showTrackSelect = ref(false);
         const showScores = ref(false);
         const showHelp = ref(false);
+        const showRestoreDialog = ref(false);
+        const restoreInfo = ref(null);
+        let pendingSnapshot = null;
 
         const tracks = ref([]);
         const loadingTracks = ref(false);
@@ -19,6 +22,7 @@ const App = {
 
         const gameCanvas = ref(null);
         let gameEngine = null;
+        let snapshotTimer = null;
 
         const gameState = reactive({
             score: 0,
@@ -67,41 +71,170 @@ const App = {
         let crashTimer = null;
         let isInGame = false;
 
+        function getSnapshotStorageKey() {
+            return 'skate_game_full_snapshot_v1';
+        }
+
         function saveGameSession() {
-            if (isInGame && currentTrackData.value) {
-                sessionStorage.setItem('skate_game_session', JSON.stringify({
-                    trackId: currentTrackData.value.id,
-                    playerName: playerName.value,
-                    timestamp: Date.now()
-                }));
+            if (!isInGame || !currentTrackData.value || !gameEngine) return;
+            try {
+                const snap = gameEngine.getSnapshot();
+                snap.trackId = currentTrackData.value.id;
+                snap.playerName = playerName.value;
+                snap.trackLength = currentTrackData.value.length;
+                snap.trackName = currentTrackData.value.name;
+                localStorage.setItem(getSnapshotStorageKey(), JSON.stringify(snap));
+            } catch (e) {
+                console.warn('保存游戏快照失败:', e);
             }
         }
 
         function clearGameSession() {
-            sessionStorage.removeItem('skate_game_session');
+            try {
+                localStorage.removeItem(getSnapshotStorageKey());
+                sessionStorage.removeItem('skate_game_session');
+            } catch (e) {}
             isInGame = false;
+            if (snapshotTimer) {
+                clearInterval(snapshotTimer);
+                snapshotTimer = null;
+            }
         }
 
         function handleBeforeUnload(e) {
             if (isInGame) {
+                saveGameSession();
                 e.preventDefault();
                 e.returnValue = '';
             }
         }
 
-        function restoreSession() {
+        function checkPendingRestore() {
             try {
-                const session = sessionStorage.getItem('skate_game_session');
-                if (session) {
-                    const data = JSON.parse(session);
-                    if (Date.now() - data.timestamp < 60000) {
-                        currentView.value = 'home';
-                    }
+                const raw = localStorage.getItem(getSnapshotStorageKey());
+                if (!raw) return false;
+                const snap = JSON.parse(raw);
+                if (!snap || !snap.trackId || !snap.state || snap.state.completed) {
                     clearGameSession();
+                    return false;
+                }
+                const now = Date.now();
+                if (now - (snap.savedAt || 0) > 1000 * 60 * 60 * 24) {
+                    clearGameSession();
+                    return false;
+                }
+                pendingSnapshot = snap;
+                const trackObj = tracks.value.find(t => t.id === snap.trackId);
+                const progress = snap.trackLength
+                    ? Math.min(100, Math.round((snap.state.position / snap.trackLength) * 100))
+                    : 0;
+                restoreInfo.value = {
+                    playerName: snap.playerName || 'Player',
+                    trackName: trackObj ? trackObj.name : (snap.trackName || '未知赛道'),
+                    progress,
+                    score: snap.state.score || 0,
+                    savedAt: snap.savedAt || Date.now()
+                };
+                return true;
+            } catch (e) {
+                console.warn('检查恢复数据失败:', e);
+                clearGameSession();
+                return false;
+            }
+        }
+
+        async function doRestoreGame() {
+            if (!pendingSnapshot) return;
+            showRestoreDialog.value = false;
+
+            const trackId = pendingSnapshot.trackId;
+            const pName = pendingSnapshot.playerName || 'Player';
+            playerName.value = pName;
+
+            let trackDetail = null;
+            try {
+                const res = await SkateApi.getTrackDetail(trackId);
+                if (res.code === 0 && res.data) {
+                    trackDetail = res.data;
                 }
             } catch (e) {
-                clearGameSession();
+                console.error('加载赛道详情失败:', e);
             }
+            if (!trackDetail) {
+                pendingSnapshot = null;
+                restoreInfo.value = null;
+                return;
+            }
+
+            selectedTrack.value = { id: trackId, name: trackDetail.name };
+            currentTrackData.value = trackDetail;
+            currentView.value = 'game';
+            isInGame = true;
+
+            await nextTick();
+            if (gameEngine) gameEngine.stop();
+            resetGameState();
+
+            gameEngine = new SkateGameEngine(gameCanvas.value, buildEngineCallbacks());
+            gameEngine.loadTrack(trackDetail);
+            const ok = gameEngine.restoreFromSnapshot(pendingSnapshot);
+            if (ok) {
+                Object.assign(gameState, gameEngine.state);
+                crashRecoveryCountdown.value = 0;
+            }
+
+            pendingSnapshot = null;
+            restoreInfo.value = null;
+
+            gameEngine.start();
+            startSnapshotTimer();
+        }
+
+        function discardRestore() {
+            clearGameSession();
+            pendingSnapshot = null;
+            restoreInfo.value = null;
+            showRestoreDialog.value = false;
+        }
+
+        function startSnapshotTimer() {
+            if (snapshotTimer) clearInterval(snapshotTimer);
+            snapshotTimer = setInterval(() => {
+                saveGameSession();
+            }, 1500);
+        }
+
+        function buildEngineCallbacks() {
+            return {
+                onStateUpdate: (state) => {
+                    Object.assign(gameState, state);
+
+                    if (state.crashed) {
+                        if (!crashTimer) {
+                            crashRecoveryCountdown.value = 2;
+                            crashTimer = setInterval(() => {
+                                crashRecoveryCountdown.value = Math.max(0, crashRecoveryCountdown.value - 0.1);
+                                if (crashRecoveryCountdown.value <= 0) {
+                                    clearInterval(crashTimer);
+                                    crashTimer = null;
+                                }
+                            }, 100);
+                        }
+                    } else {
+                        if (crashTimer) {
+                            clearInterval(crashTimer);
+                            crashTimer = null;
+                        }
+                        crashRecoveryCountdown.value = 0;
+                    }
+                },
+                onTrickFeedback: (type, message) => {
+                    showTrickFeedback(type, message);
+                },
+                onGameComplete: (result) => {
+                    handleGameEnd(result);
+                }
+            };
         }
 
         async function loadTracks() {
@@ -158,39 +291,10 @@ const App = {
 
                     resetGameState();
 
-                    gameEngine = new SkateGameEngine(gameCanvas.value, {
-                        onStateUpdate: (state) => {
-                            Object.assign(gameState, state);
-
-                            if (state.crashed) {
-                                if (!crashTimer) {
-                                    crashRecoveryCountdown.value = 2;
-                                    crashTimer = setInterval(() => {
-                                        crashRecoveryCountdown.value = Math.max(0, crashRecoveryCountdown.value - 0.1);
-                                        if (crashRecoveryCountdown.value <= 0) {
-                                            clearInterval(crashTimer);
-                                            crashTimer = null;
-                                        }
-                                    }, 100);
-                                }
-                            } else {
-                                if (crashTimer) {
-                                    clearInterval(crashTimer);
-                                    crashTimer = null;
-                                }
-                                crashRecoveryCountdown.value = 0;
-                            }
-                        },
-                        onTrickFeedback: (type, message) => {
-                            showTrickFeedback(type, message);
-                        },
-                        onGameComplete: (result) => {
-                            handleGameEnd(result);
-                        }
-                    });
-
+                    gameEngine = new SkateGameEngine(gameCanvas.value, buildEngineCallbacks());
                     gameEngine.loadTrack(res.data);
                     gameEngine.start();
+                    startSnapshotTimer();
                 }
             } catch (e) {
                 console.error('启动游戏失败:', e);
@@ -228,7 +332,7 @@ const App = {
             trickFeedback.show = true;
             trickFeedbackTimer = setTimeout(() => {
                 trickFeedback.show = false;
-            }, 800);
+            }, 900);
         }
 
         async function handleGameEnd(result) {
@@ -242,6 +346,10 @@ const App = {
                 crashTimer = null;
             }
 
+            if (gameEngine) {
+                try { gameEngine.stop(); } catch (e) {}
+            }
+
             gameResult.score = result.score;
             gameResult.trickScore = result.trickScore;
             gameResult.timeUsed = result.timeUsed;
@@ -250,20 +358,22 @@ const App = {
             gameResult.completed = result.completed;
             gameResult.rank = 0;
 
-            try {
-                const res = await SkateApi.addScore({
-                    player_name: playerName.value || 'Player',
-                    track_id: currentTrackData.value.id,
-                    score: result.score,
-                    trick_score: result.trickScore,
-                    time_used: result.timeUsed,
-                    crash_count: result.crashCount
-                });
-                if (res.code === 0 && res.data) {
-                    gameResult.rank = res.data.rank || 0;
+            if (result.completed && currentTrackData.value) {
+                try {
+                    const res = await SkateApi.addScore({
+                        player_name: playerName.value || 'Player',
+                        track_id: currentTrackData.value.id,
+                        score: result.score,
+                        trick_score: result.trickScore,
+                        time_used: result.timeUsed,
+                        crash_count: result.crashCount
+                    });
+                    if (res.code === 0 && res.data) {
+                        gameResult.rank = res.data.rank || 0;
+                    }
+                } catch (e) {
+                    console.error('提交得分失败:', e);
                 }
-            } catch (e) {
-                console.error('提交得分失败:', e);
             }
 
             currentView.value = 'gameover';
@@ -272,7 +382,7 @@ const App = {
         function confirmExitGame() {
             if (confirm('确定要退出当前游戏吗？进度将丢失！')) {
                 if (gameEngine) {
-                    gameEngine.stop();
+                    try { gameEngine.stop(); } catch (e) {}
                 }
                 if (crashTimer) {
                     clearInterval(crashTimer);
@@ -296,7 +406,7 @@ const App = {
 
         function backToHome() {
             if (gameEngine) {
-                gameEngine.stop();
+                try { gameEngine.stop(); } catch (e) {}
             }
             gameState.crashed = false;
             crashRecoveryCountdown.value = 0;
@@ -310,7 +420,7 @@ const App = {
         function formatDate(dateStr) {
             if (!dateStr) return '-';
             try {
-                const d = new Date(dateStr);
+                const d = new Date(typeof dateStr === 'string' ? dateStr : dateStr);
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const day = String(d.getDate()).padStart(2, '0');
                 const hour = String(d.getHours()).padStart(2, '0');
@@ -322,38 +432,39 @@ const App = {
         }
 
         watch(scoreFilterTrack, () => {
-            if (showScores.value) {
-                loadScores();
-            }
+            if (showScores.value) loadScores();
         });
 
         watch(showScores, (val) => {
-            if (val) {
-                loadScores();
-            }
+            if (val) loadScores();
         });
 
         watch(showTrackSelect, (val) => {
-            if (val) {
-                loadTracks();
-            }
+            if (val) loadTracks();
         });
 
-        onMounted(() => {
-            loadTracks();
-            restoreSession();
+        onMounted(async () => {
+            await loadTracks();
+            if (checkPendingRestore()) {
+                showRestoreDialog.value = true;
+            }
             window.addEventListener('beforeunload', handleBeforeUnload);
         });
 
         onBeforeUnmount(() => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
             if (gameEngine) {
-                gameEngine.stop();
+                try { gameEngine.stop(); } catch (e) {}
             }
             if (crashTimer) {
                 clearInterval(crashTimer);
                 crashTimer = null;
             }
+            if (snapshotTimer) {
+                clearInterval(snapshotTimer);
+                snapshotTimer = null;
+            }
+            if (isInGame) saveGameSession();
         });
 
         return {
@@ -361,6 +472,8 @@ const App = {
             showTrackSelect,
             showScores,
             showHelp,
+            showRestoreDialog,
+            restoreInfo,
             tracks,
             loadingTracks,
             selectedTrack,
@@ -382,7 +495,9 @@ const App = {
             confirmExitGame,
             restartGame,
             backToHome,
-            formatDate
+            formatDate,
+            doRestoreGame,
+            discardRestore
         };
     }
 };
