@@ -8,7 +8,19 @@
     <script src="vendor/vue.global.prod.js"></script>
 </head>
 <body>
+    <noscript>
+        <div style="color: #ff4757; padding: 40px; text-align: center; font-size: 18px;">
+            ⚠️ 您的浏览器禁用了 JavaScript，请启用 JavaScript 后再运行游戏
+        </div>
+    </noscript>
     <div id="app">
+        <div v-cloak class="loading-overlay" id="vue-loading">
+            <div class="loading-content">
+                <div class="loading-spinner">🚂</div>
+                <p class="loading-text">末日列车正在启动...</p>
+                <p class="loading-hint">如果长时间显示此页面，请检查浏览器控制台报错信息</p>
+            </div>
+        </div>
         <div class="game-container">
             <header class="game-header">
                 <h1 class="game-title">🚂 末日列车</h1>
