@@ -12,6 +12,10 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.journal import (
+    SectionModel, ManuscriptModel, ReviewAssignmentModel,
+    ReviewModel, UserProfileModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,10 +38,37 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    UserProfileModel.create_table()
+    SectionModel.create_table()
+    ManuscriptModel.create_table()
+    ReviewAssignmentModel.create_table()
+    ReviewModel.create_table()
     
     migrate_database()
     
+    _init_default_users()
+    
     print("Database initialized successfully")
+
+
+def _init_default_users():
+    from app.model.auth import UserModel
+    from app.business.auth import AuthBusiness
+    user_model = UserModel()
+    
+    default_users = [
+        ('editor', 'editor123'),
+        ('reviewer1', 'reviewer123'),
+        ('reviewer2', 'reviewer123'),
+        ('author1', 'author123'),
+    ]
+    for username, password in default_users:
+        existing = user_model.get_by_username(username)
+        if not existing:
+            try:
+                user_model.create(username, password)
+            except Exception:
+                pass
 
 
 @asynccontextmanager

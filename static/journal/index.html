@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>期刊投稿审稿系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <app-root></app-root>
+    </div>
+
+    <script src="js/utils/storage.js"></script>
+    <script src="js/services/api.js"></script>
+    <script src="js/services/journal.js"></script>
+
+    <script src="js/pages/layout.js"></script>
+    <script src="js/pages/login.js"></script>
+    <script src="js/pages/submit.js"></script>
+    <script src="js/pages/submissions.js"></script>
+    <script src="js/pages/manuscript-detail.js"></script>
+    <script src="js/pages/review-form.js"></script>
+    <script src="js/pages/review-tasks.js"></script>
+    <script src="js/pages/editor.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        const { createApp, defineComponent } = Vue;
+
+        const ManuscriptStatus = {
+            DRAFT: 'draft', SUBMITTED: 'submitted', UNDER_REVIEW: 'under_review',
+            REVIEW_COMPLETED: 'review_completed', ACCEPTED: 'accepted',
+            REVISION_REQUIRED: 'revision_required', REJECTED: 'rejected', PUBLISHED: 'published'
+        };
+        const STATUS_MAP = {
+            draft: { label: '草稿', class: 'status-draft' },
+            submitted: { label: '已提交', class: 'status-submitted' },
+            under_review: { label: '审稿中', class: 'status-reviewing' },
+            review_completed: { label: '审稿完成', class: 'status-review-done' },
+            accepted: { label: '已录用', class: 'status-accepted' },
+            revision_required: { label: '需修改', class: 'status-revision' },
+            rejected: { label: '已退稿', class: 'status-rejected' },
+            published: { label: '已发表', class: 'status-published' }
+        };
+
+        const commonMixin = {
+            computed: {
+                $helpers() { return Helpers; },
+                $statusMap() { return STATUS_MAP; },
+                $manuscriptStatus() { return ManuscriptStatus; }
+            },
+            methods: {
+                $navigateTo(page, params) {
+                    this.$root.navigateTo(page, params);
+                },
+                $showToast(msg, type = 'info') {
+                    Toast.show(msg, type);
+                }
+            }
+        };
+
+        const AppRoot = defineComponent({
+            ...App,
+            mixins: [commonMixin],
+            components: {
+                'main-layout': defineComponent({
+                    ...MainLayout,
+                    mixins: [commonMixin],
+                    methods: {
+                        ...MainLayout.methods,
+                        navigate(page) {
+                            this.$root.navigateTo(page);
+                        }
+                    }
+                }),
+                'progress-bar': defineComponent({
+                    ...ProgressBar,
+                    mixins: [commonMixin]
+                }),
+                'login-page': defineComponent({
+                    ...LoginPage,
+                    mixins: [commonMixin],
+                    methods: {
+                        ...LoginPage.methods,
+                        handleLogin: async function() {
+                            this.error = '';
+                            if (!this.form.username.trim()) {
+                                this.error = '请输入用户名';
+                                return;
+                            }
+                            if (!this.form.password.trim()) {
+                                this.error = '请输入密码';
+                                return;
+                            }
+                            this.loading = true;
+                            try {
+                                const res = await JournalService.login(this.form.username.trim(), this.form.password);
+                                if (res.code === 0) {
+                                    Toast.success('登录成功');
+                                    const roleRes = await JournalService.getRoleInfo();
+                                    if (roleRes.code === 0 && roleRes.data) {
+                                        Storage.setRoleInfo(roleRes.data);
+                                    }
+                                    setTimeout(() => {
+                                        this.$root.redirectHomeByRole();
+                                    }, 300);
+                                } else {
+                                    this.error = res.message;
+                                    Toast.error(res.message);
+                                }
+                            } catch (err) {
+                                this.error = '登录失败，请重试';
+                                Toast.error('登录失败');
+                            } finally {
+                                this.loading = false;
+                            }
+                        }
+                    }
+                }),
+                'submit-page': defineComponent({
+                    ...SubmitPage,
+                    mixins: [commonMixin],
+                    computed: {
+                        $route() {
+                            const vm = this;
+                            return { params: (vm.$root && vm.$root.pageParams) || {} };
+                        }
+                    },
+                    methods: {
+                        ...SubmitPage.methods,
+                        loadEditMode() {
+                            const params = (this.$root && this.$root.pageParams) || {};
+                            const editId = params.id;
+                            if (editId) {
+                                this.form.manuscript_id = parseInt(editId);
+                                this.loadManuscript(editId);
+                            }
+                        }
+                    }
+                }),
+                'submissions-page': defineComponent({
+                    ...SubmissionsPage,
+                    mixins: [commonMixin]
+                }),
+                'manuscript-detail-page': defineComponent({
+                    ...ManuscriptDetailPage,
+                    mixins: [commonMixin],
+                    components: {
+                        'progress-bar': defineComponent({
+                            ...ProgressBar,
+                            mixins: [commonMixin]
+                        }),
+                        'review-form': defineComponent({
+                            ...ReviewForm,
+                            mixins: [commonMixin]
+                        })
+                    },
+                    computed: {
+                        $route() {
+                            const vm = this;
+                            return { params: (vm.$root && vm.$root.pageParams) || {} };
+                        }
+                    },
+                    methods: {
+                        ...ManuscriptDetailPage.methods,
+                        loadData: async function() {
+                            this.loading = true;
+                            try {
+                                const params = (this.$root && this.$root.pageParams) || {};
+                                const id = params.id;
+                                if (!id) {
+                                    Toast.error('缺少稿件ID');
+                                    setTimeout(() => this.$root.navigateTo('submissions'), 1000);
+                                    return;
+                                }
+                                const res = await JournalService.getManuscriptDetail(id);
+                                if (res.code === 0 && res.data) {
+                                    this.manuscript = res.data;
+                                    this.avgScore = res.data.avg_score;
+                                    this.assignments = res.data.assignments || [];
+                                } else {
+                                    Toast.error(res.message || '加载失败');
+                                    setTimeout(() => this.$root.navigateTo('submissions'), 1000);
+                                }
+                            } finally {
+                                this.loading = false;
+                            }
+                        }
+                    }
+                }),
+                'review-form': defineComponent({
+                    ...ReviewForm,
+                    mixins: [commonMixin]
+                }),
+                'review-tasks-page': defineComponent({
+                    ...ReviewTasksPage,
+                    mixins: [commonMixin],
+                    components: {
+                        'review-form': defineComponent({
+                            ...ReviewForm,
+                            mixins: [commonMixin]
+                        })
+                    }
+                }),
+                'editor-dashboard-page': defineComponent({
+                    ...EditorDashboardPage,
+                    mixins: [commonMixin]
+                }),
+                'all-manuscripts-page': defineComponent({
+                    ...AllManuscriptsPage,
+                    mixins: [commonMixin],
+                    computed: {
+                        $route() {
+                            const vm = this;
+                            return { params: (vm.$root && vm.$root.pageParams) || {} };
+                        }
+                    },
+                    methods: {
+                        ...AllManuscriptsPage.methods,
+                        mounted: function() {
+                            const params = (this.$root && this.$root.pageParams) || {};
+                            if (params.status) {
+                                this.activeTab = params.status;
+                            }
+                            this.loadData();
+                        }
+                    }
+                })
+            }
+        });
+
+        const app = createApp(AppRoot);
+
+        const instance = app.mount('#app');
+        window.JournalApp = instance;
+    </script>
+</body>
+</html>
