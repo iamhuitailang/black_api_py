@@ -736,3 +736,5 @@ const RaceProgress = {
     };
   }
 };
+
+RaceView.components = { TrackVisual, RaceProgress };
