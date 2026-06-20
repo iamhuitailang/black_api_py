@@ -1,23 +1,22 @@
 (function() {
-    const API_BASE = '/api';
+    var API_BASE = '/api';
+    var SAVE_KEY = 'alchemy_furnace_game';
 
-    const ORE_CONFIG = {
+    var ORE_CONFIG = {
         copper_ore: { name: '铜矿', product: '铜锭', minTemp: 400, maxTemp: 600, smeltTime: 3, icon: '🪨' },
         iron_ore: { name: '铁矿', product: '铁锭', minTemp: 800, maxTemp: 1200, smeltTime: 5, icon: '⛏️' },
         mithril_ore: { name: '秘银矿', product: '秘银条', minTemp: 1400, maxTemp: 1700, smeltTime: 8, icon: '💎' },
     };
 
-    const FUEL_CONFIG = {
+    var FUEL_CONFIG = {
         charcoal: { name: '木炭', heat: 50, icon: '🪵' },
         coal: { name: '煤炭', heat: 120, icon: '🏗️' },
         magic_crystal: { name: '魔力晶', heat: 300, icon: '🔮' },
     };
 
-    const QUALITY_ORDER = ['传说', '史诗', '稀有', '普通'];
+    var BASE_TEMPS = [200, 520, 840, 1160, 1480, 1800];
 
-    const BASE_TEMPS = [200, 520, 840, 1160, 1480, 1800];
-
-    let game = {
+    var game = {
         started: false,
         playerName: '',
         timeRemaining: 900,
@@ -28,24 +27,148 @@
         forgedEquipment: [],
         coolingDown: false,
         cooldownEndTime: null,
-        recipes: [],
+        gameStartTime: null,
+        lastSaveTime: null,
     };
 
-    let gameTimer = null;
-    let coolTimer = null;
-    let smeltTimers = {};
+    var gameTimer = null;
+    var coolTimer = null;
+    var smeltTimers = {};
 
     function initFurnace() {
-        game.furnace = BASE_TEMPS.map((temp, i) => ({
-            layer: i,
-            temp: temp,
-            baseTemp: temp,
-            ore: null,
-            smelting: false,
-            smeltProgress: 0,
-            smeltDuration: 0,
-            lastFuel: null,
-        }));
+        game.furnace = BASE_TEMPS.map(function(temp, i) {
+            return {
+                layer: i,
+                temp: temp,
+                baseTemp: temp,
+                ore: null,
+                smelting: false,
+                smeltProgress: 0,
+                smeltDuration: 0,
+                smeltStartTime: null,
+                lastFuel: null,
+            };
+        });
+    }
+
+    function saveGame() {
+        if (!game.started) return;
+        game.lastSaveTime = Date.now();
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(game));
+        } catch (e) {}
+    }
+
+    function loadGame() {
+        try {
+            var raw = localStorage.getItem(SAVE_KEY);
+            if (!raw) return false;
+            var saved = JSON.parse(raw);
+            if (!saved || !saved.started || !saved.gameStartTime) return false;
+
+            var elapsedTotal = Math.floor((Date.now() - saved.gameStartTime) / 1000);
+            var timeRemaining = 900 - elapsedTotal;
+            if (timeRemaining <= 0) {
+                clearSavedGame();
+                return false;
+            }
+
+            game.started = true;
+            game.playerName = saved.playerName;
+            game.timeRemaining = timeRemaining;
+            game.score = saved.score || 0;
+            game.inventory = saved.inventory || { '铜锭': 0, '铁锭': 0, '秘银条': 0 };
+            game.forgeSlots = saved.forgeSlots || [null, null];
+            game.forgedEquipment = saved.forgedEquipment || [];
+            game.gameStartTime = saved.gameStartTime;
+            game.lastSaveTime = Date.now();
+
+            var elapsedSinceSave = Math.floor((Date.now() - (saved.lastSaveTime || saved.gameStartTime)) / 1000);
+
+            game.furnace = BASE_TEMPS.map(function(temp, i) {
+                var sf = (saved.furnace && saved.furnace[i]) || {};
+                var currentTemp = sf.temp != null ? sf.temp : temp;
+
+                if (elapsedSinceSave > 0) {
+                    var coolCycles = Math.floor(elapsedSinceSave / 10);
+                    var tempDrop = coolCycles * 30;
+                    currentTemp = Math.max(200, currentTemp - tempDrop);
+                }
+
+                var layer = {
+                    layer: i,
+                    temp: currentTemp,
+                    baseTemp: temp,
+                    ore: sf.ore || null,
+                    smelting: false,
+                    smeltProgress: 0,
+                    smeltDuration: sf.smeltDuration || 0,
+                    smeltStartTime: sf.smeltStartTime || null,
+                    lastFuel: sf.lastFuel || null,
+                };
+
+                if (sf.smelting && sf.smeltStartTime && sf.ore) {
+                    var oreConf = ORE_CONFIG[sf.ore];
+                    var smeltElapsed = (Date.now() - sf.smeltStartTime) / 1000;
+                    var smeltTotal = oreConf.smeltTime;
+
+                    if (currentTemp < oreConf.minTemp || currentTemp > oreConf.maxTemp) {
+                        game.score = Math.max(0, game.score - 20);
+                        layer.ore = null;
+                        layer.smelting = false;
+                        layer.smeltProgress = 0;
+                        layer.smeltStartTime = null;
+                        layer.lastFuel = null;
+                    } else if (smeltElapsed >= smeltTotal) {
+                        var product = oreConf.product;
+                        game.inventory[product] = (game.inventory[product] || 0) + 1;
+                        layer.ore = null;
+                        layer.smelting = false;
+                        layer.smeltProgress = 0;
+                        layer.smeltStartTime = null;
+                        layer.lastFuel = null;
+                    } else {
+                        layer.smelting = true;
+                        layer.smeltProgress = Math.min(100, (smeltElapsed / smeltTotal) * 100);
+                    }
+                } else if (sf.ore && !sf.smelting && currentTemp > 0) {
+                    var oreConf2 = ORE_CONFIG[sf.ore];
+                    if (currentTemp >= oreConf2.minTemp && currentTemp <= oreConf2.maxTemp) {
+                        layer.smelting = true;
+                        layer.smeltStartTime = Date.now();
+                        layer.smeltProgress = 0;
+                    }
+                }
+
+                return layer;
+            });
+
+            if (saved.coolingDown && saved.cooldownEndTime) {
+                if (Date.now() >= saved.cooldownEndTime) {
+                    game.coolingDown = false;
+                    game.cooldownEndTime = null;
+                    game.furnace.forEach(function(f) {
+                        f.temp = Math.max(200, f.temp - 100);
+                    });
+                } else {
+                    game.coolingDown = true;
+                    game.cooldownEndTime = saved.cooldownEndTime;
+                }
+            } else {
+                game.coolingDown = false;
+                game.cooldownEndTime = null;
+            }
+
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function clearSavedGame() {
+        try {
+            localStorage.removeItem(SAVE_KEY);
+        } catch (e) {}
     }
 
     function showToast(message, type) {
@@ -231,6 +354,8 @@
         game.forgedEquipment = [];
         game.coolingDown = false;
         game.cooldownEndTime = null;
+        game.gameStartTime = Date.now();
+        game.lastSaveTime = Date.now();
 
         initFurnace();
 
@@ -249,11 +374,29 @@
             body: JSON.stringify({ player_name: name }),
         }).catch(function() {});
 
+        saveGame();
         updateAllUI();
         showToast('游戏开始！15分钟倒计时', 'success');
 
+        startTimers();
+    }
+
+    function startTimers() {
+        if (gameTimer) clearInterval(gameTimer);
+        if (coolTimer) clearInterval(coolTimer);
+
         gameTimer = setInterval(gameLoop, 1000);
         coolTimer = setInterval(coolFurnace, 10000);
+
+        game.furnace.forEach(function(f, idx) {
+            if (f.smelting && f.smeltStartTime) {
+                resumeSmelting(idx);
+            }
+        });
+
+        if (game.coolingDown && game.cooldownEndTime) {
+            resumeCooldownUI();
+        }
     }
 
     function gameLoop() {
@@ -275,6 +418,7 @@
             document.getElementById('cooldown-btn').textContent = '❄️ 冷却熔炉 (30秒)';
             document.getElementById('cooldown-btn').removeAttribute('disabled');
             showToast('冷却完成！所有层降温100℃', 'info');
+            saveGame();
         }
 
         updateAllUI();
@@ -286,6 +430,7 @@
         game.furnace.forEach(function(f) {
             f.temp = Math.max(200, f.temp - 30);
         });
+        saveGame();
         updateFurnaceUI();
     }
 
@@ -297,6 +442,8 @@
             clearInterval(smeltTimers[key]);
         }
         smeltTimers = {};
+
+        clearSavedGame();
 
         document.getElementById('start-btn').removeAttribute('disabled');
         document.getElementById('cooldown-btn').setAttribute('disabled', 'true');
@@ -343,6 +490,7 @@
 
         f.ore = oreType;
         showToast(ORE_CONFIG[oreType].name + ' 已放入第' + (layerIdx + 1) + '层', 'info');
+        saveGame();
         updateFurnaceUI();
     }
 
@@ -358,6 +506,7 @@
         if (!f.smelting) {
             checkAndStartSmelt(layerIdx);
         }
+        saveGame();
         updateFurnaceUI();
     }
 
@@ -379,10 +528,11 @@
         f.smelting = true;
         f.smeltProgress = 0;
         f.smeltDuration = oreConf.smeltTime;
+        f.smeltStartTime = Date.now();
 
         showToast(oreConf.name + '开始炼制！' + oreConf.smeltTime + '秒后完成', 'success');
+        saveGame();
 
-        var startTime = Date.now();
         var totalMs = oreConf.smeltTime * 1000;
 
         smeltTimers[layerIdx] = setInterval(function() {
@@ -391,18 +541,61 @@
                 return;
             }
 
-            var elapsed = Date.now() - startTime;
+            var elapsed = Date.now() - f.smeltStartTime;
             f.smeltProgress = Math.min(100, (elapsed / totalMs) * 100);
 
             if (f.temp < oreConf.minTemp || f.temp > oreConf.maxTemp) {
                 clearInterval(smeltTimers[layerIdx]);
+                delete smeltTimers[layerIdx];
                 burnOre(layerIdx);
                 return;
             }
 
             if (elapsed >= totalMs) {
                 clearInterval(smeltTimers[layerIdx]);
+                delete smeltTimers[layerIdx];
                 completeSmelting(layerIdx);
+                return;
+            }
+
+            updateFurnaceUI();
+        }, 100);
+    }
+
+    function resumeSmelting(layerIdx) {
+        var f = game.furnace[layerIdx];
+        if (!f || !f.smelting || !f.ore) return;
+
+        var oreConf = ORE_CONFIG[f.ore];
+        var totalMs = oreConf.smeltTime * 1000;
+        var elapsed = Date.now() - f.smeltStartTime;
+
+        if (elapsed >= totalMs) {
+            completeSmelting(layerIdx);
+            return;
+        }
+
+        smeltTimers[layerIdx] = setInterval(function() {
+            if (!game.started) {
+                clearInterval(smeltTimers[layerIdx]);
+                return;
+            }
+
+            var el = Date.now() - f.smeltStartTime;
+            f.smeltProgress = Math.min(100, (el / totalMs) * 100);
+
+            if (f.temp < oreConf.minTemp || f.temp > oreConf.maxTemp) {
+                clearInterval(smeltTimers[layerIdx]);
+                delete smeltTimers[layerIdx];
+                burnOre(layerIdx);
+                return;
+            }
+
+            if (el >= totalMs) {
+                clearInterval(smeltTimers[layerIdx]);
+                delete smeltTimers[layerIdx];
+                completeSmelting(layerIdx);
+                return;
             }
 
             updateFurnaceUI();
@@ -419,8 +612,10 @@
         f.ore = null;
         f.smelting = false;
         f.smeltProgress = 0;
+        f.smeltStartTime = null;
         f.lastFuel = null;
 
+        saveGame();
         updateAllUI();
     }
 
@@ -435,8 +630,10 @@
         f.ore = null;
         f.smelting = false;
         f.smeltProgress = 0;
+        f.smeltStartTime = null;
         f.lastFuel = null;
 
+        saveGame();
         updateAllUI();
     }
 
@@ -445,6 +642,19 @@
 
         game.coolingDown = true;
         game.cooldownEndTime = Date.now() + 30000;
+
+        var btn = document.getElementById('cooldown-btn');
+        btn.setAttribute('disabled', 'true');
+
+        saveGame();
+        resumeCooldownUI();
+
+        showToast('熔炉冷却中...30秒后所有层降温100℃', 'info');
+        updateFurnaceUI();
+    }
+
+    function resumeCooldownUI() {
+        if (!game.coolingDown || !game.cooldownEndTime) return;
 
         var btn = document.getElementById('cooldown-btn');
         btn.setAttribute('disabled', 'true');
@@ -459,9 +669,6 @@
                 btn.textContent = '❄️ 冷却中... ' + remaining + '秒';
             }
         }, 500);
-
-        showToast('熔炉冷却中...30秒后所有层降温100℃', 'info');
-        updateFurnaceUI();
     }
 
     async function forgeEquipment() {
@@ -506,6 +713,7 @@
             game.forgeSlots = [null, null];
 
             showToast('锻造成功：' + data.equipment_name + ' [' + data.quality + '] +' + data.final_score + '分', 'success');
+            saveGame();
             updateAllUI();
 
         } catch (e) {
@@ -646,6 +854,7 @@
                     if (f && f.ore && !f.smelting) {
                         showToast(ORE_CONFIG[f.ore].name + ' 已移除', 'info');
                         f.ore = null;
+                        saveGame();
                         updateFurnaceUI();
                     }
                 });
@@ -669,6 +878,7 @@
                     var data = JSON.parse(e.dataTransfer.getData('text/plain'));
                     if (data.category === 'metal') {
                         game.forgeSlots[idx] = data.type;
+                        saveGame();
                         updateForgeSlotsUI();
                     }
                 } catch (err) {}
@@ -679,6 +889,7 @@
         forgeSlots.forEach(function(slot, idx) {
             slot.addEventListener('dblclick', function() {
                 game.forgeSlots[idx] = null;
+                saveGame();
                 updateForgeSlotsUI();
             });
         });
@@ -711,7 +922,26 @@
             document.getElementById('player-name').value = game.playerName;
         });
 
-        updateAllUI();
+        var restored = loadGame();
+        if (restored && game.started) {
+            document.getElementById('player-name').value = game.playerName;
+            document.getElementById('start-btn').setAttribute('disabled', 'true');
+            document.getElementById('cooldown-btn').removeAttribute('disabled');
+            document.getElementById('player-name').setAttribute('disabled', 'true');
+
+            updateAllUI();
+            startTimers();
+
+            showToast('游戏已恢复！剩余时间 ' + formatTime(game.timeRemaining), 'info');
+        } else {
+            updateAllUI();
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (game.started) {
+                saveGame();
+            }
+        });
     }
 
     if (document.readyState === 'loading') {
