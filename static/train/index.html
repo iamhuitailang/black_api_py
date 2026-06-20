@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>末日列车 - Wasteland Express</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <header class="game-header">
+                <h1 class="game-title">🚂 末日列车</h1>
+                <div class="game-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">距离</span>
+                        <span class="stat-value">{{ distance.toFixed(1) }} km</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">速度</span>
+                        <span class="stat-value">{{ speed.toFixed(1) }} km/h</span>
+                    </div>
+                    <div class="stat-item fuel">
+                        <span class="stat-label">⛽ 燃料</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill fuel-fill" :style="{ width: fuelPercent + '%' }"></div>
+                        </div>
+                        <span class="stat-value">{{ fuel.toFixed(1) }}/{{ maxFuel }}</span>
+                    </div>
+                    <div class="stat-item cargo">
+                        <span class="stat-label">📦 物资</span>
+                        <span class="stat-value">{{ cargoCapacity }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <div v-if="!gameStarted" class="start-screen">
+                <div class="start-content">
+                    <h2>废土之上，永不停歇</h2>
+                    <p class="subtitle">驾驶你的改装列车，在末日废土中持续前行</p>
+                    <div class="train-preview">
+                        <div class="carriage-preview cockpit">🚀 驾驶舱<br><small>HP: 200</small></div>
+                        <div class="carriage-preview cargo">📦 货舱<br><small>HP: 100</small></div>
+                        <div class="carriage-preview weapon">🔫 武器舱<br><small>HP: 80</small></div>
+                    </div>
+                    <button @click="startGame" class="btn btn-primary btn-large">
+                        启动列车
+                    </button>
+                    <div class="game-rules">
+                        <h3>游戏说明</h3>
+                        <ul>
+                            <li>🎯 <strong>劫匪车队</strong>：点击开火按钮消灭劫匪</li>
+                            <li>🚧 <strong>路障</strong>：消耗物资清除路障</li>
+                            <li>🌉 <strong>桥梁断裂</strong>：5秒内切换轨道</li>
+                            <li>⛽ <strong>加油站</strong>：补充20单位燃料</li>
+                            <li>⬆️ <strong>升级车厢</strong>：提升属性，消耗物资</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else-if="gameOver" class="game-over-screen">
+                <div class="game-over-content">
+                    <h2 class="game-over-title">💀 列车停止了...</h2>
+                    <p class="game-over-reason">{{ gameOverReason }}</p>
+                    <div class="final-stats">
+                        <p>最终行驶距离: <strong>{{ distance.toFixed(1) }} km</strong></p>
+                    </div>
+                    <button @click="restartGame" class="btn btn-primary btn-large">
+                        重新启动
+                    </button>
+                </div>
+            </div>
+
+            <div v-else class="game-main">
+                <div class="train-view">
+                    <div class="wasteland-bg">
+                        <div class="tracks"></div>
+                        <div class="train" :class="{ 'shake': isShaking }">
+                            <div 
+                                v-for="carriage in carriages" 
+                                :key="carriage.carriage_type"
+                                class="carriage"
+                                :class="[carriage.carriage_type, { 'damaged': carriage.hp < carriage.max_hp * 0.5, 'destroyed': carriage.hp <= 0 }]"
+                            >
+                                <div class="carriage-icon">
+                                    <span v-if="carriage.carriage_type === 'cockpit'">🚀</span>
+                                    <span v-else-if="carriage.carriage_type === 'cargo'">📦</span>
+                                    <span v-else-if="carriage.carriage_type === 'weapon'">🔫</span>
+                                </div>
+                                <div class="carriage-info">
+                                    <div class="carriage-name">{{ carriage.name }} Lv.{{ carriage.level }}</div>
+                                    <div class="hp-bar">
+                                        <div 
+                                            class="hp-fill" 
+                                            :style="{ width: (carriage.hp / carriage.max_hp * 100) + '%' }"
+                                            :class="{ 'low': carriage.hp < carriage.max_hp * 0.3 }"
+                                        ></div>
+                                    </div>
+                                    <div class="carriage-stats">
+                                        <span>HP: {{ carriage.hp }}/{{ carriage.max_hp }}</span>
+                                        <span v-if="carriage.attack_power > 0">⚔️{{ carriage.attack_power }}</span>
+                                        <span v-if="carriage.speed_bonus > 0">🚄+{{ carriage.speed_bonus }}</span>
+                                    </div>
+                                </div>
+                                <div class="carriage-actions">
+                                    <button 
+                                        @click="upgradeCarriage(carriage.carriage_type)" 
+                                        class="btn btn-small btn-upgrade"
+                                        :disabled="carriage.level >= 10"
+                                        :title="`升级费用: ${getUpgradeCost(carriage.level)} 物资`"
+                                    >
+                                        ⬆️ 升级
+                                    </button>
+                                    <button 
+                                        @click="repairCarriage(carriage.carriage_type)" 
+                                        class="btn btn-small btn-repair"
+                                        :disabled="carriage.hp >= carriage.max_hp"
+                                        :title="修复费用: 40 物资"
+                                    >
+                                        🔧 修复
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-panel" v-if="currentEvent">
+                    <div class="event-header">
+                        <h3>⚠️ 当前事件</h3>
+                    </div>
+                    <div class="event-content">
+                        <div v-if="currentEvent === 'bandit'" class="event-bandit">
+                            <h4>🏴‍☠️ 劫匪车队来袭！</h4>
+                            <div class="bandit-list">
+                                <div 
+                                    v-for="(bandit, index) in bandits" 
+                                    :key="index"
+                                    class="bandit"
+                                >
+                                    <span class="bandit-icon">🚗</span>
+                                    <div class="bandit-hp">
+                                        <div 
+                                            class="bandit-hp-fill" 
+                                            :style="{ width: (bandit.hp / bandit.max_hp * 100) + '%' }"
+                                        ></div>
+                                    </div>
+                                    <span class="bandit-hp-text">{{ bandit.hp }}/{{ bandit.max_hp }}</span>
+                                </div>
+                            </div>
+                            <button @click="fireWeapon" class="btn btn-danger btn-large">
+                                🔫 开火！
+                            </button>
+                        </div>
+
+                        <div v-else-if="currentEvent === 'roadblock'" class="event-roadblock">
+                            <h4>🚧 前方有路障！</h4>
+                            <p>需要消耗 <strong>{{ roadblockCost }}</strong> 物资清除</p>
+                            <button @click="clearRoadblock" class="btn btn-warning btn-large">
+                                🧹 清除路障
+                            </button>
+                        </div>
+
+                        <div v-else-if="currentEvent === 'bridge'" class="event-bridge">
+                            <h4>🌉 桥梁即将断裂！</h4>
+                            <div class="countdown" :class="{ 'urgent': bridgeCountdown <= 2 }">
+                                {{ bridgeCountdown.toFixed(1) }} 秒
+                            </div>
+                            <p v-if="trackSwitched" class="success">✅ 轨道已切换！</p>
+                            <button 
+                                @click="switchTrack" 
+                                class="btn btn-info btn-large"
+                                :disabled="trackSwitched"
+                            >
+                                🔀 切换轨道
+                            </button>
+                        </div>
+
+                        <div v-else-if="currentEvent === 'gas_station'" class="event-gas">
+                            <h4>⛽ 发现加油站！</h4>
+                            <p>可以补充 <strong>20</strong> 单位燃料</p>
+                            <button @click="refuel" class="btn btn-success btn-large">
+                                ⛽ 加油
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-log">
+                    <h3>📜 事件日志</h3>
+                    <div class="log-list">
+                        <div 
+                            v-for="event in recentEvents" 
+                            :key="event.id"
+                            class="log-item"
+                            :class="'event-' + event.event_type"
+                        >
+                            <span class="log-time">{{ formatTime(event.created_at) }}</span>
+                            <span class="log-message">{{ event.description }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="message" class="toast" :class="'toast-' + (message.code === 0 ? 'success' : 'error')">
+                {{ message.message }}
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
