@@ -1,4 +1,6 @@
 const API_BASE = '/api/rift';
+const STORAGE_KEY = 'rift_game_state';
+const LOG_STORAGE_KEY = 'rift_game_logs';
 
 class RiftGame {
     constructor() {
@@ -12,14 +14,80 @@ class RiftGame {
         this.vortexAngle = 0;
         this.animationFrame = 0;
         this.pulsePhase = 0;
+        this.logs = [];
 
         this.init();
     }
 
     init() {
+        this.restoreFromCache();
         this.setupEventListeners();
+        this.restoreModeButtons();
+        this.restoreLogPanel();
         this.loadActiveGame();
         this.animate();
+    }
+
+    restoreFromCache() {
+        try {
+            const cached = localStorage.getItem(STORAGE_KEY);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.gameState && parsed.gameState.game && parsed.gameState.game.status === 'playing') {
+                    this.gameState = parsed.gameState;
+                    this.gameId = parsed.gameState.game.id;
+                    this.selectedMode = parsed.selectedMode || 'slow';
+                    this.selectedSegmentId = parsed.selectedSegmentId || null;
+                    this.updateUI();
+                }
+            }
+
+            const logsCached = localStorage.getItem(LOG_STORAGE_KEY);
+            if (logsCached) {
+                this.logs = JSON.parse(logsCached);
+            }
+        } catch (e) {
+            console.warn('Restore from cache failed:', e);
+        }
+    }
+
+    saveToCache() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                gameState: this.gameState,
+                selectedMode: this.selectedMode,
+                selectedSegmentId: this.selectedSegmentId,
+            }));
+        } catch (e) {
+            console.warn('Save to cache failed:', e);
+        }
+    }
+
+    saveLogsToCache() {
+        try {
+            localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(this.logs));
+        } catch (e) {
+            console.warn('Save logs to cache failed:', e);
+        }
+    }
+
+    restoreModeButtons() {
+        if (this.selectedMode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === this.selectedMode);
+            });
+        }
+    }
+
+    restoreLogPanel() {
+        const panel = document.getElementById('logPanel');
+        panel.innerHTML = '';
+        for (const log of this.logs) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${log.type}`;
+            entry.innerHTML = `<span class="turn">[T${log.turn}]</span>${log.message}`;
+            panel.appendChild(entry);
+        }
     }
 
     setupEventListeners() {
@@ -33,6 +101,7 @@ class RiftGame {
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedMode = btn.dataset.mode;
+                this.saveToCache();
             });
         });
 
@@ -86,6 +155,7 @@ class RiftGame {
         }
 
         this.selectedSegmentId = nearestSeg ? nearestSeg.id : null;
+        this.saveToCache();
     }
 
     async handleTrackerMove(x, y) {
@@ -105,6 +175,7 @@ class RiftGame {
             if (result.code === 0) {
                 this.gameState = result.data;
                 this.updateUI();
+                this.saveToCache();
             }
         } catch (err) {
             console.error('Move tracker failed:', err);
@@ -116,16 +187,22 @@ class RiftGame {
             const response = await fetch(`${API_BASE}/active`);
             const result = await response.json();
             if (result.code === 0 && result.data && result.data.game) {
+                const newGameId = result.data.game.id;
+                if (this.gameId !== newGameId) {
+                    this.logs = [];
+                    this.saveLogsToCache();
+                    this.restoreLogPanel();
+                    this.addLog('info', '游戏已就绪，开始封堵裂隙！');
+                }
                 this.gameState = result.data;
-                this.gameId = result.data.game.id;
-                this.addLog('info', '游戏已就绪，开始封堵裂隙！');
+                this.gameId = newGameId;
                 this.updateUI();
+                this.saveToCache();
             } else {
                 this.startNewGame();
             }
         } catch (err) {
             console.error('Load game failed:', err);
-            this.startNewGame();
         }
     }
 
@@ -140,8 +217,12 @@ class RiftGame {
                 this.gameState = result.data;
                 this.gameId = result.data.game.id;
                 this.selectedSegmentId = null;
+                this.logs = [];
+                this.saveLogsToCache();
+                this.restoreLogPanel();
                 this.addLog('info', '新游戏开始！守护时空稳定。');
                 this.updateUI();
+                this.saveToCache();
             }
         } catch (err) {
             console.error('Start game failed:', err);
@@ -180,6 +261,7 @@ class RiftGame {
                 }
 
                 this.updateUI();
+                this.saveToCache();
             } else {
                 this.addLog('fail', result.message || '操作失败');
             }
@@ -216,6 +298,7 @@ class RiftGame {
                 this.addLog('success', `时空锚点已部署，3回合内该节点停止扩张`);
                 this.selectedSegmentId = null;
                 this.updateUI();
+                this.saveToCache();
             } else {
                 this.addLog('warning', result.message || '部署锚点失败');
             }
@@ -244,8 +327,12 @@ class RiftGame {
     }
 
     addLog(type, message) {
-        const panel = document.getElementById('logPanel');
         const turn = this.gameState ? this.gameState.game.turn : 0;
+        const logEntry = { type, message, turn };
+        this.logs.unshift(logEntry);
+        if (this.logs.length > 50) this.logs.pop();
+
+        const panel = document.getElementById('logPanel');
         const entry = document.createElement('div');
         entry.className = `log-entry ${type}`;
         entry.innerHTML = `<span class="turn">[T${turn}]</span>${message}`;
@@ -254,6 +341,8 @@ class RiftGame {
         while (panel.children.length > 50) {
             panel.removeChild(panel.lastChild);
         }
+
+        this.saveLogsToCache();
     }
 
     animate() {
