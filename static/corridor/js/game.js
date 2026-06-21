@@ -18,6 +18,10 @@ const WEAPONS = {
 };
 const WEAPON_KEYS = Object.keys(WEAPONS);
 
+const SAVE_KEY = 'corridor_assault_save';
+let saveTimer = 0;
+const SAVE_INTERVAL = 2;
+
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = CFG.W;
@@ -404,8 +408,11 @@ function updatePlayer(dt) {
 
     if (ePressed) {
         ePressed = false;
-        if (nearCrate) tryPickupCrate();
-        if (nearDoor && !nearDoor.unlocked && !nearDoor.bossBlock && !unlocking) tryUnlockDoor();
+        if (nearCrate) {
+            tryPickupCrate();
+        } else if (nearDoor && !nearDoor.unlocked && !nearDoor.bossBlock && !unlocking) {
+            tryUnlockDoor();
+        }
     }
 }
 
@@ -636,18 +643,20 @@ function checkGameState() {
 }
 
 function update(dt) {
-    if (gameState !== 'playing') return;
+    if (gameState === 'playing') {
+        updatePlayer(dt);
+        updateEnemies(dt);
+        updateProjectiles(dt);
+        updateParticles(dt);
+        checkGameState();
 
-    updatePlayer(dt);
-    updateEnemies(dt);
-    updateProjectiles(dt);
-    updateParticles(dt);
-    checkGameState();
+        if (shakeAmount > 0) shakeAmount *= 0.9;
+        if (shakeAmount < 0.1) shakeAmount = 0;
+    }
 
-    if (shakeAmount > 0) shakeAmount *= 0.9;
-    if (shakeAmount < 0.1) shakeAmount = 0;
-
-    updateHUD();
+    if (gameState === 'playing' || gameState === 'paused') {
+        if (player) updateHUD();
+    }
 }
 
 function render() {
@@ -1072,6 +1081,7 @@ function updateHUD() {
 }
 
 function showReplaceModal(newWeap, crate) {
+    ePressed = false;
     gameState = 'paused';
     document.getElementById('replace-modal').classList.remove('hidden');
     document.getElementById('new-weapon-name').textContent = newWeap.name + ' ' + newWeap.icon;
@@ -1079,25 +1089,46 @@ function showReplaceModal(newWeap, crate) {
     for (let i = 0; i < 2; i++) {
         const w = player.weapons[i];
         const el = document.getElementById(`replace-slot-${i}`);
-        document.getElementById(`replace-icon-${i}`).style.background = w.clr + '33';
-        document.getElementById(`replace-icon-${i}`).textContent = w.icon;
-        document.getElementById(`replace-name-${i}`).textContent = `槽${i + 1}: ${w.name}`;
-        document.getElementById(`replace-ammo-${i}`).textContent = `${w.ammo}/${w.mag}`;
+        const iconEl = document.getElementById(`replace-icon-${i}`);
+        const nameEl = document.getElementById(`replace-name-${i}`);
+        const ammoEl = document.getElementById(`replace-ammo-${i}`);
+
+        if (w) {
+            iconEl.style.background = w.clr + '33';
+            iconEl.textContent = w.icon;
+            nameEl.textContent = `槽${i + 1}: ${w.name}`;
+            ammoEl.textContent = `${w.ammo}/${w.mag}`;
+        } else {
+            iconEl.style.background = '';
+            iconEl.textContent = '';
+            nameEl.textContent = `槽${i + 1}: 空`;
+            ammoEl.textContent = '-';
+        }
 
         el.onclick = () => {
             replaceWeapon(i, newWeap, crate);
             document.getElementById('replace-modal').classList.add('hidden');
             gameState = 'playing';
+            for (let j = 0; j < 2; j++) {
+                document.getElementById(`replace-slot-${j}`).onclick = null;
+            }
+            document.getElementById('cancel-replace-btn').onclick = null;
         };
     }
 
-    document.getElementById('cancel-replace-btn').onclick = () => {
+    const cancelBtn = document.getElementById('cancel-replace-btn');
+    cancelBtn.onclick = () => {
         document.getElementById('replace-modal').classList.add('hidden');
         gameState = 'playing';
+        for (let j = 0; j < 2; j++) {
+            document.getElementById(`replace-slot-${j}`).onclick = null;
+        }
+        cancelBtn.onclick = null;
     };
 }
 
 function showGameover() {
+    clearSavedGame();
     document.getElementById('gameover-screen').classList.remove('hidden');
     const totalTime = segmentTimes.reduce((a, b) => a + b, 0);
     document.getElementById('gameover-stats').innerHTML =
@@ -1105,6 +1136,7 @@ function showGameover() {
 }
 
 function showVictory() {
+    clearSavedGame();
     document.getElementById('victory-screen').classList.remove('hidden');
     const totalTime = segmentTimes.reduce((a, b) => a + b, 0);
     let statsHtml = `<p>总用时: ${totalTime.toFixed(1)}秒</p>`;
@@ -1171,6 +1203,209 @@ async function loadLeaderboard() {
     document.getElementById('leaderboard-panel').classList.remove('hidden');
 }
 
+function serializeWeapons(weapons) {
+    return weapons.map(w => {
+        if (!w) return null;
+        return {
+            id: w.id,
+            ammo: w.ammo,
+            reloading: w.reloading,
+            reloadTimer: w.reloadTimer,
+            fireTimer: w.fireTimer,
+        };
+    });
+}
+
+function deserializeWeapons(saved) {
+    if (!saved) return [null, null];
+    return saved.map(sw => {
+        if (!sw) return null;
+        const w = makeWeaponInstance(sw.id);
+        w.ammo = sw.ammo;
+        w.reloading = sw.reloading;
+        w.reloadTimer = sw.reloadTimer;
+        w.fireTimer = sw.fireTimer;
+        return w;
+    });
+}
+
+function serializeGameState() {
+    if (!player || gameState !== 'playing') return null;
+    return {
+        version: 1,
+        savedAt: Date.now(),
+        player: {
+            x: player.x,
+            y: player.y,
+            hp: player.hp,
+            maxHp: player.maxHp,
+            weapons: serializeWeapons(player.weapons),
+            activeSlot: player.activeSlot,
+            maxReached: player.maxReached,
+            facingRight: player.facingRight,
+            invuln: player.invuln,
+        },
+        cam: { x: cam.x },
+        enemies: enemies.map(e => ({
+            x: e.x, y: e.y,
+            hp: e.hp, maxHp: e.maxHp,
+            speed: e.speed,
+            dmg: e.dmg,
+            isBoss: e.isBoss,
+            attackCD: e.attackCD,
+            hit: e.hit,
+            dashCD: e.dashCD,
+            dashing: e.dashing,
+            dashTimer: e.dashTimer,
+            dashVx: e.dashVx,
+            dashVy: e.dashVy,
+            shootCD: e.shootCD,
+            moveTimer: e.moveTimer,
+            targetX: e.targetX,
+            targetY: e.targetY,
+            side: e.side,
+        })),
+        projectiles: projectiles.map(p => ({
+            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
+            dmg: p.dmg, sz: p.sz, clr: p.clr,
+            isGrenade: p.isGrenade, aoe: p.aoe,
+            weaponId: p.weaponId, life: p.life,
+        })),
+        bossProjectiles: bossProjectiles.map(p => ({
+            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
+            dmg: p.dmg, sz: p.sz, life: p.life,
+        })),
+        crates: crates.map(c => ({
+            x: c.x, y: c.y,
+            weapon: c.weapon,
+            collected: c.collected,
+            bobPhase: c.bobPhase,
+        })),
+        doors: doors.map(d => ({
+            segIndex: d.segIndex,
+            x: d.x,
+            unlocked: d.unlocked,
+            bossDead: d.bossDead,
+        })),
+        particles: particles.map(p => ({
+            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
+            life: p.life, maxLife: p.maxLife,
+            color: p.color, sz: p.sz,
+        })),
+        curSeg: curSeg,
+        enemySpawned: enemySpawned,
+        bossSpawned: bossSpawned,
+        totalEnemiesKilled: totalEnemiesKilled,
+        weaponUseCount: weaponUseCount,
+        segmentTimes: segmentTimes,
+        segStartTime: segStartTime,
+        gameStartTime: gameStartTime,
+        shakeAmount: shakeAmount,
+    };
+}
+
+function deserializeGameState(saved) {
+    if (!saved || saved.version !== 1) return false;
+    try {
+        player = {
+            x: saved.player.x,
+            y: saved.player.y,
+            w: CFG.PLAYER_W, h: CFG.PLAYER_H,
+            hp: saved.player.hp,
+            maxHp: saved.player.maxHp,
+            weapons: deserializeWeapons(saved.player.weapons),
+            activeSlot: saved.player.activeSlot,
+            maxReached: saved.player.maxReached,
+            facingRight: saved.player.facingRight,
+            invuln: saved.player.invuln,
+            vx: 0, vy: 0,
+        };
+        cam = saved.cam;
+        enemies = saved.enemies.map(e => ({
+            x: e.x, y: e.y,
+            w: e.isBoss ? CFG.BOSS_W : CFG.ENEMY_W,
+            h: e.isBoss ? CFG.BOSS_H : CFG.ENEMY_H,
+            hp: e.hp, maxHp: e.maxHp,
+            speed: e.speed,
+            dmg: e.dmg,
+            isBoss: e.isBoss,
+            attackCD: e.attackCD,
+            hit: e.hit,
+            dashCD: e.dashCD,
+            dashing: e.dashing,
+            dashTimer: e.dashTimer,
+            dashVx: e.dashVx,
+            dashVy: e.dashVy,
+            shootCD: e.shootCD,
+            moveTimer: e.moveTimer,
+            targetX: e.targetX,
+            targetY: e.targetY,
+            side: e.side,
+        }));
+        projectiles = saved.projectiles;
+        bossProjectiles = saved.bossProjectiles;
+        crates = saved.crates;
+        doors = saved.doors;
+        particles = saved.particles;
+        curSeg = saved.curSeg;
+        enemySpawned = saved.enemySpawned;
+        bossSpawned = saved.bossSpawned;
+        totalEnemiesKilled = saved.totalEnemiesKilled;
+        weaponUseCount = saved.weaponUseCount;
+        segmentTimes = saved.segmentTimes;
+        segStartTime = saved.segStartTime;
+        gameStartTime = saved.gameStartTime;
+        shakeAmount = saved.shakeAmount;
+        unlockProgress = 0;
+        unlocking = false;
+        nearDoor = null;
+        nearCrate = null;
+        return true;
+    } catch (err) {
+        console.error('Failed to deserialize game state:', err);
+        return false;
+    }
+}
+
+function saveGame() {
+    try {
+        const state = serializeGameState();
+        if (state) {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+        }
+    } catch (e) {
+        console.warn('Failed to save game:', e);
+    }
+}
+
+function loadGame() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        if (deserializeGameState(saved)) {
+            return true;
+        }
+        clearSavedGame();
+        return false;
+    } catch (e) {
+        console.warn('Failed to load game:', e);
+        return false;
+    }
+}
+
+function hasSavedGame() {
+    return !!localStorage.getItem(SAVE_KEY);
+}
+
+function clearSavedGame() {
+    try {
+        localStorage.removeItem(SAVE_KEY);
+    } catch (e) {
+        console.warn('Failed to clear save:', e);
+    }
+}
+
 function gameLoop(timestamp) {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
@@ -1178,17 +1413,26 @@ function gameLoop(timestamp) {
     update(dt);
     render();
 
+    if (gameState === 'playing') {
+        saveTimer += dt;
+        if (saveTimer >= SAVE_INTERVAL) {
+            saveTimer = 0;
+            saveGame();
+        }
+    }
+
     requestAnimationFrame(gameLoop);
 }
 
 document.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyE') e.preventDefault();
     keys[e.code] = true;
 
     if (gameState === 'playing') {
         if (e.code === 'Digit1') switchWeapon(0);
         if (e.code === 'Digit2') switchWeapon(1);
         if (e.code === 'KeyR') startReload();
-        if (e.code === 'KeyE') ePressed = true;
+        if (e.code === 'KeyE' && !e.repeat) ePressed = true;
     }
 });
 
@@ -1212,20 +1456,45 @@ canvas.addEventListener('mouseup', (e) => {
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+function refreshContinueBtn() {
+    const btn = document.getElementById('continue-btn');
+    if (btn) {
+        if (hasSavedGame()) {
+            btn.classList.remove('hidden');
+        } else {
+            btn.classList.add('hidden');
+        }
+    }
+}
+
 document.getElementById('start-btn').addEventListener('click', () => {
+    clearSavedGame();
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     initGame();
     gameState = 'playing';
 });
 
+document.getElementById('continue-btn').addEventListener('click', () => {
+    if (loadGame()) {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        gameState = 'playing';
+    } else {
+        alert('存档损坏或不存在');
+        refreshContinueBtn();
+    }
+});
+
 document.getElementById('retry-btn').addEventListener('click', () => {
+    clearSavedGame();
     document.getElementById('gameover-screen').classList.add('hidden');
     initGame();
     gameState = 'playing';
 });
 
 document.getElementById('play-again-btn').addEventListener('click', () => {
+    clearSavedGame();
     document.getElementById('victory-screen').classList.add('hidden');
     initGame();
     gameState = 'playing';
@@ -1242,4 +1511,5 @@ document.getElementById('close-lb-btn').addEventListener('click', () => {
 });
 
 lastTime = performance.now();
+refreshContinueBtn();
 requestAnimationFrame(gameLoop);

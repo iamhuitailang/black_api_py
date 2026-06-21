@@ -385,6 +385,18 @@ body {
     color: #fff;
 }
 
+.game-btn#continue-btn {
+    background: linear-gradient(135deg, #2a5a2a, #1a4a1a);
+    border-color: #00ff88;
+    color: #00ff88;
+    text-shadow: 0 0 4px rgba(0,255,136,0.5);
+}
+
+.game-btn#continue-btn:hover {
+    background: linear-gradient(135deg, #1a4a1a, #2a5a2a);
+    box-shadow: 0 0 15px rgba(0,255,136,0.4);
+}
+
 .gameover-title {
     font-size: 42px;
     color: #ff4444;
