@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时空裂隙封堵</title>
+    <link rel="stylesheet" href="/static/rift/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">时空裂隙封堵</h1>
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">回合</span>
+                    <span class="stat-value" id="turnValue">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">裂隙长度</span>
+                    <span class="stat-value" id="lengthValue">0</span>
+                    <span class="stat-sub">/ 80</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">已封堵</span>
+                    <span class="stat-value" id="sealedValue">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">锚点</span>
+                    <span class="stat-value" id="anchorValue">0</span>
+                    <span class="stat-sub">/ 5</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">可用锚点</span>
+                    <span class="stat-value" id="anchorAvailValue">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">分支数</span>
+                    <span class="stat-value" id="branchValue">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">分数</span>
+                    <span class="stat-value" id="scoreValue">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-banners">
+            <div class="status-banner warning" id="outOfControlBanner" style="display:none;">
+                ⚠ 时空裂隙失控！所有封堵成功率 -20%
+            </div>
+            <div class="status-banner danger" id="shakeBanner" style="display:none;">
+                ⚠ 分支过多震荡！成功率额外 -10%，追踪器每回合随机偏移
+            </div>
+        </div>
+
+        <div class="game-main">
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <div class="canvas-hint" id="canvasHint">点击或拖拽移动追踪器至裂隙边缘</div>
+            </div>
+
+            <div class="control-panel">
+                <div class="panel-section">
+                    <h3>封堵模式</h3>
+                    <div class="mode-buttons">
+                        <button class="mode-btn active" data-mode="slow">
+                            <div class="mode-name">慢速精准</div>
+                            <div class="mode-detail">成功率 95% · 1格</div>
+                        </button>
+                        <button class="mode-btn" data-mode="medium">
+                            <div class="mode-name">中速平衡</div>
+                            <div class="mode-detail">成功率 75% · 2格</div>
+                        </button>
+                        <button class="mode-btn" data-mode="fast">
+                            <div class="mode-name">快速粗略</div>
+                            <div class="mode-detail">成功率 50% · 3格</div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>操作</h3>
+                    <button class="action-btn primary" id="sealBtn">执行封堵</button>
+                    <button class="action-btn" id="anchorBtn">部署锚点 (选中节点)</button>
+                    <button class="action-btn secondary" id="newGameBtn">新游戏</button>
+                </div>
+
+                <div class="panel-section">
+                    <h3>操作日志</h3>
+                    <div class="log-panel" id="logPanel"></div>
+                </div>
+
+                <div class="panel-section legend">
+                    <h3>图例</h3>
+                    <div class="legend-item">
+                        <span class="legend-color rift-unsealed"></span>
+                        <span>未封堵裂隙</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color rift-sealed"></span>
+                        <span>已封堵裂隙</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color rift-node"></span>
+                        <span>裂隙节点（可部署锚点）</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color anchor"></span>
+                        <span>时空锚点</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color vortex"></span>
+                        <span>时空漩涡（降速）</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color tracker"></span>
+                        <span>追踪器</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/rift/js/game.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -12,6 +12,10 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.rift import (
+    RiftGameModel, RiftSegmentModel, RiftSealOperationModel,
+    RiftAnchorModel, RiftVortexModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +38,11 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    RiftGameModel.create_table()
+    RiftSegmentModel.create_table()
+    RiftSealOperationModel.create_table()
+    RiftAnchorModel.create_table()
+    RiftVortexModel.create_table()
     
     migrate_database()
     
@@ -108,11 +117,16 @@ async def health_check():
     }
 
 
+@app.get("/rift")
+async def rift_game_page():
+    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "rift", "index.html"))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8034,
         reload=True
     )
