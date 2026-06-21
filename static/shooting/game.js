@@ -61,7 +61,6 @@ class ThermalShooterGame {
         this.loadPlayerName();
         this.loadLevels();
         this.initDefaultData();
-        this.checkSavedGameOnMenu();
     }
 
     loadPlayerName() {
@@ -79,18 +78,6 @@ class ThermalShooterGame {
                 localStorage.setItem('shooting_player_name', e.target.value);
             } catch (e) {}
         });
-    }
-
-    checkSavedGameOnMenu() {
-        const saved = this.getSavedGameState();
-        if (saved && saved.state !== GameState.GAMEOVER && saved.state !== GameState.WIN) {
-            if (this.levels && this.levels.length > 0) {
-                const hasLevel = this.levels.some(l => l.level_num === saved.levelNum);
-                if (hasLevel) {
-                    this.selectLevel(saved.levelNum);
-                }
-            }
-        }
     }
 
     resizeCanvas() {
@@ -168,11 +155,31 @@ class ThermalShooterGame {
             if (data.code === 0 && data.data.items.length > 0) {
                 this.levels = data.data.items;
                 this.renderLevelList();
-                this.checkSavedGameOnMenu();
+                this.tryAutoResumeGame();
             }
         } catch (e) {
             console.error('Failed to load levels:', e);
         }
+    }
+
+    tryAutoResumeGame() {
+        const saved = this.getSavedGameState();
+        if (!saved) return;
+        if (saved.state === GameState.GAMEOVER || saved.state === GameState.WIN) return;
+
+        const savedPlayerName = localStorage.getItem('shooting_player_name') || '';
+        if (!savedPlayerName.trim()) return;
+
+        const hasLevel = this.levels.some(l => l.level_num === saved.levelNum);
+        if (!hasLevel) return;
+
+        document.getElementById('player-name').value = savedPlayerName;
+        this.selectedLevel = saved.levelNum;
+        document.querySelectorAll('.level-item').forEach(el => {
+            el.classList.toggle('selected', parseInt(el.dataset.levelNum) === saved.levelNum);
+        });
+
+        this.startGame(true);
     }
 
     renderLevelList() {
@@ -234,19 +241,24 @@ class ThermalShooterGame {
     async startGame(restoreSaved = false) {
         if (!this.selectedLevel) return;
 
-        const playerName = document.getElementById('player-name').value.trim();
-        if (!playerName) {
-            alert('请输入玩家名称后再开始游戏！');
-            document.getElementById('player-name').focus();
-            return;
+        if (!restoreSaved) {
+            const playerName = document.getElementById('player-name').value.trim();
+            if (!playerName) {
+                alert('请输入玩家名称后再开始游戏！');
+                document.getElementById('player-name').focus();
+                return;
+            }
         }
 
-        const savedState = this.getSavedGameState();
-        if (!restoreSaved && savedState && savedState.state !== GameState.GAMEOVER && savedState.state !== GameState.WIN) {
-            if (!confirm('检测到未完成的游戏，是否继续上次的进度？\n\n点击"确定"继续游戏，点击"取消"重新开始。')) {
-                this.clearSavedGameState();
-            } else {
-                restoreSaved = true;
+        let shouldRestore = restoreSaved;
+        if (!restoreSaved) {
+            const savedState = this.getSavedGameState();
+            if (savedState && savedState.state !== GameState.GAMEOVER && savedState.state !== GameState.WIN && savedState.levelNum === this.selectedLevel) {
+                if (confirm('检测到未完成的游戏，是否继续上次的进度？\n\n点击"确定"继续游戏，点击"取消"重新开始。')) {
+                    shouldRestore = true;
+                } else {
+                    this.clearSavedGameState();
+                }
             }
         }
 
@@ -266,9 +278,10 @@ class ThermalShooterGame {
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
 
+        const savedState = this.getSavedGameState();
         setTimeout(() => {
             this.resizeCanvas();
-            if (restoreSaved && savedState && savedState.levelNum === this.selectedLevel) {
+            if (shouldRestore && savedState && savedState.levelNum === this.selectedLevel) {
                 this.restoreGameState(savedState);
             } else {
                 this.initGameState();
@@ -357,7 +370,7 @@ class ThermalShooterGame {
                     lastStepTime: this.player.lastStepTime,
                     invincible: 0
                 } : null,
-                enemies: this.enemies.map(e => ({
+                enemies: this.enemies.filter(e => !e.dead).map(e => ({
                     type: e.type,
                     x: e.x,
                     y: e.y,
@@ -372,7 +385,8 @@ class ThermalShooterGame {
                     shieldReduction: e.shieldReduction,
                     angle: e.angle,
                     lastAttack: e.lastAttack,
-                    explodeTriggered: e.explodeTriggered
+                    explodeTriggered: e.explodeTriggered,
+                    dead: false
                 })),
                 expireTime: Date.now() + 1000 * 60 * 30
             };
@@ -395,7 +409,7 @@ class ThermalShooterGame {
         this.gameStartTime = savedState.gameStartTime || Date.now();
         this.supplyTimer = savedState.supplyTimer || 0;
 
-        this.enemies = savedState.enemies ? savedState.enemies.map(e => ({...e})) : [];
+        this.enemies = savedState.enemies ? savedState.enemies.map(e => ({...e, dead: false})) : [];
         this.bullets = [];
         this.particles = [];
         this.floatTexts = [];
@@ -522,7 +536,8 @@ class ThermalShooterGame {
             shieldReduction: cfg.shield_reduction || 0,
             angle: 0,
             lastAttack: 0,
-            explodeTriggered: false
+            explodeTriggered: false,
+            dead: false
         };
         this.enemies.push(enemy);
     }
@@ -667,7 +682,9 @@ class ThermalShooterGame {
 
     startGameLoop() {
         this.lastFrameTime = performance.now();
+        this.gameLoopRunning = true;
         const loop = (now) => {
+            if (!this.gameLoopRunning) return;
             const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
             this.lastFrameTime = now;
             this.update(dt);
@@ -678,6 +695,7 @@ class ThermalShooterGame {
     }
 
     stopGameLoop() {
+        this.gameLoopRunning = false;
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
@@ -690,7 +708,7 @@ class ThermalShooterGame {
                 this.updatePlayer(dt);
                 this.updateBullets(dt);
                 this.updateEnemies(dt);
-                this.checkWaveComplete();
+                this.processDeadEnemies();
             }
 
             const now = Date.now();
@@ -702,6 +720,27 @@ class ThermalShooterGame {
         }
         this.updateParticles(dt);
         this.updateFloatTexts(dt);
+    }
+
+    processDeadEnemies() {
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const e = this.enemies[i];
+            if (!e.dead && e.hp <= 0) {
+                e.dead = true;
+                this.createExplosion(e.x, e.y, e.radius + 10, e.color);
+                this.score += e.type === EnemyType.DEFENSE ? 50 :
+                    e.type === EnemyType.SUICIDE ? 30 : 20;
+                this.kills++;
+                this.recoverHeatOnKill();
+                this.addFloatText(e.x, e.y, '+' + (e.type === EnemyType.DEFENSE ? 50 :
+                    e.type === EnemyType.SUICIDE ? 30 : 20), '#00ff88');
+                this.needsSave = true;
+            }
+        }
+
+        this.removeDeadEnemies();
+        this.updateHUD();
+        this.checkWaveComplete();
     }
 
     updatePlayer(dt) {
@@ -754,7 +793,8 @@ class ThermalShooterGame {
 
             for (let j = this.enemies.length - 1; j >= 0; j--) {
                 const e = this.enemies[j];
-                if (b.piercedEnemies.includes(j)) continue;
+                if (e.dead) continue;
+                if (b.piercedEnemies.includes(e)) continue;
 
                 const dist = Math.hypot(b.x - e.x, b.y - e.y);
                 if (dist < b.radius + e.radius) {
@@ -785,19 +825,15 @@ class ThermalShooterGame {
 
                     if (b.type === BulletType.EXPLOSIVE) {
                         this.createExplosion(b.x, b.y, b.radius_damage * this.cellSize, b.color);
-                        this.explosionDamage(b.x, b.y, b.radius_damage * this.cellSize, b.damage);
+                        this.explosionDamage(b.x, b.y, b.radius_damage * this.cellSize, b.damage, e);
                     }
 
                     if (b.type === BulletType.PIERCING) {
-                        b.piercedEnemies.push(j);
+                        b.piercedEnemies.push(e);
                         if (b.piercedEnemies.length >= b.pierceCount) {
                             break;
                         }
                         hitEnemy = false;
-                    }
-
-                    if (e.hp <= 0) {
-                        this.killEnemy(j);
                     }
 
                     if (hitEnemy && b.type !== BulletType.PIERCING) {
@@ -837,24 +873,25 @@ class ThermalShooterGame {
         }
     }
 
-    explosionDamage(x, y, radius, baseDamage) {
+    explosionDamage(x, y, radius, baseDamage, excludeEnemy) {
         for (let j = this.enemies.length - 1; j >= 0; j--) {
             const e = this.enemies[j];
+            if (e.dead) continue;
+            if (e === excludeEnemy) continue;
             const dist = Math.hypot(e.x - x, e.y - y);
             if (dist < radius + e.radius) {
                 const falloff = 1 - (dist / radius);
                 const dmg = Math.max(0, baseDamage * falloff);
                 e.hp -= dmg;
                 this.addFloatText(e.x, e.y - 20, `-${Math.round(dmg)}`, '#ff8800');
-                if (e.hp <= 0) {
-                    this.killEnemy(j);
-                }
             }
         }
     }
 
     killEnemy(index) {
         const e = this.enemies[index];
+        if (e.dead) return;
+        e.dead = true;
         this.createExplosion(e.x, e.y, e.radius + 10, e.color);
         this.score += e.type === EnemyType.DEFENSE ? 50 :
             e.type === EnemyType.SUICIDE ? 30 : 20;
@@ -862,9 +899,16 @@ class ThermalShooterGame {
         this.recoverHeatOnKill();
         this.addFloatText(e.x, e.y, '+' + (e.type === EnemyType.DEFENSE ? 50 :
             e.type === EnemyType.SUICIDE ? 30 : 20), '#00ff88');
-        this.enemies.splice(index, 1);
         this.updateHUD();
         this.needsSave = true;
+    }
+
+    removeDeadEnemies() {
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            if (this.enemies[i].dead) {
+                this.enemies.splice(i, 1);
+            }
+        }
     }
 
     updateEnemies(dt) {
@@ -872,6 +916,8 @@ class ThermalShooterGame {
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
+            if (e.dead) continue;
+
             const dx = this.player.x - e.x;
             const dy = this.player.y - e.y;
             const dist = Math.hypot(dx, dy);
@@ -881,9 +927,10 @@ class ThermalShooterGame {
                 const triggerDist = e.explodeRadius;
                 if (dist < triggerDist && !e.explodeTriggered) {
                     e.explodeTriggered = true;
+                    e.baseSpeed = e.speed;
+                    e.speed = e.baseSpeed * 2.5;
                 }
                 if (e.explodeTriggered) {
-                    e.speed *= 1.5;
                     if (dist < this.player.radius + e.radius + 5) {
                         this.suicideExplode(i);
                         continue;
@@ -898,10 +945,10 @@ class ThermalShooterGame {
 
             const minDist = this.player.radius + e.radius + 2;
             const currentDist = Math.hypot(this.player.x - e.x, this.player.y - e.y);
-            if (currentDist < minDist) {
+            if (currentDist < minDist && currentDist > 0) {
                 const overlap = minDist - currentDist;
-                const nx = (e.x - this.player.x) / (currentDist || 1);
-                const ny = (e.y - this.player.y) / (currentDist || 1);
+                const nx = (e.x - this.player.x) / currentDist;
+                const ny = (e.y - this.player.y) / currentDist;
                 e.x += nx * overlap;
                 e.y += ny * overlap;
             }
@@ -909,6 +956,7 @@ class ThermalShooterGame {
             for (let j = 0; j < this.enemies.length; j++) {
                 if (j === i) continue;
                 const other = this.enemies[j];
+                if (other.dead) continue;
                 const edist = Math.hypot(e.x - other.x, e.y - other.y);
                 const emin = e.radius + other.radius + 1;
                 if (edist < emin && edist > 0) {
@@ -934,6 +982,8 @@ class ThermalShooterGame {
 
     suicideExplode(index) {
         const e = this.enemies[index];
+        if (e.dead) return;
+
         this.createExplosion(e.x, e.y, e.explodeRadius, e.color);
 
         const distToPlayer = Math.hypot(this.player.x - e.x, this.player.y - e.y);
@@ -943,32 +993,23 @@ class ThermalShooterGame {
             this.damagePlayer(dmg);
         }
 
-        let killOffset = 0;
-        for (let j = this.enemies.length - 1; j >= 0; j--) {
+        for (let j = 0; j < this.enemies.length; j++) {
             if (j === index) continue;
             const other = this.enemies[j];
+            if (other.dead) continue;
             const d = Math.hypot(other.x - e.x, other.y - e.y);
             if (d < e.explodeRadius) {
                 const falloff = 1 - (d / e.explodeRadius);
                 other.hp -= e.explodeDamage * 0.5 * falloff;
-                if (other.hp <= 0) {
-                    this.killEnemy(j);
-                    if (j < index) {
-                        killOffset++;
-                    }
-                }
+                this.addFloatText(other.x, other.y - 20, `-${Math.round(e.explodeDamage * 0.5 * falloff)}`, '#ff8800');
             }
         }
 
-        const adjustedIndex = index - killOffset;
-
+        e.dead = true;
         this.score += 30;
         this.kills++;
         this.recoverHeatOnKill();
         this.addFloatText(e.x, e.y, '+30', '#00ff88');
-        if (adjustedIndex >= 0 && adjustedIndex < this.enemies.length) {
-            this.enemies.splice(adjustedIndex, 1);
-        }
         this.updateHUD();
         this.needsSave = true;
     }
@@ -1150,6 +1191,7 @@ class ThermalShooterGame {
     drawEnemies() {
         const ctx = this.ctx;
         this.enemies.forEach(e => {
+            if (e.dead) return;
             ctx.save();
             ctx.translate(e.x, e.y);
             ctx.rotate(e.angle);
