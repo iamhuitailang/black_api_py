@@ -1,6 +1,6 @@
 const API_BASE = '/api/rift';
-const STORAGE_KEY = 'rift_game_state';
-const LOG_STORAGE_KEY = 'rift_game_logs';
+const STORAGE_KEY = 'rift_game_cache_v2';
+const STORAGE_VERSION = 2;
 
 class RiftGame {
     constructor() {
@@ -15,72 +15,139 @@ class RiftGame {
         this.animationFrame = 0;
         this.pulsePhase = 0;
         this.logs = [];
+        this._saveTimer = null;
 
         this.init();
     }
 
     init() {
-        this.restoreFromCache();
+        const hasCache = this.restoreFromCache();
         this.setupEventListeners();
         this.restoreModeButtons();
         this.restoreLogPanel();
         this.loadActiveGame();
         this.animate();
+
+        if (!hasCache) {
+            console.log('[RiftGame] No cache found, waiting for API data');
+        } else {
+            console.log('[RiftGame] Cache restored, game_id:', this.gameId);
+        }
+    }
+
+    _serializeState() {
+        if (!this.gameState) return null;
+        const s = this.gameState;
+        return {
+            version: STORAGE_VERSION,
+            game: s.game,
+            segments: s.segments,
+            anchors: s.anchors,
+            vortices: s.vortices,
+            total_length: s.total_length,
+            is_out_of_control: s.is_out_of_control,
+            is_shaking: s.is_shaking,
+            branch_count: s.branch_count,
+            selectedMode: this.selectedMode,
+            selectedSegmentId: this.selectedSegmentId,
+            logs: this.logs.slice(0, 50),
+            savedAt: Date.now()
+        };
+    }
+
+    saveToCache() {
+        if (this._saveTimer) {
+            clearTimeout(this._saveTimer);
+        }
+        this._saveTimer = setTimeout(() => {
+            this._doSave();
+        }, 50);
+    }
+
+    _doSave() {
+        try {
+            const data = this._serializeState();
+            if (!data) return;
+            const json = JSON.stringify(data);
+            localStorage.setItem(STORAGE_KEY, json);
+            console.debug('[RiftGame] Saved to cache, size:', Math.round(json.length / 1024), 'KB');
+        } catch (e) {
+            console.warn('[RiftGame] Save to cache failed:', e);
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (_) {}
+        }
     }
 
     restoreFromCache() {
         try {
-            const cached = localStorage.getItem(STORAGE_KEY);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed.gameState && parsed.gameState.game && parsed.gameState.game.status === 'playing') {
-                    this.gameState = parsed.gameState;
-                    this.gameId = parsed.gameState.game.id;
-                    this.selectedMode = parsed.selectedMode || 'slow';
-                    this.selectedSegmentId = parsed.selectedSegmentId || null;
-                    this.updateUI();
-                }
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return false;
+
+            const data = JSON.parse(raw);
+            if (!data || data.version !== STORAGE_VERSION) {
+                console.warn('[RiftGame] Cache version mismatch, clearing');
+                localStorage.removeItem(STORAGE_KEY);
+                return false;
             }
 
-            const logsCached = localStorage.getItem(LOG_STORAGE_KEY);
-            if (logsCached) {
-                this.logs = JSON.parse(logsCached);
+            if (!data.game || data.game.status !== 'playing') {
+                console.warn('[RiftGame] Cache game not playing, skipping');
+                return false;
             }
-        } catch (e) {
-            console.warn('Restore from cache failed:', e);
-        }
-    }
 
-    saveToCache() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                gameState: this.gameState,
-                selectedMode: this.selectedMode,
-                selectedSegmentId: this.selectedSegmentId,
-            }));
-        } catch (e) {
-            console.warn('Save to cache failed:', e);
-        }
-    }
+            this.gameState = {
+                game: data.game,
+                segments: data.segments || [],
+                anchors: data.anchors || [],
+                vortices: data.vortices || [],
+                total_length: data.total_length || 0,
+                is_out_of_control: data.is_out_of_control || false,
+                is_shaking: data.is_shaking || false,
+                branch_count: data.branch_count || 1,
+                operations: [],
+                canvas_width: 800,
+                canvas_height: 600,
+                segment_distance: 20,
+                max_length: 80,
+                seal_modes: {
+                    slow: { rate: 0.95, coverage: 1, name: '慢速精准' },
+                    medium: { rate: 0.75, coverage: 2, name: '中速平衡' },
+                    fast: { rate: 0.50, coverage: 3, name: '快速粗略' },
+                },
+                max_anchors: 5,
+            };
 
-    saveLogsToCache() {
-        try {
-            localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(this.logs));
+            this.gameId = data.game.id;
+            this.selectedMode = data.selectedMode || 'slow';
+            this.selectedSegmentId = data.selectedSegmentId || null;
+            this.logs = data.logs || [];
+
+            this.updateUI();
+
+            const savedAgo = data.savedAt ? Math.round((Date.now() - data.savedAt) / 1000) : 0;
+            console.log('[RiftGame] Restored from cache (saved', savedAgo, 'seconds ago)');
+            console.log('[RiftGame]  Segments:', this.gameState.segments.length);
+            console.log('[RiftGame]  Anchors:', this.gameState.anchors.filter(a => a.status === 'active').length);
+            console.log('[RiftGame]  Vortices:', this.gameState.vortices.filter(v => v.status === 'active').length);
+            console.log('[RiftGame]  Tracker:', data.game.tracker_x, data.game.tracker_y);
+
+            return true;
         } catch (e) {
-            console.warn('Save logs to cache failed:', e);
+            console.warn('[RiftGame] Restore from cache failed:', e);
+            return false;
         }
     }
 
     restoreModeButtons() {
-        if (this.selectedMode) {
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mode === this.selectedMode);
-            });
-        }
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === this.selectedMode);
+        });
     }
 
     restoreLogPanel() {
         const panel = document.getElementById('logPanel');
+        if (!panel) return;
         panel.innerHTML = '';
         for (const log of this.logs) {
             const entry = document.createElement('div');
@@ -108,6 +175,8 @@ class RiftGame {
         document.getElementById('sealBtn').addEventListener('click', () => this.executeSeal());
         document.getElementById('anchorBtn').addEventListener('click', () => this.deployAnchor());
         document.getElementById('newGameBtn').addEventListener('click', () => this.startNewGame());
+
+        window.addEventListener('beforeunload', () => this._doSave());
     }
 
     getCanvasCoords(e) {
@@ -123,12 +192,14 @@ class RiftGame {
     onMouseDown(e) {
         this.isDragging = true;
         const coords = this.getCanvasCoords(e);
+        this._setTrackerLocal(coords.x, coords.y);
         this.handleTrackerMove(coords.x, coords.y);
     }
 
     onMouseMove(e) {
         const coords = this.getCanvasCoords(e);
         if (this.isDragging) {
+            this._setTrackerLocal(coords.x, coords.y);
             this.handleTrackerMove(coords.x, coords.y);
         }
     }
@@ -137,6 +208,15 @@ class RiftGame {
         this.isDragging = false;
         const coords = this.getCanvasCoords(e);
         this.detectNearbySegment(coords.x, coords.y);
+    }
+
+    _setTrackerLocal(x, y) {
+        if (!this.gameState || !this.gameState.game) return;
+        x = Math.max(0, Math.min(800, Math.round(x)));
+        y = Math.max(0, Math.min(600, Math.round(y)));
+        this.gameState.game.tracker_x = x;
+        this.gameState.game.tracker_y = y;
+        this.saveToCache();
     }
 
     detectNearbySegment(x, y) {
@@ -172,7 +252,7 @@ class RiftGame {
                 })
             });
             const result = await response.json();
-            if (result.code === 0) {
+            if (result.code === 0 && result.data && result.data.game) {
                 this.gameState = result.data;
                 this.updateUI();
                 this.saveToCache();
@@ -188,16 +268,25 @@ class RiftGame {
             const result = await response.json();
             if (result.code === 0 && result.data && result.data.game) {
                 const newGameId = result.data.game.id;
-                if (this.gameId !== newGameId) {
+
+                if (this.gameId && this.gameId !== newGameId) {
+                    console.log('[RiftGame] Game ID changed, resetting logs');
                     this.logs = [];
-                    this.saveLogsToCache();
                     this.restoreLogPanel();
                     this.addLog('info', '游戏已就绪，开始封堵裂隙！');
                 }
+
+                const hadState = !!this.gameState;
                 this.gameState = result.data;
                 this.gameId = newGameId;
+
+                if (!hadState) {
+                    this.addLog('info', '游戏已就绪，开始封堵裂隙！');
+                }
+
                 this.updateUI();
                 this.saveToCache();
+                console.log('[RiftGame] Synced with server, turn:', result.data.game.turn);
             } else {
                 this.startNewGame();
             }
@@ -218,7 +307,6 @@ class RiftGame {
                 this.gameId = result.data.game.id;
                 this.selectedSegmentId = null;
                 this.logs = [];
-                this.saveLogsToCache();
                 this.restoreLogPanel();
                 this.addLog('info', '新游戏开始！守护时空稳定。');
                 this.updateUI();
@@ -233,6 +321,10 @@ class RiftGame {
         if (!this.gameId || !this.gameState) return;
 
         const game = this.gameState.game;
+        const sealBtn = document.getElementById('sealBtn');
+        sealBtn.disabled = true;
+        sealBtn.style.opacity = '0.6';
+
         try {
             const response = await fetch(`${API_BASE}/seal`, {
                 method: 'POST',
@@ -268,6 +360,9 @@ class RiftGame {
         } catch (err) {
             console.error('Seal failed:', err);
             this.addLog('fail', '网络错误，操作失败');
+        } finally {
+            sealBtn.disabled = false;
+            sealBtn.style.opacity = '1';
         }
     }
 
@@ -333,6 +428,8 @@ class RiftGame {
         if (this.logs.length > 50) this.logs.pop();
 
         const panel = document.getElementById('logPanel');
+        if (!panel) return;
+
         const entry = document.createElement('div');
         entry.className = `log-entry ${type}`;
         entry.innerHTML = `<span class="turn">[T${turn}]</span>${message}`;
@@ -342,7 +439,7 @@ class RiftGame {
             panel.removeChild(panel.lastChild);
         }
 
-        this.saveLogsToCache();
+        this.saveToCache();
     }
 
     animate() {
@@ -536,7 +633,7 @@ class RiftGame {
             const x = anchor.x;
             const y = anchor.y;
             const pulse = Math.sin(this.pulsePhase * 2) * 0.2 + 1;
-            const turnsLeft = anchor.turns_remaining || 3;
+            const turnsLeft = anchor.turns_remaining != null ? anchor.turns_remaining : 3;
 
             ctx.save();
             ctx.shadowColor = '#00bfff';
@@ -593,7 +690,7 @@ class RiftGame {
 
             const x = vortex.x;
             const y = vortex.y;
-            const turnsLeft = vortex.turns_remaining || 2;
+            const turnsLeft = vortex.turns_remaining != null ? vortex.turns_remaining : 2;
 
             ctx.save();
             ctx.translate(x, y);
