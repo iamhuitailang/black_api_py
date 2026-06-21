@@ -10,9 +10,9 @@ class LightBeam {
             blue: intensity
         };
         this.path = [];
-        this.maxBounces = 20;
+        this.maxBounces = 30;
         this.hitTarget = false;
-        this.hitPrismIds = new Set();
+        this.hitPrismCounts = {};
         this.elementEffects = [];
         this.splitBeams = [];
         this.armorPierce = 0;
@@ -29,7 +29,7 @@ class LightBeam {
     trace(prisms, target, canvasWidth, canvasHeight) {
         this.path = [];
         this.hitTarget = false;
-        this.hitPrismIds.clear();
+        this.hitPrismCounts = {};
         this.elementEffects = [];
         this.splitBeams = [];
         this.armorPierce = 0;
@@ -42,6 +42,8 @@ class LightBeam {
         let currentIntensity = this.intensity;
         let currentColors = { ...this.colors };
         let bounces = 0;
+        const EPSILON = 0.5;
+        let lastPrismId = null;
 
         this.path.push({
             x: currentX,
@@ -51,16 +53,16 @@ class LightBeam {
             type: 'start'
         });
 
-        while (bounces < this.maxBounces && currentIntensity > 0.05) {
+        while (bounces < this.maxBounces && currentIntensity > 0.03) {
             let nearestHit = null;
             let nearestDist = Infinity;
             let hitPrism = null;
 
             for (const prism of prisms) {
-                if (this.hitPrismIds.has(prism.id)) continue;
-                
+                if (prism.melted) continue;
+
                 const hit = prism.rayIntersection(currentX, currentY, dx, dy);
-                if (hit && hit.distance < nearestDist) {
+                if (hit && hit.distance > EPSILON && hit.distance < nearestDist) {
                     nearestDist = hit.distance;
                     nearestHit = hit;
                     hitPrism = prism;
@@ -76,7 +78,7 @@ class LightBeam {
                 this.hitTarget = true;
                 const hitX = currentX + dx * targetHit;
                 const hitY = currentY + dy * targetHit;
-                
+
                 this.path.push({
                     x: hitX,
                     y: hitY,
@@ -85,12 +87,15 @@ class LightBeam {
                     type: 'target'
                 });
 
-                this._checkElementResonance(currentColors, hitPrism);
+                this._checkElementResonance(currentColors);
                 break;
             }
 
             if (nearestHit && hitPrism) {
-                this.hitPrismIds.add(hitPrism.id);
+                if (lastPrismId !== hitPrism.id) {
+                    this.hitPrismCounts[hitPrism.id] = (this.hitPrismCounts[hitPrism.id] || 0) + 1;
+                }
+                lastPrismId = hitPrism.id;
 
                 if (nearestHit.incidentAngleDeg > 15) {
                     currentIntensity *= 0.4;
@@ -102,12 +107,12 @@ class LightBeam {
                 if (hitPrism.colorFilter) {
                     for (const c in currentColors) {
                         if (c !== hitPrism.colorFilter) {
-                            currentColors[c] *= 0.2;
+                            currentColors[c] *= 0.15;
                         }
                     }
                 }
 
-                this.path.push({
+                const pathPoint = {
                     x: nearestHit.x,
                     y: nearestHit.y,
                     intensity: currentIntensity,
@@ -115,17 +120,48 @@ class LightBeam {
                     type: 'prism',
                     prismId: hitPrism.id,
                     incidentAngle: nearestHit.incidentAngleDeg
-                });
+                };
+                this.path.push(pathPoint);
 
-                dx = nearestHit.reflected.x;
-                dy = nearestHit.reflected.y;
-                currentX = nearestHit.x;
-                currentY = nearestHit.y;
+                const prismCenterDist = Math.sqrt(
+                    (nearestHit.x - hitPrism.x) ** 2 +
+                    (nearestHit.y - hitPrism.y) ** 2
+                );
+                let reflectAngleBias = 0;
+                if (prismCenterDist < hitPrism.size * 0.5) {
+                    reflectAngleBias = (Math.random() - 0.5) * 5;
+                }
 
-                this._checkElementResonance(currentColors, hitPrism);
+                if (reflectAngleBias !== 0) {
+                    const rad = reflectAngleBias * Math.PI / 180;
+                    const cos = Math.cos(rad);
+                    const sin = Math.sin(rad);
+                    const newDx = nearestHit.reflected.x * cos - nearestHit.reflected.y * sin;
+                    const newDy = nearestHit.reflected.x * sin + nearestHit.reflected.y * cos;
+                    dx = newDx;
+                    dy = newDy;
+                } else {
+                    dx = nearestHit.reflected.x;
+                    dy = nearestHit.reflected.y;
+                }
 
-                if (this.elementEffects.includes('growth') && this.splitBeams.length === 0) {
-                    this._createSplitBeams(currentX, currentY, dx, dy, currentColors, currentIntensity, prisms, target, canvasWidth, canvasHeight);
+                const dirLen = Math.sqrt(dx * dx + dy * dy);
+                if (dirLen > 0) {
+                    dx /= dirLen;
+                    dy /= dirLen;
+                }
+
+                currentX = nearestHit.x + dx * EPSILON * 2;
+                currentY = nearestHit.y + dy * EPSILON * 2;
+
+                this._checkElementResonance(currentColors);
+
+                if (this.elementEffects.includes('growth') && this.splitBeams.length === 0 && bounces >= 1) {
+                    this._createSplitBeams(
+                        nearestHit.x, nearestHit.y, dx, dy,
+                        currentColors, currentIntensity * 0.5,
+                        prisms, target, canvasWidth, canvasHeight
+                    );
                 }
 
                 bounces++;
@@ -134,7 +170,7 @@ class LightBeam {
                     currentX, currentY, dx, dy,
                     canvasWidth, canvasHeight
                 );
-                
+
                 if (boundaryHit) {
                     this.path.push({
                         x: boundaryHit.x,
@@ -156,35 +192,42 @@ class LightBeam {
             bounces: bounces,
             elementEffects: this.elementEffects,
             splitBeams: this.splitBeams,
-            armorPierce: this.armorPierce
+            armorPierce: this.armorPierce,
+            hitPrismCounts: this.hitPrismCounts
         };
     }
 
     _createSplitBeams(x, y, dx, dy, colors, intensity, prisms, target, canvasWidth, canvasHeight) {
-        const angles = [-20, 0, 20];
-        const baseAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const baseAngle = Math.atan2(dy, dx);
+        const offsets = [-22, 0, 22];
 
-        for (const angleOffset of angles) {
-            const beam = new LightBeam(x, y, baseAngle + angleOffset, intensity * 0.5);
+        for (const offset of offsets) {
+            const angleRad = baseAngle + offset * Math.PI / 180;
+            const beam = new LightBeam(
+                x + Math.cos(angleRad) * 2,
+                y + Math.sin(angleRad) * 2,
+                (baseAngle + offset) * 180 / Math.PI,
+                intensity
+            );
             beam.colors = { ...colors };
-            beam.maxBounces = 10;
-            
+            beam.maxBounces = 15;
+
             const result = beam.trace(prisms, target, canvasWidth, canvasHeight);
             this.splitBeams.push({
                 beam: beam,
                 result: result
             });
-            
+
             if (result.hitTarget) {
                 this.hitTarget = true;
             }
         }
     }
 
-    _checkElementResonance(colors, prism) {
-        const hasRed = colors.red > 0.1;
-        const hasGreen = colors.green > 0.1;
-        const hasBlue = colors.blue > 0.1;
+    _checkElementResonance(colors) {
+        const hasRed = colors.red > 0.12;
+        const hasGreen = colors.green > 0.12;
+        const hasBlue = colors.blue > 0.12;
 
         if (hasRed && hasBlue && !this.elementEffects.includes('heat')) {
             this.elementEffects.push('heat');
@@ -203,6 +246,8 @@ class LightBeam {
         const fy = ry - cy;
 
         const a = dx * dx + dy * dy;
+        if (a < 0.00001) return null;
+
         const b = 2 * (fx * dx + fy * dy);
         const c = fx * fx + fy * fy - radius * radius;
 
@@ -225,28 +270,40 @@ class LightBeam {
         if (dx > 0.0001) {
             const t = (width - x) / dx;
             if (t > 0 && t < minT) {
-                minT = t;
-                hitPoint = { x: width, y: y + dy * t };
+                const hy = y + dy * t;
+                if (hy >= -10 && hy <= height + 10) {
+                    minT = t;
+                    hitPoint = { x: width, y: Math.max(0, Math.min(height, hy)) };
+                }
             }
         } else if (dx < -0.0001) {
             const t = -x / dx;
             if (t > 0 && t < minT) {
-                minT = t;
-                hitPoint = { x: 0, y: y + dy * t };
+                const hy = y + dy * t;
+                if (hy >= -10 && hy <= height + 10) {
+                    minT = t;
+                    hitPoint = { x: 0, y: Math.max(0, Math.min(height, hy)) };
+                }
             }
         }
 
         if (dy > 0.0001) {
             const t = (height - y) / dy;
             if (t > 0 && t < minT) {
-                minT = t;
-                hitPoint = { x: x + dx * t, y: height };
+                const hx = x + dx * t;
+                if (hx >= -10 && hx <= width + 10) {
+                    minT = t;
+                    hitPoint = { x: Math.max(0, Math.min(width, hx)), y: height };
+                }
             }
         } else if (dy < -0.0001) {
             const t = -y / dy;
             if (t > 0 && t < minT) {
-                minT = t;
-                hitPoint = { x: x + dx * t, y: 0 };
+                const hx = x + dx * t;
+                if (hx >= -10 && hx <= width + 10) {
+                    minT = t;
+                    hitPoint = { x: Math.max(0, Math.min(width, hx)), y: 0 };
+                }
             }
         }
 

@@ -9,9 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initGame() {
         game.start();
         await loadAllLevels();
-        await loadLevel(1);
+        const restored = game.loadState();
+        if (!restored) {
+            await loadLevel(1, false);
+        } else {
+            currentLevelIndex = levelsData.findIndex(l => l.level_number === game.currentLevel);
+            if (currentLevelIndex === -1) currentLevelIndex = 0;
+        }
         await loadScoreboard();
         setupEventListeners();
+        setupAutoSave();
     }
 
     async function loadAllLevels() {
@@ -29,12 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadLevel(levelNumber) {
+    async function loadLevel(levelNumber, save = true) {
         const result = await prismGameAPI.getLevel(null, levelNumber);
         if (result.code === 0 && result.data) {
             game.loadLevel(result.data);
             currentLevelIndex = levelsData.findIndex(l => l.level_number === levelNumber);
             if (currentLevelIndex === -1) currentLevelIndex = 0;
+            if (save) {
+                game.saveState();
+            }
         }
     }
 
@@ -86,14 +96,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupEventListeners() {
         document.getElementById('btnRotateLeft').addEventListener('click', () => {
             game.rotateSelected(-15);
+            game.saveState();
         });
 
         document.getElementById('btnRotateRight').addEventListener('click', () => {
             game.rotateSelected(15);
+            game.saveState();
         });
 
         document.getElementById('btnReset').addEventListener('click', () => {
             game.resetLevel();
+            game.saveState();
         });
 
         document.getElementById('btnPrevLevel').addEventListener('click', () => {
@@ -132,6 +145,22 @@ document.addEventListener('DOMContentLoaded', () => {
             playerName = e.target.value || 'Anonymous';
             localStorage.setItem('prismGamePlayerName', playerName);
         });
+    }
+
+    function setupAutoSave() {
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E' || e.key === 'r' || e.key === 'R') && !game.isWon) {
+                setTimeout(() => game.saveState(), 100);
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            game.saveState();
+        });
+
+        setInterval(() => {
+            game.saveState();
+        }, 30000);
     }
 
     function handleGameWin(e) {

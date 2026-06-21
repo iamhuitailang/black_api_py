@@ -335,4 +335,101 @@ class Game {
             this.animationId = null;
         }
     }
+
+    saveState() {
+        try {
+            const state = {
+                currentLevel: this.currentLevel,
+                rotationCount: this.rotationCount,
+                parRotations: this.parRotations,
+                lightSource: { ...this.lightSource },
+                target: { ...this.target },
+                isWon: this.isWon,
+                winScore: this.winScore,
+                prisms: this.prisms.map(p => ({
+                    id: p.id,
+                    x: p.x,
+                    y: p.y,
+                    sides: p.sides,
+                    size: p.size,
+                    rotation: p.rotation,
+                    isRotatable: p.isRotatable,
+                    colorFilter: p.colorFilter,
+                    hitCount: p.hitCount,
+                    melted: p.melted,
+                    meltTurns: p.meltTurns,
+                    frozen: p.frozen,
+                    freezeTurns: p.freezeTurns
+                })),
+                selectedPrismId: this.selectedPrism ? this.selectedPrism.id : null
+            };
+            localStorage.setItem('prismGameState', JSON.stringify(state));
+            return true;
+        } catch (e) {
+            console.warn('保存游戏状态失败:', e);
+            return false;
+        }
+    }
+
+    loadState() {
+        try {
+            const raw = localStorage.getItem('prismGameState');
+            if (!raw) return false;
+
+            const state = JSON.parse(raw);
+            this.currentLevel = state.currentLevel;
+            this.rotationCount = state.rotationCount;
+            this.parRotations = state.parRotations;
+            this.lightSource = { ...state.lightSource };
+            this.target = { ...state.target };
+            this.isWon = state.isWon;
+            this.winScore = state.winScore;
+
+            if (state.prisms) {
+                this.prisms = [];
+                for (const prismData of state.prisms) {
+                    const prism = new Prism({
+                        x: prismData.x,
+                        y: prismData.y,
+                        sides: prismData.sides,
+                        size: prismData.size,
+                        is_rotatable: prismData.isRotatable,
+                        rotation: prismData.rotation,
+                        color_filter: prismData.colorFilter
+                    });
+                    prism.id = prismData.id;
+                    prism.hitCount = prismData.hitCount || 0;
+                    prism.melted = prismData.melted || false;
+                    prism.meltTurns = prismData.meltTurns || 0;
+                    prism.frozen = prismData.frozen || false;
+                    prism.freezeTurns = prismData.freezeTurns || 0;
+                    this.prisms.push(prism);
+                }
+            }
+
+            if (state.selectedPrismId) {
+                for (const prism of this.prisms) {
+                    if (prism.id === state.selectedPrismId) {
+                        this.selectedPrism = prism;
+                        prism.selected = true;
+                        break;
+                    }
+                }
+            }
+
+            this._traceLight();
+            this._updateStats();
+            this._updateSelectedInfo();
+            return true;
+        } catch (e) {
+            console.warn('恢复游戏状态失败:', e);
+            return false;
+        }
+    }
+
+    clearSavedState() {
+        try {
+            localStorage.removeItem('prismGameState');
+        } catch (e) {}
+    }
 }
