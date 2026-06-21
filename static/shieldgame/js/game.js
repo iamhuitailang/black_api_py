@@ -753,6 +753,8 @@ class RepairPoint {
     }
 }
 
+const STORAGE_KEY = 'shield_game_state';
+
 class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -783,6 +785,11 @@ class Game {
         this.repairedAmount = 0;
         this.shieldBroken = false;
         
+        this.animationId = null;
+        this._savedState = null;
+        this._lastSaveSecond = -1;
+        
+        this._loadSavedState();
         this.init();
     }
 
@@ -790,6 +797,129 @@ class Game {
         this._setupEventListeners();
         this._loadPlayerStats();
         this._createLevelButtons();
+        this._checkResumeGame();
+    }
+
+    _loadSavedState() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                this._savedState = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.log('Failed to load saved state:', e);
+        }
+    }
+
+    _saveState() {
+        if (this.state !== GameState.PLAYING && this.state !== GameState.PAUSED) {
+            return;
+        }
+        
+        try {
+            const state = {
+                playerName: this.playerName,
+                currentLevel: this.currentLevel,
+                gameTime: this.gameTime,
+                totalDamageDealt: this.totalDamageDealt,
+                totalDamageTaken: this.totalDamageTaken,
+                shieldBashCount: this.shieldBashCount,
+                shieldSmashCount: this.shieldSmashCount,
+                shieldBlockCount: this.shieldBlockCount,
+                totalDamageBlocked: this.totalDamageBlocked,
+                shieldDurabilityLost: this.shieldDurabilityLost,
+                repairedTimes: this.repairedTimes,
+                repairedAmount: this.repairedAmount,
+                shieldBroken: this.shieldBroken,
+                player: {
+                    x: this.player.x,
+                    y: this.player.y,
+                    hp: this.player.hp,
+                    shield: this.player.shield,
+                    shieldBroken: this.player.shieldBroken,
+                    facing: this.player.facing
+                },
+                enemies: this.enemies.map(e => ({
+                    x: e.x,
+                    y: e.y,
+                    type: e.type,
+                    hp: e.hp,
+                    maxHp: e.maxHp,
+                    facing: e.facing,
+                    stunned: e.stunned,
+                    stunTimer: e.stunTimer
+                })),
+                repairPoint: {
+                    x: this.repairPoint.x,
+                    y: this.repairPoint.y,
+                    used: this.repairPoint.used
+                },
+                savedAt: Date.now()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+            console.log('Failed to save state:', e);
+        }
+    }
+
+    _clearSavedState() {
+        localStorage.removeItem(STORAGE_KEY);
+        this._savedState = null;
+    }
+
+    _checkResumeGame() {
+        if (this._savedState && this._savedState.playerName === this.playerName) {
+            const timeAgo = Math.floor((Date.now() - this._savedState.savedAt) / 1000);
+            if (confirm(`发现未完成的游戏（第${this._savedState.currentLevel}关，${timeAgo}秒前保存），是否继续？`)) {
+                this._resumeGame();
+                return;
+            }
+        }
+        this._clearSavedState();
+    }
+
+    _resumeGame() {
+        if (!this._savedState) return;
+        
+        const state = this._savedState;
+        this.currentLevel = state.currentLevel;
+        this.gameTime = state.gameTime;
+        this.totalDamageDealt = state.totalDamageDealt;
+        this.totalDamageTaken = state.totalDamageTaken;
+        this.shieldBashCount = state.shieldBashCount;
+        this.shieldSmashCount = state.shieldSmashCount;
+        this.shieldBlockCount = state.shieldBlockCount;
+        this.totalDamageBlocked = state.totalDamageBlocked;
+        this.shieldDurabilityLost = state.shieldDurabilityLost;
+        this.repairedTimes = state.repairedTimes;
+        this.repairedAmount = state.repairedAmount;
+        this.shieldBroken = state.shieldBroken;
+
+        this.player = new Player(state.player.x, state.player.y);
+        this.player.hp = state.player.hp;
+        this.player.shield = state.player.shield;
+        this.player.shieldBroken = state.player.shieldBroken;
+        this.player.facing = state.player.facing;
+
+        this.enemies = state.enemies.map(e => {
+            const enemy = new Enemy(e.x, e.y, e.type);
+            enemy.hp = e.hp;
+            enemy.maxHp = e.maxHp;
+            enemy.facing = e.facing;
+            enemy.stunned = e.stunned;
+            enemy.stunTimer = e.stunTimer;
+            return enemy;
+        });
+
+        this.arrows = [];
+        this.repairPoint = new RepairPoint(state.repairPoint.x, state.repairPoint.y);
+        this.repairPoint.used = state.repairPoint.used;
+
+        this._showScreen('game-screen');
+        this.state = GameState.PLAYING;
+        this.lastTime = performance.now();
+        this._updateHUD();
+        this._gameLoop();
     }
 
     _setupEventListeners() {
@@ -878,11 +1008,36 @@ class Game {
     }
 
     startGame() {
-        this.currentLevel = this.selectedLevel;
+        const nameInput = document.getElementById('player-name');
+        const playerName = nameInput.value.trim();
+        
+        if (!playerName) {
+            alert('请输入玩家名称！');
+            nameInput.focus();
+            return;
+        }
+        
+        this.playerName = playerName;
+        this.currentLevel = parseInt(this.selectedLevel, 10);
+        
+        if (this.currentLevel < 1 || this.currentLevel > 8) {
+            alert('请选择有效的关卡！');
+            return;
+        }
+        
+        this._clearSavedState();
+        this.keys = {};
         this._initLevel();
+        
+        if (this.enemies.length === 0) {
+            alert('关卡初始化失败，请重试！');
+            return;
+        }
+        
         this._showScreen('game-screen');
         this.state = GameState.PLAYING;
         this.lastTime = performance.now();
+        this._saveState();
         this._gameLoop();
     }
 
@@ -901,13 +1056,25 @@ class Game {
         this.repairedTimes = 0;
         this.repairedAmount = 0;
         this.shieldBroken = false;
+        this._lastSaveSecond = -1;
 
         const levelConfig = LEVEL_CONFIG[this.currentLevel - 1];
+        if (!levelConfig || !levelConfig.enemies) {
+            console.error('Invalid level configuration for level:', this.currentLevel);
+            return;
+        }
         
         let xPos = CONFIG.CANVAS_WIDTH - 100;
         levelConfig.enemies.forEach(enemyGroup => {
+            if (!enemyGroup.type || !enemyGroup.count || enemyGroup.count <= 0) {
+                return;
+            }
             for (let i = 0; i < enemyGroup.count; i++) {
                 const enemy = new Enemy(xPos, CONFIG.GROUND_Y - 50, enemyGroup.type);
+                if (enemy.hp <= 0) {
+                    console.error('Enemy created with invalid HP:', enemy);
+                    continue;
+                }
                 enemy.facing = -1;
                 this.enemies.push(enemy);
                 xPos -= 80 + Math.random() * 40;
@@ -932,6 +1099,11 @@ class Game {
         this._update();
         this._render();
         this._updateHUD();
+
+        if (Math.floor(this.gameTime) % 5 === 0 && Math.floor(this.gameTime) !== this._lastSaveSecond) {
+            this._saveState();
+            this._lastSaveSecond = Math.floor(this.gameTime);
+        }
 
         this.animationId = requestAnimationFrame(() => this._gameLoop());
     }
@@ -1105,6 +1277,12 @@ class Game {
     }
 
     checkLevelComplete() {
+        if (this.state !== GameState.PLAYING) {
+            return;
+        }
+        if (this.gameTime < 0.5) {
+            return;
+        }
         if (this.enemies.length === 0) {
             this._victory();
         }
@@ -1113,6 +1291,7 @@ class Game {
     _victory() {
         this.state = GameState.VICTORY;
         cancelAnimationFrame(this.animationId);
+        this._clearSavedState();
 
         document.getElementById('victory-level').textContent = this.currentLevel;
         document.getElementById('victory-hp').textContent = Math.floor(this.player.hp);
@@ -1139,6 +1318,7 @@ class Game {
     _gameOver() {
         this.state = GameState.GAME_OVER;
         cancelAnimationFrame(this.animationId);
+        this._clearSavedState();
 
         document.getElementById('gameover-title').textContent = '💀 游戏结束 💀';
         document.getElementById('final-level').textContent = this.currentLevel;
