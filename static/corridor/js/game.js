@@ -27,6 +27,13 @@ const ctx = canvas.getContext('2d');
 canvas.width = CFG.W;
 canvas.height = CFG.H;
 
+window.addEventListener('error', (e) => {
+    console.error('Game Error:', e.error || e.message, 'at', e.filename, e.lineno);
+    if (gameState === 'paused' || gameState === 'playing') {
+        alert('游戏发生错误，请刷新页面重试。\n错误信息：' + (e.message || e.error));
+    }
+});
+
 let gameState = 'menu';
 let player, cam, enemies, projectiles, crates, doors, particles, bossProjectiles;
 let segmentTimes, segStartTime, gameStartTime;
@@ -63,8 +70,8 @@ function initGame() {
     bossProjectiles = [];
     particles = [];
     curSeg = 0;
-    enemySpawned = [];
-    bossSpawned = [];
+    enemySpawned = {};
+    bossSpawned = {};
     totalEnemiesKilled = 0;
     weaponUseCount = {};
     WEAPON_KEYS.forEach(k => weaponUseCount[k] = 0);
@@ -231,14 +238,18 @@ function switchWeapon(slot) {
 function tryPickupCrate() {
     if (!nearCrate || nearCrate.collected) return;
     const crate = nearCrate;
+    nearCrate = null;
+
     const newWeap = makeWeaponInstance(crate.weapon);
 
     if (!player.weapons[0]) {
         player.weapons[0] = newWeap;
         crate.collected = true;
+        spawnParticles(crate.x, crate.y, WEAPONS[crate.weapon].clr, 8, 100);
     } else if (!player.weapons[1]) {
         player.weapons[1] = newWeap;
         crate.collected = true;
+        spawnParticles(crate.x, crate.y, WEAPONS[crate.weapon].clr, 8, 100);
     } else {
         showReplaceModal(newWeap, crate);
     }
@@ -246,9 +257,9 @@ function tryPickupCrate() {
 
 function replaceWeapon(slotIndex, newWeap, crate) {
     player.weapons[slotIndex] = newWeap;
-    if (player.activeSlot === slotIndex) {
-    }
     crate.collected = true;
+    nearCrate = null;
+    spawnParticles(crate.x, crate.y, WEAPONS[crate.weapon].clr, 12, 120);
 }
 
 function tryUnlockDoor() {
@@ -374,7 +385,7 @@ function updatePlayer(dt) {
 
     for (const door of doors) {
         if (!door.unlocked && !door.bossDead && Math.abs(player.x - door.x) < CFG.CELL * 2) {
-            nearDoor = { ...door, bossBlock: true };
+            nearDoor = door;
             break;
         }
     }
@@ -386,13 +397,11 @@ function updatePlayer(dt) {
         }
     }
 
-    if (unlocking && nearDoor && !nearDoor.bossBlock) {
+    if (unlocking && nearDoor && nearDoor.bossDead) {
         if (Math.abs(player.x - nearDoor.x) < CFG.CELL) {
             unlockProgress += dt;
             if (unlockProgress >= CFG.DOOR_UNLOCK) {
                 nearDoor.unlocked = true;
-                const actualDoor = doors.find(d => d.segIndex === nearDoor.segIndex);
-                if (actualDoor) actualDoor.unlocked = true;
                 unlocking = false;
                 unlockProgress = 0;
                 spawnParticles(nearDoor.x, (CFG.CORR_TOP + CFG.CORR_BOT) / 2, '#00ff88', 20, 150);
@@ -410,7 +419,7 @@ function updatePlayer(dt) {
         ePressed = false;
         if (nearCrate) {
             tryPickupCrate();
-        } else if (nearDoor && !nearDoor.unlocked && !nearDoor.bossBlock && !unlocking) {
+        } else if (nearDoor && !nearDoor.unlocked && nearDoor.bossDead && !unlocking) {
             tryUnlockDoor();
         }
     }
@@ -1059,7 +1068,7 @@ function updateHUD() {
 
     const promptEl = document.getElementById('interact-prompt');
     const promptText = document.getElementById('interact-text');
-    if (nearDoor && nearDoor.bossBlock) {
+    if (nearDoor && !nearDoor.bossDead) {
         promptEl.classList.remove('hidden');
         promptText.textContent = '段守未击败，无法解锁！';
     } else if (nearCrate && !nearCrate.collected) {
@@ -1082,9 +1091,17 @@ function updateHUD() {
 
 function showReplaceModal(newWeap, crate) {
     ePressed = false;
+    mouse.down = false;
     gameState = 'paused';
     document.getElementById('replace-modal').classList.remove('hidden');
     document.getElementById('new-weapon-name').textContent = newWeap.name + ' ' + newWeap.icon;
+
+    const cleanup = () => {
+        for (let j = 0; j < 2; j++) {
+            document.getElementById(`replace-slot-${j}`).onclick = null;
+        }
+        document.getElementById('cancel-replace-btn').onclick = null;
+    };
 
     for (let i = 0; i < 2; i++) {
         const w = player.weapons[i];
@@ -1108,22 +1125,17 @@ function showReplaceModal(newWeap, crate) {
         el.onclick = () => {
             replaceWeapon(i, newWeap, crate);
             document.getElementById('replace-modal').classList.add('hidden');
+            cleanup();
             gameState = 'playing';
-            for (let j = 0; j < 2; j++) {
-                document.getElementById(`replace-slot-${j}`).onclick = null;
-            }
-            document.getElementById('cancel-replace-btn').onclick = null;
         };
     }
 
     const cancelBtn = document.getElementById('cancel-replace-btn');
     cancelBtn.onclick = () => {
         document.getElementById('replace-modal').classList.add('hidden');
+        cleanup();
+        nearCrate = crate;
         gameState = 'playing';
-        for (let j = 0; j < 2; j++) {
-            document.getElementById(`replace-slot-${j}`).onclick = null;
-        }
-        cancelBtn.onclick = null;
     };
 }
 
@@ -1231,135 +1243,117 @@ function deserializeWeapons(saved) {
 
 function serializeGameState() {
     if (!player || gameState !== 'playing') return null;
-    return {
-        version: 1,
-        savedAt: Date.now(),
-        player: {
-            x: player.x,
-            y: player.y,
-            hp: player.hp,
-            maxHp: player.maxHp,
-            weapons: serializeWeapons(player.weapons),
-            activeSlot: player.activeSlot,
-            maxReached: player.maxReached,
-            facingRight: player.facingRight,
-            invuln: player.invuln,
-        },
-        cam: { x: cam.x },
-        enemies: enemies.map(e => ({
-            x: e.x, y: e.y,
-            hp: e.hp, maxHp: e.maxHp,
-            speed: e.speed,
-            dmg: e.dmg,
-            isBoss: e.isBoss,
-            attackCD: e.attackCD,
-            hit: e.hit,
-            dashCD: e.dashCD,
-            dashing: e.dashing,
-            dashTimer: e.dashTimer,
-            dashVx: e.dashVx,
-            dashVy: e.dashVy,
-            shootCD: e.shootCD,
-            moveTimer: e.moveTimer,
-            targetX: e.targetX,
-            targetY: e.targetY,
-            side: e.side,
-        })),
-        projectiles: projectiles.map(p => ({
-            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
-            dmg: p.dmg, sz: p.sz, clr: p.clr,
-            isGrenade: p.isGrenade, aoe: p.aoe,
-            weaponId: p.weaponId, life: p.life,
-        })),
-        bossProjectiles: bossProjectiles.map(p => ({
-            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
-            dmg: p.dmg, sz: p.sz, life: p.life,
-        })),
-        crates: crates.map(c => ({
+    try {
+        const state = {
+            version: 2,
+            savedAt: Date.now(),
+            player: {
+                x: player.x,
+                y: player.y,
+                hp: player.hp,
+                maxHp: player.maxHp,
+                weapons: serializeWeapons(player.weapons),
+                activeSlot: player.activeSlot,
+                maxReached: player.maxReached,
+                facingRight: player.facingRight,
+            },
+            cam: { x: player.x - CFG.W * 0.3 },
+            enemies: enemies.filter(e => e.hp > 0).map(e => ({
+                x: e.x, y: e.y,
+                hp: e.hp, maxHp: e.maxHp,
+                isBoss: e.isBoss,
+            })),
+            crates: crates.map(c => ({
+                x: c.x, y: c.y,
+                weapon: c.weapon,
+                collected: c.collected,
+                bobPhase: c.bobPhase,
+            })),
+            doors: doors.map(d => ({
+                segIndex: d.segIndex,
+                x: d.x,
+                unlocked: d.unlocked,
+                bossDead: d.bossDead,
+            })),
+            curSeg: curSeg,
+            enemySpawned: enemySpawned,
+            bossSpawned: bossSpawned,
+            totalEnemiesKilled: totalEnemiesKilled,
+            weaponUseCount: weaponUseCount,
+            segmentTimes: [...segmentTimes],
+            elapsed: (performance.now() - gameStartTime) / 1000,
+            segElapsed: (performance.now() - segStartTime) / 1000,
+        };
+        return state;
+    } catch (e) {
+        console.error('Serialize error:', e);
+        return null;
+    }
+}
+
+function deserializeGameState(saved) {
+    if (!saved || saved.version !== 2) {
+        console.warn('Incompatible save version, clearing');
+        return false;
+    }
+    try {
+        initGame();
+
+        player.x = saved.player.x;
+        player.y = saved.player.y;
+        player.hp = saved.player.hp;
+        player.maxHp = saved.player.maxHp;
+        player.weapons = deserializeWeapons(saved.player.weapons);
+        player.activeSlot = saved.player.activeSlot;
+        player.maxReached = saved.player.maxReached;
+        player.facingRight = saved.player.facingRight;
+        player.invuln = 0;
+
+        cam.x = Math.max(0, saved.cam.x);
+
+        curSeg = saved.curSeg;
+        enemySpawned = { ...saved.enemySpawned };
+        bossSpawned = { ...saved.bossSpawned };
+        totalEnemiesKilled = saved.totalEnemiesKilled;
+        weaponUseCount = { ...saved.weaponUseCount };
+        segmentTimes = [...saved.segmentTimes];
+
+        crates = saved.crates.map(c => ({
             x: c.x, y: c.y,
             weapon: c.weapon,
             collected: c.collected,
-            bobPhase: c.bobPhase,
-        })),
-        doors: doors.map(d => ({
+            bobPhase: c.bobPhase || Math.random() * Math.PI * 2,
+        }));
+
+        doors = saved.doors.map(d => ({
             segIndex: d.segIndex,
             x: d.x,
             unlocked: d.unlocked,
             bossDead: d.bossDead,
-        })),
-        particles: particles.map(p => ({
-            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
-            life: p.life, maxLife: p.maxLife,
-            color: p.color, sz: p.sz,
-        })),
-        curSeg: curSeg,
-        enemySpawned: enemySpawned,
-        bossSpawned: bossSpawned,
-        totalEnemiesKilled: totalEnemiesKilled,
-        weaponUseCount: weaponUseCount,
-        segmentTimes: segmentTimes,
-        segStartTime: segStartTime,
-        gameStartTime: gameStartTime,
-        shakeAmount: shakeAmount,
-    };
-}
-
-function deserializeGameState(saved) {
-    if (!saved || saved.version !== 1) return false;
-    try {
-        player = {
-            x: saved.player.x,
-            y: saved.player.y,
-            w: CFG.PLAYER_W, h: CFG.PLAYER_H,
-            hp: saved.player.hp,
-            maxHp: saved.player.maxHp,
-            weapons: deserializeWeapons(saved.player.weapons),
-            activeSlot: saved.player.activeSlot,
-            maxReached: saved.player.maxReached,
-            facingRight: saved.player.facingRight,
-            invuln: saved.player.invuln,
-            vx: 0, vy: 0,
-        };
-        cam = saved.cam;
-        enemies = saved.enemies.map(e => ({
-            x: e.x, y: e.y,
-            w: e.isBoss ? CFG.BOSS_W : CFG.ENEMY_W,
-            h: e.isBoss ? CFG.BOSS_H : CFG.ENEMY_H,
-            hp: e.hp, maxHp: e.maxHp,
-            speed: e.speed,
-            dmg: e.dmg,
-            isBoss: e.isBoss,
-            attackCD: e.attackCD,
-            hit: e.hit,
-            dashCD: e.dashCD,
-            dashing: e.dashing,
-            dashTimer: e.dashTimer,
-            dashVx: e.dashVx,
-            dashVy: e.dashVy,
-            shootCD: e.shootCD,
-            moveTimer: e.moveTimer,
-            targetX: e.targetX,
-            targetY: e.targetY,
-            side: e.side,
         }));
-        projectiles = saved.projectiles;
-        bossProjectiles = saved.bossProjectiles;
-        crates = saved.crates;
-        doors = saved.doors;
-        particles = saved.particles;
-        curSeg = saved.curSeg;
-        enemySpawned = saved.enemySpawned;
-        bossSpawned = saved.bossSpawned;
-        totalEnemiesKilled = saved.totalEnemiesKilled;
-        weaponUseCount = saved.weaponUseCount;
-        segmentTimes = saved.segmentTimes;
-        segStartTime = saved.segStartTime;
-        gameStartTime = saved.gameStartTime;
-        shakeAmount = saved.shakeAmount;
+
+        enemies = saved.enemies.map(e => makeEnemy(
+            e.x, e.y, e.isBoss
+        )).map((e, i) => {
+            e.hp = saved.enemies[i].hp;
+            e.maxHp = saved.enemies[i].maxHp;
+            return e;
+        });
+
+        projectiles = [];
+        bossProjectiles = [];
+        particles = [];
         unlockProgress = 0;
         unlocking = false;
         nearDoor = null;
         nearCrate = null;
+        shakeAmount = 0;
+        saveTimer = 0;
+
+        const now = performance.now();
+        gameStartTime = now - saved.elapsed * 1000;
+        segStartTime = now - saved.segElapsed * 1000;
+
         return true;
     } catch (err) {
         console.error('Failed to deserialize game state:', err);
@@ -1371,7 +1365,9 @@ function saveGame() {
     try {
         const state = serializeGameState();
         if (state) {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+            const json = JSON.stringify(state);
+            localStorage.setItem(SAVE_KEY, json);
+            console.log(`Game saved: ${(json.length / 1024).toFixed(1)} KB`);
         }
     } catch (e) {
         console.warn('Failed to save game:', e);
@@ -1384,12 +1380,14 @@ function loadGame() {
         if (!raw) return false;
         const saved = JSON.parse(raw);
         if (deserializeGameState(saved)) {
+            console.log('Game loaded successfully from save');
             return true;
         }
         clearSavedGame();
         return false;
     } catch (e) {
         console.warn('Failed to load game:', e);
+        clearSavedGame();
         return false;
     }
 }
