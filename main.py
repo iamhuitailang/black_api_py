@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from contextlib import asynccontextmanager
 import sys
 import os
@@ -12,6 +12,10 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.campus import (
+    VenueModel, ActivityModel, RegistrationModel,
+    CheckinModel, ActivitySummaryModel, StudentModel, OrganizerModel
+)
 from app.common.sqlite.db import get_db
 
 
@@ -34,6 +38,14 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+
+    VenueModel.create_table()
+    OrganizerModel.create_table()
+    StudentModel.create_table()
+    ActivityModel.create_table()
+    RegistrationModel.create_table()
+    CheckinModel.create_table()
+    ActivitySummaryModel.create_table()
     
     migrate_database()
     
@@ -85,6 +97,9 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root():
+    campus_index = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'campus', 'index.html')
+    if os.path.exists(campus_index):
+        return FileResponse(campus_index)
     return {
         "code": 0,
         "message": "success",
@@ -95,6 +110,12 @@ async def root():
             "redoc": "/redoc"
         }
     }
+
+
+@app.get("/campus")
+async def campus_home():
+    campus_index = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'campus', 'index.html')
+    return FileResponse(campus_index)
 
 
 @app.get("/health")
@@ -113,6 +134,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=2300,
         reload=True
     )
