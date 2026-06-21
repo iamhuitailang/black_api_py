@@ -96,7 +96,9 @@ class Player {
                 this.vx = 0;
                 stamina -= CLIMB_COST_PER_SEC * dt;
                 if (stamina < 0) stamina = 0;
-                addParticle(this.x + this.w / 2, this.y + this.h, '#88ccff', 2);
+                const dustX = touchingWallLeft ? this.x + 2 : this.x + this.w - 2;
+                const dustY = this.y + 18 + Math.random() * 10;
+                addParticle(dustX, dustY, '#8b7355', 2);
             }
         }
         if (!isClimbing) {
@@ -342,11 +344,14 @@ function generateFloor(floor) {
     floorPlatforms.push({ x: 0, y: H - 40, w: W, h: 40, type: 'ground' });
     floorPlatforms.push({ x: 0, y: 0, w: 20, h: H, type: 'wall' });
     floorPlatforms.push({ x: W - 20, y: 0, w: 20, h: H, type: 'wall' });
+
+    restPoints.push({ x: 80, y: H - 76, w: 56, h: 36, used: false });
+
     if (floor === 12) {
         floorPlatforms.push({ x: 100, y: H - 160, w: 180, h: 20, type: 'normal' });
         floorPlatforms.push({ x: W - 280, y: H - 160, w: 180, h: 20, type: 'normal' });
         floorPlatforms.push({ x: W / 2 - 80, y: H - 280, w: 160, h: 20, type: 'normal' });
-        restPoints.push({ x: W / 2 - 20, y: H - 310, w: 40, h: 30, used: false });
+        restPoints.push({ x: W / 2 - 28, y: H - 316, w: 56, h: 36, used: false });
         powerShards.push({ x: 180, y: H - 200, w: 20, h: 20, collected: false });
         powerShards.push({ x: W - 200, y: H - 200, w: 20, h: 20, collected: false });
         boss = new Boss(); return;
@@ -366,10 +371,10 @@ function generateFloor(floor) {
     }
     for (let i = 0; i < restCount; i++) {
         if (usedPositions.length > 2) {
-            const idx = Math.floor(usedPositions.length * (0.25 + i * 0.4));
+            const idx = Math.floor(usedPositions.length * (0.2 + i * 0.35));
             if (idx < usedPositions.length) {
                 const pos = usedPositions[Math.min(idx, usedPositions.length - 1)];
-                restPoints.push({ x: pos.x + pos.w / 2 - 20, y: pos.y - 32, w: 40, h: 30, used: false });
+                restPoints.push({ x: pos.x + pos.w / 2 - 28, y: pos.y - 36, w: 56, h: 36, used: false });
             }
         }
     }
@@ -619,6 +624,7 @@ function goToNextFloor() {
     player.x = 40; player.y = H - 100; player.vx = 0; player.vy = 0;
     floorStartTime = Date.now(); updateHUD(); screenShake = 12;
     for (let i = 0; i < 30; i++) addParticle(W / 2, H / 2, '#ffff88', 3);
+    saveGame();
 }
 function triggerFall() {
     fallCount++; updateHUD();
@@ -629,9 +635,11 @@ function triggerFall() {
     generateFloor(currentFloor);
     player.x = W / 2; player.y = H - 100; player.vx = 0; player.vy = 0; player.invulnTimer = 1.5;
     floorStartTime = Date.now(); updateHUD(); screenShake = 15;
+    saveGame();
 }
 function triggerGameOver() {
     gameState = GameState.GAMEOVER;
+    clearSave();
     const totalTime = (Date.now() - gameTime) / 1000;
     document.getElementById('gameover-title').textContent = '💀 坠入深渊 💀';
     document.getElementById('gameover-stats').innerHTML = `
@@ -642,6 +650,7 @@ function triggerGameOver() {
 }
 function triggerVictory() {
     gameState = GameState.VICTORY; submitted = false;
+    clearSave();
     floorTimes[currentFloor] = (Date.now() - floorStartTime) / 1000;
     const totalTime = (Date.now() - gameTime) / 1000;
     let html = `<div><span class="stat-label">总用时</span><span class="stat-value" style="font-size:22px">${formatTime(totalTime)}</span></div>
@@ -685,6 +694,7 @@ function update(dt) {
     checkRestPoints(); checkExitPortal();
     updateHUD();
     if (animationFrame % 6 === 0) updateTimers();
+    if (animationFrame % 180 === 0) saveGame();
 }
 function render(dt) {
     ctx.save();
@@ -716,8 +726,102 @@ function render(dt) {
     }
 }
 
+// ====== 存档系统 ======
+const SAVE_KEY = 'climber_game_save';
+
+function saveGame() {
+    if (gameState !== GameState.PLAYING) return;
+    const saveData = {
+        currentFloor: currentFloor,
+        fallCount: fallCount,
+        stamina: stamina,
+        shardActive: shardActive,
+        shardTimer: shardTimer,
+        attackPower: attackPower,
+        floorTimes: floorTimes,
+        gameStartTime: gameTime,
+        floorStartTime: floorStartTime,
+        savedAt: Date.now()
+    };
+    try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+    } catch (e) {
+        console.warn('存档失败:', e);
+    }
+}
+
+function loadGame() {
+    try {
+        const data = localStorage.getItem(SAVE_KEY);
+        if (!data) return null;
+        const saveData = JSON.parse(data);
+        if (!saveData || !saveData.currentFloor) return null;
+        return saveData;
+    } catch (e) {
+        return null;
+    }
+}
+
+function hasSavedGame() {
+    return loadGame() !== null;
+}
+
+function clearSave() {
+    try {
+        localStorage.removeItem(SAVE_KEY);
+    } catch (e) {}
+}
+
+function continueGame() {
+    const saveData = loadGame();
+    if (!saveData) {
+        startGame();
+        return;
+    }
+
+    currentFloor = saveData.currentFloor || 1;
+    fallCount = saveData.fallCount || 0;
+    stamina = saveData.stamina || STAMINA_MAX;
+    shardActive = saveData.shardActive || false;
+    shardTimer = saveData.shardTimer || 0;
+    attackPower = saveData.attackPower || BASE_ATTACK;
+    floorTimes = saveData.floorTimes || {};
+    gameTime = saveData.gameStartTime || Date.now();
+    floorStartTime = Date.now();
+
+    particles = []; bossProjectiles = []; bossShockwaves = [];
+    showDamageText = []; submitted = false;
+
+    generateFloor(currentFloor);
+    player = new Player(40, H - 100);
+    gameState = GameState.PLAYING;
+    updateHUD();
+
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('pause-screen').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('victory-screen').classList.add('hidden');
+    document.getElementById('records-screen').classList.add('hidden');
+}
+
+function updateContinueButton() {
+    const btn = document.getElementById('continue-btn');
+    if (btn) {
+        if (hasSavedGame()) {
+            btn.style.display = 'inline-block';
+            const save = loadGame();
+            if (save) {
+                btn.textContent = `⏯ 继续游戏 (第${save.currentFloor}层)`;
+            }
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+}
+
 // ====== 初始化 / 输入 ======
 function startGame() {
+    clearSave();
     currentFloor = 1; fallCount = 0;
     stamina = STAMINA_MAX; attackPower = BASE_ATTACK;
     shardActive = false; shardTimer = 0;
@@ -804,9 +908,10 @@ function renderRecords(data) {
 
 // ====== UI按钮 ======
 document.getElementById('start-btn').onclick = startGame;
+document.getElementById('continue-btn').onclick = continueGame;
 document.getElementById('pause-btn').onclick = togglePause;
 document.getElementById('resume-btn').onclick = togglePause;
-document.getElementById('restart-btn').onclick = startGame;
+document.getElementById('restart-btn').onclick = () => { if (confirm('确定重新开始吗？当前进度将丢失。')) startGame(); };
 document.getElementById('gameover-restart-btn').onclick = startGame;
 document.getElementById('victory-restart-btn').onclick = startGame;
 document.getElementById('save-record-btn').onclick = async () => {
@@ -823,7 +928,11 @@ document.getElementById('show-records-btn').onclick = async () => {
 };
 document.getElementById('close-records-btn').onclick = () => {
     document.getElementById('records-screen').classList.add('hidden');
+    updateContinueButton();
 };
+
+// 页面加载时检查存档
+updateContinueButton();
 
 // 启动主循环
 requestAnimationFrame(gameLoop);
