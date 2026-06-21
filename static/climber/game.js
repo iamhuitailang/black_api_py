@@ -81,6 +81,9 @@ class Player {
         this.isAttacking = false;
         this.attackTimer = 0;
         this.invulnTimer = 0;
+        this.stuckTimer = 0;
+        this.lastX = 0;
+        this.lastY = 0;
     }
     update(dt) {
         if (this.invulnTimer > 0) this.invulnTimer -= dt;
@@ -99,6 +102,8 @@ class Player {
                 const dustX = touchingWallLeft ? this.x + 2 : this.x + this.w - 2;
                 const dustY = this.y + 18 + Math.random() * 10;
                 addParticle(dustX, dustY, '#8b7355', 2);
+            } else {
+                this.vy = Math.min(this.vy + GRAVITY * 0.5, 2);
             }
         }
         if (!isClimbing) {
@@ -116,6 +121,20 @@ class Player {
         if (this.x + this.w > W - 20) { this.x = W - 20 - this.w; this.vx = 0; }
         if (this.y > H + 100) triggerFall();
         if (Math.abs(this.vx) > 0.5 && onGround) this.animFrame += dt * 10;
+
+        const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
+        if (stamina < 5 && moved < 2 && onGround) {
+            this.stuckTimer += dt;
+            if (this.stuckTimer > 3) {
+                this.stuckTimer = 0;
+                triggerFall();
+                return;
+            }
+        } else {
+            this.stuckTimer = 0;
+        }
+        this.lastX = this.x;
+        this.lastY = this.y;
     }
     handleCollisionX() {
         touchingWallLeft = false; touchingWallRight = false;
@@ -139,10 +158,28 @@ class Player {
         }
     }
     jump() {
-        if (stamina < JUMP_COST) return false;
-        if (onGround) { this.vy = -JUMP_POWER; stamina -= JUMP_COST; addParticle(this.x + this.w / 2, this.y + this.h, '#fff', 5); return true; }
-        else if (touchingWallLeft) { this.vy = -WALL_JUMP_Y; this.vx = WALL_JUMP_X; this.facing = 1; stamina -= JUMP_COST; addParticle(this.x, this.y + this.h / 2, '#fff', 5); return true; }
-        else if (touchingWallRight) { this.vy = -WALL_JUMP_Y; this.vx = -WALL_JUMP_X; this.facing = -1; stamina -= JUMP_COST; addParticle(this.x + this.w, this.y + this.h / 2, '#fff', 5); return true; }
+        if (onGround) {
+            if (stamina >= JUMP_COST) {
+                this.vy = -JUMP_POWER; stamina -= JUMP_COST;
+            } else if (stamina > 0) {
+                this.vy = -JUMP_POWER * 0.6; stamina = 0;
+            } else {
+                this.vy = -JUMP_POWER * 0.35;
+            }
+            addParticle(this.x + this.w / 2, this.y + this.h, '#fff', 5); return true;
+        }
+        else if (touchingWallLeft) {
+            if (stamina >= JUMP_COST) { this.vy = -WALL_JUMP_Y; this.vx = WALL_JUMP_X; this.facing = 1; stamina -= JUMP_COST; }
+            else if (stamina > 0) { this.vy = -WALL_JUMP_Y * 0.7; this.vx = WALL_JUMP_X * 0.8; this.facing = 1; stamina = 0; }
+            else { this.vy = -WALL_JUMP_Y * 0.4; this.vx = WALL_JUMP_X * 0.6; this.facing = 1; }
+            addParticle(this.x, this.y + this.h / 2, '#fff', 5); return true;
+        }
+        else if (touchingWallRight) {
+            if (stamina >= JUMP_COST) { this.vy = -WALL_JUMP_Y; this.vx = -WALL_JUMP_X; this.facing = -1; stamina -= JUMP_COST; }
+            else if (stamina > 0) { this.vy = -WALL_JUMP_Y * 0.7; this.vx = -WALL_JUMP_X * 0.8; this.facing = -1; stamina = 0; }
+            else { this.vy = -WALL_JUMP_Y * 0.4; this.vx = -WALL_JUMP_X * 0.6; this.facing = -1; }
+            addParticle(this.x + this.w, this.y + this.h / 2, '#fff', 5); return true;
+        }
         return false;
     }
     attack() {
@@ -346,37 +383,32 @@ function generateFloor(floor) {
     floorPlatforms.push({ x: W - 20, y: 0, w: 20, h: H, type: 'wall' });
 
     restPoints.push({ x: 80, y: H - 76, w: 56, h: 36, used: false });
-
     if (floor === 12) {
         floorPlatforms.push({ x: 100, y: H - 160, w: 180, h: 20, type: 'normal' });
         floorPlatforms.push({ x: W - 280, y: H - 160, w: 180, h: 20, type: 'normal' });
         floorPlatforms.push({ x: W / 2 - 80, y: H - 280, w: 160, h: 20, type: 'normal' });
         restPoints.push({ x: W / 2 - 28, y: H - 316, w: 56, h: 36, used: false });
+        restPoints.push({ x: 150, y: H - 196, w: 56, h: 36, used: false });
         powerShards.push({ x: 180, y: H - 200, w: 20, h: 20, collected: false });
         powerShards.push({ x: W - 200, y: H - 200, w: 20, h: 20, collected: false });
         boss = new Boss(); return;
     }
-    let gapMin, gapMax, platMin, platMax, restCount, platCount;
-    if (floor <= 4) { gapMin = 70; gapMax = 110; platMin = 120; platMax = 200; restCount = 2; platCount = 6 + floor; }
-    else if (floor <= 8) { gapMin = 100; gapMax = 160; platMin = 80; platMax = 160; restCount = Math.random() < 0.5 ? 2 : 1; platCount = 7 + floor; }
-    else { gapMin = 130; gapMax = 190; platMin = 60; platMax = 120; restCount = 1; platCount = 9 + floor; }
+    let gapMin, gapMax, platMin, platMax, platCount;
+    if (floor <= 4) { gapMin = 70; gapMax = 110; platMin = 120; platMax = 200; platCount = 6 + floor; }
+    else if (floor <= 8) { gapMin = 100; gapMax = 160; platMin = 80; platMax = 160; platCount = 7 + floor; }
+    else { gapMin = 130; gapMax = 190; platMin = 60; platMax = 120; platCount = 9 + floor; }
     let currentY = H - 120, lastX = 40; const usedPositions = [];
     for (let i = 0; i < platCount; i++) {
         const pw = randRange(platMin, platMax); let px; let attempts = 0;
         do { px = randRange(40, W - pw - 40); attempts++; } while (attempts < 10 && Math.abs(px - lastX) < 40);
         lastX = px;
-        floorPlatforms.push({ x: px, y: currentY, w: pw, h: 18, type: 'normal' });
+        const p = { x: px, y: currentY, w: pw, h: 18, type: 'normal' };
+        floorPlatforms.push(p);
         usedPositions.push({ x: px, y: currentY, w: pw });
-        currentY -= randRange(gapMin, gapMax); if (currentY < 80) break;
-    }
-    for (let i = 0; i < restCount; i++) {
-        if (usedPositions.length > 2) {
-            const idx = Math.floor(usedPositions.length * (0.2 + i * 0.35));
-            if (idx < usedPositions.length) {
-                const pos = usedPositions[Math.min(idx, usedPositions.length - 1)];
-                restPoints.push({ x: pos.x + pos.w / 2 - 28, y: pos.y - 36, w: 56, h: 36, used: false });
-            }
+        if (i % 2 === 0 && i > 0) {
+            restPoints.push({ x: px + pw / 2 - 28, y: currentY - 36, w: 56, h: 36, used: false });
         }
+        currentY -= randRange(gapMin, gapMax); if (currentY < 80) break;
     }
     if (floor >= 5) {
         const mpCount = floor <= 8 ? (Math.random() < 0.5 ? 1 : 2) : (Math.random() < 0.5 ? 2 : 3);
@@ -609,6 +641,7 @@ function checkRestPoints() {
             r.used = true; stamina = Math.min(STAMINA_MAX, stamina + REST_RECOVER);
             for (let i = 0; i < 20; i++) addParticle(r.x + r.w / 2, r.y + r.h / 2, '#00ff88', 2);
             updateHUD();
+            saveGame();
         }
     }
 }
@@ -808,10 +841,22 @@ function updateContinueButton() {
     const btn = document.getElementById('continue-btn');
     if (btn) {
         if (hasSavedGame()) {
-            btn.style.display = 'inline-block';
             const save = loadGame();
+            btn.style.display = 'inline-block';
+            btn.style.fontSize = '18px';
+            btn.style.padding = '12px 24px';
+            btn.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+            btn.style.color = '#1a1a2e';
+            btn.style.border = 'none';
+            btn.style.borderRadius = '8px';
+            btn.style.cursor = 'pointer';
+            btn.style.fontWeight = 'bold';
+            btn.style.margin = '6px 4px';
+            btn.style.boxShadow = '0 4px 15px rgba(251,191,36,0.4)';
             if (save) {
-                btn.textContent = `⏯ 继续游戏 (第${save.currentFloor}层)`;
+                const mins = Math.floor((Date.now() - save.savedAt) / 60000);
+                const timeStr = mins < 1 ? '刚刚' : `${mins}分钟前`;
+                btn.textContent = `⏯ 继续游戏 · 第${save.currentFloor}层 · ${timeStr}`;
             }
         } else {
             btn.style.display = 'none';
@@ -821,6 +866,11 @@ function updateContinueButton() {
 
 // ====== 初始化 / 输入 ======
 function startGame() {
+    if (hasSavedGame()) {
+        if (!confirm('检测到未完成的存档，开始新游戏将覆盖进度，确定继续吗？')) {
+            return;
+        }
+    }
     clearSave();
     currentFloor = 1; fallCount = 0;
     stamina = STAMINA_MAX; attackPower = BASE_ATTACK;
