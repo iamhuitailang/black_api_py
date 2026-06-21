@@ -458,6 +458,8 @@ body {
 <script>
 /* ============ 雨林游戏前端引擎 ============ */
 const API_BASE = '/api/rainforest';
+const LS_KEY_GAME_ID = 'rainforest.game_id';
+const LS_KEY_LOGS = 'rainforest.logs';
 const LAYER_INFO = [
   { icon: '🍂', cls: 'layer-leaf', name: '落叶层', depth: '0 ~ 5cm 表层', desc: '新鲜凋落物' },
   { icon: '🪵', cls: 'layer-semi', name: '半腐层', depth: '5 ~ 15cm 中层', desc: '部分分解碎片' },
@@ -498,7 +500,14 @@ function addLog(msg, type='', turn=null) {
   const t = turn !== null ? turn : (state.data ? state.data.turn : '·');
   state.logs.unshift({ turn: t, msg, type });
   if (state.logs.length > 60) state.logs.pop();
+  try { localStorage.setItem(LS_KEY_LOGS, JSON.stringify(state.logs)); } catch(e) {}
   renderLogs();
+}
+
+function saveGameId() {
+  if (state.game_id) {
+    try { localStorage.setItem(LS_KEY_GAME_ID, String(state.game_id)); } catch(e) {}
+  }
 }
 
 /* ----- 载入 & 构建ID映射 ----- */
@@ -717,6 +726,8 @@ async function createNewGame() {
   state.data = res.data;
   state.prev = null;
   state.logs = [];
+  saveGameId();
+  try { localStorage.removeItem(LS_KEY_LOGS); } catch(e) {}
   buildIdMap();
   render();
   addLog(`新游戏创建成功！🍄×${f} 🦠×${b} 🐛×${n}`, 'gold', 0);
@@ -731,10 +742,22 @@ async function loadGame() {
   state.game_id = gid;
   state.data = res.data;
   state.prev = null;
-  state.logs = [];
+  saveGameId();
+  try {
+    const cachedLogs = localStorage.getItem(LS_KEY_LOGS);
+    if (cachedLogs) {
+      state.logs = JSON.parse(cachedLogs);
+    } else {
+      state.logs = [];
+      addLog(`载入游戏 #${gid}，当前回合 ${res.data.turn}`, 'info');
+    }
+  } catch(e) {
+    state.logs = [];
+    addLog(`载入游戏 #${gid}，当前回合 ${res.data.turn}`, 'info');
+  }
   buildIdMap();
   render();
-  addLog(`载入游戏 #${gid}，当前回合 ${res.data.turn}`, 'info');
+  renderLogs();
   toast('游戏已载入', 'success');
 }
 
@@ -972,23 +995,35 @@ async function loadConfig() {
 /* ----- 启动 ----- */
 async function boot() {
   await loadConfig();
-  // 自动载入 game_id=1，如不存在则新建
-  const initialId = 1;
-  document.getElementById('gameIdInput').value = initialId;
-  const loadRes = await api(`/game/get?game_id=${initialId}`);
+  let gid = null;
+  try {
+    const cached = localStorage.getItem(LS_KEY_GAME_ID);
+    if (cached) gid = parseInt(cached);
+  } catch(e) {}
+  if (!gid) gid = 1;
+  document.getElementById('gameIdInput').value = gid;
+  const loadRes = await api(`/game/get?game_id=${gid}`);
   if (loadRes.code === 0 && loadRes.data) {
-    state.game_id = initialId;
+    state.game_id = gid;
     state.data = loadRes.data;
+    try {
+      const cachedLogs = localStorage.getItem(LS_KEY_LOGS);
+      if (cachedLogs) state.logs = JSON.parse(cachedLogs);
+    } catch(e) { state.logs = []; }
+    if (state.logs.length === 0) {
+      addLog(`自动载入游戏 #${gid}，当前回合 ${loadRes.data.turn}`, 'info');
+    }
     buildIdMap();
     render();
-    addLog(`自动载入游戏 #${initialId}`, 'info');
+    renderLogs();
   } else {
-    // 新建
     const crRes = await api('/game/create', { method:'POST', body:{ initial_fungi:5, initial_bacteria:8, initial_nematode:2 } });
     if (crRes.code === 0) {
       state.game_id = crRes.data.id;
       document.getElementById('gameIdInput').value = state.game_id;
       state.data = crRes.data;
+      saveGameId();
+      try { localStorage.removeItem(LS_KEY_LOGS); } catch(e) {}
       buildIdMap();
       render();
       addLog('新游戏创建成功！🍄×5 🦠×8 🐛×2', 'gold', 0);
