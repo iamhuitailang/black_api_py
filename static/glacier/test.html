@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>冰川渗透 - 测试页</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0a1628; color: #e0f0ff; padding: 20px; }
+        .box { background: rgba(20, 60, 100, 0.6); border: 1px solid rgba(100,200,255,0.2); 
+               border-radius: 8px; padding: 15px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 6px; 
+                 background: #0891b2; color: white; cursor: pointer; font-size: 14px; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .log { background: rgba(0,30,60,0.6); border-radius: 6px; padding: 10px; 
+               height: 200px; overflow-y: auto; font-size: 13px; }
+        .log p { margin: 2px 0; }
+        .success { color: #86efac; }
+        .danger { color: #fca5a5; }
+        .info { color: #67e8f9; }
+        .highlight { background: rgba(251,191,36,0.2); padding: 2px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>❄ 冰川渗透 - 极简测试页</h1>
+    <p class="highlight">此页面JS完全内联，无任何外部JS文件依赖，可排除缓存问题</p>
+
+    <div class="box">
+        <h3>游戏状态</h3>
+        <p>game_id: <span id="gameId">-</span></p>
+        <p>回合: <span id="turn">-</span></p>
+        <p>当前层: <span id="layer">-</span></p>
+        <p>冰层进度: <span id="progress">-</span></p>
+        <p>体能: <span id="stamina">-</span></p>
+        <p>localStorage: <span id="storageStatus">-</span></p>
+    </div>
+
+    <div class="box">
+        <h3>操作按钮</h3>
+        <button id="btnNew" onclick="newGame()">🔄 新游戏</button>
+        <button id="btnDig" onclick="dig()" disabled>⛏ 挖掘</button>
+        <button id="btnRefresh" onclick="refresh()">🔃 刷新状态</button>
+        <button id="btnClear" onclick="clearStorage()">🗑 清除存储</button>
+    </div>
+
+    <div class="box">
+        <h3>操作日志</h3>
+        <div class="log" id="log"></div>
+    </div>
+
+<script>
+// ========== 完全内联的JS代码 ==========
+const API_BASE = '/api/glacier';
+let currentGameId = null;
+let gameState = null;
+
+function log(msg, type='info') {
+    const logDiv = document.getElementById('log');
+    const p = document.createElement('p');
+    p.className = type;
+    p.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    logDiv.appendChild(p);
+    logDiv.scrollTop = logDiv.scrollHeight;
+    console.log('[LOG]', msg);
+}
+
+async function apiRequest(endpoint, method, params) {
+    let url = API_BASE + endpoint;
+    log('API请求: ' + method + ' ' + url + (params ? ' ' + JSON.stringify(params) : ''));
+
+    const options = {
+        method: method,
+        headers: { 'Content-Type': 'application/json' }
+    };
+    if (params) {
+        if (method === 'GET') {
+            url += '?' + new URLSearchParams(params).toString();
+        } else {
+            options.body = JSON.stringify(params);
+        }
+    }
+
+    try {
+        const resp = await fetch(url, options);
+        const data = await resp.json();
+        log('API响应: code=' + data.code + ', msg=' + (data.message || 'success'));
+        return data;
+    } catch(e) {
+        log('API错误: ' + e.message, 'danger');
+        return { code: 1, message: e.message };
+    }
+}
+
+function saveGameId(id) {
+    try {
+        localStorage.setItem('glacier_test_game_id', id.toString());
+        sessionStorage.setItem('glacier_test_game_id', id.toString());
+        document.getElementById('storageStatus').textContent = '已保存 id=' + id;
+        log('localStorage 已保存 gameId=' + id, 'success');
+    } catch(e) {
+        log('localStorage 保存失败: ' + e.message, 'danger');
+        document.getElementById('storageStatus').textContent = '保存失败';
+    }
+}
+
+function loadGameId() {
+    try {
+        let id = localStorage.getItem('glacier_test_game_id');
+        if (!id) id = sessionStorage.getItem('glacier_test_game_id');
+        if (id) {
+            log('localStorage 读取到 gameId=' + id, 'success');
+            return parseInt(id);
+        }
+    } catch(e) {
+        log('localStorage 读取失败: ' + e.message, 'danger');
+    }
+    return null;
+}
+
+function clearStorage() {
+    localStorage.removeItem('glacier_test_game_id');
+    sessionStorage.removeItem('glacier_test_game_id');
+    currentGameId = null;
+    gameState = null;
+    document.getElementById('storageStatus').textContent = '已清除';
+    updateUI();
+    log('存储已清除', 'info');
+}
+
+function updateUI() {
+    if (gameState) {
+        document.getElementById('gameId').textContent = gameState.game_id;
+        document.getElementById('turn').textContent = gameState.turn_count;
+        document.getElementById('layer').textContent = gameState.current_layer;
+        const l = gameState.current_layer_info;
+        document.getElementById('progress').textContent = 
+            l.dug_progress.toFixed(1) + ' / ' + l.thickness.toFixed(1);
+        document.getElementById('stamina').textContent = 
+            gameState.stamina.toFixed(1) + ' / ' + gameState.max_stamina.toFixed(1);
+    } else {
+        document.getElementById('gameId').textContent = '-';
+        document.getElementById('turn').textContent = '-';
+        document.getElementById('layer').textContent = '-';
+        document.getElementById('progress').textContent = '-';
+        document.getElementById('stamina').textContent = '-';
+    }
+    document.getElementById('btnDig').disabled = !gameState || gameState.status !== 'playing';
+}
+
+async function newGame() {
+    log('=== 创建新游戏 ===', 'info');
+    const result = await apiRequest('/new/game', 'POST');
+    if (result.code === 0) {
+        currentGameId = result.data.game_id;
+        gameState = result.data;
+        saveGameId(currentGameId);
+        updateUI();
+        log('✅ 新游戏创建成功！gameId=' + currentGameId, 'success');
+    }
+}
+
+async function dig() {
+    if (!currentGameId) {
+        log('⚠ 请先创建游戏！', 'danger');
+        return;
+    }
+    log('=== 执行挖掘 ===', 'info');
+    const result = await apiRequest('/dig', 'POST', { game_id: currentGameId });
+    if (result.code === 0) {
+        gameState = result.data;
+        saveGameId(currentGameId);
+        updateUI();
+        const events = result.data.turn_events || [];
+        events.forEach(e => log('  ' + e, 'success'));
+        log('✅ 挖掘成功！', 'success');
+    } else {
+        log('❌ 挖掘失败: ' + result.message, 'danger');
+    }
+}
+
+async function refresh() {
+    if (!currentGameId) {
+        log('⚠ 没有gameId，请先创建或读取游戏', 'danger');
+        return;
+    }
+    log('=== 刷新游戏状态 (模拟页面刷新) ===', 'info');
+    const result = await apiRequest('/state/get', 'GET', { game_id: currentGameId });
+    if (result.code === 0) {
+        gameState = result.data;
+        updateUI();
+        log('✅ 状态恢复成功！回合=' + gameState.turn_count + ', 进度=' + 
+            gameState.current_layer_info.dug_progress.toFixed(1), 'success');
+    }
+}
+
+// 页面加载时自动恢复
+window.onload = async function() {
+    log('页面加载完成，开始初始化...', 'info');
+    
+    // 测试localStorage是否可用
+    try {
+        localStorage.setItem('test', '1');
+        localStorage.removeItem('test');
+        log('localStorage 可用', 'success');
+        document.getElementById('storageStatus').textContent = '可用';
+    } catch(e) {
+        log('localStorage 不可用: ' + e.message, 'danger');
+        document.getElementById('storageStatus').textContent = '不可用';
+    }
+
+    // 尝试恢复游戏
+    const savedId = loadGameId();
+    if (savedId) {
+        currentGameId = savedId;
+        await refresh();
+    } else {
+        log('未找到保存的游戏，请点击【新游戏】开始', 'info');
+    }
+};
+
+// 页面关闭前保存
+window.onbeforeunload = function() {
+    if (currentGameId) saveGameId(currentGameId);
+};
+</script>
+</body>
+</html>
