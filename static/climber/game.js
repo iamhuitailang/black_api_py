@@ -729,6 +729,10 @@ function gameLoop(timestamp) {
 function update(dt) {
     if (attackCooldown > 0) attackCooldown -= dt;
     if (screenShake > 0) { screenShake -= dt * 30; if (screenShake < 0) screenShake = 0; }
+    if (saveIndicatorTimer > 0) {
+        saveIndicatorTimer -= dt;
+        if (saveIndicatorTimer <= 0) hideSaveIndicator();
+    }
     updateMovingPlatforms(dt); updateFallingRocks(dt); updateWind(dt);
     updateParticles(dt); updatePowerShards(dt);
     if (player) player.update(dt);
@@ -770,9 +774,24 @@ function render(dt) {
 
 // ====== 存档系统 ======
 const SAVE_KEY = 'climber_game_save';
+let saveIndicatorTimer = 0;
+
+function showSaveIndicator() {
+    const el = document.getElementById('save-indicator');
+    if (el) {
+        el.style.opacity = '1';
+        saveIndicatorTimer = 1.5;
+    }
+}
+
+function hideSaveIndicator() {
+    const el = document.getElementById('save-indicator');
+    if (el) el.style.opacity = '0';
+}
 
 function saveGame() {
-    if (gameState !== GameState.PLAYING) return;
+    if (gameState !== GameState.PLAYING && gameState !== GameState.PAUSED) return false;
+    if (!player) return false;
     const saveData = {
         currentFloor: currentFloor,
         fallCount: fallCount,
@@ -787,8 +806,11 @@ function saveGame() {
     };
     try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        showSaveIndicator();
+        return true;
     } catch (e) {
         console.warn('存档失败:', e);
+        return false;
     }
 }
 
@@ -917,6 +939,7 @@ document.addEventListener('keyup', (e) => { keys[e.key] = false; });
 function togglePause() {
     if (gameState === GameState.PLAYING) {
         gameState = GameState.PAUSED;
+        saveGame();
         document.getElementById('pause-screen').classList.remove('hidden');
     } else if (gameState === GameState.PAUSED) {
         gameState = GameState.PLAYING;
@@ -999,6 +1022,16 @@ document.getElementById('close-records-btn').onclick = () => {
 
 // 页面加载时检查存档
 updateContinueButton();
+
+// 页面切后台/关闭前自动保存
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) saveGame();
+});
+window.addEventListener('beforeunload', (e) => {
+    if (gameState === GameState.PLAYING || gameState === GameState.PAUSED) {
+        saveGame();
+    }
+});
 
 // 启动主循环
 requestAnimationFrame(gameLoop);
