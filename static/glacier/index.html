@@ -7,10 +7,37 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>冰川渗透行动 - 策略生存游戏</title>
-    <link rel="stylesheet" href="css/style.css?v=2026062104">
+    <link rel="stylesheet" href="css/style.css?v=2026062105">
+    <style>
+        .btn .btn-text { display: inline; }
+        .btn .btn-loading { display: none; }
+        .btn.loading .btn-text { display: none; }
+        .btn.loading .btn-loading { display: inline; }
+        .btn.loading { cursor: wait; opacity: 0.7; }
+        
+        @keyframes dig-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        .digging .ice-layer.current {
+            animation: dig-pulse 0.5s ease-in-out 3;
+        }
+        
+        .flash-success {
+            animation: flash-green 0.5s ease-out;
+        }
+        @keyframes flash-green {
+            0% { background-color: rgba(34, 197, 94, 0.3); }
+            100% { background-color: transparent; }
+        }
+        
+        .progress-change {
+            transition: width 0.5s ease-out;
+        }
+    </style>
 </head>
 <body>
-    <div class="game-container">
+    <div class="game-container" id="gameContainer">
         <header class="game-header">
             <h1 class="game-title">❄ 冰川渗透行动 ❄</h1>
             <div class="game-info">
@@ -25,7 +52,7 @@
                 <div class="panel-card stamina-panel">
                     <h3>⚡ 体能储备</h3>
                     <div class="stamina-bar">
-                        <div class="stamina-fill" id="staminaFill"></div>
+                        <div class="stamina-fill progress-change" id="staminaFill"></div>
                     </div>
                     <div class="stamina-text">
                         <span id="staminaValue">300</span> / <span id="staminaMax">300</span>
@@ -57,6 +84,7 @@
                 <div class="event-log">
                     <h4>📜 行动日志</h4>
                     <div class="log-content" id="logContent">
+                        <p class="log-item log-system">页面加载完成，请点击【🔄 新游戏】开始</p>
                     </div>
                 </div>
             </section>
@@ -65,22 +93,27 @@
                 <div class="panel-card action-panel">
                     <h3>🎮 行动指令</h3>
                     <div class="action-buttons">
-                        <button class="btn btn-primary" id="btnDig" onclick="dig()">
-                            ⛏ 挖掘前进
+                        <button class="btn btn-primary" id="actionBtnDig">
+                            <span class="btn-text">⛏ 挖掘前进</span>
+                            <span class="btn-loading">⏳ 挖掘中...</span>
                         </button>
-                        <button class="btn btn-secondary" id="btnCrack" onclick="useCrack()" disabled>
-                            🕳 使用裂缝
+                        <button class="btn btn-secondary" id="actionBtnCrack" disabled>
+                            <span class="btn-text">🕳 使用裂缝</span>
+                            <span class="btn-loading">⏳ 穿越中...</span>
                         </button>
-                        <button class="btn btn-supply" id="btnSupply" onclick="useSupply()" disabled>
-                            🏕 补给站
+                        <button class="btn btn-supply" id="actionBtnSupply" disabled>
+                            <span class="btn-text">🏕 补给站</span>
+                            <span class="btn-loading">⏳ 使用中...</span>
                         </button>
-                        <button class="btn btn-new" onclick="newGame()">
-                            🔄 新游戏
+                        <button class="btn btn-new" id="actionBtnNew">
+                            <span class="btn-text">🔄 新游戏</span>
+                            <span class="btn-loading">⏳ 创建中...</span>
                         </button>
-                        <button class="btn btn-new" onclick="manualRefresh()" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                            🔃 刷新状态
+                        <button class="btn btn-new" id="actionBtnRefresh" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                            <span class="btn-text">🔃 刷新状态</span>
+                            <span class="btn-loading">⏳ 刷新中...</span>
                         </button>
-                        <button class="btn btn-new" onclick="clearAllData()" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        <button class="btn btn-new" id="actionBtnClear" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
                             🗑 清除数据
                         </button>
                     </div>
@@ -102,7 +135,7 @@
                             <span class="detail-value" id="layerProgress">-</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" id="layerProgressFill"></div>
+                            <div class="progress-fill progress-change" id="layerProgressFill"></div>
                         </div>
                     </div>
                 </div>
@@ -112,7 +145,8 @@
                     <div style="font-size:0.8em;color:#94a3b8;word-break:break-all;">
                         <p>gameId: <span id="debugGameId">-</span></p>
                         <p>storage: <span id="debugStorage">-</span></p>
-                        <p style="color:#67e8f9;">打开浏览器控制台(F12)查看详细日志</p>
+                        <p>lastAction: <span id="debugLastAction">-</span></p>
+                        <p style="color:#67e8f9;">按 F12 打开控制台查看详细日志</p>
                     </div>
                 </div>
 
@@ -148,678 +182,801 @@
             <div class="overlay-content">
                 <h2 id="overlayTitle">任务结束</h2>
                 <p id="overlayMessage"></p>
-                <button class="btn btn-primary" onclick="newGame()">🔄 重新开始</button>
+                <button class="btn btn-primary" id="overlayBtnRestart">🔄 重新开始</button>
             </div>
         </div>
     </div>
 
 <script>
 // =====================================================================
-// 冰川渗透游戏 - 完全内联JS代码 (v2026062104)
-// 注意：所有JS代码内联于此，确保不受外部文件缓存影响
+// 冰川渗透游戏 - v2026062105
+// 注意：使用 addEventListener 绑定事件，避免内联 onclick 的作用域问题
 // =====================================================================
 
-const API_BASE = '/api/glacier';
-const STORAGE_KEY_GAME_ID = 'glacier_game_id_v4';
-const STORAGE_KEY_LOGS = 'glacier_logs_v4';
+(function() {
+    'use strict';
 
-let currentGameId = null;
-let gameState = null;
+    const API_BASE = '/api/glacier';
+    const STORAGE_KEY_GAME_ID = 'glacier_game_id_v5';
+    const STORAGE_KEY_LOGS = 'glacier_logs_v5';
 
-// =====================================================================
-// 工具函数
-// =====================================================================
+    let currentGameId = null;
+    let gameState = null;
+    let isProcessing = false;
 
-function consoleLog(msg) {
-    console.log('[Glacier]', msg);
-}
+    // =================================================================
+    // 工具函数
+    // =================================================================
 
-async function apiRequest(endpoint, method, params) {
-    let url = API_BASE + endpoint;
-    
-    const options = {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
+    function log(msg) {
+        console.log('[Glacier]', msg);
+    }
+
+    function setDebugLastAction(action) {
+        const el = document.getElementById('debugLastAction');
+        if (el) el.textContent = action;
+    }
+
+    async function apiRequest(endpoint, method, params) {
+        let url = API_BASE + endpoint;
+        
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            }
+        };
+
+        if (params) {
+            if (method === 'GET') {
+                url += '?' + new URLSearchParams(params).toString();
+            } else {
+                options.body = JSON.stringify(params);
+            }
         }
-    };
 
-    if (params) {
-        if (method === 'GET') {
-            url += '?' + new URLSearchParams(params).toString();
+        log(method + ' ' + url + (params ? ' ' + JSON.stringify(params) : ''));
+        setDebugLastAction('请求: ' + method + ' ' + endpoint);
+
+        try {
+            const resp = await fetch(url, options);
+            const data = await resp.json();
+            log('Response: code=' + data.code + ', msg=' + (data.message || 'success'));
+            setDebugLastAction('响应: code=' + data.code);
+            return data;
+        } catch (e) {
+            log('Error: ' + e.message);
+            setDebugLastAction('错误: ' + e.message);
+            addLog('❌ 网络错误: ' + e.message, 'danger');
+            return { code: 1, message: e.message, data: null };
+        }
+    }
+
+    // =================================================================
+    // 存储函数
+    // =================================================================
+
+    function saveGameId(id) {
+        try {
+            localStorage.setItem(STORAGE_KEY_GAME_ID, id.toString());
+            sessionStorage.setItem(STORAGE_KEY_GAME_ID, id.toString());
+            document.getElementById('debugStorage').textContent = '已保存 id=' + id;
+            log('Saved gameId=' + id);
+        } catch (e) {
+            log('Storage save error: ' + e.message);
+            document.getElementById('debugStorage').textContent = '保存失败';
+        }
+    }
+
+    function loadGameId() {
+        try {
+            let id = localStorage.getItem(STORAGE_KEY_GAME_ID);
+            if (!id) id = sessionStorage.getItem(STORAGE_KEY_GAME_ID);
+            if (id) {
+                log('Loaded gameId=' + id + ' from storage');
+                return parseInt(id);
+            }
+        } catch (e) {
+            log('Storage load error: ' + e.message);
+        }
+        return null;
+    }
+
+    function clearStorage() {
+        try {
+            localStorage.removeItem(STORAGE_KEY_GAME_ID);
+            sessionStorage.removeItem(STORAGE_KEY_GAME_ID);
+            localStorage.removeItem(STORAGE_KEY_LOGS);
+            sessionStorage.removeItem(STORAGE_KEY_LOGS);
+            document.getElementById('debugStorage').textContent = '已清除';
+            log('Storage cleared');
+        } catch (e) {}
+    }
+
+    function saveLogs(logs) {
+        try {
+            const data = JSON.stringify(logs);
+            localStorage.setItem(STORAGE_KEY_LOGS, data);
+            sessionStorage.setItem(STORAGE_KEY_LOGS, data);
+        } catch (e) {}
+    }
+
+    function loadLogs() {
+        try {
+            let data = localStorage.getItem(STORAGE_KEY_LOGS);
+            if (!data) data = sessionStorage.getItem(STORAGE_KEY_LOGS);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // =================================================================
+    // UI 状态管理
+    // =================================================================
+
+    function setButtonLoading(btnId, loading) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        
+        if (loading) {
+            btn.classList.add('loading');
+            btn.disabled = true;
         } else {
-            options.body = JSON.stringify(params);
+            btn.classList.remove('loading');
+            updateButtons();
         }
     }
 
-    consoleLog(method + ' ' + url + (params ? ' ' + JSON.stringify(params) : ''));
-
-    try {
-        const resp = await fetch(url, options);
-        const data = await resp.json();
-        consoleLog('Response: code=' + data.code + ', msg=' + (data.message || 'success'));
-        return data;
-    } catch (e) {
-        consoleLog('Error: ' + e.message);
-        addLog('❌ 网络错误: ' + e.message, 'danger');
-        return { code: 1, message: e.message, data: null };
+    function setAllButtonsDisabled(disabled) {
+        const buttons = ['actionBtnDig', 'actionBtnCrack', 'actionBtnSupply', 
+                        'actionBtnNew', 'actionBtnRefresh'];
+        buttons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.disabled = disabled;
+        });
     }
-}
 
-// =====================================================================
-// 存储函数
-// =====================================================================
-
-function saveGameId(id) {
-    try {
-        localStorage.setItem(STORAGE_KEY_GAME_ID, id.toString());
-        sessionStorage.setItem(STORAGE_KEY_GAME_ID, id.toString());
-        document.getElementById('debugStorage').textContent = '已保存 id=' + id;
-        consoleLog('Saved gameId=' + id + ' to storage');
-    } catch (e) {
-        consoleLog('Storage save error: ' + e.message);
-        document.getElementById('debugStorage').textContent = '保存失败: ' + e.message;
-    }
-}
-
-function loadGameId() {
-    try {
-        let id = localStorage.getItem(STORAGE_KEY_GAME_ID);
-        if (!id) {
-            id = sessionStorage.getItem(STORAGE_KEY_GAME_ID);
+    function showDigAnimation() {
+        const container = document.getElementById('gameContainer');
+        if (container) {
+            container.classList.add('digging');
+            setTimeout(() => container.classList.remove('digging'), 1500);
         }
-        if (id) {
-            consoleLog('Loaded gameId=' + id + ' from storage');
-            return parseInt(id);
-        }
-    } catch (e) {
-        consoleLog('Storage load error: ' + e.message);
     }
-    return null;
-}
 
-function clearStorage() {
-    try {
-        localStorage.removeItem(STORAGE_KEY_GAME_ID);
-        sessionStorage.removeItem(STORAGE_KEY_GAME_ID);
-        localStorage.removeItem(STORAGE_KEY_LOGS);
-        sessionStorage.removeItem(STORAGE_KEY_LOGS);
-        document.getElementById('debugStorage').textContent = '已清除';
-        consoleLog('Storage cleared');
-    } catch (e) {}
-}
-
-function saveLogs(logs) {
-    try {
-        const data = JSON.stringify(logs);
-        localStorage.setItem(STORAGE_KEY_LOGS, data);
-        sessionStorage.setItem(STORAGE_KEY_LOGS, data);
-    } catch (e) {}
-}
-
-function loadLogs() {
-    try {
-        let data = localStorage.getItem(STORAGE_KEY_LOGS);
-        if (!data) {
-            data = sessionStorage.getItem(STORAGE_KEY_LOGS);
+    function flashSuccess() {
+        const staminaBar = document.getElementById('staminaFill');
+        if (staminaBar) {
+            staminaBar.classList.add('flash-success');
+            setTimeout(() => staminaBar.classList.remove('flash-success'), 500);
         }
-        return data ? JSON.parse(data) : [];
-    } catch (e) {
-        return [];
     }
-}
 
-// =====================================================================
-// 日志函数
-// =====================================================================
+    // =================================================================
+    // 日志函数
+    // =================================================================
 
-function addLog(message, type) {
-    const logContent = document.getElementById('logContent');
-    if (!logContent) return;
+    function addLog(message, type) {
+        const logContent = document.getElementById('logContent');
+        if (!logContent) return;
 
-    const lines = (message || '').split('\n');
-    lines.forEach(line => {
-        const p = document.createElement('p');
-        p.className = 'log-item log-' + (type || 'dig');
-        p.style.whiteSpace = 'pre';
-        p.textContent = line;
-        logContent.appendChild(p);
-    });
-
-    logContent.scrollTop = logContent.scrollHeight;
-
-    const logs = loadLogs();
-    logs.push({ message, type, time: Date.now() });
-    while (logs.length > 200) logs.shift();
-    saveLogs(logs);
-}
-
-function restoreLogs() {
-    const logContent = document.getElementById('logContent');
-    if (!logContent) return;
-
-    const logs = loadLogs();
-    logContent.innerHTML = '';
-
-    if (logs.length === 0) return;
-
-    logs.forEach(log => {
-        const lines = (log.message || '').split('\n');
+        const lines = (message || '').split('\n');
         lines.forEach(line => {
             const p = document.createElement('p');
-            p.className = 'log-item log-' + (log.type || 'dig');
+            p.className = 'log-item log-' + (type || 'dig');
             p.style.whiteSpace = 'pre';
             p.textContent = line;
             logContent.appendChild(p);
         });
-    });
 
-    logContent.scrollTop = logContent.scrollHeight;
-}
+        logContent.scrollTop = logContent.scrollHeight;
 
-// =====================================================================
-// 渲染函数
-// =====================================================================
+        const logs = loadLogs();
+        logs.push({ message, type, time: Date.now() });
+        while (logs.length > 200) logs.shift();
+        saveLogs(logs);
+    }
 
-function renderGame() {
-    consoleLog('Rendering game, gameState=' + (gameState ? 'exists' : 'null'));
+    function restoreLogs() {
+        const logContent = document.getElementById('logContent');
+        if (!logContent) return;
 
-    if (!gameState) {
+        const logs = loadLogs();
+        logContent.innerHTML = '';
+
+        if (logs.length === 0) {
+            addLog('👆 点击【🔄 新游戏】开始冰川渗透行动。', 'system');
+            return;
+        }
+
+        logs.forEach(log => {
+            const lines = (log.message || '').split('\n');
+            lines.forEach(line => {
+                const p = document.createElement('p');
+                p.className = 'log-item log-' + (log.type || 'dig');
+                p.style.whiteSpace = 'pre';
+                p.textContent = line;
+                logContent.appendChild(p);
+            });
+        });
+
+        logContent.scrollTop = logContent.scrollHeight;
+    }
+
+    // =================================================================
+    // 渲染函数
+    // =================================================================
+
+    function renderGame() {
+        log('Rendering game, gameState=' + (gameState ? 'exists' : 'null'));
+
+        if (!gameState) {
+            updateButtons();
+            return;
+        }
+
+        document.getElementById('turnCount').textContent = gameState.turn_count;
+        document.getElementById('currentLayer').textContent = gameState.current_layer;
+        document.getElementById('totalLayers').textContent = gameState.total_layers;
+        document.getElementById('gameIdDisplay').textContent = gameState.game_id;
+        document.getElementById('debugGameId').textContent = gameState.game_id;
+
+        const staminaPercent = Math.max(0, (gameState.stamina / gameState.max_stamina) * 100);
+        document.getElementById('staminaFill').style.width = staminaPercent + '%';
+        document.getElementById('staminaValue').textContent = Math.round(gameState.stamina);
+        document.getElementById('staminaMax').textContent = gameState.max_stamina;
+
+        const warning = document.getElementById('staminaWarning');
+        warning.style.display = gameState.is_stamina_depleted ? 'block' : 'none';
+
+        renderTeam();
+        renderIceLayers();
+        renderLayerInfo();
         updateButtons();
-        return;
     }
 
-    document.getElementById('turnCount').textContent = gameState.turn_count;
-    document.getElementById('currentLayer').textContent = gameState.current_layer;
-    document.getElementById('totalLayers').textContent = gameState.total_layers;
-    document.getElementById('gameIdDisplay').textContent = gameState.game_id;
-    document.getElementById('debugGameId').textContent = gameState.game_id;
+    function renderTeam() {
+        const teamList = document.getElementById('teamList');
+        teamList.innerHTML = '';
 
-    const staminaPercent = Math.max(0, (gameState.stamina / gameState.max_stamina) * 100);
-    document.getElementById('staminaFill').style.width = staminaPercent + '%';
-    document.getElementById('staminaValue').textContent = Math.round(gameState.stamina);
-    document.getElementById('staminaMax').textContent = gameState.max_stamina;
+        if (!gameState.team_members || gameState.team_members.length === 0) {
+            teamList.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:20px;">暂无队员数据</div>';
+            return;
+        }
 
-    const warning = document.getElementById('staminaWarning');
-    warning.style.display = gameState.is_stamina_depleted ? 'block' : 'none';
+        gameState.team_members.forEach(member => {
+            const div = document.createElement('div');
+            div.className = 'team-member';
+            if (member.is_frostbitten) div.classList.add('frostbitten');
+            if (member.health <= 0) div.classList.add('dead');
 
-    renderTeam();
-    renderIceLayers();
-    renderLayerInfo();
-    updateButtons();
-}
+            const coldPercent = Math.max(0, (member.cold_resistance / member.max_cold_resistance) * 100);
+            const healthPercent = Math.max(0, (member.health / member.max_health) * 100);
+            const coldLow = member.is_frostbitten || coldPercent < 20;
 
-function renderTeam() {
-    const teamList = document.getElementById('teamList');
-    teamList.innerHTML = '';
-
-    if (!gameState.team_members || gameState.team_members.length === 0) {
-        teamList.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:20px;">暂无队员数据</div>';
-        return;
-    }
-
-    gameState.team_members.forEach(member => {
-        const div = document.createElement('div');
-        div.className = 'team-member';
-        if (member.is_frostbitten) div.classList.add('frostbitten');
-        if (member.health <= 0) div.classList.add('dead');
-
-        const coldPercent = Math.max(0, (member.cold_resistance / member.max_cold_resistance) * 100);
-        const healthPercent = Math.max(0, (member.health / member.max_health) * 100);
-        const coldLow = member.is_frostbitten || coldPercent < 20;
-
-        div.innerHTML = `
-            <div class="member-name">${member.name}</div>
-            <div class="member-stats">
-                <div class="stat-row">
-                    <span class="stat-label">耐寒</span>
-                    <div class="stat-bar">
-                        <div class="stat-fill-cold ${coldLow ? 'low' : ''}" style="width:${coldPercent}%"></div>
+            div.innerHTML = `
+                <div class="member-name">${member.name}</div>
+                <div class="member-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">耐寒</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill-cold ${coldLow ? 'low' : ''}" style="width:${coldPercent}%"></div>
+                        </div>
+                        <span>${Math.round(member.cold_resistance)}</span>
                     </div>
-                    <span>${Math.round(member.cold_resistance)}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">生命</span>
-                    <div class="stat-bar">
-                        <div class="stat-fill-health" style="width:${healthPercent}%"></div>
+                    <div class="stat-row">
+                        <span class="stat-label">生命</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill-health" style="width:${healthPercent}%"></div>
+                        </div>
+                        <span>${Math.round(member.health)}</span>
                     </div>
-                    <span>${Math.round(member.health)}</span>
+                    <div class="stat-row">
+                        <span class="stat-label">效率</span>
+                        <span style="color:#a5f3fc;">${Number(member.dig_efficiency).toFixed(1)}/回合</span>
+                    </div>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">效率</span>
-                    <span style="color:#a5f3fc;">${Number(member.dig_efficiency).toFixed(1)}/回合</span>
-                </div>
-            </div>
-            ${member.is_frostbitten ? '<div class="member-status">❄ 冻伤（效率=1）</div>' : ''}
-            ${member.health <= 0 ? '<div class="member-status">💀 已牺牲</div>' : ''}
-        `;
-        teamList.appendChild(div);
-    });
-}
-
-function renderIceLayers() {
-    const iceLayers = document.getElementById('iceLayers');
-    iceLayers.innerHTML = '';
-
-    if (!gameState.layers || gameState.layers.length === 0) {
-        iceLayers.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:40px;">暂无冰层数据</div>';
-        return;
+                ${member.is_frostbitten ? '<div class="member-status">❄ 冻伤（效率=1）</div>' : ''}
+                ${member.health <= 0 ? '<div class="member-status">💀 已牺牲</div>' : ''}
+            `;
+            teamList.appendChild(div);
+        });
     }
 
-    const layers = [...gameState.layers].reverse();
+    function renderIceLayers() {
+        const iceLayers = document.getElementById('iceLayers');
+        iceLayers.innerHTML = '';
 
-    layers.forEach(layer => {
-        const div = document.createElement('div');
-        div.className = 'ice-layer';
+        if (!gameState.layers || gameState.layers.length === 0) {
+            iceLayers.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:40px;">暂无冰层数据</div>';
+            return;
+        }
 
-        if (layer.is_passed) div.classList.add('passed');
-        else if (layer.is_current) div.classList.add('current');
-        else div.classList.add('normal');
+        const layers = [...gameState.layers].reverse();
 
-        if (layer.has_crack && layer.crack_found) div.classList.add('has-crack');
-        if (layer.has_supply) div.classList.add('has-supply');
+        layers.forEach(layer => {
+            const div = document.createElement('div');
+            div.className = 'ice-layer';
 
-        const progress = layer.is_passed ? 100 :
-            (layer.is_current ? Math.max(0, (layer.dug_progress / layer.thickness) * 100) : 0);
+            if (layer.is_passed) div.classList.add('passed');
+            else if (layer.is_current) div.classList.add('current');
+            else div.classList.add('normal');
 
-        div.innerHTML = `
-            <span class="layer-label">第 ${layer.layer_index} 层</span>
-            <span class="layer-temp">${Number(layer.temperature).toFixed(1)}°C</span>
-            ${layer.is_current ? `<div class="layer-progress" style="width:${progress}%"></div>` : ''}
-        `;
+            if (layer.has_crack && layer.crack_found) div.classList.add('has-crack');
+            if (layer.has_supply) div.classList.add('has-supply');
 
-        div.addEventListener('click', () => onLayerClick(layer.layer_index));
-        div.title = '点击查看第' + layer.layer_index + '层详情';
+            const progress = layer.is_passed ? 100 :
+                (layer.is_current ? Math.max(0, (layer.dug_progress / layer.thickness) * 100) : 0);
 
-        iceLayers.appendChild(div);
-    });
-}
+            div.innerHTML = `
+                <span class="layer-label">第 ${layer.layer_index} 层</span>
+                <span class="layer-temp">${Number(layer.temperature).toFixed(1)}°C</span>
+                ${layer.is_current ? `<div class="layer-progress progress-change" style="width:${progress}%"></div>` : ''}
+            `;
 
-function renderLayerInfo() {
-    const layer = gameState.current_layer_info;
-    if (!layer) {
-        document.getElementById('layerThickness').textContent = '-';
-        document.getElementById('layerTemp').textContent = '-';
-        document.getElementById('layerProgress').textContent = '-';
-        document.getElementById('layerProgressFill').style.width = '0%';
-        return;
+            div.addEventListener('click', () => onLayerClick(layer.layer_index));
+            div.title = '点击查看第' + layer.layer_index + '层详情';
+
+            iceLayers.appendChild(div);
+        });
     }
 
-    document.getElementById('layerThickness').textContent = Number(layer.thickness).toFixed(1) + ' 单位';
-    document.getElementById('layerTemp').textContent = Number(layer.temperature).toFixed(1) + '°C';
+    function renderLayerInfo() {
+        const layer = gameState.current_layer_info;
+        if (!layer) {
+            document.getElementById('layerThickness').textContent = '-';
+            document.getElementById('layerTemp').textContent = '-';
+            document.getElementById('layerProgress').textContent = '-';
+            document.getElementById('layerProgressFill').style.width = '0%';
+            return;
+        }
 
-    const progress = Math.max(0, (layer.dug_progress / layer.thickness) * 100);
-    document.getElementById('layerProgress').textContent =
-        Number(layer.dug_progress).toFixed(1) + ' / ' + Number(layer.thickness).toFixed(1) +
-        ' (' + progress.toFixed(1) + '%)';
-    document.getElementById('layerProgressFill').style.width = progress + '%';
-}
+        document.getElementById('layerThickness').textContent = Number(layer.thickness).toFixed(1) + ' 单位';
+        document.getElementById('layerTemp').textContent = Number(layer.temperature).toFixed(1) + '°C';
 
-function updateButtons() {
-    const btnDig = document.getElementById('btnDig');
-    const btnCrack = document.getElementById('btnCrack');
-    const btnSupply = document.getElementById('btnSupply');
-
-    if (!gameState) {
-        btnDig.disabled = true;
-        btnCrack.disabled = true;
-        btnSupply.disabled = true;
-        btnDig.title = '请先开始新游戏';
-        btnCrack.title = '请先开始新游戏';
-        btnSupply.title = '请先开始新游戏';
-        return;
+        const progress = Math.max(0, (layer.dug_progress / layer.thickness) * 100);
+        document.getElementById('layerProgress').textContent =
+            Number(layer.dug_progress).toFixed(1) + ' / ' + Number(layer.thickness).toFixed(1) +
+            ' (' + progress.toFixed(1) + '%)';
+        document.getElementById('layerProgressFill').style.width = progress + '%';
     }
 
-    const isPlaying = gameState.status === 'playing';
-    const layer = gameState.current_layer_info;
+    function updateButtons() {
+        const btnDig = document.getElementById('actionBtnDig');
+        const btnCrack = document.getElementById('actionBtnCrack');
+        const btnSupply = document.getElementById('actionBtnSupply');
 
-    btnDig.disabled = !isPlaying;
-    btnDig.title = isPlaying ? '小队全员挖掘（消耗体能和耐寒值）' : '游戏已结束';
+        if (!btnDig || !btnCrack || !btnSupply) return;
 
-    const canUseCrack = isPlaying && layer && layer.has_crack && layer.crack_found && !gameState.is_stamina_depleted;
-    btnCrack.disabled = !canUseCrack;
-    if (canUseCrack) {
-        btnCrack.title = '使用裂缝穿越当前层（需体能充足）';
-    } else if (!layer || !layer.has_crack) {
-        btnCrack.title = '当前层没有裂缝';
-    } else if (!layer.crack_found) {
-        btnCrack.title = '尚未发现裂缝，继续挖掘可能发现';
-    } else if (gameState.is_stamina_depleted) {
-        btnCrack.title = '体能耗尽，无法执行特殊操作';
-    }
+        if (!gameState) {
+            btnDig.disabled = true;
+            btnCrack.disabled = true;
+            btnSupply.disabled = true;
+            btnDig.title = '请先开始新游戏';
+            btnCrack.title = '请先开始新游戏';
+            btnSupply.title = '请先开始新游戏';
+            return;
+        }
 
-    const canUseSupply = isPlaying && layer && layer.has_supply && !layer.supply_used;
-    btnSupply.disabled = !canUseSupply;
-    if (canUseSupply) {
-        btnSupply.title = '使用补给站（35%概率触发陷阱）';
-    } else if (!layer || !layer.has_supply) {
-        btnSupply.title = '当前层没有补给站';
-    } else if (layer.supply_used) {
-        btnSupply.title = '补给站已使用';
-    }
-}
+        if (isProcessing) {
+            btnDig.disabled = true;
+            btnCrack.disabled = true;
+            btnSupply.disabled = true;
+            return;
+        }
 
-function setButtonsDisabled(disabled) {
-    document.getElementById('btnDig').disabled = disabled;
-    document.getElementById('btnCrack').disabled = disabled;
-    document.getElementById('btnSupply').disabled = disabled;
-    document.getElementById('btnNew').disabled = disabled;
+        const isPlaying = gameState.status === 'playing';
+        const layer = gameState.current_layer_info;
 
-    if (!disabled) updateButtons();
-}
+        btnDig.disabled = !isPlaying;
+        btnDig.title = isPlaying ? '小队全员挖掘（消耗体能和耐寒值）' : '游戏已结束';
 
-// =====================================================================
-// 冰层点击
-// =====================================================================
+        const canUseCrack = isPlaying && layer && layer.has_crack && layer.crack_found && !gameState.is_stamina_depleted;
+        btnCrack.disabled = !canUseCrack;
+        if (canUseCrack) {
+            btnCrack.title = '使用裂缝穿越当前层（需体能充足）';
+        } else if (!layer || !layer.has_crack) {
+            btnCrack.title = '当前层没有裂缝';
+        } else if (!layer.crack_found) {
+            btnCrack.title = '尚未发现裂缝，继续挖掘可能发现';
+        } else if (gameState.is_stamina_depleted) {
+            btnCrack.title = '体能耗尽，无法执行特殊操作';
+        }
 
-function onLayerClick(layerIndex) {
-    if (!gameState || !gameState.layers) return;
-
-    const layer = gameState.layers.find(l => l.layer_index === layerIndex);
-    if (!layer) return;
-
-    let info = '━━━ 【第 ' + layerIndex + ' 层】━━━\n';
-    info += '厚度: ' + layer.thickness.toFixed(1) + ' 单位\n';
-    info += '温度: ' + layer.temperature.toFixed(1) + '°C\n';
-
-    if (layer.is_passed) {
-        info += '状态: ✅ 已通过\n';
-        info += '挖掘进度: 100%\n';
-    } else if (layer.is_current) {
-        const p = (layer.dug_progress / layer.thickness) * 100;
-        info += '状态: ⛏ 正在挖掘\n';
-        info += '挖掘进度: ' + layer.dug_progress.toFixed(1) + ' / ' + layer.thickness.toFixed(1) + 
-                ' (' + p.toFixed(1) + '%)\n';
-    } else {
-        info += '状态: ❄ 未到达\n';
-    }
-
-    if (layer.has_crack) {
-        if (layer.crack_found) {
-            info += '🕳 裂缝: 已发现，可直接穿越\n';
-            info += '裂缝影响: 温度额外 -10°C\n';
-        } else if (layer.is_current || layer.is_passed) {
-            info += '🕳 裂缝: 未发现\n';
-        } else {
-            info += '🕳 裂缝: 未知（待探索）\n';
+        const canUseSupply = isPlaying && layer && layer.has_supply && !layer.supply_used;
+        btnSupply.disabled = !canUseSupply;
+        if (canUseSupply) {
+            btnSupply.title = '使用补给站（35%概率触发陷阱）';
+        } else if (!layer || !layer.has_supply) {
+            btnSupply.title = '当前层没有补给站';
+        } else if (layer.supply_used) {
+            btnSupply.title = '补给站已使用';
         }
     }
 
-    if (layer.has_supply) {
-        if (layer.supply_used) {
-            info += '🏕 补给站: ' + (layer.supply_trapped ? '💥 已触发陷阱' : '✅ 已使用') + '\n';
+    // =================================================================
+    // 冰层点击
+    // =================================================================
+
+    function onLayerClick(layerIndex) {
+        if (!gameState || !gameState.layers) return;
+
+        const layer = gameState.layers.find(l => l.layer_index === layerIndex);
+        if (!layer) return;
+
+        let info = '━━━ 【第 ' + layerIndex + ' 层】━━━\n';
+        info += '厚度: ' + layer.thickness.toFixed(1) + ' 单位\n';
+        info += '温度: ' + layer.temperature.toFixed(1) + '°C\n';
+
+        if (layer.is_passed) {
+            info += '状态: ✅ 已通过\n';
+            info += '挖掘进度: 100%\n';
         } else if (layer.is_current) {
-            info += '🏕 补给站: 可点击【补给站】使用\n';
-            info += '补给效果: +20%体能，+15耐寒值\n';
-            info += '陷阱概率: 35%\n';
-        } else if (layer.is_passed) {
-            info += '🏕 补给站: 未使用（已错过）\n';
+            const p = (layer.dug_progress / layer.thickness) * 100;
+            info += '状态: ⛏ 正在挖掘\n';
+            info += '挖掘进度: ' + layer.dug_progress.toFixed(1) + ' / ' + layer.thickness.toFixed(1) + 
+                    ' (' + p.toFixed(1) + '%)\n';
         } else {
-            info += '🏕 补给站: 待到达\n';
-        }
-    }
-
-    addLog(info, 'system');
-}
-
-// =====================================================================
-// 游戏操作
-// =====================================================================
-
-async function newGame() {
-    consoleLog('Starting new game...');
-    setButtonsDisabled(true);
-    addLog('正在创建新游戏...', 'system');
-
-    const result = await apiRequest('/new/game', 'POST');
-    if (result.code === 0 && result.data) {
-        currentGameId = result.data.game_id;
-        gameState = result.data;
-        saveGameId(currentGameId);
-        clearStorage();
-        saveGameId(currentGameId);
-        renderGame();
-        addLog('✅ 新任务开始！5名队员已就位，准备渗透冰盖。', 'system');
-        hideOverlay();
-    } else {
-        addLog('❌ 创建游戏失败: ' + (result.message || '未知错误'), 'danger');
-    }
-
-    setButtonsDisabled(false);
-}
-
-async function manualRefresh() {
-    if (!currentGameId) {
-        addLog('⚠ 没有游戏状态，无法刷新', 'danger');
-        return;
-    }
-    addLog('🔃 正在刷新游戏状态...', 'system');
-    const ok = await refreshGameState();
-    if (ok) {
-        addLog('✅ 状态已刷新', 'success');
-    }
-}
-
-function clearAllData() {
-    if (confirm('确定要清除所有本地存储的游戏数据吗？')) {
-        clearStorage();
-        currentGameId = null;
-        gameState = null;
-        renderGame();
-        document.getElementById('logContent').innerHTML = '';
-        addLog('🗑 所有本地数据已清除，请点击【新游戏】重新开始', 'system');
-    }
-}
-
-async function refreshGameState() {
-    if (!currentGameId) return false;
-
-    const result = await apiRequest('/state/get', 'GET', { game_id: currentGameId });
-    if (result.code === 0 && result.data) {
-        gameState = result.data;
-        renderGame();
-        return true;
-    }
-    return false;
-}
-
-async function dig() {
-    if (!currentGameId) {
-        addLog('⚠ 请先点击【新游戏】开始任务！', 'danger');
-        return;
-    }
-
-    setButtonsDisabled(true);
-    addLog('⛏ 小队正在挖掘...', 'dig');
-
-    const result = await apiRequest('/dig', 'POST', { game_id: currentGameId });
-    if (result.code === 0 && result.data) {
-        gameState = result.data;
-        saveGameId(currentGameId);
-
-        if (result.data.turn_events) {
-            result.data.turn_events.forEach(event => {
-                if (event.includes('冻伤') || event.includes('损失') || 
-                    event.includes('牺牲') || event.includes('陷阱')) {
-                    addLog('⚠ ' + event, 'danger');
-                } else if (event.includes('发现') || event.includes('突破') || 
-                           event.includes('成功') || event.includes('恭喜')) {
-                    addLog('✨ ' + event, 'success');
-                } else {
-                    addLog('➤ ' + event, 'dig');
-                }
-            });
+            info += '状态: ❄ 未到达\n';
         }
 
-        renderGame();
-        checkGameOver();
-    } else {
-        addLog('❌ 操作失败: ' + (result.message || '未知错误'), 'danger');
-        await refreshGameState();
-    }
-
-    setButtonsDisabled(false);
-}
-
-async function useCrack() {
-    if (!currentGameId) {
-        addLog('⚠ 请先开始新游戏！', 'danger');
-        return;
-    }
-
-    setButtonsDisabled(true);
-    addLog('🕳 正在穿越裂缝...', 'dig');
-
-    const result = await apiRequest('/crack/use', 'POST', { game_id: currentGameId });
-    if (result.code === 0 && result.data) {
-        gameState = result.data;
-        saveGameId(currentGameId);
-
-        if (result.data.turn_events) {
-            result.data.turn_events.forEach(event => addLog('✨ ' + event, 'success'));
+        if (layer.has_crack) {
+            if (layer.crack_found) {
+                info += '🕳 裂缝: 已发现，可直接穿越\n';
+                info += '裂缝影响: 温度额外 -10°C\n';
+            } else if (layer.is_current || layer.is_passed) {
+                info += '🕳 裂缝: 未发现\n';
+            } else {
+                info += '🕳 裂缝: 未知（待探索）\n';
+            }
         }
 
-        renderGame();
-        checkGameOver();
-    } else {
-        addLog('❌ 操作失败: ' + (result.message || '未知错误'), 'danger');
-        await refreshGameState();
-    }
-
-    setButtonsDisabled(false);
-}
-
-async function useSupply() {
-    if (!currentGameId) {
-        addLog('⚠ 请先开始新游戏！', 'danger');
-        return;
-    }
-
-    setButtonsDisabled(true);
-    addLog('🏕 正在使用补给站...', 'dig');
-
-    const result = await apiRequest('/supply/use', 'POST', { game_id: currentGameId });
-    if (result.code === 0 && result.data) {
-        gameState = result.data;
-        saveGameId(currentGameId);
-
-        if (result.data.turn_events) {
-            result.data.turn_events.forEach(event => {
-                if (event.includes('陷阱') || event.includes('损失')) {
-                    addLog('💥 ' + event, 'danger');
-                } else {
-                    addLog('🎁 ' + event, 'success');
-                }
-            });
+        if (layer.has_supply) {
+            if (layer.supply_used) {
+                info += '🏕 补给站: ' + (layer.supply_trapped ? '💥 已触发陷阱' : '✅ 已使用') + '\n';
+            } else if (layer.is_current) {
+                info += '🏕 补给站: 可点击【补给站】使用\n';
+                info += '补给效果: +20%体能，+15耐寒值\n';
+                info += '陷阱概率: 35%\n';
+            } else if (layer.is_passed) {
+                info += '🏕 补给站: 未使用（已错过）\n';
+            } else {
+                info += '🏕 补给站: 待到达\n';
+            }
         }
 
-        renderGame();
-        checkGameOver();
-    } else {
-        addLog('❌ 操作失败: ' + (result.message || '未知错误'), 'danger');
-        await refreshGameState();
+        addLog(info, 'system');
     }
 
-    setButtonsDisabled(false);
-}
+    // =================================================================
+    // 游戏操作
+    // =================================================================
 
-// =====================================================================
-// 游戏结束检查
-// =====================================================================
+    async function actionNewGame() {
+        if (isProcessing) return;
+        isProcessing = true;
+        
+        log('=== 开始新游戏 ===');
+        setDebugLastAction('点击: 新游戏');
+        setButtonLoading('actionBtnNew', true);
+        setAllButtonsDisabled(true);
 
-function checkGameOver() {
-    if (!gameState) return;
+        addLog('正在创建新游戏...', 'system');
 
-    if (gameState.status === 'victory') {
-        showOverlay('victory', '🎉 任务成功！', 
-            '恭喜你带领渗透小队成功穿越所有冰层，完成了冰川渗透行动！');
-    } else if (gameState.status === 'defeat') {
-        showOverlay('defeat', '💀 任务失败', 
-            '小队全员阵亡，冰川渗透行动失败。再接再厉！');
-    }
-}
-
-function showOverlay(type, title, message) {
-    const overlay = document.getElementById('gameOverlay');
-    const overlayTitle = document.getElementById('overlayTitle');
-    const overlayMessage = document.getElementById('overlayMessage');
-
-    overlayTitle.textContent = title;
-    overlayTitle.className = type;
-    overlayMessage.textContent = message;
-    overlay.style.display = 'flex';
-}
-
-function hideOverlay() {
-    document.getElementById('gameOverlay').style.display = 'none';
-}
-
-// =====================================================================
-// 初始化
-// =====================================================================
-
-async function initGame() {
-    consoleLog('Initializing game...');
-    restoreLogs();
-
-    // 测试localStorage
-    try {
-        localStorage.setItem('test', '1');
-        localStorage.removeItem('test');
-        document.getElementById('debugStorage').textContent = '可用';
-        consoleLog('localStorage is available');
-    } catch (e) {
-        document.getElementById('debugStorage').textContent = '不可用: ' + e.message;
-        consoleLog('localStorage NOT available: ' + e.message);
-        addLog('⚠ 浏览器存储不可用，刷新页面将丢失进度', 'danger');
-    }
-
-    let restored = false;
-
-    // 尝试从存储恢复
-    const savedId = loadGameId();
-    if (savedId) {
-        currentGameId = savedId;
-        const ok = await refreshGameState();
-        if (ok) {
-            addLog('🔄 游戏状态已从本地存储恢复，继续上次的任务。', 'system');
-            restored = true;
-        } else {
-            clearStorage();
-            currentGameId = null;
-        }
-    }
-
-    // 尝试从服务器获取最新
-    if (!restored) {
-        const result = await apiRequest('/latest/get', 'GET');
+        const result = await apiRequest('/new/game', 'POST');
         if (result.code === 0 && result.data) {
             currentGameId = result.data.game_id;
             gameState = result.data;
+            clearStorage();
             saveGameId(currentGameId);
             renderGame();
-            addLog('📂 找到服务器上的最近游戏记录，继续任务。', 'system');
-            restored = true;
+            addLog('✅ 新任务开始！5名队员已就位，准备渗透冰盖。', 'system');
+            hideOverlay();
+            flashSuccess();
+        } else {
+            addLog('❌ 创建游戏失败: ' + (result.message || '未知错误'), 'danger');
+        }
+
+        setButtonLoading('actionBtnNew', false);
+        setAllButtonsDisabled(false);
+        isProcessing = false;
+    }
+
+    async function actionRefresh() {
+        if (isProcessing) return;
+        
+        setDebugLastAction('点击: 刷新状态');
+        setButtonLoading('actionBtnRefresh', true);
+
+        if (!currentGameId) {
+            addLog('⚠ 没有游戏状态，无法刷新', 'danger');
+            setButtonLoading('actionBtnRefresh', false);
+            return;
+        }
+
+        addLog('🔃 正在刷新游戏状态...', 'system');
+        const ok = await refreshGameState();
+        if (ok) {
+            addLog('✅ 状态已刷新', 'success');
+            flashSuccess();
+        }
+
+        setButtonLoading('actionBtnRefresh', false);
+    }
+
+    function actionClear() {
+        if (confirm('确定要清除所有本地存储的游戏数据吗？')) {
+            clearStorage();
+            currentGameId = null;
+            gameState = null;
+            renderGame();
+            document.getElementById('logContent').innerHTML = '';
+            addLog('🗑 所有本地数据已清除，请点击【新游戏】重新开始', 'system');
         }
     }
 
-    if (!restored) {
-        addLog('👆 点击【🔄 新游戏】开始冰川渗透行动。', 'system');
+    async function refreshGameState() {
+        if (!currentGameId) return false;
+
+        const result = await apiRequest('/state/get', 'GET', { game_id: currentGameId });
+        if (result.code === 0 && result.data) {
+            gameState = result.data;
+            renderGame();
+            return true;
+        }
+        return false;
     }
 
-    consoleLog('Initialization complete, currentGameId=' + currentGameId);
-}
+    async function actionDig() {
+        if (isProcessing) return;
+        if (!currentGameId) {
+            addLog('⚠ 请先点击【新游戏】开始任务！', 'danger');
+            return;
+        }
 
-// 页面加载后初始化
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(initGame, 100);
-});
+        isProcessing = true;
+        log('=== 执行挖掘 ===');
+        setDebugLastAction('点击: 挖掘');
+        setButtonLoading('actionBtnDig', true);
+        setAllButtonsDisabled(true);
+        
+        showDigAnimation();
+        addLog('⛏ 小队正在挖掘...', 'dig');
 
-// 页面关闭前保存
-window.addEventListener('beforeunload', () => {
-    if (currentGameId) saveGameId(currentGameId);
-});
+        const result = await apiRequest('/dig', 'POST', { game_id: currentGameId });
+        if (result.code === 0 && result.data) {
+            gameState = result.data;
+            saveGameId(currentGameId);
+
+            if (result.data.turn_events) {
+                result.data.turn_events.forEach(event => {
+                    if (event.includes('冻伤') || event.includes('损失') || 
+                        event.includes('牺牲') || event.includes('陷阱')) {
+                        addLog('⚠ ' + event, 'danger');
+                    } else if (event.includes('发现') || event.includes('突破') || 
+                               event.includes('成功') || event.includes('恭喜')) {
+                        addLog('✨ ' + event, 'success');
+                    } else {
+                        addLog('➤ ' + event, 'dig');
+                    }
+                });
+            }
+
+            renderGame();
+            checkGameOver();
+            flashSuccess();
+        } else {
+            addLog('❌ 操作失败: ' + (result.message || '未知错误'), 'danger');
+            await refreshGameState();
+        }
+
+        setButtonLoading('actionBtnDig', false);
+        setAllButtonsDisabled(false);
+        isProcessing = false;
+    }
+
+    async function actionCrack() {
+        if (isProcessing) return;
+        if (!currentGameId) {
+            addLog('⚠ 请先开始新游戏！', 'danger');
+            return;
+        }
+
+        isProcessing = true;
+        log('=== 使用裂缝 ===');
+        setDebugLastAction('点击: 使用裂缝');
+        setButtonLoading('actionBtnCrack', true);
+        setAllButtonsDisabled(true);
+
+        addLog('🕳 正在穿越裂缝...', 'dig');
+
+        const result = await apiRequest('/crack/use', 'POST', { game_id: currentGameId });
+        if (result.code === 0 && result.data) {
+            gameState = result.data;
+            saveGameId(currentGameId);
+
+            if (result.data.turn_events) {
+                result.data.turn_events.forEach(event => addLog('✨ ' + event, 'success'));
+            }
+
+            renderGame();
+            checkGameOver();
+            flashSuccess();
+        } else {
+            addLog('❌ 操作失败: ' + (result.message || '未知错误'), 'danger');
+            await refreshGameState();
+        }
+
+        setButtonLoading('actionBtnCrack', false);
+        setAllButtonsDisabled(false);
+        isProcessing = false;
+    }
+
+    async function actionSupply() {
+        if (isProcessing) return;
+        if (!currentGameId) {
+            addLog('⚠ 请先开始新游戏！', 'danger');
+            return;
+        }
+
+        isProcessing = true;
+        log('=== 使用补给站 ===');
+        setDebugLastAction('点击: 补给站');
+        setButtonLoading('actionBtnSupply', true);
+        setAllButtonsDisabled(true);
+
+        addLog('🏕 正在使用补给站...', 'dig');
+
+        const result = await apiRequest('/supply/use', 'POST', { game_id: currentGameId });
+        if (result.code === 0 && result.data) {
+            gameState = result.data;
+            saveGameId(currentGameId);
+
+            if (result.data.turn_events) {
+                result.data.turn_events.forEach(event => {
+                    if (event.includes('陷阱') || event.includes('损失')) {
+                        addLog('💥 ' + event, 'danger');
+                    } else {
+                        addLog('🎁 ' + event, 'success');
+                    }
+                });
+            }
+
+            renderGame();
+            checkGameOver();
+            flashSuccess();
+        } else {
+            addLog('❌ 操作失败: ' + (result.message || '未知错误'), 'danger');
+            await refreshGameState();
+        }
+
+        setButtonLoading('actionBtnSupply', false);
+        setAllButtonsDisabled(false);
+        isProcessing = false;
+    }
+
+    // =================================================================
+    // 游戏结束检查
+    // =================================================================
+
+    function checkGameOver() {
+        if (!gameState) return;
+
+        if (gameState.status === 'victory') {
+            showOverlay('victory', '🎉 任务成功！', 
+                '恭喜你带领渗透小队成功穿越所有冰层，完成了冰川渗透行动！');
+        } else if (gameState.status === 'defeat') {
+            showOverlay('defeat', '💀 任务失败', 
+                '小队全员阵亡，冰川渗透行动失败。再接再厉！');
+        }
+    }
+
+    function showOverlay(type, title, message) {
+        const overlay = document.getElementById('gameOverlay');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayMessage = document.getElementById('overlayMessage');
+
+        overlayTitle.textContent = title;
+        overlayTitle.className = type;
+        overlayMessage.textContent = message;
+        overlay.style.display = 'flex';
+    }
+
+    function hideOverlay() {
+        document.getElementById('gameOverlay').style.display = 'none';
+    }
+
+    // =================================================================
+    // 初始化
+    // =================================================================
+
+    async function initGame() {
+        log('Initializing game...');
+        setDebugLastAction('页面初始化');
+
+        // 绑定所有事件
+        bindEvents();
+
+        // 恢复日志
+        restoreLogs();
+
+        // 测试localStorage
+        try {
+            localStorage.setItem('test', '1');
+            localStorage.removeItem('test');
+            document.getElementById('debugStorage').textContent = '可用';
+            log('localStorage is available');
+        } catch (e) {
+            document.getElementById('debugStorage').textContent = '不可用';
+            log('localStorage NOT available: ' + e.message);
+            addLog('⚠ 浏览器存储不可用，刷新页面将丢失进度', 'danger');
+        }
+
+        let restored = false;
+
+        // 尝试从存储恢复
+        const savedId = loadGameId();
+        if (savedId) {
+            currentGameId = savedId;
+            const ok = await refreshGameState();
+            if (ok) {
+                addLog('🔄 游戏状态已从本地存储恢复，继续上次的任务。', 'system');
+                restored = true;
+            } else {
+                clearStorage();
+                currentGameId = null;
+            }
+        }
+
+        // 尝试从服务器获取最新
+        if (!restored) {
+            const result = await apiRequest('/latest/get', 'GET');
+            if (result.code === 0 && result.data) {
+                currentGameId = result.data.game_id;
+                gameState = result.data;
+                saveGameId(currentGameId);
+                renderGame();
+                addLog('📂 找到服务器上的最近游戏记录，继续任务。', 'system');
+                restored = true;
+            }
+        }
+
+        if (!restored) {
+            addLog('👆 点击【🔄 新游戏】开始冰川渗透行动。', 'system');
+        }
+
+        log('Initialization complete, currentGameId=' + currentGameId);
+        setDebugLastAction('初始化完成');
+    }
+
+    function bindEvents() {
+        log('Binding events with addEventListener...');
+
+        document.getElementById('actionBtnDig').addEventListener('click', actionDig);
+        document.getElementById('actionBtnCrack').addEventListener('click', actionCrack);
+        document.getElementById('actionBtnSupply').addEventListener('click', actionSupply);
+        document.getElementById('actionBtnNew').addEventListener('click', actionNewGame);
+        document.getElementById('actionBtnRefresh').addEventListener('click', actionRefresh);
+        document.getElementById('actionBtnClear').addEventListener('click', actionClear);
+        document.getElementById('overlayBtnRestart').addEventListener('click', actionNewGame);
+
+        log('All events bound successfully');
+        setDebugLastAction('事件绑定完成');
+    }
+
+    // 页面加载后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initGame, 100);
+    });
+
+    // 页面关闭前保存
+    window.addEventListener('beforeunload', () => {
+        if (currentGameId) saveGameId(currentGameId);
+    });
+
+})();
 </script>
 </body>
 </html>
