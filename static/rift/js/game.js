@@ -1,6 +1,6 @@
 const API_BASE = '/api/rift';
-const STORAGE_KEY = 'rift_game_cache_v2';
-const STORAGE_VERSION = 2;
+const STORAGE_KEY = 'rift_game_cache_v3';
+const STORAGE_VERSION = 3;
 
 class RiftGame {
     constructor() {
@@ -28,30 +28,72 @@ class RiftGame {
         this.loadActiveGame();
         this.animate();
 
-        if (!hasCache) {
-            console.log('[RiftGame] No cache found, waiting for API data');
-        } else {
-            console.log('[RiftGame] Cache restored, game_id:', this.gameId);
+        if (hasCache) {
+            const anchorCount = this.gameState ? this.gameState.anchors.filter(a => a.status === 'active').length : 0;
+            console.log('[RiftGame] Cache restored, active anchors:', anchorCount);
         }
     }
 
     _serializeState() {
         if (!this.gameState) return null;
         const s = this.gameState;
+
+        const segments = s.segments.map(seg => ({
+            id: seg.id,
+            game_id: seg.game_id,
+            x: seg.x,
+            y: seg.y,
+            prev_x: seg.prev_x,
+            prev_y: seg.prev_y,
+            branch_id: seg.branch_id,
+            is_sealed: seg.is_sealed,
+            is_node: seg.is_node,
+            turn_created: seg.turn_created,
+            turn_sealed: seg.turn_sealed,
+            has_anchor: seg.has_anchor,
+            anchor_turns_left: seg.anchor_turns_left,
+            created_at: seg.created_at
+        }));
+
+        const anchors = s.anchors.map(a => ({
+            id: a.id,
+            game_id: a.game_id,
+            segment_id: a.segment_id,
+            x: a.x,
+            y: a.y,
+            turn_deployed: a.turn_deployed,
+            turns_remaining: a.turns_remaining,
+            status: a.status,
+            created_at: a.created_at
+        }));
+
+        const vortices = s.vortices.map(v => ({
+            id: v.id,
+            game_id: v.game_id,
+            x: v.x,
+            y: v.y,
+            segment_id: v.segment_id,
+            turn_created: v.turn_created,
+            turns_remaining: v.turns_remaining,
+            status: v.status,
+            anchors_produced: v.anchors_produced,
+            created_at: v.created_at
+        }));
+
         return {
             version: STORAGE_VERSION,
-            game: s.game,
-            segments: s.segments,
-            anchors: s.anchors,
-            vortices: s.vortices,
+            savedAt: Date.now(),
+            game: { ...s.game },
+            segments: segments,
+            anchors: anchors,
+            vortices: vortices,
             total_length: s.total_length,
             is_out_of_control: s.is_out_of_control,
             is_shaking: s.is_shaking,
             branch_count: s.branch_count,
             selectedMode: this.selectedMode,
             selectedSegmentId: this.selectedSegmentId,
-            logs: this.logs.slice(0, 50),
-            savedAt: Date.now()
+            logs: this.logs.slice(0, 50)
         };
     }
 
@@ -70,19 +112,21 @@ class RiftGame {
             if (!data) return;
             const json = JSON.stringify(data);
             localStorage.setItem(STORAGE_KEY, json);
-            console.debug('[RiftGame] Saved to cache, size:', Math.round(json.length / 1024), 'KB');
+            console.debug('[RiftGame] Saved to cache, size:', Math.round(json.length / 1024), 'KB, anchors:',
+                data.anchors.filter(a => a.status === 'active').length);
         } catch (e) {
             console.warn('[RiftGame] Save to cache failed:', e);
-            try {
-                localStorage.removeItem(STORAGE_KEY);
-            } catch (_) {}
+            try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
         }
     }
 
     restoreFromCache() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return false;
+            if (!raw) {
+                console.log('[RiftGame] No cache found');
+                return false;
+            }
 
             const data = JSON.parse(raw);
             if (!data || data.version !== STORAGE_VERSION) {
@@ -95,6 +139,25 @@ class RiftGame {
                 console.warn('[RiftGame] Cache game not playing, skipping');
                 return false;
             }
+
+            const activeAnchors = (data.anchors || []).filter(a => a.status === 'active');
+            const activeVortices = (data.vortices || []).filter(v => v.status === 'active');
+            const anchoredSegs = (data.segments || []).filter(s => s.has_anchor);
+
+            console.log('[RiftGame] Restoring from cache:');
+            console.log('  - Game ID:', data.game.id, 'Turn:', data.game.turn);
+            console.log('  - Tracker:', data.game.tracker_x, data.game.tracker_y);
+            console.log('  - Segments:', data.segments ? data.segments.length : 0);
+            console.log('  - Anchors (active):', activeAnchors.length);
+            console.log('  - Anchored segments:', anchoredSegs.length);
+            console.log('  - Vortices (active):', activeVortices.length);
+
+            activeAnchors.forEach((a, i) => {
+                console.log(`    Anchor ${i}: id=${a.id}, x=${a.x}, y=${a.y}, status=${a.status}, turns=${a.turns_remaining}`);
+            });
+            anchoredSegs.forEach(s => {
+                console.log(`    Anchored seg ${s.id}: x=${s.x}, y=${s.y}, has_anchor=${s.has_anchor}, turns=${s.anchor_turns_left}`);
+            });
 
             this.gameState = {
                 game: data.game,
@@ -126,15 +189,12 @@ class RiftGame {
             this.updateUI();
 
             const savedAgo = data.savedAt ? Math.round((Date.now() - data.savedAt) / 1000) : 0;
-            console.log('[RiftGame] Restored from cache (saved', savedAgo, 'seconds ago)');
-            console.log('[RiftGame]  Segments:', this.gameState.segments.length);
-            console.log('[RiftGame]  Anchors:', this.gameState.anchors.filter(a => a.status === 'active').length);
-            console.log('[RiftGame]  Vortices:', this.gameState.vortices.filter(v => v.status === 'active').length);
-            console.log('[RiftGame]  Tracker:', data.game.tracker_x, data.game.tracker_y);
+            console.log('[RiftGame] Cache restored successfully (saved', savedAgo, 'seconds ago)');
 
             return true;
         } catch (e) {
             console.warn('[RiftGame] Restore from cache failed:', e);
+            console.warn('[RiftGame] Error details:', e.message, e.stack);
             return false;
         }
     }
@@ -177,6 +237,7 @@ class RiftGame {
         document.getElementById('newGameBtn').addEventListener('click', () => this.startNewGame());
 
         window.addEventListener('beforeunload', () => this._doSave());
+        window.addEventListener('pagehide', () => this._doSave());
     }
 
     getCanvasCoords(e) {
@@ -286,7 +347,8 @@ class RiftGame {
 
                 this.updateUI();
                 this.saveToCache();
-                console.log('[RiftGame] Synced with server, turn:', result.data.game.turn);
+                console.log('[RiftGame] Synced with server, turn:', result.data.game.turn,
+                    'active anchors:', result.data.anchors.filter(a => a.status === 'active').length);
             } else {
                 this.startNewGame();
             }
@@ -297,6 +359,7 @@ class RiftGame {
 
     async startNewGame() {
         try {
+            localStorage.removeItem(STORAGE_KEY);
             const response = await fetch(`${API_BASE}/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -599,6 +662,17 @@ class RiftGame {
         ctx.beginPath();
         ctx.arc(seg.x, seg.y, 14 * pulse, 0, Math.PI * 2);
         ctx.stroke();
+
+        if (seg.has_anchor) {
+            ctx.strokeStyle = 'rgba(0, 191, 255, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.arc(seg.x, seg.y, 20 * pulse, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
         ctx.restore();
     }
 
@@ -626,14 +700,19 @@ class RiftGame {
         if (!this.gameState || !this.gameState.anchors) return;
 
         const ctx = this.ctx;
+        const activeAnchors = this.gameState.anchors.filter(a => a.status === 'active');
 
-        for (const anchor of this.gameState.anchors) {
-            if (anchor.status !== 'active') continue;
+        if (activeAnchors.length > 0) {
+            console.debug('[RiftGame] Drawing', activeAnchors.length, 'active anchors');
+        }
 
+        for (const anchor of activeAnchors) {
             const x = anchor.x;
             const y = anchor.y;
             const pulse = Math.sin(this.pulsePhase * 2) * 0.2 + 1;
             const turnsLeft = anchor.turns_remaining != null ? anchor.turns_remaining : 3;
+
+            console.debug('[RiftGame] Drawing anchor at', x, y, 'turnsLeft:', turnsLeft);
 
             ctx.save();
             ctx.shadowColor = '#00bfff';
