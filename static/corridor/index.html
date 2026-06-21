@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>走廊推进 - Corridor Assault</title>
+    <link rel="stylesheet" href="/static/corridor/css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div id="hud" class="hidden">
+            <div id="hud-top">
+                <div id="hp-section">
+                    <div id="hp-label">HP</div>
+                    <div id="hp-bar-outer">
+                        <div id="hp-bar-inner"></div>
+                        <span id="hp-text">100/100</span>
+                    </div>
+                </div>
+                <div id="segment-info">
+                    <span id="segment-text">第 1 段 / 5</span>
+                    <span id="timer-text">00:00</span>
+                </div>
+                <div id="enemy-count">
+                    <span id="enemy-text">敌人: 0</span>
+                </div>
+            </div>
+
+            <div id="hud-bottom">
+                <div id="weapon-slots">
+                    <div class="weapon-slot" id="slot-0">
+                        <div class="slot-number">1</div>
+                        <div class="slot-content">
+                            <div class="weapon-icon" id="weapon-icon-0"></div>
+                            <div class="weapon-info">
+                                <div class="weapon-name" id="weapon-name-0">手枪</div>
+                                <div class="weapon-ammo" id="weapon-ammo-0">12/12</div>
+                            </div>
+                        </div>
+                        <div class="reload-overlay hidden" id="reload-0">
+                            <div class="reload-bar" id="reload-bar-0"></div>
+                            <span>换弹中...</span>
+                        </div>
+                    </div>
+                    <div class="weapon-slot empty" id="slot-1">
+                        <div class="slot-number">2</div>
+                        <div class="slot-content">
+                            <div class="weapon-icon" id="weapon-icon-1"></div>
+                            <div class="weapon-info">
+                                <div class="weapon-name" id="weapon-name-1">空</div>
+                                <div class="weapon-ammo" id="weapon-ammo-1">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="controls-hint">
+                    <span>WASD/方向键:移动</span>
+                    <span>鼠标瞄准射击</span>
+                    <span>1/2:切换武器</span>
+                    <span>R:换弹</span>
+                    <span>E:拾取/开门</span>
+                </div>
+            </div>
+
+            <div id="interact-prompt" class="hidden">
+                <span id="interact-text">按 E 拾取武器</span>
+            </div>
+
+            <div id="door-unlock-bar" class="hidden">
+                <div id="door-unlock-progress"></div>
+                <span>解锁安全门中...</span>
+            </div>
+        </div>
+
+        <div id="start-screen" class="overlay">
+            <div class="overlay-content">
+                <h1 class="game-title">走廊推进</h1>
+                <p class="game-subtitle">CORRIDOR ASSAULT</p>
+                <div class="game-desc">
+                    <p>穿越5段危机四伏的走廊，击败段守，打开安全门！</p>
+                    <p>每段末尾的段守只能用榴弹枪或狙击枪有效击杀</p>
+                    <p>注意：只能前进，不能后退！</p>
+                </div>
+                <div class="weapon-preview">
+                    <div class="wp-item"><span class="wp-icon" style="background:#ffdd00">🔫</span><span>冲锋枪</span></div>
+                    <div class="wp-item"><span class="wp-icon" style="background:#00eeff">🎯</span><span>狙击枪</span></div>
+                    <div class="wp-item"><span class="wp-icon" style="background:#ff8800">💥</span><span>榴弹枪</span></div>
+                    <div class="wp-item"><span class="wp-icon" style="background:#ffffff">🔫</span><span>手枪</span></div>
+                </div>
+                <button id="start-btn" class="game-btn">开始推进</button>
+                <button id="leaderboard-btn" class="game-btn secondary">排行榜</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h1 class="gameover-title">任务失败</h1>
+                <p id="gameover-info">你倒在了走廊中...</p>
+                <p id="gameover-stats"></p>
+                <button id="retry-btn" class="game-btn">重新开始</button>
+                <button id="gameover-lb-btn" class="game-btn secondary">排行榜</button>
+            </div>
+        </div>
+
+        <div id="victory-screen" class="overlay hidden">
+            <div class="overlay-content">
+                <h1 class="victory-title">任务完成</h1>
+                <p id="victory-info">你成功通过了所有走廊！</p>
+                <div id="victory-stats"></div>
+                <div id="victory-form" class="hidden">
+                    <input type="text" id="player-name" placeholder="输入你的名字" maxlength="20">
+                    <button id="submit-score-btn" class="game-btn">提交成绩</button>
+                </div>
+                <button id="victory-lb-btn" class="game-btn secondary">排行榜</button>
+                <button id="play-again-btn" class="game-btn">再来一次</button>
+            </div>
+        </div>
+
+        <div id="replace-modal" class="overlay hidden">
+            <div class="overlay-content modal">
+                <h2>选择替换武器</h2>
+                <p>拾取: <span id="new-weapon-name"></span></p>
+                <div id="replace-options">
+                    <div class="replace-option" id="replace-slot-0">
+                        <div class="weapon-icon" id="replace-icon-0"></div>
+                        <div class="weapon-name" id="replace-name-0"></div>
+                        <div class="weapon-ammo" id="replace-ammo-0"></div>
+                    </div>
+                    <div class="replace-option" id="replace-slot-1">
+                        <div class="weapon-icon" id="replace-icon-1"></div>
+                        <div class="weapon-name" id="replace-name-1"></div>
+                        <div class="weapon-ammo" id="replace-ammo-1"></div>
+                    </div>
+                </div>
+                <button id="cancel-replace-btn" class="game-btn secondary">取消</button>
+            </div>
+        </div>
+
+        <div id="leaderboard-panel" class="overlay hidden">
+            <div class="overlay-content leaderboard">
+                <h2>排行榜</h2>
+                <table id="lb-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>玩家</th>
+                            <th>总用时</th>
+                            <th>剩余HP</th>
+                            <th>武器偏好</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lb-body"></tbody>
+                </table>
+                <button id="close-lb-btn" class="game-btn secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/corridor/js/game.js"></script>
+</body>
+</html>
