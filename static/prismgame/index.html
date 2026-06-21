@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棱镜迷踪 - Prism Quest</title>
+    <link rel="stylesheet" href="/static/prismgame/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">棱镜迷踪</h1>
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">关卡</span>
+                    <span class="stat-value" id="currentLevel">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">旋转次数</span>
+                    <span class="stat-value" id="rotationCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">标准旋转</span>
+                    <span class="stat-value" id="parRotations">5</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">光强</span>
+                    <span class="stat-value" id="lightIntensity">100%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-main">
+            <div class="game-canvas-wrapper">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <div class="game-overlay" id="gameOverlay">
+                    <div class="overlay-content" id="overlayContent">
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-sidebar">
+                <div class="sidebar-section">
+                    <h3>操作说明</h3>
+                    <ul class="instructions">
+                        <li>点击棱镜选中它</li>
+                        <li>使用旋转按钮或 Q/E 键旋转</li>
+                        <li>将光束引导至目标区域</li>
+                        <li>白光通过棱镜会分解成色带</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>元素共鸣</h3>
+                    <div class="element-info">
+                        <div class="element-item">
+                            <span class="element-dot red"></span>
+                            <span class="element-dot blue"></span>
+                            <span>高温穿透</span>
+                        </div>
+                        <div class="element-item">
+                            <span class="element-dot red"></span>
+                            <span class="element-dot green"></span>
+                            <span>生长蔓延</span>
+                        </div>
+                        <div class="element-item">
+                            <span class="element-dot blue"></span>
+                            <span class="element-dot green"></span>
+                            <span>冷冻凝固</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>当前选中</h3>
+                    <div id="selectedPrismInfo" class="prism-info">
+                        <p class="no-selection">未选中棱镜</p>
+                    </div>
+                    <div class="rotation-controls">
+                        <button class="btn btn-rotate" id="btnRotateLeft">-15°</button>
+                        <button class="btn btn-rotate" id="btnRotateRight">+15°</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>游戏控制</h3>
+                    <div class="game-controls">
+                        <button class="btn btn-primary" id="btnReset">重置关卡</button>
+                        <button class="btn btn-secondary" id="btnPrevLevel">上一关</button>
+                        <button class="btn btn-secondary" id="btnNextLevel">下一关</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>排行榜</h3>
+                    <div class="scoreboard-preview" id="scoreboardPreview">
+                        <p class="loading">加载中...</p>
+                    </div>
+                    <button class="btn btn-secondary btn-full" id="btnShowScoreboard">查看完整排行</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="scoreboardModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>排行榜</h2>
+                    <button class="btn-close" id="btnCloseModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="scoreboard-list" id="scoreboardList">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="winModal">
+            <div class="modal-content win-modal">
+                <div class="modal-header">
+                    <h2>🎉 关卡通过！</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="win-stats">
+                        <div class="win-stat">
+                            <span class="win-stat-label">旋转次数</span>
+                            <span class="win-stat-value" id="winRotations">0</span>
+                        </div>
+                        <div class="win-stat">
+                            <span class="win-stat-label">光强</span>
+                            <span class="win-stat-value" id="winIntensity">0%</span>
+                        </div>
+                        <div class="win-stat">
+                            <span class="win-stat-label">得分</span>
+                            <span class="win-stat-value" id="winScore">0</span>
+                        </div>
+                    </div>
+                    <div class="win-input">
+                        <label for="playerName">输入你的名字：</label>
+                        <input type="text" id="playerName" placeholder="Anonymous" maxlength="20">
+                    </div>
+                    <div class="win-actions">
+                        <button class="btn btn-primary" id="btnSaveScore">保存分数</button>
+                        <button class="btn btn-secondary" id="btnNextFromWin">下一关</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/prismgame/js/prism.js"></script>
+    <script src="/static/prismgame/js/light.js"></script>
+    <script src="/static/prismgame/js/particles.js"></script>
+    <script src="/static/prismgame/js/elements.js"></script>
+    <script src="/static/prismgame/js/renderer.js"></script>
+    <script src="/static/prismgame/js/game.js"></script>
+    <script src="/static/prismgame/js/api.js"></script>
+    <script src="/static/prismgame/js/main.js"></script>
+</body>
+</html>
