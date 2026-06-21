@@ -1,4 +1,6 @@
 const API_BASE = '/api/glacier';
+const STORAGE_KEY_GAME_ID = 'glacier_game_id';
+const STORAGE_KEY_LOGS = 'glacier_logs';
 
 let currentGameId = null;
 let gameState = null;
@@ -28,21 +30,80 @@ async function apiRequest(endpoint, method = 'GET', params = null) {
         return data;
     } catch (error) {
         console.error('API请求错误:', error);
+        addLog('网络错误，请检查服务器连接', 'danger');
         return { code: 1, message: '网络错误', data: null };
     }
 }
 
+function saveGameId(gameId) {
+    try {
+        localStorage.setItem(STORAGE_KEY_GAME_ID, gameId.toString());
+    } catch (e) {
+        console.warn('无法保存到localStorage:', e);
+    }
+}
+
+function loadGameId() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY_GAME_ID);
+        return saved ? parseInt(saved) : null;
+    } catch (e) {
+        console.warn('无法从localStorage读取:', e);
+        return null;
+    }
+}
+
+function clearGameId() {
+    try {
+        localStorage.removeItem(STORAGE_KEY_GAME_ID);
+    } catch (e) {
+        console.warn('无法清除localStorage:', e);
+    }
+}
+
+function saveLogs(logs) {
+    try {
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+    } catch (e) {
+        console.warn('无法保存日志到localStorage:', e);
+    }
+}
+
+function loadLogs() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY_LOGS);
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        console.warn('无法从localStorage读取日志:', e);
+        return [];
+    }
+}
+
+function clearLogs() {
+    try {
+        localStorage.removeItem(STORAGE_KEY_LOGS);
+    } catch (e) {
+        console.warn('无法清除localStorage日志:', e);
+    }
+}
+
 async function newGame() {
+    setButtonsDisabled(true);
+    
     const result = await apiRequest('/new/game', 'POST');
     if (result.code === 0) {
         currentGameId = result.data.game_id;
         gameState = result.data;
+        saveGameId(currentGameId);
+        clearLogs();
         renderGame();
         addLog('新任务开始！5名队员已就位，准备渗透冰盖。', 'system');
         hideOverlay();
     } else {
         addLog('创建游戏失败: ' + result.message, 'danger');
     }
+    
+    setButtonsDisabled(false);
 }
 
 async function getGameState() {
@@ -52,11 +113,16 @@ async function getGameState() {
     if (result.code === 0) {
         gameState = result.data;
         renderGame();
+    } else {
+        addLog('获取游戏状态失败: ' + result.message, 'danger');
     }
 }
 
 async function dig() {
-    if (!currentGameId) return;
+    if (!currentGameId) {
+        addLog('请先开始新游戏！', 'danger');
+        return;
+    }
     
     setButtonsDisabled(true);
     
@@ -86,7 +152,10 @@ async function dig() {
 }
 
 async function useCrack() {
-    if (!currentGameId) return;
+    if (!currentGameId) {
+        addLog('请先开始新游戏！', 'danger');
+        return;
+    }
     
     setButtonsDisabled(true);
     
@@ -110,7 +179,10 @@ async function useCrack() {
 }
 
 async function useSupply() {
-    if (!currentGameId) return;
+    if (!currentGameId) {
+        addLog('请先开始新游戏！', 'danger');
+        return;
+    }
     
     setButtonsDisabled(true);
     
@@ -135,6 +207,55 @@ async function useSupply() {
     }
     
     setButtonsDisabled(false);
+}
+
+function onLayerClick(layerIndex) {
+    if (!gameState || !gameState.layers) return;
+    
+    const layer = gameState.layers.find(l => l.layer_index === layerIndex);
+    if (!layer) return;
+    
+    let info = `【第 ${layerIndex} 层】\n`;
+    info += `厚度: ${layer.thickness.toFixed(1)} 单位\n`;
+    info += `温度: ${layer.temperature.toFixed(1)}°C\n`;
+    
+    if (layer.is_passed) {
+        info += `状态: 已通过 ✓\n`;
+        info += `挖掘进度: 100%\n`;
+    } else if (layer.is_current) {
+        const progress = (layer.dug_progress / layer.thickness) * 100;
+        info += `状态: 正在挖掘 ⛏\n`;
+        info += `挖掘进度: ${layer.dug_progress.toFixed(1)} / ${layer.thickness.toFixed(1)} (${progress.toFixed(1)}%)\n`;
+    } else {
+        info += `状态: 未到达 ❄\n`;
+    }
+    
+    if (layer.has_crack) {
+        if (layer.crack_found) {
+            info += `发现裂缝通道！可直接穿越\n`;
+            info += `裂缝温度惩罚: -10°C\n`;
+        } else if (layer.is_current || layer.is_passed) {
+            info += `未发现裂缝\n`;
+        }
+    }
+    
+    if (layer.has_supply) {
+        if (layer.supply_used) {
+            if (layer.supply_trapped) {
+                info += `补给站: 已触发陷阱 💥\n`;
+            } else {
+                info += `补给站: 已使用 ✅\n`;
+            }
+        } else if (layer.is_current) {
+            info += `补给站: 可使用 🏕\n`;
+        } else if (layer.is_passed) {
+            info += `补给站: 未使用 (已错过)\n`;
+        } else {
+            info += `补给站: 待到达 🏕\n`;
+        }
+    }
+    
+    addLog(info, 'system');
 }
 
 function renderGame() {
@@ -245,6 +366,11 @@ function renderIceLayers() {
             ${layer.is_current ? `<div class="layer-progress" style="width: ${progressPercent}%"></div>` : ''}
         `;
 
+        layerDiv.addEventListener('click', () => {
+            onLayerClick(layer.layer_index);
+        });
+        layerDiv.style.cursor = 'pointer';
+
         iceLayers.appendChild(layerDiv);
     });
 }
@@ -267,6 +393,13 @@ function updateButtons() {
     const btnDig = document.getElementById('btnDig');
     const btnCrack = document.getElementById('btnCrack');
     const btnSupply = document.getElementById('btnSupply');
+
+    if (!gameState) {
+        btnDig.disabled = true;
+        btnCrack.disabled = true;
+        btnSupply.disabled = true;
+        return;
+    }
 
     const isPlaying = gameState.status === 'playing';
     const layer = gameState.current_layer_info;
@@ -294,6 +427,28 @@ function addLog(message, type = 'dig') {
     logItem.textContent = '▸ ' + message;
     logContent.appendChild(logItem);
     logContent.scrollTop = logContent.scrollHeight;
+
+    const logs = loadLogs();
+    logs.push({ message, type, time: Date.now() });
+    while (logs.length > 100) {
+        logs.shift();
+    }
+    saveLogs(logs);
+}
+
+function restoreLogs() {
+    const logs = loadLogs();
+    const logContent = document.getElementById('logContent');
+    logContent.innerHTML = '';
+    
+    logs.forEach(log => {
+        const logItem = document.createElement('p');
+        logItem.className = 'log-item log-' + log.type;
+        logItem.textContent = '▸ ' + log.message;
+        logContent.appendChild(logItem);
+    });
+    
+    logContent.scrollTop = logContent.scrollHeight;
 }
 
 function checkGameOver() {
@@ -320,12 +475,30 @@ function hideOverlay() {
 }
 
 async function initGame() {
+    restoreLogs();
+    
+    const savedGameId = loadGameId();
+    if (savedGameId) {
+        currentGameId = savedGameId;
+        const result = await apiRequest('/state/get', 'GET', { game_id: currentGameId });
+        if (result.code === 0 && result.data) {
+            gameState = result.data;
+            renderGame();
+            addLog('游戏已恢复，继续上次的任务。', 'system');
+            return;
+        } else {
+            clearGameId();
+            clearLogs();
+        }
+    }
+    
     const result = await apiRequest('/latest/get', 'GET');
     if (result.code === 0 && result.data) {
         currentGameId = result.data.game_id;
         gameState = result.data;
+        saveGameId(currentGameId);
         renderGame();
-        addLog('继续上次的任务。', 'system');
+        addLog('找到最近的游戏记录，继续任务。', 'system');
     } else {
         addLog('点击"新游戏"开始冰川渗透行动。', 'system');
     }
