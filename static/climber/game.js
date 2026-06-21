@@ -123,10 +123,19 @@ class Player {
         if (Math.abs(this.vx) > 0.5 && onGround) this.animFrame += dt * 10;
 
         const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
-        if (stamina < 5 && moved < 2 && onGround) {
+        if (stamina <= 0) {
             this.stuckTimer += dt;
-            if (this.stuckTimer > 3) {
+            if (this.stuckTimer > 0.4) {
                 this.stuckTimer = 0;
+                stamina = 0;
+                triggerFall();
+                return;
+            }
+        } else if (stamina < JUMP_COST && onGround) {
+            this.stuckTimer += dt;
+            if (this.stuckTimer > 2) {
+                this.stuckTimer = 0;
+                stamina = 0;
                 triggerFall();
                 return;
             }
@@ -814,13 +823,17 @@ function continueGame() {
 
     currentFloor = saveData.currentFloor || 1;
     fallCount = saveData.fallCount || 0;
-    stamina = saveData.stamina || STAMINA_MAX;
+    if (fallCount >= MAX_FALLS) { clearSave(); startGame(); return; }
+    stamina = Math.max(20, saveData.stamina || STAMINA_MAX * 0.6);
     shardActive = saveData.shardActive || false;
     shardTimer = saveData.shardTimer || 0;
     attackPower = saveData.attackPower || BASE_ATTACK;
     floorTimes = saveData.floorTimes || {};
-    gameTime = saveData.gameStartTime || Date.now();
-    floorStartTime = Date.now();
+    const savedGameStart = saveData.gameStartTime || saveData.savedAt || Date.now();
+    const savedFloorStart = saveData.floorStartTime || savedGameStart;
+    const pauseDuration = Math.max(0, Date.now() - (saveData.savedAt || Date.now()));
+    gameTime = savedGameStart + pauseDuration;
+    floorStartTime = savedFloorStart + pauseDuration;
 
     particles = []; bossProjectiles = []; bossShockwaves = [];
     showDamageText = []; submitted = false;
@@ -835,6 +848,9 @@ function continueGame() {
     document.getElementById('gameover-screen').classList.add('hidden');
     document.getElementById('victory-screen').classList.add('hidden');
     document.getElementById('records-screen').classList.add('hidden');
+
+    saveGame();
+    updateContinueButton();
 }
 
 function updateContinueButton() {
