@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>持盾战士 - 盾牌闯关</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">🛡️ 持盾战士 🛡️</h1>
+            <p class="game-subtitle">盾牌是你的生命线</p>
+            <div class="player-input">
+                <label for="player-name">玩家名称：</label>
+                <input type="text" id="player-name" value="勇士" maxlength="10">
+            </div>
+            <div class="level-select">
+                <h3>选择关卡</h3>
+                <div id="level-buttons"></div>
+            </div>
+            <button id="start-btn" class="btn-primary">开始游戏</button>
+            <div class="game-instructions">
+                <h3>操作说明</h3>
+                <ul>
+                    <li><b>A/D</b> 或 <b>←/→</b>：左右移动</li>
+                    <li><b>W</b> 或 <b>↑</b>：跳跃</li>
+                    <li><b>S</b> 或 <b>↓</b>：蹲下防御（正面）</li>
+                    <li><b>J</b>：盾击（伤害25，消耗10耐久，击退2格）</li>
+                    <li><b>K</b>：盾砸（伤害40，消耗25耐久，眩晕3秒）</li>
+                    <li><b>E</b>：在修盾点修复盾牌（+40耐久）</li>
+                </ul>
+            </div>
+            <div class="stats-panel">
+                <h3>我的统计</h3>
+                <div id="player-stats">加载中...</div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="hud">
+                <div class="hud-left">
+                    <div class="hp-bar-container">
+                        <span class="bar-label">❤️ 生命</span>
+                        <div class="hp-bar">
+                            <div id="hp-fill" class="hp-fill"></div>
+                            <span id="hp-text" class="bar-text">100/100</span>
+                        </div>
+                    </div>
+                    <div class="shield-bar-container">
+                        <span class="bar-label">🛡️ 盾牌</span>
+                        <div class="shield-bar">
+                            <div id="shield-fill" class="shield-fill"></div>
+                            <span id="shield-text" class="bar-text">80/80</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div id="level-info">第 1 关</div>
+                    <div id="enemy-count">敌人: 0/0</div>
+                </div>
+                <div class="hud-right">
+                    <div id="timer">时间: 0s</div>
+                    <button id="pause-btn" class="btn-small">暂停</button>
+                </div>
+            </div>
+
+            <div id="game-canvas-container">
+                <canvas id="game-canvas" width="900" height="500"></canvas>
+                <div id="shield-break-effect" class="shield-break-effect"></div>
+                <div id="damage-numbers"></div>
+            </div>
+
+            <div id="skill-bar">
+                <div class="skill-item" id="skill-bash">
+                    <div class="skill-icon">⚔️</div>
+                    <div class="skill-info">
+                        <span class="skill-name">盾击</span>
+                        <span class="skill-cost">10耐久</span>
+                    </div>
+                    <span class="skill-key">J</span>
+                </div>
+                <div class="skill-item" id="skill-smash">
+                    <div class="skill-icon">💥</div>
+                    <div class="skill-info">
+                        <span class="skill-name">盾砸</span>
+                        <span class="skill-cost">25耐久</span>
+                    </div>
+                    <span class="skill-key">K</span>
+                </div>
+                <div class="skill-item" id="skill-block">
+                    <div class="skill-icon">🛡️</div>
+                    <div class="skill-info">
+                        <span class="skill-name">防御</span>
+                        <span class="skill-cost">按住S</span>
+                    </div>
+                    <span class="skill-key">S</span>
+                </div>
+                <div class="skill-item" id="skill-repair">
+                    <div class="skill-icon">🔧</div>
+                    <div class="skill-info">
+                        <span class="skill-name">修盾</span>
+                        <span class="skill-cost">+40耐久</span>
+                    </div>
+                    <span class="skill-key">E</span>
+                </div>
+            </div>
+
+            <div id="shield-status">
+                <span id="shield-status-text">盾牌状态：完好</span>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="pause-menu">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="btn-primary">继续游戏</button>
+                <button id="restart-btn" class="btn-secondary">重新开始</button>
+                <button id="quit-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="screen overlay">
+            <div class="gameover-menu">
+                <h2 id="gameover-title">游戏结束</h2>
+                <div id="gameover-stats">
+                    <p>关卡：<span id="final-level">1</span></p>
+                    <p>剩余生命：<span id="final-hp">0</span></p>
+                    <p>剩余盾牌：<span id="final-shield">0</span></p>
+                    <p>盾击次数：<span id="final-bash">0</span></p>
+                    <p>盾砸次数：<span id="final-smash">0</span></p>
+                    <p>格挡次数：<span id="final-block">0</span></p>
+                    <p>抵挡伤害：<span id="final-blocked-dmg">0</span></p>
+                    <p>用时：<span id="final-time">0</span>秒</p>
+                </div>
+                <button id="gameover-restart-btn" class="btn-primary">再试一次</button>
+                <button id="gameover-menu-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="victory-screen" class="screen overlay">
+            <div class="victory-menu">
+                <h2>🎉 关卡通过！🎉</h2>
+                <div id="victory-stats">
+                    <p>关卡：<span id="victory-level">1</span></p>
+                    <p>剩余生命：<span id="victory-hp">0</span></p>
+                    <p>剩余盾牌：<span id="victory-shield">0</span></p>
+                    <p>盾击次数：<span id="victory-bash">0</span></p>
+                    <p>盾砸次数：<span id="victory-smash">0</span></p>
+                    <p>格挡次数：<span id="victory-block">0</span></p>
+                    <p>抵挡伤害：<span id="victory-blocked-dmg">0</span></p>
+                    <p>用时：<span id="victory-time">0</span>秒</p>
+                </div>
+                <button id="next-level-btn" class="btn-primary">下一关</button>
+                <button id="victory-menu-btn" class="btn-secondary">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
