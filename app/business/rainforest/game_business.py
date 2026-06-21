@@ -80,6 +80,7 @@ class GameBusiness:
             for pop in layer_pops:
                 consumption = self._calc_consumption(pop['morph_type'], layer)
                 pop_data.append({
+                    'id': pop['id'],
                     'morph_type': pop['morph_type'],
                     'morph_name': MORPH_NAMES.get(pop['morph_type'], '未知'),
                     'count': pop['count'],
@@ -149,8 +150,9 @@ class GameBusiness:
         except Exception as e:
             return {'code': 1, 'message': str(e), 'data': None}
 
-    def morph_transform(self, game_id: int, population_id: int,
-                        target_morph: int) -> Dict[str, Any]:
+    def morph_transform(self, game_id: int, target_morph: int,
+                        population_id: int = None,
+                        layer_id: int = None, morph_type: int = None) -> Dict[str, Any]:
         game = self.game_model.get_by_id(game_id)
         if not game:
             return {'code': 1, 'message': 'Game not found', 'data': None}
@@ -158,7 +160,12 @@ class GameBusiness:
         if target_morph not in (MORPH_FUNGI, MORPH_BACTERIA, MORPH_NEMATODE):
             return {'code': 1, 'message': 'Invalid target morph type', 'data': None}
 
-        pop = self.population_model.get_by_id(population_id)
+        if population_id is None:
+            if layer_id is None or morph_type is None:
+                return {'code': 1, 'message': 'Provide either population_id or (layer_id + morph_type)', 'data': None}
+            pop = self.population_model.get_by_game_layer_morph(game_id, layer_id, morph_type)
+        else:
+            pop = self.population_model.get_by_id(population_id)
         if not pop or pop['game_id'] != game_id:
             return {'code': 1, 'message': 'Population not found', 'data': None}
 
@@ -167,7 +174,9 @@ class GameBusiness:
 
         try:
             current_count = pop['count']
-            self.population_model.update(population_id, count=0)
+            if current_count <= 0:
+                return {'code': 1, 'message': 'No population to transform', 'data': None}
+            self.population_model.update(pop['id'], count=0)
 
             existing_target = self.population_model.get_by_game_layer_morph(
                 game_id, pop['layer_id'], target_morph
@@ -187,8 +196,9 @@ class GameBusiness:
         except Exception as e:
             return {'code': 1, 'message': str(e), 'data': None}
 
-    def migrate_population(self, game_id: int, population_id: int,
-                           target_layer_type: int, count: int) -> Dict[str, Any]:
+    def migrate_population(self, game_id: int, target_layer_type: int, count: int,
+                           population_id: int = None,
+                           from_layer_id: int = None, morph_type: int = None) -> Dict[str, Any]:
         game = self.game_model.get_by_id(game_id)
         if not game:
             return {'code': 1, 'message': 'Game not found', 'data': None}
@@ -199,7 +209,12 @@ class GameBusiness:
         if count <= 0:
             return {'code': 1, 'message': 'Count must be positive', 'data': None}
 
-        pop = self.population_model.get_by_id(population_id)
+        if population_id is None:
+            if from_layer_id is None or morph_type is None:
+                return {'code': 1, 'message': 'Provide either population_id or (from_layer_id + morph_type)', 'data': None}
+            pop = self.population_model.get_by_game_layer_morph(game_id, from_layer_id, morph_type)
+        else:
+            pop = self.population_model.get_by_id(population_id)
         if not pop or pop['game_id'] != game_id:
             return {'code': 1, 'message': 'Population not found', 'data': None}
 
@@ -227,9 +242,9 @@ class GameBusiness:
 
             new_source_count = pop['count'] - count
             if new_source_count <= 0:
-                self.population_model.update(population_id, count=0)
+                self.population_model.update(pop['id'], count=0)
             else:
-                self.population_model.update(population_id, count=new_source_count)
+                self.population_model.update(pop['id'], count=new_source_count)
 
             return self.get_game_state(game_id)
         except Exception as e:
@@ -265,20 +280,31 @@ class GameBusiness:
         except Exception as e:
             return {'code': 1, 'message': str(e), 'data': None}
 
-    def nematode_devour(self, game_id: int, nematode_pop_id: int,
-                        target_pop_id: int) -> Dict[str, Any]:
+    def nematode_devour(self, game_id: int,
+                        nematode_pop_id: int = None, target_pop_id: int = None,
+                        layer_id: int = None, target_morph_type: int = None) -> Dict[str, Any]:
         game = self.game_model.get_by_id(game_id)
         if not game:
             return {'code': 1, 'message': 'Game not found', 'data': None}
 
-        nematode_pop = self.population_model.get_by_id(nematode_pop_id)
+        if nematode_pop_id is None:
+            if layer_id is None:
+                return {'code': 1, 'message': 'Provide either nematode_pop_id or layer_id', 'data': None}
+            nematode_pop = self.population_model.get_by_game_layer_morph(game_id, layer_id, MORPH_NEMATODE)
+        else:
+            nematode_pop = self.population_model.get_by_id(nematode_pop_id)
         if not nematode_pop or nematode_pop['game_id'] != game_id:
             return {'code': 1, 'message': 'Nematode population not found', 'data': None}
 
         if nematode_pop['morph_type'] != MORPH_NEMATODE:
             return {'code': 1, 'message': 'Source must be nematode', 'data': None}
 
-        target_pop = self.population_model.get_by_id(target_pop_id)
+        if target_pop_id is None:
+            if layer_id is None or target_morph_type is None:
+                return {'code': 1, 'message': 'Provide either target_pop_id or (layer_id + target_morph_type)', 'data': None}
+            target_pop = self.population_model.get_by_game_layer_morph(game_id, layer_id, target_morph_type)
+        else:
+            target_pop = self.population_model.get_by_id(target_pop_id)
         if not target_pop or target_pop['game_id'] != game_id:
             return {'code': 1, 'message': 'Target population not found', 'data': None}
 
@@ -292,6 +318,8 @@ class GameBusiness:
             nematode_count = nematode_pop['count']
             target_count = target_pop['count']
             max_devour = min(nematode_count, target_count)
+            if max_devour <= 0:
+                return {'code': 1, 'message': 'Nothing to devour', 'data': None}
 
             source_layer = self.layer_model.get_by_id(nematode_pop['layer_id'])
             devour_efficiency = 1.0
@@ -301,13 +329,13 @@ class GameBusiness:
             gained = int(max_devour * devour_efficiency)
 
             new_nematode_count = nematode_count + gained
-            self.population_model.update(nematode_pop_id, count=new_nematode_count)
+            self.population_model.update(nematode_pop['id'], count=new_nematode_count)
 
             new_target_count = target_count - max_devour
             if new_target_count <= 0:
-                self.population_model.update(target_pop_id, count=0)
+                self.population_model.update(target_pop['id'], count=0)
             else:
-                self.population_model.update(target_pop_id, count=new_target_count)
+                self.population_model.update(target_pop['id'], count=new_target_count)
 
             return self.get_game_state(game_id)
         except Exception as e:

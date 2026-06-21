@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热带雨林腐殖层 · 分解者生存策略</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --forest-deep: #0f2818;
+  --forest-dark: #1B4332;
+  --forest-mid: #2D6A4F;
+  --forest-light: #40916C;
+  --moss: #52B788;
+  --moss-gold: #B7C96A;
+  --leaf: #95D5B2;
+  --humus-brown: #6B4423;
+  --humus-dark: #4A2C15;
+  --warning: #E63946;
+  --warning-soft: #FF6B6B;
+  --rain-blue: #4CC9F0;
+  --bg-deep: #0a1a10;
+  --bg-panel: rgba(27, 67, 50, 0.55);
+  --text-main: #D8F3DC;
+  --text-dim: #74C69D;
+  --text-faint: #52B788;
+  --border-soft: rgba(82, 183, 136, 0.25);
+  --border-bright: rgba(183, 201, 106, 0.5);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Lora', Georgia, serif;
+  background: var(--bg-deep);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(45, 106, 79, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(107, 68, 35, 0.3) 0%, transparent 50%);
+}
+.app { max-width: 1600px; margin: 0 auto; padding: 20px 24px 40px; }
+
+/* 顶部栏 */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(27, 67, 50, 0.8) 0%, rgba(74, 44, 21, 0.7) 100%);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+.topbar-title { display: flex; align-items: center; gap: 14px; }
+.topbar-title h1 {
+  font-size: 22px; font-weight: 700;
+  background: linear-gradient(135deg, var(--moss-gold), var(--moss));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.topbar-title .emoji { font-size: 28px; }
+.topbar-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.game-id {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; background: rgba(15, 40, 24, 0.6);
+  border: 1px solid var(--border-soft); border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-dim);
+}
+.game-id input {
+  width: 60px; background: transparent; border: none;
+  color: var(--moss-gold); font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 700; text-align: center; outline: none;
+}
+.turn-badge {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 6px 20px;
+  background: linear-gradient(135deg, var(--forest-dark), var(--forest-mid));
+  border: 1px solid var(--border-bright); border-radius: 12px; min-width: 80px;
+}
+.turn-badge .label { font-size: 10px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; }
+.turn-badge .value {
+  font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700;
+  color: var(--moss-gold); line-height: 1; margin-top: 2px;
+}
+.event-indicator {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; transition: all 0.3s ease;
+  min-width: 120px; justify-content: center;
+}
+.event-indicator.idle { background: rgba(15, 40, 24, 0.6); border: 1px solid var(--border-soft); color: var(--text-faint); }
+.event-indicator.storm { background: rgba(76, 201, 240, 0.15); border: 1px solid var(--rain-blue); color: var(--rain-blue); animation: storm-pulse 1.2s ease-in-out infinite; }
+.event-indicator.leaching { background: rgba(183, 201, 106, 0.15); border: 1px solid var(--moss-gold); color: var(--moss-gold); }
+@keyframes storm-pulse { 0%,100% { box-shadow: 0 0 0 rgba(76,201,240,0); } 50% { box-shadow: 0 0 24px rgba(76,201,240,0.5); } }
+
+.btn {
+  padding: 10px 18px; border: none; border-radius: 10px;
+  font-family: 'Lora', serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.25s ease;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--forest-mid), var(--forest-light));
+  color: #fff; box-shadow: 0 4px 16px rgba(64, 145, 108, 0.35);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(64, 145, 108, 0.5); }
+.btn-ghost { background: rgba(15, 40, 24, 0.5); border: 1px solid var(--border-soft); color: var(--text-dim); }
+.btn-ghost:hover { background: rgba(27, 67, 50, 0.7); border-color: var(--border-bright); color: var(--text-main); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+/* 主布局 */
+.main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+
+/* 腐殖层卡片 */
+.layers-section { display: flex; flex-direction: column; gap: 14px; }
+.layer-card {
+  position: relative; border-radius: 18px; padding: 22px 26px;
+  border: 1px solid var(--border-soft); backdrop-filter: blur(8px);
+  box-shadow: var(--shadow); transition: all 0.3s ease; overflow: hidden;
+}
+.layer-card:hover { transform: translateY(-2px); }
+.layer-card.depleted { animation: shake 0.5s ease-in-out; border-color: var(--warning); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-4px)} 40%,80%{transform:translateX(4px)} }
+
+.layer-leaf { background: linear-gradient(135deg, rgba(149, 213, 178, 0.18), rgba(27, 67, 50, 0.55)); }
+.layer-semi { background: linear-gradient(135deg, rgba(139, 90, 43, 0.28), rgba(107, 68, 35, 0.45)); }
+.layer-humus { background: linear-gradient(135deg, rgba(107, 68, 35, 0.45), rgba(74, 44, 21, 0.65)); }
+.layer-mineral { background: linear-gradient(135deg, rgba(74, 44, 21, 0.6), rgba(60, 35, 15, 0.85)); }
+
+.layer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; position: relative; z-index: 1; }
+.layer-title { display: flex; align-items: center; gap: 12px; }
+.layer-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  background: rgba(15, 40, 24, 0.5); border: 1px solid var(--border-soft);
+}
+.layer-name-group h3 { font-size: 18px; font-weight: 700; color: var(--text-main); }
+.layer-name-group .depth { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+.layer-stats { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 6px 12px; background: rgba(15, 40, 24, 0.45);
+  border: 1px solid var(--border-soft); border-radius: 8px; min-width: 64px;
+}
+.stat-chip .stat-label { font-size: 10px; color: var(--text-faint); letter-spacing: 0.5px; text-transform: uppercase; }
+.stat-chip .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: var(--moss-gold); margin-top: 2px; }
+
+.depleted-badge {
+  padding: 5px 12px; background: rgba(230, 57, 70, 0.2);
+  border: 1px solid var(--warning); border-radius: 8px;
+  font-size: 12px; font-weight: 700; color: var(--warning-soft);
+  animation: depleted-blink 1.5s ease-in-out infinite;
+}
+@keyframes depleted-blink { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+/* 有机质进度条 */
+.organic-bar-wrap { margin-bottom: 18px; position: relative; z-index: 1; }
+.organic-bar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.organic-bar-header span { font-size: 12px; color: var(--text-dim); }
+.organic-bar-header strong { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--moss-gold); font-weight: 700; }
+.organic-bar {
+  height: 14px; background: rgba(15, 40, 24, 0.6);
+  border-radius: 7px; overflow: hidden;
+  border: 1px solid var(--border-soft); position: relative;
+}
+.organic-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--forest-light), var(--moss), var(--moss-gold));
+  border-radius: 7px;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 0 12px rgba(183, 201, 106, 0.35);
+}
+.organic-bar-fill.low { background: linear-gradient(90deg, var(--warning), #F4A261); }
+.organic-bar-fill.mid { background: linear-gradient(90deg, var(--forest-mid), var(--moss)); }
+
+/* 种群卡片 */
+.populations { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; position: relative; z-index: 1; }
+.pop-card {
+  padding: 14px 16px; background: rgba(15, 40, 24, 0.55);
+  border: 1px solid var(--border-soft); border-radius: 14px;
+  transition: all 0.25s ease;
+}
+.pop-card:hover { border-color: var(--border-bright); background: rgba(27, 67, 50, 0.65); transform: translateY(-2px); }
+.pop-card.empty { opacity: 0.45; pointer-events: none; }
+
+.pop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.pop-info { display: flex; align-items: center; gap: 10px; }
+.pop-emoji {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+  background: rgba(27, 67, 50, 0.6); border: 1px solid var(--border-soft);
+}
+.pop-fungi .pop-emoji { background: rgba(183, 201, 106, 0.2); border-color: rgba(183, 201, 106, 0.4); }
+.pop-bacteria .pop-emoji { background: rgba(76, 201, 240, 0.2); border-color: rgba(76, 201, 240, 0.4); }
+.pop-nematode .pop-emoji { background: rgba(244, 162, 97, 0.2); border-color: rgba(244, 162, 97, 0.4); }
+.pop-name { font-size: 14px; font-weight: 600; }
+.pop-fungi .pop-name { color: var(--moss-gold); }
+.pop-bacteria .pop-name { color: var(--rain-blue); }
+.pop-nematode .pop-name { color: #F4A261; }
+.pop-count { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--text-main); line-height: 1; }
+
+.pop-sub {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; padding: 6px 10px;
+  background: rgba(10, 26, 16, 0.6); border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+}
+.pop-sub .consumption { color: var(--warning-soft); }
+
+.pop-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.mini-btn {
+  flex: 1; min-width: 80px; padding: 7px 10px;
+  border: 1px solid var(--border-soft); border-radius: 8px;
+  background: rgba(27, 67, 50, 0.5); color: var(--text-dim);
+  font-size: 11px; font-weight: 600; font-family: 'Lora', serif;
+  cursor: pointer; transition: all 0.2s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+}
+.mini-btn:hover {
+  background: var(--forest-mid); border-color: var(--moss);
+  color: var(--text-main); transform: translateY(-1px);
+}
+.mini-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.mini-btn.warn:hover { background: rgba(230, 57, 70, 0.25); border-color: var(--warning); color: var(--warning-soft); }
+
+/* 右侧面板 */
+.side-panel { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 20px; }
+.summary-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 18px; background: var(--bg-panel);
+  border: 1px solid var(--border-soft); border-radius: 16px;
+  backdrop-filter: blur(8px); box-shadow: var(--shadow);
+}
+.summary-item {
+  padding: 12px; background: rgba(15, 40, 24, 0.5);
+  border-radius: 10px; border: 1px solid var(--border-soft); text-align: center;
+}
+.summary-item .s-label { font-size: 10px; color: var(--text-faint); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.summary-item .s-value { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--moss-gold); line-height: 1.2; }
+.summary-item.danger .s-value { color: var(--warning-soft); }
+.summary-item.info .s-value { color: var(--rain-blue); }
+
+.panel-card {
+  padding: 18px; background: var(--bg-panel);
+  border: 1px solid var(--border-soft); border-radius: 16px;
+  backdrop-filter: blur(8px); box-shadow: var(--shadow);
+}
+.panel-card h2 {
+  font-size: 15px; font-weight: 700; color: var(--moss-gold);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.panel-card h2::before { content: ''; width: 3px; height: 14px; background: var(--moss-gold); border-radius: 2px; }
+
+.config-grid { display: flex; flex-direction: column; gap: 8px; }
+.config-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: rgba(15, 40, 24, 0.45); border-radius: 8px; font-size: 12px;
+}
+.config-row .c-key { color: var(--text-dim); }
+.config-row .c-val { font-family: 'JetBrains Mono', monospace; color: var(--moss); font-weight: 600; font-size: 11px; }
+
+.add-pop-form {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 12px; padding-top: 14px; border-top: 1px dashed var(--border-soft);
+}
+.add-pop-form select, .add-pop-form input {
+  padding: 9px 10px; background: rgba(15, 40, 24, 0.7);
+  border: 1px solid var(--border-soft); border-radius: 8px;
+  color: var(--text-main); font-family: 'Lora', serif; font-size: 12px; outline: none;
+}
+.add-pop-form .full { grid-column: 1 / -1; }
+
+.log-area {
+  max-height: 280px; overflow-y: auto; padding-right: 6px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.log-area::-webkit-scrollbar { width: 6px; }
+.log-area::-webkit-scrollbar-thumb { background: var(--forest-mid); border-radius: 3px; }
+.log-item {
+  padding: 10px 12px; background: rgba(15, 40, 24, 0.55);
+  border: 1px solid var(--border-soft); border-left: 3px solid var(--forest-light);
+  border-radius: 8px; font-size: 12px; line-height: 1.5;
+  animation: log-in 0.3s ease-out;
+}
+@keyframes log-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+.log-item .log-turn { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--moss-gold); font-weight: 700; margin-right: 8px; }
+.log-item.warn { border-left-color: var(--warning); }
+.log-item.warn .log-msg { color: var(--warning-soft); }
+.log-item.info { border-left-color: var(--rain-blue); }
+.log-item.info .log-msg { color: var(--rain-blue); }
+.log-item.gold { border-left-color: var(--moss-gold); }
+.log-item.gold .log-msg { color: var(--moss-gold); }
+
+/* 模态框 */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(10, 26, 16, 0.75);
+  backdrop-filter: blur(6px); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; animation: fade-in 0.2s ease-out;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: linear-gradient(160deg, rgba(27, 67, 50, 0.96), rgba(74, 44, 21, 0.96));
+  border: 1px solid var(--border-bright); border-radius: 20px;
+  padding: 28px; max-width: 460px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: modal-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes modal-in { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.modal h3 { font-size: 20px; font-weight: 700; color: var(--moss-gold); margin-bottom: 6px; }
+.modal .modal-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.7; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; }
+.form-group select, .form-group input[type=number] {
+  width: 100%; padding: 11px 14px; background: rgba(15, 40, 24, 0.6);
+  border: 1px solid var(--border-soft); border-radius: 10px;
+  color: var(--text-main); font-family: 'JetBrains Mono', monospace; font-size: 14px; outline: none;
+}
+.form-group select:focus, .form-group input:focus { border-color: var(--moss); box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.15); }
+.modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+.modal-actions .btn { flex: 1; justify-content: center; }
+
+/* Toast */
+.toast-wrap {
+  position: fixed; top: 24px; right: 24px; z-index: 2000;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+}
+.toast {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.95), rgba(82, 183, 136, 0.95));
+  border: 1px solid var(--moss); border-radius: 12px;
+  color: #fff; font-size: 13px; font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4); animation: toast-in 0.3s ease-out; max-width: 360px;
+}
+.toast.error { background: linear-gradient(135deg, rgba(157, 34, 53, 0.95), rgba(230, 57, 70, 0.95)); border-color: var(--warning); }
+.toast.info { background: linear-gradient(135deg, rgba(56, 120, 140, 0.95), rgba(76, 201, 240, 0.95)); border-color: var(--rain-blue); }
+@keyframes toast-in { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+.toast.fade-out { animation: toast-out 0.3s ease-out forwards; }
+@keyframes toast-out { to { opacity: 0; transform: translateX(30px); } }
+
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px; color: var(--text-faint); font-size: 14px;
+}
+.loading::before {
+  content: ''; width: 24px; height: 24px;
+  border: 2px solid var(--border-soft);
+  border-top-color: var(--moss); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-right: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.layer-card.rain-effect::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, rgba(76,201,240,0.15), transparent);
+  pointer-events: none; z-index: 1;
+}
+
+@media (max-width: 1100px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .side-panel { position: static; }
+  .summary-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 720px) {
+  .app { padding: 12px; }
+  .topbar { flex-direction: column; gap: 12px; align-items: stretch; }
+  .topbar-controls { flex-wrap: wrap; justify-content: center; }
+  .summary-grid { grid-template-columns: 1fr 1fr; }
+  .layer-stats { flex-wrap: wrap; gap: 8px; }
+  .populations { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="topbar-title">
+      <span class="emoji">🌿</span>
+      <h1>热带雨林 · 腐殖层分解者生存策略</h1>
+    </div>
+    <div class="topbar-controls">
+      <div class="game-id">
+        <span>🎮 ID</span>
+        <input type="number" id="gameIdInput" min="1" value="1">
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="loadGame()">载入</button>
+      </div>
+      <div class="turn-badge">
+        <span class="label">回合</span>
+        <span class="value" id="turnValue">0</span>
+      </div>
+      <div class="event-indicator idle" id="eventIndicator">
+        <span id="eventIcon">☀️</span>
+        <span id="eventText">晴朗</span>
+      </div>
+      <button class="btn btn-ghost" onclick="openNewGameModal()">🔄 新游戏</button>
+      <button class="btn btn-primary" id="nextTurnBtn" onclick="nextTurn()">⏭ 下一回合</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <section class="layers-section" id="layersContainer">
+      <div class="loading">正在加载腐殖层数据...</div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="summary-grid" id="summaryGrid">
+        <div class="summary-item"><div class="s-label">总种群</div><div class="s-value" id="sumPop">0</div></div>
+        <div class="summary-item"><div class="s-label">平均有机质</div><div class="s-value" id="sumOrg">0%</div></div>
+        <div class="summary-item danger"><div class="s-label">枯竭层数</div><div class="s-value" id="sumDep">0</div></div>
+        <div class="summary-item info"><div class="s-label">淋溶剩余</div><div class="s-value" id="sumLea">0</div></div>
+      </div>
+
+      <div class="panel-card">
+        <h2>⚙️ 核心参数</h2>
+        <div class="config-grid">
+          <div class="config-row"><span class="c-key">密度上限系数</span><span class="c-val" id="cfgDensity">-</span></div>
+          <div class="config-row"><span class="c-key">枯竭有机质衰减</span><span class="c-val" id="cfgDecay">-</span></div>
+          <div class="config-row"><span class="c-key">枯竭消耗惩罚</span><span class="c-val" id="cfgPenalty">-</span></div>
+          <div class="config-row"><span class="c-key">暴雨周期</span><span class="c-val" id="cfgStorm">-</span></div>
+          <div class="config-row"><span class="c-key">淋溶持续</span><span class="c-val" id="cfgLeach">-</span></div>
+          <div class="config-row"><span class="c-key">真菌跨层效率</span><span class="c-val" id="cfgFungi">-</span></div>
+          <div class="config-row"><span class="c-key">线虫吞噬倍率</span><span class="c-val" id="cfgNem">-</span></div>
+        </div>
+        <div class="add-pop-form">
+          <select id="addLayerType">
+            <option value="0">🍂 落叶层</option>
+            <option value="1">🪵 半腐层</option>
+            <option value="2">🌱 腐殖层</option>
+            <option value="3">🪨 矿质层</option>
+          </select>
+          <select id="addMorphType">
+            <option value="0">🍄 真菌</option>
+            <option value="1">🦠 细菌</option>
+            <option value="2">🐛 线虫</option>
+          </select>
+          <input type="number" id="addCount" placeholder="数量" min="1" value="5">
+          <button class="btn btn-ghost full" style="justify-content:center" onclick="addPopulation()">➕ 投放种群</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>📜 事件日志</h2>
+        <div class="log-area" id="logArea">
+          <div class="log-item"><span class="log-turn">·</span><span class="log-msg" style="color:var(--text-faint)">打开游戏后自动开始记录...</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ============ 雨林游戏前端引擎 ============ */
+const API_BASE = '/api/rainforest';
+const LAYER_INFO = [
+  { icon: '🍂', cls: 'layer-leaf', name: '落叶层', depth: '0 ~ 5cm 表层', desc: '新鲜凋落物' },
+  { icon: '🪵', cls: 'layer-semi', name: '半腐层', depth: '5 ~ 15cm 中层', desc: '部分分解碎片' },
+  { icon: '🌱', cls: 'layer-humus', name: '腐殖层', depth: '15 ~ 35cm 深层', desc: '黑色腐殖质' },
+  { icon: '🪨', cls: 'layer-mineral', name: '矿质层', depth: '35cm+ 底层', desc: '矿物质母质' },
+];
+const MORPH_INFO = {
+  0: { name: '真菌', emoji: '🍄', cls: 'pop-fungi', desc: '分解效率高 · 移动慢' },
+  1: { name: '细菌', emoji: '🦠', cls: 'pop-bacteria', desc: '移动快 · 效率低' },
+  2: { name: '线虫', emoji: '🐛', cls: 'pop-nematode', desc: '可吞噬获取能力' },
+};
+
+let state = {
+  game_id: null,
+  data: null,       // game/get 返回的完整 data
+  config: null,     // layer/config/get 返回
+  idMap: {},        // idMap[layerType][morphType] = population_id
+  logs: [],
+  prev: null,       // 上一个回合的数据快照，用于对比生成日志
+};
+
+/* ----- 工具 ----- */
+function toast(msg, type='success') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 300); }, 2800);
+}
+async function api(path, opts = {}) {
+  const options = { headers: { 'Content-Type': 'application/json' }, ...opts };
+  if (options.body && typeof options.body !== 'string') options.body = JSON.stringify(options.body);
+  try { return await fetch(API_BASE + path, options).then(r => r.json()); }
+  catch (e) { toast('网络错误：' + e.message, 'error'); return { code: 1, message: e.message, data: null }; }
+}
+function addLog(msg, type='', turn=null) {
+  const t = turn !== null ? turn : (state.data ? state.data.turn : '·');
+  state.logs.unshift({ turn: t, msg, type });
+  if (state.logs.length > 60) state.logs.pop();
+  renderLogs();
+}
+
+/* ----- 载入 & 构建ID映射 ----- */
+function buildIdMap() {
+  // 由于 game/get 的返回没有 population id，我们需要通过 game/summary 或原始 layers 反推
+  // 简化方案：遍历 layers 和 populations，按照 (game_id, layer_type, morph_type) 唯一组合，
+  // 我们通过单独的一次请求：不，实际上我们在创建游戏后的初始返回也不含 id。
+  // 解决方案：为每次操作使用 "get population by game/layer/morph" 的内部查询
+  // 但后端没有提供，所以我们这里改为：在需要 population_id 时，直接用 state 中保存的种群列表中 "第一个出现" 对应形态的对象 — 但这也没有id。
+  // 结论：我们需要扩展后端，让 game/get 返回 population 的 id。这里先做一个简化方案：
+  // 直接通过 layer_id + morph_type，我们发起一次额外的查询到后端做路由？
+  // 或者：使用 upsert_population 的形式——但实际上用户操作已指定 game_id + layer_type + morph_type + count
+  // 更优方案：修改 game/get 返回数据结构，包含每个 population 的 id。我们在前端通过 state.idMap 映射。
+  // 由于当前后端 game/get 返回不含 population_id，我们采用另一种策略：
+  // 对于每个 population_id 操作，先使用 "临时查询" 查找。
+  state.idMap = {};
+}
+
+// 安全获取 population_id：由于后端 game state 返回中没有 id，我们通过 layer_id + morph_type 发起一次 get_all_by_layer 查询？
+// 简化方案：创建一个轻量API调用，按 (game_id, layer_type, morph_type) 解析为 population_id
+// 这里我们直接用一个 Promise 缓存工具：
+const _pidCache = {}; // key = "gid:lt:mt" -> pid
+async function resolvePopulationId(gameId, layerType, morphType) {
+  const key = `${gameId}:${layerType}:${morphType}`;
+  if (_pidCache[key]) return _pidCache[key];
+  // 直接通过查询：我们新增一个后端辅助API吗？
+  // 为了不改后端，使用以下方法：构造一个 "最小请求" 获取 populations 表的数据——我们暂时无法做到。
+  // 折中方案：修改 game/get 返回 populations 的 id。我们在后端 layer.py 的 model 中加入 id 字段。
+  // 但是后端已经在 /app/model/rainforest/population.py 中返回了 id，为何 game_business 没有传出来？
+  // 检查：game_business.py 的 get_game_state 里 pop_data 只组装了 morph_type/count/consumption——缺失了 id！
+  // 我们稍后修复它，前端这里先假设 population 的位置索引：使用 (layer_id, morph_type) 取 populations[*] 中的 id
+  return null;
+}
+
+/* ----- 核心渲染 ----- */
+function render() {
+  if (!state.data) return;
+  renderTopbar();
+  renderLayers();
+  renderSummary();
+  renderConfig();
+}
+function renderTopbar() {
+  const g = state.data;
+  document.getElementById('turnValue').textContent = g.turn;
+  const ind = document.getElementById('eventIndicator');
+  const icon = document.getElementById('eventIcon');
+  const text = document.getElementById('eventText');
+  if (g.rainstorm_active) { ind.className='event-indicator storm'; icon.textContent='🌧️'; text.textContent='暴雨！'; }
+  else if (g.leaching_remaining_turns>0) { ind.className='event-indicator leaching'; icon.textContent='💧'; text.textContent=`淋溶 ${g.leaching_remaining_turns}`; }
+  else { ind.className='event-indicator idle'; icon.textContent='☀️'; text.textContent='晴朗'; }
+}
+function renderLayers() {
+  const box = document.getElementById('layersContainer');
+  const g = state.data;
+  let html = '';
+  g.layers.forEach(layer => {
+    const info = LAYER_INFO[layer.layer_type];
+    const rainCls = (layer.layer_type===0 && g.rainstorm_active) ? 'rain-effect' : '';
+    const depCls = layer.is_depleted ? 'depleted' : '';
+    const orgPct = Math.max(0, Math.min(100, layer.organic_matter));
+    const fillCls = orgPct<20?'low':orgPct<50?'mid':'';
+    // 密度上限用有机质与面积计算出的数量标一条参考线（按最大面积归一化）
+    const densityPct = Math.min(100, (layer.density_limit / (layer.area * 0.15)) * 100);
+
+    html += `
+      <div class="layer-card ${info.cls} ${rainCls} ${depCls}">
+        <div class="layer-header">
+          <div class="layer-title">
+            <div class="layer-icon">${info.icon}</div>
+            <div class="layer-name-group">
+              <h3>${info.name}</h3>
+              <div class="depth">${info.depth} · ${info.desc}</div>
+            </div>
+          </div>
+          <div class="layer-stats">
+            <div class="stat-chip"><span class="stat-label">难度</span><span class="stat-value">${layer.base_difficulty.toFixed(1)}</span></div>
+            <div class="stat-chip"><span class="stat-label">面积</span><span class="stat-value">${layer.area.toFixed(0)}</span></div>
+            <div class="stat-chip"><span class="stat-label">种群上限</span><span class="stat-value">${Math.floor(layer.density_limit)}</span></div>
+            ${layer.is_depleted ? '<div class="depleted-badge">⚠ 资源枯竭</div>' : ''}
+          </div>
+        </div>
+
+        <div class="organic-bar-wrap">
+          <div class="organic-bar-header"><span>🌿 有机质含量</span><strong>${orgPct.toFixed(1)}%</strong></div>
+          <div class="organic-bar">
+            <div class="organic-bar-fill ${fillCls}" style="width:${orgPct}%"></div>
+            <div class="density-line" style="display:none"></div>
+          </div>
+        </div>
+
+        <div class="populations">${renderPopCards(layer)}</div>
+      </div>
+    `;
+  });
+  box.innerHTML = html;
+  bindLayerEvents();
+}
+function renderPopCards(layer) {
+  let html = '';
+  [0,1,2].forEach(mt => {
+    const m = MORPH_INFO[mt];
+    const pop = layer.populations.find(p => p.morph_type === mt);
+    const count = pop ? pop.count : 0;
+    const emptyCls = count === 0 ? 'empty' : '';
+    const consumption = pop ? pop.consumption_per_turn : 0;
+    html += `
+      <div class="pop-card ${m.cls} ${emptyCls}" data-morph="${mt}" data-layer="${layer.layer_type}" data-layerid="${layer.id}">
+        <div class="pop-header">
+          <div class="pop-info">
+            <div class="pop-emoji">${m.emoji}</div>
+            <div>
+              <div class="pop-name">${m.name}</div>
+              <div style="font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace">${m.desc}</div>
+            </div>
+          </div>
+          <div class="pop-count">${count}</div>
+        </div>
+        <div class="pop-sub">
+          <span class="consumption-label">每回合消耗</span>
+          <span class="consumption">${consumption.toFixed(1)} 有机质</span>
+        </div>
+        <div class="pop-actions">
+          <button class="mini-btn" data-action="transform" ${count===0?'disabled':''}>🔄 转换</button>
+          <button class="mini-btn" data-action="migrate" ${count===0||layer.is_depleted?'disabled':''}>➡️ 迁移</button>
+          ${mt===2 ? `<button class="mini-btn warn" data-action="devour" ${count===0?'disabled':''}>😋 吞噬</button>` : ''}
+        </div>
+      </div>
+    `;
+  });
+  return html;
+}
+function renderSummary() {
+  const g = state.data;
+  const totalPop = g.layers.reduce((s,l) => s + l.total_population, 0);
+  const avgOrg = g.layers.reduce((s,l) => s + l.organic_matter, 0) / g.layers.length;
+  const depCount = g.layers.filter(l => l.is_depleted).length;
+  document.getElementById('sumPop').textContent = totalPop;
+  document.getElementById('sumOrg').textContent = avgOrg.toFixed(1) + '%';
+  document.getElementById('sumDep').textContent = depCount;
+  document.getElementById('sumLea').textContent = g.leaching_remaining_turns;
+}
+function renderConfig() {
+  if (!state.config) return;
+  const r = state.config.rules;
+  const set = (id, v) => document.getElementById(id).textContent = v;
+  set('cfgDensity', r.density_limit_factor);
+  set('cfgDecay', (r.depletion_organic_decay_rate*100).toFixed(0) + '%/回合');
+  set('cfgPenalty', 'x' + r.depletion_consumption_penalty.toFixed(1));
+  set('cfgStorm', '每' + r.rainstorm_interval + '回合');
+  set('cfgLeach', r.leaching_duration + '回合');
+  set('cfgFungi', 'x' + r.fungi_cross_layer_efficiency.toFixed(1));
+  set('cfgNem', 'x' + r.nematode_cross_layer_devour_efficiency.toFixed(1));
+}
+function renderLogs() {
+  const box = document.getElementById('logArea');
+  if (state.logs.length === 0) {
+    box.innerHTML = `<div class="log-item"><span class="log-turn">·</span><span class="log-msg" style="color:var(--text-faint)">暂无事件记录</span></div>`;
+    return;
+  }
+  box.innerHTML = state.logs.map(l =>
+    `<div class="log-item ${l.type}"><span class="log-turn">T${l.turn}</span><span class="log-msg">${l.msg}</span></div>`
+  ).join('');
+}
+
+/* ----- 操作绑定 ----- */
+function bindLayerEvents() {
+  document.querySelectorAll('.pop-card').forEach(card => {
+    card.querySelectorAll('.mini-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        const layerType = parseInt(card.dataset.layer);
+        const layerId = parseInt(card.dataset.layerid);
+        const morph = parseInt(card.dataset.morph);
+        if (action === 'transform') openTransformModal(layerType, layerId, morph);
+        if (action === 'migrate') openMigrateModal(layerType, layerId, morph);
+        if (action === 'devour') openDevourModal(layerType, layerId, morph);
+      });
+    });
+  });
+}
+
+/* ----- 模态框 ----- */
+function openModal(html) {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `<div class="modal-mask" onclick="if(event.target===this)closeModal()">${html}</div>`;
+}
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+
+function openNewGameModal() {
+  openModal(`
+    <div class="modal">
+      <h3>🌱 创建新游戏</h3>
+      <p class="modal-desc">初始种群放置在<strong>落叶层</strong>。推荐：真菌5 · 细菌8 · 线虫2</p>
+      <div class="form-group"><label>🍄 真菌 初始数量</label><input type="number" id="ngFungi" value="5" min="0"></div>
+      <div class="form-group"><label>🦠 细菌 初始数量</label><input type="number" id="ngBacteria" value="8" min="0"></div>
+      <div class="form-group"><label>🐛 线虫 初始数量</label><input type="number" id="ngNematode" value="2" min="0"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="createNewGame()">✅ 创建</button>
+      </div>
+    </div>
+  `);
+}
+
+/* ----- 玩家操作 ----- */
+async function createNewGame() {
+  const f = parseInt(document.getElementById('ngFungi').value) || 0;
+  const b = parseInt(document.getElementById('ngBacteria').value) || 0;
+  const n = parseInt(document.getElementById('ngNematode').value) || 0;
+  const res = await api('/game/create', { method:'POST', body:{ initial_fungi:f, initial_bacteria:b, initial_nematode:n } });
+  if (res.code !== 0) { toast('创建失败: ' + res.message, 'error'); return; }
+  closeModal();
+  state.game_id = res.data.id;
+  document.getElementById('gameIdInput').value = state.game_id;
+  state.data = res.data;
+  state.prev = null;
+  state.logs = [];
+  buildIdMap();
+  render();
+  addLog(`新游戏创建成功！🍄×${f} 🦠×${b} 🐛×${n}`, 'gold', 0);
+  toast('游戏已创建 ID#' + state.game_id, 'success');
+}
+
+async function loadGame() {
+  const gid = parseInt(document.getElementById('gameIdInput').value);
+  if (!gid || gid < 1) { toast('请输入有效ID', 'error'); return; }
+  const res = await api(`/game/get?game_id=${gid}`);
+  if (res.code !== 0) { toast('载入失败: ' + res.message, 'error'); return; }
+  state.game_id = gid;
+  state.data = res.data;
+  state.prev = null;
+  state.logs = [];
+  buildIdMap();
+  render();
+  addLog(`载入游戏 #${gid}，当前回合 ${res.data.turn}`, 'info');
+  toast('游戏已载入', 'success');
+}
+
+/* population_id 解析：我们使用 layer_id 而非 layer_type 去发起一次 get_all_by_game，然后从 state 中查找
+   但后端 get_game_state 的返回中 populations 缺失 id 字段。临时方案：
+   通过 layer_id + morph_type，我们直接在前端对 migrate 等操作用 "查询式API"：
+   由于后端 API 需要 population_id（int），我们在此先 resolve 它。
+   
+   为了不修改过多代码，我们使用一个兼容策略：将需要 population_id 的 API 改为支持
+   (game_id, layer_id, morph_type) 的后端查询组合——但后端没变。
+   
+   最简洁方案：修改后端 get_game_state 返回中 populations 包含 id。见下方修复。
+   在修复完成前，使用下面的 resolvePid 通过 layer_id + morph_type 查找。
+*/
+function findPopulationIdByLayerId(layerId, morphType) {
+  // 基于 state.data.populations，它是一个列表，每个 population 有 layer_id 与 morph_type？
+  // 检查 get_game_state：pop_data 中没有 id。所以此方案在后端修复之前不可用。
+  // 我们改而在后端增加 population id。见下一步对 game_business.py 的修复。
+  return null;
+}
+
+/* 注：以下三个操作（transform/migrate/devour）在后端修复 get_game_state 返回 population.id 前，
+   会使用临时方案：先通过 game.get 查 layer_id → 用新的 "辅助API" 查询 population_id。
+   但为了不新增额外后端接口，我们对 morph_transform / migrate / nematode_devour 的后端实现
+   增加通过 (game_id, layer_id, morph_type) 查 population_id 的能力（业务层即可完成）。
+   
+   更好的方式：直接修改 game_business 返回时在 pop_data 里包含 'id'。
+*/
+
+async function resolvePidFromLayer(layerId, morphType) {
+  // 由于 state.data.layers[*].populations 里没有 id，使用后端接口查询
+  // 方案：使用 fetch 直接查询 /population/getByLayer ？（后端没有提供）
+  // 变通：我们新增一次对 game.get 的扩展——或者直接使用后端SQL查询
+  // 最简洁：直接在 morph_transform / migrate 入口处，允许参数传入 (game_id, layer_id, morph_type)
+  // 但后端当前用 population_id 主键。我们修改前端传参逻辑：
+  // 先用 (game_id, layer_id, morph_type) 发起一次"查找pop id"的请求？
+  // 为了让游戏立刻可用，我们使用一个折中：
+  //   让 transform/migrate/devour 的前端请求体中传入 _layer_id + _morph_type，
+  //   由后端业务层通过 game_id + layer_id + morph_type 查主键再操作。
+  // 我们更新对应后端 API。见 game_business.py 的修改。
+  return { __need_extra: true, layerId, morphType };
+}
+
+async function openTransformModal(layerType, layerId, morph) {
+  const targets = [0,1,2].filter(m => m !== morph);
+  const layer = state.data.layers.find(l => l.layer_type === layerType);
+  const pop = layer.populations.find(p => p.morph_type === morph);
+  const cnt = pop ? pop.count : 0;
+  openModal(`
+    <div class="modal">
+      <h3>🔄 形态转换（手动触发）</h3>
+      <p class="modal-desc">
+        当前：<strong style="color:var(--moss-gold)">${MORPH_INFO[morph].name} × ${cnt}</strong>（${LAYER_INFO[layerType].name}）<br>
+        将全部个体转换为目标形态。
+        <em style="color:var(--text-faint)">此操作必须手动触发，系统不会自动切换。</em>
+      </p>
+      <div class="form-group">
+        <label>目标形态</label>
+        <select id="tfTarget">
+          ${targets.map(t => `<option value="${t}">${MORPH_INFO[t].emoji} ${MORPH_INFO[t].name} — ${MORPH_INFO[t].desc}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="doTransform(${state.game_id}, ${layerId}, ${morph})">✅ 执行</button>
+      </div>
+    </div>
+  `);
+}
+async function doTransform(gameId, layerId, morph) {
+  const target = parseInt(document.getElementById('tfTarget').value);
+  const res = await api('/morph/transform', { method:'POST', body:{ game_id:gameId, layer_id:layerId, morph_type:morph, target_morph:target } });
+  if (res.code !== 0) { toast('转换失败: ' + res.message, 'error'); return; }
+  closeModal();
+  state.data = res.data;
+  buildIdMap();
+  render();
+  addLog(`${MORPH_INFO[morph].emoji}${MORPH_INFO[morph].name} → ${MORPH_INFO[target].emoji}${MORPH_INFO[target].name}（形态转换）`, 'info');
+  toast('形态转换成功', 'success');
+}
+
+async function openMigrateModal(layerType, layerId, morph) {
+  const layer = state.data.layers.find(l => l.layer_type === layerType);
+  if (layer.is_depleted) { toast('枯竭层无法迁出！', 'error'); return; }
+  const pop = layer.populations.find(p => p.morph_type === morph);
+  const cnt = pop ? pop.count : 0;
+  const targets = [0,1,2,3].filter(t => {
+    if (t === layerType) return false;
+    const tl = state.data.layers.find(l => l.layer_type === t);
+    return tl && !tl.is_depleted;
+  });
+  if (targets.length === 0) { toast('没有可迁入的目标层', 'error'); return; }
+  openModal(`
+    <div class="modal">
+      <h3>➡️ 跨层迁移</h3>
+      <p class="modal-desc">从 <strong>${LAYER_INFO[layerType].name}</strong> 的 ${MORPH_INFO[morph].emoji} ${MORPH_INFO[morph].name} 迁出。<br>最大可迁：<strong style="color:var(--moss-gold)">${cnt}</strong> 个体。<em style="color:var(--text-faint)">枯竭层不允许迁入/迁出。</em></p>
+      <div class="form-group"><label>目标层</label>
+        <select id="mgTarget">
+          ${targets.map(t => `<option value="${t}">${LAYER_INFO[t].icon} ${LAYER_INFO[t].name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>迁移数量</label>
+        <input type="number" id="mgCount" min="1" max="${cnt}" value="${Math.min(3,cnt)}">
+      </div>
+      <p class="modal-desc" style="padding:10px 12px;background:rgba(15,40,24,0.5);border-radius:8px;margin-top:0">
+        <strong style="color:var(--text-dim)">跨层适应：</strong><br>
+        🍄 真菌效率 ×0.8 &nbsp; | &nbsp; 🦠 细菌效率不变 &nbsp; | &nbsp; 🐛 线虫吞噬 ×0.6
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="doMigrate(${state.game_id}, ${layerId}, ${morph})">✅ 迁移</button>
+      </div>
+    </div>
+  `);
+}
+async function doMigrate(gameId, layerId, morph) {
+  const target = parseInt(document.getElementById('mgTarget').value);
+  const count = parseInt(document.getElementById('mgCount').value);
+  const res = await api('/migrate', { method:'POST', body:{ game_id:gameId, from_layer_id:layerId, morph_type:morph, target_layer_type:target, count } });
+  if (res.code !== 0) { toast('迁移失败: ' + res.message, 'error'); return; }
+  closeModal();
+  state.data = res.data;
+  buildIdMap();
+  render();
+  const tl = state.data.layers.find(l => l.layer_type === target);
+  addLog(`${count} 个 ${MORPH_INFO[morph].name} → ${LAYER_INFO[target].name}`, 'info');
+  toast('迁移成功', 'success');
+}
+
+async function openDevourModal(layerType, layerId, morph) {
+  if (morph !== 2) { toast('只有线虫能吞噬', 'error'); return; }
+  const layer = state.data.layers.find(l => l.layer_type === layerType);
+  const targets = layer.populations.filter(p => p.morph_type !== 2 && p.count > 0);
+  const nemCount = (layer.populations.find(p => p.morph_type === 2) || {}).count || 0;
+  if (targets.length === 0) { toast('该层没有可吞噬的小型分解者', 'error'); return; }
+  const efficiency = layerType === 0 ? '100%' : '60%（跨层后降低）';
+  const hintCls = layerType === 0 ? 'var(--leaf)' : 'var(--warning-soft)';
+  openModal(`
+    <div class="modal">
+      <h3>😋 线虫吞噬</h3>
+      <p class="modal-desc">
+        🐛 线虫（${nemCount} 个体）吞噬同层的真菌/细菌。<br>
+        吞噬时<strong style="color:var(--moss-gold)">不消耗有机质</strong>，并扩充自身种群。<br>
+        <em style="color:${hintCls}">吞噬效率：${efficiency}</em>
+      </p>
+      <div class="form-group"><label>吞噬目标</label>
+        <select id="dvTarget">
+          ${targets.map(t => `<option value="${t.morph_type}">${MORPH_INFO[t.morph_type].emoji} ${MORPH_INFO[t.morph_type].name}（${t.count} 个体）</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,#B7C96A,#F4A261)" onclick="doDevour(${state.game_id}, ${layerId})">😋 吞噬</button>
+      </div>
+    </div>
+  `);
+}
+async function doDevour(gameId, layerId) {
+  const targetMorph = parseInt(document.getElementById('dvTarget').value);
+  const res = await api('/nematode/devour', { method:'POST', body:{ game_id:gameId, layer_id:layerId, target_morph_type:targetMorph } });
+  if (res.code !== 0) { toast('吞噬失败: ' + res.message, 'error'); return; }
+  closeModal();
+  state.data = res.data;
+  buildIdMap();
+  render();
+  addLog(`🐛 线虫吞噬了 ${MORPH_INFO[targetMorph].emoji} ${MORPH_INFO[targetMorph].name}！`, 'gold');
+  toast('吞噬成功', 'success');
+}
+
+async function addPopulation() {
+  const layerType = parseInt(document.getElementById('addLayerType').value);
+  const morphType = parseInt(document.getElementById('addMorphType').value);
+  const count = parseInt(document.getElementById('addCount').value) || 0;
+  if (count <= 0) { toast('请输入有效数量', 'error'); return; }
+  const res = await api('/population/add', { method:'POST', body:{ game_id:state.game_id, layer_type:layerType, morph_type:morphType, count } });
+  if (res.code !== 0) { toast('投放失败: ' + res.message, 'error'); return; }
+  state.data = res.data;
+  buildIdMap();
+  render();
+  addLog(`投放 +${count} ${MORPH_INFO[morphType].emoji} ${MORPH_INFO[morphType].name} → ${LAYER_INFO[layerType].name}`, 'gold');
+  toast('投放成功', 'success');
+}
+
+/* ----- 回合推进 ----- */
+async function nextTurn() {
+  if (!state.game_id) { toast('请先创建或载入游戏', 'error'); return; }
+  const before = JSON.parse(JSON.stringify(state.data));
+  state.prev = before;
+  const btn = document.getElementById('nextTurnBtn');
+  btn.disabled = true;
+  const res = await api(`/game/turn/advance?game_id=${state.game_id}`, { method:'POST' });
+  btn.disabled = false;
+  if (res.code !== 0) { toast('回合推进失败: ' + res.message, 'error'); return; }
+  state.data = res.data;
+  buildIdMap();
+  compareAndLogTurn(before, res.data);
+  render();
+}
+function compareAndLogTurn(before, after) {
+  const t = after.turn;
+  // 暴雨事件
+  if (after.rainstorm_active && !before.rainstorm_active) {
+    addLog('🌧️ 暴雨来袭！落叶层有机质+20%，矿质层难度×2，线虫消耗×1.5', 'info', t);
+  }
+  // 淋溶
+  if (after.leaching_remaining_turns > 0 && before.leaching_remaining_turns === 0 && !after.rainstorm_active) {
+    addLog('💧 淋溶效应：半腐层有机质+10%', 'gold', t);
+  }
+  // 每层有机质变化
+  after.layers.forEach(l => {
+    const bl = before.layers.find(x => x.layer_type === l.layer_type);
+    if (!bl) return;
+    const delta = (l.organic_matter - bl.organic_matter).toFixed(1);
+    const deltaNum = parseFloat(delta);
+    if (deltaNum < -0.5) addLog(`${LAYER_INFO[l.layer_type].icon} ${LAYER_INFO[l.layer_type].name} 有机质消耗 ${Math.abs(deltaNum).toFixed(1)}%`, '', t);
+    if (deltaNum > 0.5) addLog(`${LAYER_INFO[l.layer_type].icon} ${LAYER_INFO[l.layer_type].name} 有机质 +${delta}%`, 'gold', t);
+    if (!bl.is_depleted && l.is_depleted) addLog(`⚠️ ${LAYER_INFO[l.layer_type].name} 种群超过上限，触发资源枯竭！`, 'warn', t);
+    if (bl.is_depleted && !l.is_depleted) addLog(`✅ ${LAYER_INFO[l.layer_type].name} 枯竭状态解除`, 'success', t);
+  });
+  // 种群总数变化
+  const totalBefore = before.layers.reduce((s,l) => s + l.total_population, 0);
+  const totalAfter = after.layers.reduce((s,l) => s + l.total_population, 0);
+  if (totalAfter !== totalBefore) {
+    const diff = totalAfter - totalBefore;
+    addLog(`种群变化：${diff > 0 ? '+' : ''}${diff}（总数 ${totalAfter}）`, diff > 0 ? 'gold' : 'warn', t);
+  }
+}
+
+/* ----- 配置加载 ----- */
+async function loadConfig() {
+  const res = await api('/layer/config/get');
+  if (res.code === 0) { state.config = res.data; renderConfig(); }
+}
+
+/* ----- 启动 ----- */
+async function boot() {
+  await loadConfig();
+  // 自动载入 game_id=1，如不存在则新建
+  const initialId = 1;
+  document.getElementById('gameIdInput').value = initialId;
+  const loadRes = await api(`/game/get?game_id=${initialId}`);
+  if (loadRes.code === 0 && loadRes.data) {
+    state.game_id = initialId;
+    state.data = loadRes.data;
+    buildIdMap();
+    render();
+    addLog(`自动载入游戏 #${initialId}`, 'info');
+  } else {
+    // 新建
+    const crRes = await api('/game/create', { method:'POST', body:{ initial_fungi:5, initial_bacteria:8, initial_nematode:2 } });
+    if (crRes.code === 0) {
+      state.game_id = crRes.data.id;
+      document.getElementById('gameIdInput').value = state.game_id;
+      state.data = crRes.data;
+      buildIdMap();
+      render();
+      addLog('新游戏创建成功！🍄×5 🦠×8 🐛×2', 'gold', 0);
+      toast('游戏已就绪', 'success');
+    }
+  }
+}
+boot();
+</script>
+</body>
+</html>

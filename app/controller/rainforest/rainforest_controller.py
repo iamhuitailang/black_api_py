@@ -16,15 +16,19 @@ class CreateGameRequest(BaseModel):
 
 class MorphTransformRequest(BaseModel):
     game_id: int = Field(..., ge=1, description="游戏ID")
-    population_id: int = Field(..., ge=1, description="种群ID")
     target_morph: int = Field(..., description="目标形态: 0=真菌, 1=细菌, 2=线虫")
+    population_id: Optional[int] = Field(default=None, ge=1, description="种群ID（可选）")
+    layer_id: Optional[int] = Field(default=None, ge=1, description="层ID（与morph_type组合使用）")
+    morph_type: Optional[int] = Field(default=None, description="源形态类型（与layer_id组合使用）")
 
 
 class MigrateRequest(BaseModel):
     game_id: int = Field(..., ge=1, description="游戏ID")
-    population_id: int = Field(..., ge=1, description="种群ID")
     target_layer_type: int = Field(..., description="目标层: 0=落叶层, 1=半腐层, 2=腐殖层, 3=矿质层")
     count: int = Field(..., ge=1, description="迁移数量")
+    population_id: Optional[int] = Field(default=None, ge=1, description="种群ID（可选）")
+    from_layer_id: Optional[int] = Field(default=None, ge=1, description="源层ID（与morph_type组合使用）")
+    morph_type: Optional[int] = Field(default=None, description="源形态类型（与from_layer_id组合使用）")
 
 
 class AddPopulationRequest(BaseModel):
@@ -36,8 +40,10 @@ class AddPopulationRequest(BaseModel):
 
 class NematodeDevourRequest(BaseModel):
     game_id: int = Field(..., ge=1, description="游戏ID")
-    nematode_pop_id: int = Field(..., ge=1, description="线虫种群ID")
-    target_pop_id: int = Field(..., ge=1, description="被吞噬目标种群ID")
+    nematode_pop_id: Optional[int] = Field(default=None, ge=1, description="线虫种群ID（可选）")
+    target_pop_id: Optional[int] = Field(default=None, ge=1, description="被吞噬目标种群ID（可选）")
+    layer_id: Optional[int] = Field(default=None, ge=1, description="层ID（与target_morph_type组合使用）")
+    target_morph_type: Optional[int] = Field(default=None, description="目标形态类型（与layer_id组合使用）")
 
 
 class RainforestController:
@@ -88,11 +94,14 @@ class RainforestController:
         手动形态转换
         POST /api/rainforest/morph/transform
         玩家手动触发形态转换，不可自动切换
+        支持两种传参：population_id 或 (layer_id + morph_type)
         """
         return self.business.morph_transform(
             game_id=body.game_id,
+            target_morph=body.target_morph,
             population_id=body.population_id,
-            target_morph=body.target_morph
+            layer_id=body.layer_id,
+            morph_type=body.morph_type
         )
 
     def ActionRainforestMigratePost(self, request: Request, body: MigrateRequest):
@@ -100,12 +109,15 @@ class RainforestController:
         跨层迁移种群
         POST /api/rainforest/migrate
         资源枯竭期间不允许迁移，跨层会触发适应机制
+        支持两种传参：population_id 或 (from_layer_id + morph_type)
         """
         return self.business.migrate_population(
             game_id=body.game_id,
-            population_id=body.population_id,
             target_layer_type=body.target_layer_type,
-            count=body.count
+            count=body.count,
+            population_id=body.population_id,
+            from_layer_id=body.from_layer_id,
+            morph_type=body.morph_type
         )
 
     def ActionRainforestPopulationAddPost(self, request: Request, body: AddPopulationRequest):
@@ -125,11 +137,14 @@ class RainforestController:
         线虫吞噬小型分解者
         POST /api/rainforest/nematode/devour
         线虫吞噬时不消耗有机质，跨层时吞噬能力×0.6
+        支持两种传参：(nematode_pop_id + target_pop_id) 或 (layer_id + target_morph_type)
         """
         return self.business.nematode_devour(
             game_id=body.game_id,
             nematode_pop_id=body.nematode_pop_id,
-            target_pop_id=body.target_pop_id
+            target_pop_id=body.target_pop_id,
+            layer_id=body.layer_id,
+            target_morph_type=body.target_morph_type
         )
 
     def ActionRainforestGameDelete(self, request: Request,
