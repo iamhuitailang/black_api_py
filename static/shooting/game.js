@@ -45,6 +45,7 @@ class ThermalShooterGame {
         this.mouse = { x: 0, y: 0, down: false };
         this.lastFrameTime = 0;
         this.animationId = null;
+        this.lastSaveTime = 0;
 
         this.init();
     }
@@ -197,8 +198,24 @@ class ThermalShooterGame {
         });
     }
 
-    async startGame() {
+    async startGame(restoreSaved = false) {
         if (!this.selectedLevel) return;
+
+        const playerName = document.getElementById('player-name').value.trim();
+        if (!playerName) {
+            alert('请输入玩家名称后再开始游戏！');
+            document.getElementById('player-name').focus();
+            return;
+        }
+
+        const savedState = this.getSavedGameState();
+        if (!restoreSaved && savedState && savedState.state !== GameState.GAMEOVER && savedState.state !== GameState.WIN) {
+            if (!confirm('检测到未完成的游戏，是否继续上次的进度？\n\n点击"确定"继续游戏，点击"取消"重新开始。')) {
+                this.clearSavedGameState();
+            } else {
+                restoreSaved = true;
+            }
+        }
 
         try {
             const res = await fetch(`${API_BASE}/level/config/get?level_num=${this.selectedLevel}`);
@@ -218,7 +235,11 @@ class ThermalShooterGame {
 
         setTimeout(() => {
             this.resizeCanvas();
-            this.initGameState();
+            if (restoreSaved && savedState && savedState.levelNum === this.selectedLevel) {
+                this.restoreGameState(savedState);
+            } else {
+                this.initGameState();
+            }
             this.startGameLoop();
         }, 100);
     }
@@ -256,6 +277,148 @@ class ThermalShooterGame {
         this.updateHUD();
         this.spawnWave();
         this.hideOverlays();
+        this.saveGameState();
+    }
+
+    getSavedGameState() {
+        try {
+            const saved = localStorage.getItem('shooting_game_state');
+            if (saved) {
+                const state = JSON.parse(saved);
+                if (state.expireTime && Date.now() < state.expireTime) {
+                    return state;
+                }
+                localStorage.removeItem('shooting_game_state');
+            }
+        } catch (e) {
+            console.log('读取存档失败:', e);
+        }
+        return null;
+    }
+
+    saveGameState() {
+        if (this.state === GameState.GAMEOVER || this.state === GameState.WIN || this.state === GameState.MENU) {
+            this.clearSavedGameState();
+            return;
+        }
+        try {
+            const state = {
+                levelNum: this.selectedLevel,
+                state: this.state,
+                currentWave: this.currentWave,
+                score: this.score,
+                kills: this.kills,
+                gameStartTime: this.gameStartTime,
+                supplyTimer: this.supplyTimer,
+                player: this.player ? {
+                    x: this.player.x,
+                    y: this.player.y,
+                    health: this.player.health,
+                    heat: this.player.heat,
+                    selectedBullet: this.player.selectedBullet,
+                    radius: this.player.radius,
+                    maxHealth: this.player.maxHealth,
+                    maxHeat: this.player.maxHeat,
+                    speed: this.player.speed,
+                    angle: this.player.angle,
+                    lastStepTime: this.player.lastStepTime,
+                    invincible: 0
+                } : null,
+                enemies: this.enemies.map(e => ({
+                    type: e.type,
+                    x: e.x,
+                    y: e.y,
+                    radius: e.radius,
+                    hp: e.hp,
+                    maxHp: e.maxHp,
+                    speed: e.speed,
+                    damage: e.damage,
+                    color: e.color,
+                    explodeRadius: e.explodeRadius,
+                    explodeDamage: e.explodeDamage,
+                    shieldReduction: e.shieldReduction,
+                    angle: e.angle,
+                    lastAttack: e.lastAttack,
+                    explodeTriggered: e.explodeTriggered
+                })),
+                expireTime: Date.now() + 1000 * 60 * 30
+            };
+            localStorage.setItem('shooting_game_state', JSON.stringify(state));
+        } catch (e) {
+            console.log('保存存档失败:', e);
+        }
+    }
+
+    restoreGameState(savedState) {
+        if (!savedState) return;
+
+        const heatSys = this.levelConfig.heat_system;
+        const playerCfg = this.levelConfig.player;
+
+        this.state = savedState.state || GameState.PLAYING;
+        this.currentWave = savedState.currentWave || 0;
+        this.score = savedState.score || 0;
+        this.kills = savedState.kills || 0;
+        this.gameStartTime = savedState.gameStartTime || Date.now();
+        this.supplyTimer = savedState.supplyTimer || 0;
+
+        this.enemies = savedState.enemies ? savedState.enemies.map(e => ({...e})) : [];
+        this.bullets = [];
+        this.particles = [];
+        this.floatTexts = [];
+
+        if (savedState.player) {
+            this.player = {
+                x: savedState.player.x,
+                y: savedState.player.y,
+                radius: savedState.player.radius,
+                health: savedState.player.health,
+                maxHealth: savedState.player.maxHealth || playerCfg.max_health,
+                heat: savedState.player.heat,
+                maxHeat: savedState.player.maxHeat || heatSys.max_heat,
+                speed: savedState.player.speed || playerCfg.move_speed * 180,
+                angle: savedState.player.angle || 0,
+                selectedBullet: savedState.player.selectedBullet || BulletType.NORMAL,
+                lastStepTime: savedState.player.lastStepTime || 0,
+                invincible: 0
+            };
+        } else {
+            this.player = {
+                x: this.canvas.width / 2,
+                y: this.canvas.height / 2,
+                radius: 16,
+                health: playerCfg.initial_health,
+                maxHealth: playerCfg.max_health,
+                heat: heatSys.initial_heat,
+                maxHeat: heatSys.max_heat,
+                speed: playerCfg.move_speed * 180,
+                angle: 0,
+                selectedBullet: BulletType.NORMAL,
+                lastStepTime: 0,
+                invincible: 0
+            };
+        }
+
+        this.selectBullet(this.player.selectedBullet);
+        this.updateHUD();
+
+        if (this.state === GameState.SUPPLY) {
+            this.startSupplyPhase(true);
+        } else if (this.enemies.length === 0 && this.currentWave > 0) {
+            this.spawnWave();
+        }
+
+        this.hideOverlays();
+        this.clearSavedGameState();
+        setTimeout(() => this.saveGameState(), 500);
+    }
+
+    clearSavedGameState() {
+        try {
+            localStorage.removeItem('shooting_game_state');
+        } catch (e) {
+            console.log('清除存档失败:', e);
+        }
     }
 
     hideOverlays() {
@@ -404,6 +567,7 @@ class ThermalShooterGame {
         this.createMuzzleFlash(this.player.x + Math.cos(angle) * (this.player.radius + 10),
             this.player.y + Math.sin(angle) * (this.player.radius + 10),
             bullet.color);
+        this.saveGameState();
     }
 
     createMuzzleFlash(x, y, color) {
@@ -494,6 +658,12 @@ class ThermalShooterGame {
             this.updateBullets(dt);
             this.updateEnemies(dt);
             this.checkWaveComplete();
+
+            const now = Date.now();
+            if (now - this.lastSaveTime > 3000) {
+                this.saveGameState();
+                this.lastSaveTime = now;
+            }
         }
         this.updateParticles(dt);
         this.updateFloatTexts(dt);
@@ -659,6 +829,7 @@ class ThermalShooterGame {
             e.type === EnemyType.SUICIDE ? 30 : 20), '#00ff88');
         this.enemies.splice(index, 1);
         this.updateHUD();
+        this.saveGameState();
     }
 
     updateEnemies(dt) {
@@ -688,6 +859,32 @@ class ThermalShooterGame {
             if (dist > 0) {
                 e.x += (dx / dist) * e.speed * dt;
                 e.y += (dy / dist) * e.speed * dt;
+            }
+
+            const minDist = this.player.radius + e.radius + 2;
+            const currentDist = Math.hypot(this.player.x - e.x, this.player.y - e.y);
+            if (currentDist < minDist) {
+                const overlap = minDist - currentDist;
+                const nx = (e.x - this.player.x) / (currentDist || 1);
+                const ny = (e.y - this.player.y) / (currentDist || 1);
+                e.x += nx * overlap;
+                e.y += ny * overlap;
+            }
+
+            for (let j = 0; j < this.enemies.length; j++) {
+                if (j === i) continue;
+                const other = this.enemies[j];
+                const edist = Math.hypot(e.x - other.x, e.y - other.y);
+                const emin = e.radius + other.radius + 1;
+                if (edist < emin && edist > 0) {
+                    const eoverlap = emin - edist;
+                    const enx = (e.x - other.x) / edist;
+                    const eny = (e.y - other.y) / edist;
+                    e.x += enx * eoverlap * 0.5;
+                    e.y += eny * eoverlap * 0.5;
+                    other.x -= enx * eoverlap * 0.5;
+                    other.y -= eny * eoverlap * 0.5;
+                }
             }
 
             if (e.type !== EnemyType.SUICIDE) {
@@ -740,6 +937,7 @@ class ThermalShooterGame {
         this.player.invincible = 0.5;
         this.addFloatText(this.player.x, this.player.y - 30, `-${Math.round(damage)}`, '#ff4444');
         this.updateHUD();
+        this.saveGameState();
         if (this.player.health <= 0) {
             this.gameOver(false);
         }
@@ -751,9 +949,12 @@ class ThermalShooterGame {
         }
     }
 
-    startSupplyPhase() {
+    startSupplyPhase(resume = false) {
         this.state = GameState.SUPPLY;
-        this.supplyTimer = this.levelConfig.supply_interval;
+        if (!resume) {
+            this.supplyTimer = this.levelConfig.supply_interval;
+        }
+        this.saveGameState();
         document.getElementById('supply-overlay').classList.remove('hidden');
         document.getElementById('supply-timer').textContent = this.supplyTimer;
 
@@ -761,6 +962,7 @@ class ThermalShooterGame {
         this.supplyInterval = setInterval(() => {
             this.supplyTimer--;
             document.getElementById('supply-timer').textContent = this.supplyTimer;
+            this.saveGameState();
             if (this.supplyTimer <= 0) {
                 clearInterval(this.supplyInterval);
                 this.supplyInterval = null;
@@ -773,6 +975,7 @@ class ThermalShooterGame {
         document.getElementById('supply-overlay').classList.add('hidden');
         this.state = GameState.PLAYING;
         this.spawnWave();
+        this.saveGameState();
     }
 
     updateParticles(dt) {
@@ -1053,6 +1256,7 @@ class ThermalShooterGame {
     gameOver(win) {
         this.state = win ? GameState.WIN : GameState.GAMEOVER;
         this.stopGameLoop();
+        this.clearSavedGameState();
         if (this.supplyInterval) {
             clearInterval(this.supplyInterval);
             this.supplyInterval = null;
@@ -1139,6 +1343,7 @@ class ThermalShooterGame {
 
     backToMenu() {
         this.stopGameLoop();
+        this.clearSavedGameState();
         if (this.supplyInterval) {
             clearInterval(this.supplyInterval);
             this.supplyInterval = null;
