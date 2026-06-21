@@ -138,6 +138,10 @@ class ThermalShooterGame {
         document.getElementById('submit-score-btn').addEventListener('click', () => this.submitScore());
         document.getElementById('retry-btn').addEventListener('click', () => this.startGame());
         document.getElementById('back-menu-btn').addEventListener('click', () => this.backToMenu());
+
+        window.addEventListener('beforeunload', (e) => {
+            this.forceSaveGameState();
+        });
     }
 
     async initDefaultData() {
@@ -179,7 +183,7 @@ class ThermalShooterGame {
             el.classList.toggle('selected', parseInt(el.dataset.levelNum) === saved.levelNum);
         });
 
-        this.startGame(true);
+        this.startGame(true, saved);
     }
 
     renderLevelList() {
@@ -238,7 +242,7 @@ class ThermalShooterGame {
         });
     }
 
-    async startGame(restoreSaved = false) {
+    async startGame(restoreSaved = false, savedState = null) {
         if (!this.selectedLevel) return;
 
         if (!restoreSaved) {
@@ -251,13 +255,16 @@ class ThermalShooterGame {
         }
 
         let shouldRestore = restoreSaved;
+        let localSavedState = savedState;
         if (!restoreSaved) {
-            const savedState = this.getSavedGameState();
-            if (savedState && savedState.state !== GameState.GAMEOVER && savedState.state !== GameState.WIN && savedState.levelNum === this.selectedLevel) {
+            localSavedState = this.getSavedGameState();
+            if (localSavedState && localSavedState.state !== GameState.GAMEOVER && localSavedState.state !== GameState.WIN && localSavedState.levelNum === this.selectedLevel) {
                 if (confirm('检测到未完成的游戏，是否继续上次的进度？\n\n点击"确定"继续游戏，点击"取消"重新开始。')) {
                     shouldRestore = true;
                 } else {
                     this.clearSavedGameState();
+                    localSavedState = null;
+                    shouldRestore = false;
                 }
             }
         }
@@ -278,16 +285,13 @@ class ThermalShooterGame {
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
 
-        const savedState = this.getSavedGameState();
-        setTimeout(() => {
-            this.resizeCanvas();
-            if (shouldRestore && savedState && savedState.levelNum === this.selectedLevel) {
-                this.restoreGameState(savedState);
-            } else {
-                this.initGameState();
-            }
-            this.startGameLoop();
-        }, 100);
+        this.resizeCanvas();
+        if (shouldRestore && localSavedState && localSavedState.levelNum === this.selectedLevel) {
+            this.restoreGameState(localSavedState);
+        } else {
+            this.initGameState();
+        }
+        this.startGameLoop();
     }
 
     initGameState() {
@@ -342,8 +346,8 @@ class ThermalShooterGame {
         return null;
     }
 
-    saveGameState() {
-        if (this.state === GameState.GAMEOVER || this.state === GameState.WIN || this.state === GameState.MENU) {
+    saveGameState(force = false) {
+        if (!force && (this.state === GameState.GAMEOVER || this.state === GameState.WIN || this.state === GameState.MENU)) {
             this.clearSavedGameState();
             return;
         }
@@ -394,6 +398,10 @@ class ThermalShooterGame {
         } catch (e) {
             console.log('保存存档失败:', e);
         }
+    }
+
+    forceSaveGameState() {
+        this.saveGameState(true);
     }
 
     restoreGameState(savedState) {
