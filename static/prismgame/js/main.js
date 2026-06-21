@@ -6,19 +6,64 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLevelIndex = 0;
     let playerName = localStorage.getItem('prismGamePlayerName') || 'Anonymous';
 
-    async function initGame() {
-        game.start();
-        await loadAllLevels();
-        const restored = game.loadState();
-        if (!restored) {
-            await loadLevel(1, false);
-        } else {
-            currentLevelIndex = levelsData.findIndex(l => l.level_number === game.currentLevel);
-            if (currentLevelIndex === -1) currentLevelIndex = 0;
+    function checkLocalStorage() {
+        try {
+            const testKey = '___local_storage_test___';
+            localStorage.setItem(testKey, testKey);
+            const result = localStorage.getItem(testKey) === testKey;
+            localStorage.removeItem(testKey);
+            console.log('[Main] localStorage 可用:', result);
+            return result;
+        } catch (e) {
+            console.warn('[Main] localStorage 不可用:', e);
+            return false;
         }
-        await loadScoreboard();
-        setupEventListeners();
-        setupAutoSave();
+    }
+
+    async function initGame() {
+        console.log('[Main] 开始初始化游戏');
+        const storageOk = checkLocalStorage();
+        if (!storageOk) {
+            alert('警告：浏览器本地存储不可用，游戏进度将无法保存！\n请检查浏览器隐私设置。');
+        }
+
+        try {
+            await loadAllLevels();
+            console.log('[Main] 关卡列表加载完成, 共', levelsData.length, '关');
+
+            const restored = game.loadState();
+            if (!restored) {
+                console.log('[Main] 无有效存档, 加载第一关');
+                await loadLevel(1);
+            } else {
+                console.log('[Main] 存档恢复成功, 当前关卡', game.currentLevel);
+                const levelExists = levelsData.some(l => l.level_number === game.currentLevel);
+                if (!levelExists) {
+                    console.warn('[Main] 存档中的关卡', game.currentLevel, '不存在, 回退到第一关');
+                    game.clearSavedState();
+                    await loadLevel(1);
+                } else {
+                    currentLevelIndex = levelsData.findIndex(l => l.level_number === game.currentLevel);
+                    if (currentLevelIndex === -1) currentLevelIndex = 0;
+                    game.saveState();
+                }
+            }
+
+            game.start();
+            await loadScoreboard();
+            setupEventListeners();
+            setupAutoSave();
+            console.log('[Main] 游戏初始化完成');
+        } catch (error) {
+            console.error('[Main] 初始化失败:', error);
+            try {
+                game.clearSavedState();
+                await loadLevel(1);
+                game.start();
+            } catch (e) {
+                console.error('[Main] 回退加载也失败:', e);
+            }
+        }
     }
 
     async function loadAllLevels() {
@@ -36,15 +81,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadLevel(levelNumber, save = true) {
+    async function loadLevel(levelNumber) {
+        console.log('[Main] 加载关卡:', levelNumber);
         const result = await prismGameAPI.getLevel(null, levelNumber);
         if (result.code === 0 && result.data) {
             game.loadLevel(result.data);
             currentLevelIndex = levelsData.findIndex(l => l.level_number === levelNumber);
             if (currentLevelIndex === -1) currentLevelIndex = 0;
-            if (save) {
-                game.saveState();
-            }
+            game.saveState();
+            console.log('[Main] 关卡', levelNumber, '加载完成并已保存状态');
+        } else {
+            console.warn('[Main] 加载关卡失败:', result);
         }
     }
 

@@ -346,6 +346,7 @@ class Game {
                 target: { ...this.target },
                 isWon: this.isWon,
                 winScore: this.winScore,
+                initialLevelData: this.initialLevelData,
                 prisms: this.prisms.map(p => ({
                     id: p.id,
                     x: p.x,
@@ -361,22 +362,76 @@ class Game {
                     frozen: p.frozen,
                     freezeTurns: p.freezeTurns
                 })),
-                selectedPrismId: this.selectedPrism ? this.selectedPrism.id : null
+                selectedPrismId: this.selectedPrism ? this.selectedPrism.id : null,
+                savedAt: Date.now()
             };
-            localStorage.setItem('prismGameState', JSON.stringify(state));
+            const jsonStr = JSON.stringify(state);
+            localStorage.setItem('prismGameState', jsonStr);
+
+            const verify = localStorage.getItem('prismGameState');
+            if (verify !== jsonStr) {
+                console.warn('[GameState] 保存验证失败!');
+                return false;
+            }
+
+            console.log('[GameState] 保存成功, 关卡:', this.currentLevel, '旋转:', this.rotationCount, '棱镜数:', this.prisms.length);
+            this._showSaveStatus('已保存 ✓');
             return true;
         } catch (e) {
-            console.warn('保存游戏状态失败:', e);
+            console.warn('[GameState] 保存失败:', e);
+            this._showSaveStatus('保存失败 ✗');
             return false;
         }
+    }
+
+    _showSaveStatus(text) {
+        try {
+            let statusEl = document.getElementById('saveStatus');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'saveStatus';
+                statusEl.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(0, 255, 136, 0.9);
+                    color: #000;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    z-index: 10000;
+                    pointer-events: none;
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                `;
+                document.body.appendChild(statusEl);
+            }
+            statusEl.textContent = text;
+            statusEl.style.opacity = '1';
+            clearTimeout(this._saveStatusTimeout);
+            this._saveStatusTimeout = setTimeout(() => {
+                statusEl.style.opacity = '0';
+            }, 1500);
+        } catch (e) {}
     }
 
     loadState() {
         try {
             const raw = localStorage.getItem('prismGameState');
-            if (!raw) return false;
+            if (!raw) {
+                console.log('[GameState] 无存档');
+                return false;
+            }
 
             const state = JSON.parse(raw);
+            console.log('[GameState] 读取存档, 关卡:', state.currentLevel, '保存时间:', new Date(state.savedAt).toLocaleString());
+
+            if (!state.prisms || state.prisms.length === 0) {
+                console.warn('[GameState] 存档中无棱镜数据, 跳过');
+                return false;
+            }
+
             this.currentLevel = state.currentLevel;
             this.rotationCount = state.rotationCount;
             this.parRotations = state.parRotations;
@@ -384,29 +439,30 @@ class Game {
             this.target = { ...state.target };
             this.isWon = state.isWon;
             this.winScore = state.winScore;
+            this.initialLevelData = state.initialLevelData || null;
 
-            if (state.prisms) {
-                this.prisms = [];
-                for (const prismData of state.prisms) {
-                    const prism = new Prism({
-                        x: prismData.x,
-                        y: prismData.y,
-                        sides: prismData.sides,
-                        size: prismData.size,
-                        is_rotatable: prismData.isRotatable,
-                        rotation: prismData.rotation,
-                        color_filter: prismData.colorFilter
-                    });
-                    prism.id = prismData.id;
-                    prism.hitCount = prismData.hitCount || 0;
-                    prism.melted = prismData.melted || false;
-                    prism.meltTurns = prismData.meltTurns || 0;
-                    prism.frozen = prismData.frozen || false;
-                    prism.freezeTurns = prismData.freezeTurns || 0;
-                    this.prisms.push(prism);
-                }
+            this.prisms = [];
+            for (const prismData of state.prisms) {
+                const prism = new Prism({
+                    id: prismData.id,
+                    x: prismData.x,
+                    y: prismData.y,
+                    sides: prismData.sides,
+                    size: prismData.size,
+                    is_rotatable: prismData.isRotatable,
+                    rotation: prismData.rotation,
+                    color_filter: prismData.colorFilter
+                });
+                prism.id = prismData.id;
+                prism.hitCount = prismData.hitCount || 0;
+                prism.melted = prismData.melted || false;
+                prism.meltTurns = prismData.meltTurns || 0;
+                prism.frozen = prismData.frozen || false;
+                prism.freezeTurns = prismData.freezeTurns || 0;
+                this.prisms.push(prism);
             }
 
+            this.selectedPrism = null;
             if (state.selectedPrismId) {
                 for (const prism of this.prisms) {
                     if (prism.id === state.selectedPrismId) {
@@ -420,9 +476,13 @@ class Game {
             this._traceLight();
             this._updateStats();
             this._updateSelectedInfo();
+
+            console.log('[GameState] 恢复成功, 棱镜数:', this.prisms.length, '选中棱镜:', this.selectedPrism ? this.selectedPrism.id : null);
+            this._showSaveStatus('已恢复存档 ✓');
             return true;
         } catch (e) {
-            console.warn('恢复游戏状态失败:', e);
+            console.warn('[GameState] 恢复失败:', e);
+            this._showSaveStatus('存档恢复失败 ✗');
             return false;
         }
     }
