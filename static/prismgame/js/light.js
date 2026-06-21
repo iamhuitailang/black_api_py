@@ -123,27 +123,8 @@ class LightBeam {
                 };
                 this.path.push(pathPoint);
 
-                const prismCenterDist = Math.sqrt(
-                    (nearestHit.x - hitPrism.x) ** 2 +
-                    (nearestHit.y - hitPrism.y) ** 2
-                );
-                let reflectAngleBias = 0;
-                if (prismCenterDist < hitPrism.size * 0.5) {
-                    reflectAngleBias = (Math.random() - 0.5) * 5;
-                }
-
-                if (reflectAngleBias !== 0) {
-                    const rad = reflectAngleBias * Math.PI / 180;
-                    const cos = Math.cos(rad);
-                    const sin = Math.sin(rad);
-                    const newDx = nearestHit.reflected.x * cos - nearestHit.reflected.y * sin;
-                    const newDy = nearestHit.reflected.x * sin + nearestHit.reflected.y * cos;
-                    dx = newDx;
-                    dy = newDy;
-                } else {
-                    dx = nearestHit.reflected.x;
-                    dy = nearestHit.reflected.y;
-                }
+                dx = nearestHit.reflected.x;
+                dy = nearestHit.reflected.y;
 
                 const dirLen = Math.sqrt(dx * dx + dy * dy);
                 if (dirLen > 0) {

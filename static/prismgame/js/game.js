@@ -363,6 +363,7 @@ class Game {
                     freezeTurns: p.freezeTurns
                 })),
                 selectedPrismId: this.selectedPrism ? this.selectedPrism.id : null,
+                beamResultSignature: this.beamResult ? this._getBeamSignature(this.beamResult) : null,
                 savedAt: Date.now()
             };
             const jsonStr = JSON.stringify(state);
@@ -374,7 +375,7 @@ class Game {
                 return false;
             }
 
-            console.log('[GameState] 保存成功, 关卡:', this.currentLevel, '旋转:', this.rotationCount, '棱镜数:', this.prisms.length);
+            console.log('[GameState] 保存成功, 关卡:', this.currentLevel, '旋转:', this.rotationCount, '棱镜数:', this.prisms.length, '光路命中:', this.beamResult ? this.beamResult.hitTarget : 'N/A');
             this._showSaveStatus('已保存 ✓');
             return true;
         } catch (e) {
@@ -382,6 +383,30 @@ class Game {
             this._showSaveStatus('保存失败 ✗');
             return false;
         }
+    }
+
+    _getBeamSignature(beamResult) {
+        if (!beamResult || !beamResult.path) return null;
+        return {
+            hitTarget: beamResult.hitTarget,
+            intensity: beamResult.intensity,
+            pathLength: beamResult.path.length,
+            bounces: beamResult.bounces || 0,
+            elementEffects: beamResult.elementEffects || [],
+            firstPoint: beamResult.path[0] ? { x: Math.round(beamResult.path[0].x * 100) / 100, y: Math.round(beamResult.path[0].y * 100) / 100 } : null,
+            lastPoint: beamResult.path[beamResult.path.length - 1] ? { x: Math.round(beamResult.path[beamResult.path.length - 1].x * 100) / 100, y: Math.round(beamResult.path[beamResult.path.length - 1].y * 100) / 100 } : null
+        };
+    }
+
+    _compareSignatures(sig1, sig2) {
+        if (!sig1 || !sig2) return false;
+        return sig1.hitTarget === sig2.hitTarget &&
+               Math.abs(sig1.intensity - sig2.intensity) < 0.001 &&
+               sig1.pathLength === sig2.pathLength &&
+               sig1.bounces === sig2.bounces &&
+               JSON.stringify(sig1.elementEffects) === JSON.stringify(sig2.elementEffects) &&
+               (!sig1.firstPoint || !sig2.firstPoint || (Math.abs(sig1.firstPoint.x - sig2.firstPoint.x) < 0.01 && Math.abs(sig1.firstPoint.y - sig2.firstPoint.y) < 0.01)) &&
+               (!sig1.lastPoint || !sig2.lastPoint || (Math.abs(sig1.lastPoint.x - sig2.lastPoint.x) < 0.01 && Math.abs(sig1.lastPoint.y - sig2.lastPoint.y) < 0.01));
     }
 
     _showSaveStatus(text) {
@@ -453,7 +478,9 @@ class Game {
                     rotation: prismData.rotation,
                     color_filter: prismData.colorFilter
                 });
-                prism.id = prismData.id;
+                if (prism.id !== prismData.id) {
+                    prism.id = prismData.id;
+                }
                 prism.hitCount = prismData.hitCount || 0;
                 prism.melted = prismData.melted || false;
                 prism.meltTurns = prismData.meltTurns || 0;
@@ -461,6 +488,8 @@ class Game {
                 prism.freezeTurns = prismData.freezeTurns || 0;
                 this.prisms.push(prism);
             }
+
+            console.log('[GameState] 棱镜ID检查:', this.prisms.map((p, i) => `[${i}]id=${p.id}(保存=${state.prisms[i].id})`).join(', '));
 
             this.selectedPrism = null;
             if (state.selectedPrismId) {
@@ -474,6 +503,30 @@ class Game {
             }
 
             this._traceLight();
+
+            if (state.beamResultSignature && this.beamResult) {
+                const newSig = this._getBeamSignature(this.beamResult);
+                const sigMatch = this._compareSignatures(state.beamResultSignature, newSig);
+                if (!sigMatch) {
+                    console.warn('[GameState] ⚠️  光路签名不匹配!');
+                    console.warn('  保存时:', state.beamResultSignature);
+                    console.warn('  恢复后:', newSig);
+                    console.warn('  棱镜状态检查:');
+                    state.prisms.forEach((sp, i) => {
+                        const cp = this.prisms[i];
+                        if (cp) {
+                            const rotMatch = Math.abs(sp.rotation - cp.rotation) < 0.01;
+                            const posMatch = Math.abs(sp.x - cp.x) < 0.01 && Math.abs(sp.y - cp.y) < 0.01;
+                            if (!rotMatch || !posMatch) {
+                                console.warn(`  棱镜[${i}]: 保存(rot:${sp.rotation}, x:${sp.x}, y:${sp.y}) vs 当前(rot:${cp.rotation}, x:${cp.x}, y:${cp.y})`);
+                            }
+                        }
+                    });
+                } else {
+                    console.log('[GameState] ✅ 光路签名匹配, 光线轨迹完全一致');
+                }
+            }
+
             this._updateStats();
             this._updateSelectedInfo();
 
