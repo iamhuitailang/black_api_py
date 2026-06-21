@@ -46,6 +46,7 @@ class ThermalShooterGame {
         this.lastFrameTime = 0;
         this.animationId = null;
         this.lastSaveTime = 0;
+        this.needsSave = false;
 
         this.init();
     }
@@ -57,8 +58,39 @@ class ThermalShooterGame {
         window.addEventListener('resize', () => this.resizeCanvas());
 
         this.bindEvents();
+        this.loadPlayerName();
         this.loadLevels();
         this.initDefaultData();
+        this.checkSavedGameOnMenu();
+    }
+
+    loadPlayerName() {
+        try {
+            const saved = localStorage.getItem('shooting_player_name');
+            if (saved) {
+                document.getElementById('player-name').value = saved;
+            }
+        } catch (e) {
+            console.log('读取玩家名失败:', e);
+        }
+
+        document.getElementById('player-name').addEventListener('input', (e) => {
+            try {
+                localStorage.setItem('shooting_player_name', e.target.value);
+            } catch (e) {}
+        });
+    }
+
+    checkSavedGameOnMenu() {
+        const saved = this.getSavedGameState();
+        if (saved && saved.state !== GameState.GAMEOVER && saved.state !== GameState.WIN) {
+            if (this.levels && this.levels.length > 0) {
+                const hasLevel = this.levels.some(l => l.level_num === saved.levelNum);
+                if (hasLevel) {
+                    this.selectLevel(saved.levelNum);
+                }
+            }
+        }
     }
 
     resizeCanvas() {
@@ -136,6 +168,7 @@ class ThermalShooterGame {
             if (data.code === 0 && data.data.items.length > 0) {
                 this.levels = data.data.items;
                 this.renderLevelList();
+                this.checkSavedGameOnMenu();
             }
         } catch (e) {
             console.error('Failed to load levels:', e);
@@ -409,8 +442,7 @@ class ThermalShooterGame {
         }
 
         this.hideOverlays();
-        this.clearSavedGameState();
-        setTimeout(() => this.saveGameState(), 500);
+        this.saveGameState();
     }
 
     clearSavedGameState() {
@@ -567,7 +599,7 @@ class ThermalShooterGame {
         this.createMuzzleFlash(this.player.x + Math.cos(angle) * (this.player.radius + 10),
             this.player.y + Math.sin(angle) * (this.player.radius + 10),
             bullet.color);
-        this.saveGameState();
+        this.needsSave = true;
     }
 
     createMuzzleFlash(x, y, color) {
@@ -653,16 +685,19 @@ class ThermalShooterGame {
     }
 
     update(dt) {
-        if (this.state === GameState.PLAYING) {
-            this.updatePlayer(dt);
-            this.updateBullets(dt);
-            this.updateEnemies(dt);
-            this.checkWaveComplete();
+        if (this.state === GameState.PLAYING || this.state === GameState.SUPPLY) {
+            if (this.state === GameState.PLAYING) {
+                this.updatePlayer(dt);
+                this.updateBullets(dt);
+                this.updateEnemies(dt);
+                this.checkWaveComplete();
+            }
 
             const now = Date.now();
-            if (now - this.lastSaveTime > 3000) {
+            if (this.needsSave || now - this.lastSaveTime > 2000) {
                 this.saveGameState();
                 this.lastSaveTime = now;
+                this.needsSave = false;
             }
         }
         this.updateParticles(dt);
@@ -829,7 +864,7 @@ class ThermalShooterGame {
             e.type === EnemyType.SUICIDE ? 30 : 20), '#00ff88');
         this.enemies.splice(index, 1);
         this.updateHUD();
-        this.saveGameState();
+        this.needsSave = true;
     }
 
     updateEnemies(dt) {
@@ -908,6 +943,7 @@ class ThermalShooterGame {
             this.damagePlayer(dmg);
         }
 
+        let killOffset = 0;
         for (let j = this.enemies.length - 1; j >= 0; j--) {
             if (j === index) continue;
             const other = this.enemies[j];
@@ -916,19 +952,25 @@ class ThermalShooterGame {
                 const falloff = 1 - (d / e.explodeRadius);
                 other.hp -= e.explodeDamage * 0.5 * falloff;
                 if (other.hp <= 0) {
-                    this.killEnemy(j > index ? j - 1 : j);
+                    this.killEnemy(j);
+                    if (j < index) {
+                        killOffset++;
+                    }
                 }
             }
         }
+
+        const adjustedIndex = index - killOffset;
 
         this.score += 30;
         this.kills++;
         this.recoverHeatOnKill();
         this.addFloatText(e.x, e.y, '+30', '#00ff88');
-        if (index < this.enemies.length) {
-            this.enemies.splice(index, 1);
+        if (adjustedIndex >= 0 && adjustedIndex < this.enemies.length) {
+            this.enemies.splice(adjustedIndex, 1);
         }
         this.updateHUD();
+        this.needsSave = true;
     }
 
     damagePlayer(damage) {
@@ -937,15 +979,19 @@ class ThermalShooterGame {
         this.player.invincible = 0.5;
         this.addFloatText(this.player.x, this.player.y - 30, `-${Math.round(damage)}`, '#ff4444');
         this.updateHUD();
-        this.saveGameState();
+        this.needsSave = true;
         if (this.player.health <= 0) {
             this.gameOver(false);
         }
     }
 
     checkWaveComplete() {
-        if (this.enemies.length === 0 && this.currentWave < this.levelConfig.wave_count) {
-            this.startSupplyPhase();
+        if (this.enemies.length === 0) {
+            if (this.currentWave < this.levelConfig.wave_count) {
+                this.startSupplyPhase();
+            } else {
+                this.winGame();
+            }
         }
     }
 
