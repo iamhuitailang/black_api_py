@@ -97,7 +97,67 @@ async def root():
             "name": "FastAPI SQLite Backend",
             "version": "1.0.0",
             "docs": "/docs",
-            "redoc": "/redoc"
+            "redoc": "/redoc",
+            "services": {
+                "mudan": {
+                    "name": "牡丹CMS",
+                    "home": "/api/mudan/home/get"
+                },
+                "helloworld": {
+                    "name": "示例模块",
+                    "get": "/api/helloworld/get"
+                },
+                "rainforest": {
+                    "name": "热带雨林腐殖层生存策略游戏",
+                    "endpoints": {
+                        "创建游戏": {
+                            "method": "POST",
+                            "url": "/api/rainforest/game/create",
+                            "body": {"initial_fungi": 5, "initial_bacteria": 8, "initial_nematode": 2}
+                        },
+                        "获取游戏状态": {
+                            "method": "GET",
+                            "url": "/api/rainforest/game/get?game_id=1"
+                        },
+                        "游戏概要": {
+                            "method": "GET",
+                            "url": "/api/rainforest/game/summary/get?game_id=1"
+                        },
+                        "推进回合": {
+                            "method": "POST",
+                            "url": "/api/rainforest/game/turn/advance?game_id=1"
+                        },
+                        "手动形态转换": {
+                            "method": "POST",
+                            "url": "/api/rainforest/morph/transform",
+                            "body": {"game_id": 1, "population_id": 1, "target_morph": 0}
+                        },
+                        "跨层迁移": {
+                            "method": "POST",
+                            "url": "/api/rainforest/migrate",
+                            "body": {"game_id": 1, "population_id": 1, "target_layer_type": 1, "count": 3}
+                        },
+                        "添加种群": {
+                            "method": "POST",
+                            "url": "/api/rainforest/population/add",
+                            "body": {"game_id": 1, "layer_type": 0, "morph_type": 0, "count": 5}
+                        },
+                        "线虫吞噬": {
+                            "method": "POST",
+                            "url": "/api/rainforest/nematode/devour",
+                            "body": {"game_id": 1, "nematode_pop_id": 1, "target_pop_id": 2}
+                        },
+                        "获取配置": {
+                            "method": "GET",
+                            "url": "/api/rainforest/layer/config/get"
+                        },
+                        "删除游戏": {
+                            "method": "DELETE",
+                            "url": "/api/rainforest/game/delete?game_id=1"
+                        }
+                    }
+                }
+            }
         }
     }
 
