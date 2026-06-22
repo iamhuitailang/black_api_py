@@ -8,16 +8,14 @@ body {
     font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
     min-height: 100vh;
-    overflow: hidden;
     color: #fff;
+    overflow-x: hidden;
 }
 
 #game-container {
     width: 100vw;
-    height: 100vh;
-    position: relative;    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-height: 100vh;
+    position: relative;
 }
 
 .screen {
@@ -25,16 +23,38 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100vh;
     display: none;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 20px;
+    padding: 30px 20px;
 }
 
 .screen.active {
     display: flex;
+    position: relative;
+}
+
+#game-screen.screen.active {
+    position: absolute;
+    min-height: 100vh;
+    height: 100vh;
+    padding: 0;
+    overflow: hidden;
+}
+
+#pause-screen.screen.active {
+    position: fixed;
+}
+
+body.game-active {
+    overflow: hidden;
+}
+
+#game-container.game-active {
+    height: 100vh;
+    overflow: hidden;
 }
 
 .screen.overlay {
@@ -155,6 +175,26 @@ body {
 .player-input input:focus {
     border-color: #48dbfb;
     box-shadow: 0 0 15px rgba(72, 219, 251, 0.3);
+}
+
+.player-input input.error {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.3);
+    animation: inputShake 0.4s;
+}
+
+@keyframes inputShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+
+.name-error {
+    color: #ff6b6b;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    min-height: 20px;
 }
 
 .btn {

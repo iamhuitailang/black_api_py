@@ -624,6 +624,8 @@ class ParticleSystem {
 }
 
 class Game {
+    static STORAGE_KEY = 'bullet_tower_hunter_save';
+
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -634,6 +636,8 @@ class Game {
         this.stageDestroyed = [0, 0, 0];
         this.playerName = '猎人';
         this.stagesCleared = 0;
+        this.storedHp = CONFIG.PLAYER.MAX_HP;
+        this.lastSavedAt = 0;
 
         this.mouseX = 0;
         this.mouseY = 0;
@@ -647,21 +651,33 @@ class Game {
 
         this._init();
         this._setupEvents();
-        this._resizeCanvas();
-        window.addEventListener('resize', () => this._resizeCanvas());
+        window.addEventListener('resize', () => {
+            if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+                this._resizeCanvas();
+            }
+        });
+        window.addEventListener('beforeunload', () => this._saveState());
+        setInterval(() => {
+            if (this.state === GameState.PLAYING) this._saveState();
+        }, 5000);
     }
 
     _init() {
         this.bulletManager = new BulletManager(this.canvas);
         this.gun = new Gun();
+        this._loadState();
     }
 
     _resizeCanvas() {
         const gameArea = document.getElementById('game-area');
-        this.canvas.width = gameArea.clientWidth;
-        this.canvas.height = gameArea.clientHeight;
-        CONFIG.CANVAS_WIDTH = this.canvas.width;
-        CONFIG.CANVAS_HEIGHT = this.canvas.height;
+        const w = gameArea.clientWidth || window.innerWidth;
+        const h = gameArea.clientHeight || (window.innerHeight - 70);
+        if (w > 0 && h > 0) {
+            this.canvas.width = w;
+            this.canvas.height = h;
+            CONFIG.CANVAS_WIDTH = w;
+            CONFIG.CANVAS_HEIGHT = h;
+        }
     }
 
     _setupEvents() {
@@ -677,13 +693,71 @@ class Game {
         const showScreen = (name) => {
             Object.values(screens).forEach(s => s.classList.remove('active'));
             screens[name].classList.add('active');
+            if (name === 'game') {
+                document.body.classList.add('game-active');
+                document.getElementById('game-container').classList.add('game-active');
+                this._resizeCanvas();
+            } else {
+                document.body.classList.remove('game-active');
+                document.getElementById('game-container').classList.remove('game-active');
+            }
         };
 
-        document.getElementById('start-btn').addEventListener('click', () => {
-            this.playerName = document.getElementById('player-name').value.trim() || '猎人';
-            this._startGame();
-            showScreen('game');
+        const nameInput = document.getElementById('player-name');
+        const nameError = document.getElementById('name-error');
+
+        const validateName = () => {
+            const name = nameInput.value.trim();
+            if (!name) {
+                nameInput.classList.add('error');
+                nameError.classList.remove('hidden');
+                setTimeout(() => nameInput.classList.remove('error'), 500);
+                return false;
+            }
+            nameError.classList.add('hidden');
+            return true;
+        };
+
+        nameInput.addEventListener('input', () => {
+            if (nameInput.value.trim()) {
+                nameError.classList.add('hidden');
+            }
         });
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            if (!validateName()) return;
+            this.playerName = nameInput.value.trim();
+            this._startGame(false);
+            showScreen('game');
+            this._resizeCanvas();
+            setTimeout(() => this._resizeCanvas(), 50);
+        });
+
+        if (this._hasSavedState()) {
+            const contBtn = document.createElement('button');
+            contBtn.id = 'continue-btn';
+            contBtn.className = 'btn btn-secondary';
+            contBtn.textContent = '继续上次进度';
+            contBtn.style.cssText = 'background: linear-gradient(45deg, #1dd1a1, #10ac84); display: block; margin: 8px auto;';
+            contBtn.addEventListener('click', () => {
+                if (!validateName()) return;
+                this.playerName = nameInput.value.trim();
+                if (this._loadState(true)) {
+                    if (this.state === GameState.SAFE_ZONE) {
+                        showScreen('safe');
+                    } else {
+                        showScreen('game');
+                        this._resizeCanvas();
+                        setTimeout(() => {
+                            this._resizeCanvas();
+                            this._rebuildCurrentStage();
+                        }, 50);
+                    }
+                }
+            });
+            const startBtn = document.getElementById('start-btn');
+            startBtn.parentNode.insertBefore(contBtn, startBtn.nextSibling);
+        }
 
         document.getElementById('show-leaderboard-btn').addEventListener('click', () => {
             this._loadLeaderboard();
@@ -706,6 +780,7 @@ class Game {
 
         document.getElementById('quit-btn').addEventListener('click', () => {
             screens.pause.classList.remove('active');
+            this._clearSavedState();
             this._gameOver(false);
         });
 
@@ -716,12 +791,18 @@ class Game {
             } else {
                 this._startStage();
                 showScreen('game');
+                this._resizeCanvas();
+                setTimeout(() => this._resizeCanvas(), 50);
             }
         });
 
         document.getElementById('restart-btn').addEventListener('click', () => {
-            this._startGame();
+            this._clearSavedState();
+            this.playerName = (document.getElementById('player-name').value || '猎人').trim();
+            this._startGame(false);
             showScreen('game');
+            this._resizeCanvas();
+            setTimeout(() => this._resizeCanvas(), 50);
         });
 
         document.getElementById('back-menu-btn').addEventListener('click', () => {
@@ -767,13 +848,17 @@ class Game {
         );
     }
 
-    _startGame() {
-        this.currentStage = 0;
-        this.score = 0;
-        this.totalDestroyed = 0;
-        this.stageDestroyed = [0, 0, 0];
-        this.stagesCleared = 0;
+    _startGame(isRestore) {
+        if (!isRestore) {
+            this.currentStage = 0;
+            this.score = 0;
+            this.totalDestroyed = 0;
+            this.stageDestroyed = [0, 0, 0];
+            this.stagesCleared = 0;
+            this.storedHp = CONFIG.PLAYER.MAX_HP;
+        }
         this.gun = new Gun();
+        this.bulletManager.clear();
         this._startStage();
         this.state = GameState.PLAYING;
     }
@@ -781,13 +866,107 @@ class Game {
     _startStage() {
         this._resizeCanvas();
         this.player = new Player(this.canvas);
-        this.player.hp = this.currentStage === 0 ? CONFIG.PLAYER.MAX_HP : this.storedHp || CONFIG.PLAYER.MAX_HP;
+        this.player.hp = this.currentStage === 0 ? CONFIG.PLAYER.MAX_HP : (this.storedHp || CONFIG.PLAYER.MAX_HP);
         this.gun = new Gun();
         this.bulletManager.clear();
         this.towers = this._generateTowers();
         this.particles = new ParticleSystem();
         this.state = GameState.PLAYING;
         this._updateHUD();
+        this._saveState();
+    }
+
+    _rebuildCurrentStage() {
+        this._resizeCanvas();
+        if (!this.player) {
+            this.player = new Player(this.canvas);
+        } else {
+            const oldHp = this.player.hp;
+            const oldX = this.player.x;
+            const oldY = this.player.y;
+            this.player = new Player(this.canvas);
+            if (oldHp !== undefined) this.player.hp = oldHp;
+            if (oldX && oldY && oldX > 0 && oldY > 0) {
+                this.player.x = Math.min(Math.max(oldX, 20), this.canvas.width - 20);
+                this.player.y = Math.min(Math.max(oldY, 20), this.canvas.height - 20);
+            }
+        }
+        if (!this.gun) this.gun = new Gun();
+        if (!this.bulletManager) this.bulletManager = new BulletManager(this.canvas);
+        if (!this.towers || this.towers.length === 0) {
+            this.towers = this._generateTowers();
+        }
+        if (!this.particles) this.particles = new ParticleSystem();
+        this._updateHUD();
+    }
+
+    _hasSavedState() {
+        try {
+            const data = localStorage.getItem(Game.STORAGE_KEY);
+            if (!data) return false;
+            const parsed = JSON.parse(data);
+            return parsed && parsed.state && parsed.state !== GameState.GAME_OVER && parsed.state !== GameState.MENU;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    _saveState() {
+        try {
+            const data = {
+                state: this.state,
+                currentStage: this.currentStage,
+                score: this.score,
+                totalDestroyed: this.totalDestroyed,
+                stageDestroyed: this.stageDestroyed,
+                stagesCleared: this.stagesCleared,
+                storedHp: this.storedHp,
+                playerName: this.playerName,
+                player: this.player ? { x: this.player.x, y: this.player.y, hp: this.player.hp } : null,
+                gun: this.gun ? { ammo: this.gun.ammo, isReloading: this.gun.isReloading } : null,
+                savedAt: Date.now()
+            };
+            localStorage.setItem(Game.STORAGE_KEY, JSON.stringify(data));
+            this.lastSavedAt = Date.now();
+        } catch (e) {
+            console.warn('保存游戏状态失败:', e);
+        }
+    }
+
+    _loadState(applyToRuntime) {
+        try {
+            const data = localStorage.getItem(Game.STORAGE_KEY);
+            if (!data) return false;
+            const parsed = JSON.parse(data);
+            if (!parsed || !parsed.state) return false;
+            if (parsed.state === GameState.GAME_OVER || parsed.state === GameState.MENU) return false;
+
+            this.state = parsed.state;
+            this.currentStage = parsed.currentStage || 0;
+            this.score = parsed.score || 0;
+            this.totalDestroyed = parsed.totalDestroyed || 0;
+            this.stageDestroyed = parsed.stageDestroyed || [0, 0, 0];
+            this.stagesCleared = parsed.stagesCleared || 0;
+            this.storedHp = parsed.storedHp || CONFIG.PLAYER.MAX_HP;
+            if (parsed.playerName) this.playerName = parsed.playerName;
+
+            if (applyToRuntime) {
+                const nameInput = document.getElementById('player-name');
+                if (nameInput && !nameInput.value.trim()) {
+                    nameInput.value = this.playerName;
+                }
+            }
+            return true;
+        } catch (e) {
+            console.warn('加载游戏状态失败:', e);
+            return false;
+        }
+    }
+
+    _clearSavedState() {
+        try {
+            localStorage.removeItem(Game.STORAGE_KEY);
+        } catch (e) {}
     }
 
     _generateTowers() {
@@ -832,6 +1011,7 @@ class Game {
 
     _update() {
         if (this.state !== GameState.PLAYING) return;
+        if (!this.player || !this.gun || !this.towers || !this.bulletManager) return;
 
         this.player.update(this.keys, this.mouseX, this.mouseY);
         this.gun.update();
@@ -859,6 +1039,7 @@ class Game {
     }
 
     _checkGunTowerCollisions() {
+        if (!this.gun || !this.gun.bullets || !this.towers) return;
         for (let i = this.gun.bullets.length - 1; i >= 0; i--) {
             const gb = this.gun.bullets[i];
             for (const tower of this.towers) {
@@ -886,6 +1067,7 @@ class Game {
     }
 
     _checkStageComplete() {
+        if (!this.towers || !this.player) return;
         const allDestroyed = this.towers.every(t => t.isDestroyed);
         if (allDestroyed) {
             this.stagesCleared++;
@@ -903,6 +1085,8 @@ class Game {
     }
 
     _showSafeZone(stage, destroyed, prevHp) {
+        this.state = GameState.SAFE_ZONE;
+        this._saveState();
         document.getElementById('safe-desc').textContent = 
             stage < CONFIG.STAGES - 1 
                 ? `你成功清理了第 ${stage + 1} 个弹幕场！`
@@ -917,12 +1101,15 @@ class Game {
         document.getElementById('next-stage-btn').textContent = 
             stage < CONFIG.STAGES - 1 ? '进入下一场' : '查看成绩';
 
+        document.body.classList.remove('game-active');
+        document.getElementById('game-container').classList.remove('game-active');
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('safe-zone-screen').classList.add('active');
     }
 
     async _gameOver(victory) {
         this.state = GameState.GAME_OVER;
+        this._clearSavedState();
 
         const finalHp = this.player ? this.player.hp : 0;
         const finalScore = this.score + Math.max(0, finalHp) * 10;
@@ -962,6 +1149,8 @@ class Game {
         document.getElementById('final-hp').textContent = Math.max(0, finalHp);
         document.getElementById('rank-value').textContent = rank;
 
+        document.body.classList.remove('game-active');
+        document.getElementById('game-container').classList.remove('game-active');
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('safe-zone-screen').classList.remove('active');
         document.getElementById('gameover-screen').classList.add('active');
@@ -1009,6 +1198,7 @@ class Game {
     }
 
     _updateHUD() {
+        if (!this.player || !this.gun || !this.towers) return;
         const hpPct = Math.max(0, this.player.hp) / CONFIG.PLAYER.MAX_HP * 100;
         const hpBar = document.getElementById('hp-bar');
         hpBar.style.width = `${hpPct}%`;
@@ -1028,9 +1218,11 @@ class Game {
     }
 
     _draw() {
+        if (!this.ctx || this.canvas.width <= 0 || this.canvas.height <= 0) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (this.state !== GameState.PLAYING && this.state !== GameState.PAUSED) return;
+        if (!this.player || !this.gun || !this.towers || !this.bulletManager) return;
 
         this._drawGrid();
 
@@ -1050,6 +1242,7 @@ class Game {
     }
 
     _drawGrid() {
+        if (this.canvas.width <= 0 || this.canvas.height <= 0) return;
         this.ctx.strokeStyle = 'rgba(72, 219, 251, 0.05)';
         this.ctx.lineWidth = 1;
         const gridSize = 60;
