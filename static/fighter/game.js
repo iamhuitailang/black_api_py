@@ -994,76 +994,155 @@ function setupEventListeners() {
     }, 100);
     
     window.addEventListener('beforeunload', (e) => {
-        if (GameState.playerName && GameState.playerName !== 'player') {
+        try {
             const activeScreen = document.querySelector('.screen.active');
             const screenId = activeScreen ? activeScreen.id : 'start-screen';
             const saveScreen = screenId === 'battle-screen' ? 'floor-select-screen' : screenId;
             saveGameState(saveScreen);
             console.log('💾 页面卸载前自动保存状态');
+        } catch (err) {
+            console.error('❌ 页面卸载前保存失败:', err);
         }
     });
     
-    window.addEventListener('pageshow', (e) => {
-        if (e.persisted) {
-            console.log('🔄 页面从缓存恢复，重新加载状态...');
-            location.reload();
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && GameState.playerName && GameState.playerName !== '') {
+            try {
+                const activeScreen = document.querySelector('.screen.active');
+                const screenId = activeScreen ? activeScreen.id : 'start-screen';
+                const saveScreen = screenId === 'battle-screen' ? 'floor-select-screen' : screenId;
+                saveGameState(saveScreen);
+                console.log('💾 页面隐藏时自动保存状态');
+            } catch (err) {}
         }
     });
+    
+    setInterval(() => {
+        if (GameState.playerName && GameState.playerName !== '') {
+            try {
+                const activeScreen = document.querySelector('.screen.active');
+                const screenId = activeScreen ? activeScreen.id : 'start-screen';
+                const saveScreen = screenId === 'battle-screen' ? 'floor-select-screen' : screenId;
+                
+                const savedRaw = localStorage.getItem('fighter_game_state');
+                let needsSave = true;
+                if (savedRaw) {
+                    try {
+                        const saved = JSON.parse(savedRaw);
+                        needsSave = (
+                            saved.currentFloor !== GameState.currentFloor ||
+                            saved.maxFloor !== GameState.maxFloor ||
+                            saved.totalBattles !== GameState.totalBattles ||
+                            saved.totalWins !== GameState.totalWins ||
+                            saved.unlockedActions.length !== GameState.unlockedActions.length ||
+                            saved.currentScreen !== saveScreen
+                        );
+                    } catch (e) {}
+                }
+                
+                if (needsSave) {
+                    saveGameState(saveScreen);
+                }
+            } catch (err) {}
+        }
+    }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 DOM Content Loaded，开始初始化...');
+    console.log('📦 localStorage 原始内容:', {
+        fighter_game_state: localStorage.getItem('fighter_game_state'),
+        fighter_player_name: localStorage.getItem('fighter_player_name')
+    });
+    
     setupEventListeners();
     
     const savedState = loadGameState();
     const savedName = loadSavedPlayerName();
     
-    console.log('🚀 页面加载，开始恢复状态...');
-    
+    let playerNameToUse = '';
     if (savedState && savedState.playerName) {
-        console.log('📂 从 localStorage 恢复基础状态:', savedState);
-        $('player-name-input').value = savedState.playerName;
-        GameState.playerName = savedState.playerName;
+        playerNameToUse = savedState.playerName;
+    } else if (savedName) {
+        playerNameToUse = savedName;
+    }
+    
+    if (!playerNameToUse) {
+        console.log('ℹ️ 没有找到任何保存的玩家信息，停留在开始页面');
+        return;
+    }
+    
+    console.log('👤 使用玩家名:', playerNameToUse);
+    $('player-name-input').value = playerNameToUse;
+    GameState.playerName = playerNameToUse;
+    savePlayerName(playerNameToUse);
+    
+    if (savedState) {
         GameState.currentFloor = savedState.currentFloor || 1;
         GameState.maxFloor = savedState.maxFloor || 1;
-        GameState.unlockedActions = savedState.unlockedActions || ['light_attack', 'defend'];
+        GameState.unlockedActions = savedState.unlockedActions && savedState.unlockedActions.length > 0 
+            ? savedState.unlockedActions 
+            : ['light_attack', 'defend'];
         GameState.totalBattles = savedState.totalBattles || 0;
         GameState.totalWins = savedState.totalWins || 0;
-        
-        try {
-            console.log('🔄 从后端同步最新进度...');
-            const res = await loadPlayerProgress();
-            if (res.code === 0 && res.data) {
-                GameState.currentFloor = res.data.current_floor;
-                GameState.maxFloor = res.data.max_floor;
-                GameState.unlockedActions = res.data.unlocked_actions;
-                GameState.totalBattles = res.data.total_battles;
-                GameState.totalWins = res.data.total_wins;
-                console.log('✅ 后端同步完成:', res.data);
-                
-                saveGameState(savedState.currentScreen || 'floor-select-screen');
-            }
-        } catch (e) {
-            console.error('❌ 从后端同步进度失败，使用本地保存的状态:', e);
-        }
-        
-        const targetScreen = savedState.currentScreen && savedState.currentScreen !== 'battle-screen'
-            ? savedState.currentScreen
-            : 'floor-select-screen';
-        
-        console.log('🎯 恢复到页面:', targetScreen);
-        
-        if (targetScreen === 'floor-select-screen') {
-            updateFloorDisplay();
-            showScreen('floor-select-screen');
-        } else if (targetScreen === 'records-screen') {
-            showBattleRecords();
+        console.log('📂 从 localStorage 恢复到 GameState:', {
+            currentFloor: GameState.currentFloor,
+            maxFloor: GameState.maxFloor,
+            unlockedActions: GameState.unlockedActions,
+            totalBattles: GameState.totalBattles,
+            totalWins: GameState.totalWins
+        });
+    }
+    
+    try {
+        console.log('🔄 尝试从后端同步最新进度...');
+        const res = await loadPlayerProgress();
+        if (res.code === 0 && res.data) {
+            GameState.currentFloor = res.data.current_floor;
+            GameState.maxFloor = res.data.max_floor;
+            GameState.unlockedActions = res.data.unlocked_actions;
+            GameState.totalBattles = res.data.total_battles;
+            GameState.totalWins = res.data.total_wins;
+            console.log('✅ 后端同步完成，覆盖 GameState:', {
+                currentFloor: GameState.currentFloor,
+                maxFloor: GameState.maxFloor,
+                unlockedActions: GameState.unlockedActions,
+                totalBattles: GameState.totalBattles,
+                totalWins: GameState.totalWins
+            });
         } else {
-            showScreen('start-screen');
+            console.warn('⚠️ 后端返回非0 code:', res);
         }
-    } else if (savedName) {
-        $('player-name-input').value = savedName;
-        console.log('ℹ️ 只恢复了玩家名，没有完整游戏状态');
+    } catch (e) {
+        console.error('❌ 从后端同步进度失败，使用本地保存的状态:', e);
+    }
+    
+    const targetScreen = savedState && savedState.currentScreen 
+        && savedState.currentScreen !== 'battle-screen'
+        ? savedState.currentScreen
+        : 'floor-select-screen';
+    
+    console.log('🎯 准备切换到页面:', targetScreen);
+    console.log('🎮 最终 GameState:', {
+        playerName: GameState.playerName,
+        currentFloor: GameState.currentFloor,
+        maxFloor: GameState.maxFloor,
+        unlockedActions: GameState.unlockedActions,
+        totalBattles: GameState.totalBattles,
+        totalWins: GameState.totalWins
+    });
+    
+    saveGameState(targetScreen);
+    
+    if (targetScreen === 'floor-select-screen') {
+        updateFloorDisplay();
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $('floor-select-screen').classList.add('active');
+        console.log('✅ 已切换到关卡选择页面');
+    } else if (targetScreen === 'records-screen') {
+        showBattleRecords();
     } else {
-        console.log('ℹ️ 没有找到保存的状态，显示开始页面');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $('start-screen').classList.add('active');
     }
 });
