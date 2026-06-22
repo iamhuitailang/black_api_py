@@ -118,6 +118,11 @@ let $ = (id) => document.getElementById(id);
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     $(screenId).classList.add('active');
+    if (screenId !== 'battle-screen') {
+        saveGameState(screenId);
+    } else {
+        saveGameState('floor-select-screen');
+    }
 }
 
 async function apiGet(path, params = {}) {
@@ -747,6 +752,7 @@ async function endBattle(result) {
     }
     
     showScreen('battle-result-screen');
+    saveGameState('floor-select-screen');
 }
 
 function showUnlockModal(actionKey) {
@@ -805,16 +811,26 @@ function validatePlayerName() {
     const errorEl = $('name-error');
     const inputEl = $('player-name-input');
     
-    if (!name) {
-        errorEl.textContent = '请输入玩家名称！';
+    if (!name || name.length === 0) {
+        errorEl.textContent = '⚠️ 请输入玩家名称！';
         inputEl.classList.add('input-error');
         inputEl.focus();
+        inputEl.select();
         setTimeout(() => {
             inputEl.classList.remove('input-error');
-        }, 400);
+        }, 500);
         setTimeout(() => {
-            errorEl.textContent = '';
-        }, 2000);
+            if (errorEl.textContent !== '') {
+                errorEl.textContent = '';
+            }
+        }, 3000);
+        return null;
+    }
+    
+    if (name.length > 20) {
+        errorEl.textContent = '⚠️ 名称不能超过20个字符';
+        inputEl.classList.add('input-error');
+        inputEl.focus();
         return null;
     }
     
@@ -823,11 +839,44 @@ function validatePlayerName() {
     return name;
 }
 
+function saveGameState(screenId) {
+    try {
+        const state = {
+            playerName: GameState.playerName,
+            currentFloor: GameState.currentFloor,
+            maxFloor: GameState.maxFloor,
+            unlockedActions: GameState.unlockedActions,
+            totalBattles: GameState.totalBattles,
+            totalWins: GameState.totalWins,
+            currentScreen: screenId || 'start-screen',
+            timestamp: Date.now()
+        };
+        localStorage.setItem('fighter_game_state', JSON.stringify(state));
+    } catch (e) {}
+}
+
+function loadGameState() {
+    try {
+        const saved = localStorage.getItem('fighter_game_state');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {}
+    return null;
+}
+
 function setupEventListeners() {
     const savedName = loadSavedPlayerName();
     if (savedName) {
         $('player-name-input').value = savedName;
     }
+    
+    $('player-name-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $('start-btn').click();
+        }
+    });
     
     $('start-btn').addEventListener('click', async () => {
         const name = validatePlayerName();
@@ -865,6 +914,7 @@ function setupEventListeners() {
     $('continue-btn').addEventListener('click', () => {
         updateFloorDisplay();
         showScreen('floor-select-screen');
+        saveGameState('floor-select-screen');
     });
     
     $('back-from-records-btn').addEventListener('click', () => {
@@ -884,6 +934,7 @@ function setupEventListeners() {
             GameState.totalWins = res.data.total_wins;
         }
         updateFloorDisplay();
+        saveGameState('floor-select-screen');
     });
     
     $('modal-close-btn').addEventListener('click', () => {
@@ -936,10 +987,17 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     
+    const savedState = loadGameState();
     const savedName = loadSavedPlayerName();
-    if (savedName) {
-        $('player-name-input').value = savedName;
-        GameState.playerName = savedName;
+    
+    if (savedState && savedState.playerName) {
+        $('player-name-input').value = savedState.playerName;
+        GameState.playerName = savedState.playerName;
+        GameState.currentFloor = savedState.currentFloor || 1;
+        GameState.maxFloor = savedState.maxFloor || 1;
+        GameState.unlockedActions = savedState.unlockedActions || ['light_attack', 'defend'];
+        GameState.totalBattles = savedState.totalBattles || 0;
+        GameState.totalWins = savedState.totalWins || 0;
         
         try {
             const res = await loadPlayerProgress();
@@ -949,12 +1007,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 GameState.unlockedActions = res.data.unlocked_actions;
                 GameState.totalBattles = res.data.total_battles;
                 GameState.totalWins = res.data.total_wins;
-                
-                if (GameState.maxFloor > 1 || GameState.totalBattles > 0) {
-                    updateFloorDisplay();
-                    showScreen('floor-select-screen');
-                }
             }
         } catch (e) {}
+        
+        const targetScreen = savedState.currentScreen && savedState.currentScreen !== 'battle-screen'
+            ? savedState.currentScreen
+            : 'floor-select-screen';
+        
+        if (targetScreen === 'floor-select-screen') {
+            updateFloorDisplay();
+            showScreen('floor-select-screen');
+        } else if (targetScreen === 'records-screen') {
+            showBattleRecords();
+        } else {
+            showScreen('start-screen');
+        }
+    } else if (savedName) {
+        $('player-name-input').value = savedName;
     }
 });
