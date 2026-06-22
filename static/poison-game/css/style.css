@@ -185,6 +185,57 @@ body {
     opacity: 0;
 }
 
+.level-select-actions {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.btn {
+    padding: 14px 40px;
+    border: 3px solid var(--poison-mid);
+    border-radius: 10px;
+    background: rgba(74, 28, 107, 0.6);
+    color: #fff;
+    font-family: 'Creepster', cursive;
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 2px;
+}
+
+.btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    border-color: var(--poison-light);
+    box-shadow: 0 0 20px rgba(157, 78, 221, 0.5);
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn.primary-btn {
+    border-color: var(--purify-green);
+    background: rgba(26, 122, 10, 0.4);
+    color: var(--purify-green);
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+}
+
+.btn.primary-btn:hover:not(:disabled) {
+    background: rgba(26, 122, 10, 0.6);
+    box-shadow: 0 0 25px rgba(57, 255, 20, 0.6);
+}
+
+.btn.secondary-btn {
+    border-color: var(--poison-light);
+    background: rgba(157, 78, 221, 0.2);
+}
+
 .instructions, .stats-panel {
     background: rgba(74, 28, 107, 0.3);
     border: 2px solid var(--poison-mid);

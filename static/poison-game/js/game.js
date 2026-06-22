@@ -1,3 +1,5 @@
+const SAVE_KEY = 'poison_game_save';
+
 class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -18,6 +20,7 @@ class Game {
 
         this.lastFrameTime = 0;
         this.animationFrameId = null;
+        this.saveInterval = null;
 
         this.playerProgress = null;
         this.completedLevels = new Set();
@@ -29,6 +32,7 @@ class Game {
         Effects.init();
         this.setupEventListeners();
         this.renderLevelSelect();
+        this.updateContinueButton();
         await this.loadProgress();
     }
 
@@ -54,6 +58,128 @@ class Game {
         }
 
         this.renderLevelSelect();
+        this.updateContinueButton();
+    }
+
+    updateContinueButton() {
+        const continueBtn = document.getElementById('continue-btn');
+        if (!continueBtn) return;
+
+        const hasSave = this.hasSavedGame();
+        if (hasSave) {
+            continueBtn.style.display = 'block';
+            continueBtn.classList.remove('disabled');
+        } else {
+            continueBtn.style.display = 'none';
+        }
+    }
+
+    hasSavedGame() {
+        try {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if (!saved) return false;
+            const data = JSON.parse(saved);
+            return data && data.gameState === 'playing' && data.currentLevel >= 1;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    saveGameState() {
+        if (this.gameState !== 'playing') return;
+        if (!this.gameMap || !this.player) return;
+
+        try {
+            const saveData = {
+                currentLevel: this.currentLevel,
+                gameState: this.gameState,
+                elapsedTime: this.elapsedTime,
+                deathCount: this.deathCount,
+                purificationFound: this.purificationFound,
+                purificationTotal: this.purificationTotal,
+                gameMap: this.gameMap.serialize(),
+                player: this.player.serialize(),
+                enemyManager: this.enemyManager.serialize(),
+                savedAt: Date.now()
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        } catch (e) {
+            console.error('saveGameState error:', e);
+        }
+    }
+
+    loadGameState() {
+        try {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if (!saved) return false;
+
+            const data = JSON.parse(saved);
+            if (!data || !data.gameMap || !data.player) return false;
+
+            this.currentLevel = data.currentLevel;
+            this.gameState = data.gameState;
+            this.elapsedTime = data.elapsedTime || 0;
+            this.deathCount = data.deathCount || 0;
+            this.purificationFound = data.purificationFound || 0;
+            this.purificationTotal = data.purificationTotal || 0;
+
+            this.gameMap = GameMap.deserialize(data.gameMap);
+            this.player = Player.deserialize(data.player);
+
+            if (data.enemyManager) {
+                this.enemyManager = EnemyManager.deserialize(data.enemyManager, this.gameMap);
+            } else {
+                this.enemyManager = new EnemyManager();
+            }
+
+            return true;
+        } catch (e) {
+            console.error('loadGameState error:', e);
+            return false;
+        }
+    }
+
+    clearSavedGame() {
+        try {
+            localStorage.removeItem(SAVE_KEY);
+        } catch (e) {
+            console.error('clearSavedGame error:', e);
+        }
+    }
+
+    startAutoSave() {
+        this.stopAutoSave();
+        this.saveInterval = setInterval(() => {
+            this.saveGameState();
+        }, 5000);
+    }
+
+    stopAutoSave() {
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+    }
+
+    continueGame() {
+        if (!this.hasSavedGame()) return;
+        if (!this.loadGameState()) {
+            alert('存档损坏，无法继续游戏');
+            this.clearSavedGame();
+            this.updateContinueButton();
+            return;
+        }
+
+        Effects.reset();
+
+        this.gameState = 'playing';
+        this.isPaused = false;
+
+        this.showScreen('game-screen');
+        this.updateUI();
+        this.lastFrameTime = performance.now();
+        this.gameLoop();
+        this.startAutoSave();
     }
 
     renderLevelSelect() {
@@ -128,6 +254,9 @@ class Game {
 
         const reviveBtn = document.getElementById('revive-btn');
         if (reviveBtn) reviveBtn.addEventListener('click', () => this.restartLevel());
+
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) continueBtn.addEventListener('click', () => this.continueGame());
     }
 
     handleMobileControl(direction, pressed) {
@@ -230,15 +359,21 @@ class Game {
         this.updateUI();
         this.lastFrameTime = performance.now();
         this.gameLoop();
+        this.startAutoSave();
+        this.saveGameState();
     }
 
     restartLevel() {
         this.hideAllOverlays();
+        this.stopAutoSave();
+        this.clearSavedGame();
         this.startLevel(this.currentLevel);
     }
 
     nextLevel() {
         if (this.currentLevel < CONFIG.TOTAL_LEVELS) {
+            this.stopAutoSave();
+            this.clearSavedGame();
             this.startLevel(this.currentLevel + 1);
         } else {
             this.returnToMenu();
@@ -246,6 +381,8 @@ class Game {
     }
 
     returnToMenu() {
+        this.stopAutoSave();
+        this.clearSavedGame();
         this.gameState = 'menu';
         this.isPaused = false;
         if (this.animationFrameId) {
@@ -254,6 +391,7 @@ class Game {
         }
         this.hideAllOverlays();
         this.loadProgress();
+        this.updateContinueButton();
         this.showScreen('start-screen');
     }
 
@@ -261,6 +399,8 @@ class Game {
         if (this.gameState === 'playing') {
             this.gameState = 'paused';
             this.isPaused = true;
+            this.stopAutoSave();
+            this.saveGameState();
             this.showScreen('pause-screen', true);
         } else if (this.gameState === 'paused') {
             this.gameState = 'playing';
@@ -268,20 +408,24 @@ class Game {
             this.hideScreen('pause-screen');
             this.lastFrameTime = performance.now();
             this.gameLoop();
+            this.startAutoSave();
         }
     }
 
     showScreen(screenId, overlay = false) {
         if (overlay) {
-            document.getElementById(screenId).classList.add('active');
+            const el = document.getElementById(screenId);
+            if (el) el.classList.add('active');
         } else {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
+            const el = document.getElementById(screenId);
+            if (el) el.classList.add('active');
         }
     }
 
     hideScreen(screenId) {
-        document.getElementById(screenId).classList.remove('active');
+        const el = document.getElementById(screenId);
+        if (el) el.classList.remove('active');
     }
 
     hideAllOverlays() {
@@ -300,6 +444,7 @@ class Game {
                 btn.classList.add('active');
                 setTimeout(() => btn.classList.remove('active'), 500);
             }
+            this.saveGameState();
         }
     }
 
@@ -331,6 +476,7 @@ class Game {
             station.glows = 0.5;
             this.purificationFound++;
             this.player.applyPurification(CONFIG.PURIFICATION_HEAL, CONFIG.PURIFICATION_IMMUNE_TIME);
+            this.saveGameState();
         }
 
         if (this.gameMap.checkExitCollision(this.player.x, this.player.y)) {
@@ -421,6 +567,8 @@ class Game {
 
     async completeLevel() {
         this.gameState = 'completed';
+        this.stopAutoSave();
+        this.clearSavedGame();
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
@@ -454,34 +602,44 @@ class Game {
         this.completedLevels.add(this.currentLevel);
 
         const titleEl = document.getElementById('result-title');
-        titleEl.textContent = '通关成功!';
-        titleEl.className = 'result-title victory';
+        if (titleEl) {
+            titleEl.textContent = '通关成功!';
+            titleEl.className = 'result-title victory';
+        }
 
         const minutes = Math.floor(this.elapsedTime / 60);
         const seconds = Math.floor(this.elapsedTime % 60);
-        document.getElementById('result-time').textContent =
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const resultTimeEl = document.getElementById('result-time');
+        if (resultTimeEl) {
+            resultTimeEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
 
         const discoveryRate = this.purificationTotal > 0
             ? Math.round((this.purificationFound / this.purificationTotal) * 100)
             : 0;
-        document.getElementById('result-discovery').textContent = `${discoveryRate}%`;
-        document.getElementById('result-deaths').textContent = this.deathCount;
+        const discoveryEl = document.getElementById('result-discovery');
+        if (discoveryEl) discoveryEl.textContent = `${discoveryRate}%`;
+        const deathsEl = document.getElementById('result-deaths');
+        if (deathsEl) deathsEl.textContent = this.deathCount;
 
         const bestRecordEl = document.getElementById('best-record');
-        if (isBestRecord) {
-            bestRecordEl.classList.remove('hidden');
-        } else {
-            bestRecordEl.classList.add('hidden');
+        if (bestRecordEl) {
+            if (isBestRecord) {
+                bestRecordEl.classList.remove('hidden');
+            } else {
+                bestRecordEl.classList.add('hidden');
+            }
         }
 
         const nextBtn = document.getElementById('next-btn');
-        if (this.currentLevel >= CONFIG.TOTAL_LEVELS) {
-            nextBtn.textContent = '完成全部关卡!';
-            nextBtn.disabled = false;
-        } else {
-            nextBtn.textContent = '下一关';
-            nextBtn.disabled = false;
+        if (nextBtn) {
+            if (this.currentLevel >= CONFIG.TOTAL_LEVELS) {
+                nextBtn.textContent = '完成全部关卡!';
+                nextBtn.disabled = false;
+            } else {
+                nextBtn.textContent = '下一关';
+                nextBtn.disabled = false;
+            }
         }
 
         this.showScreen('result-screen', true);
@@ -489,6 +647,8 @@ class Game {
 
     playerDeath() {
         this.gameState = 'dead';
+        this.stopAutoSave();
+        this.saveGameState();
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;

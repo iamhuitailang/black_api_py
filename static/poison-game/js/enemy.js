@@ -186,6 +186,36 @@ class Enemy {
             ctx.stroke();
         }
     }
+
+    serialize() {
+        return {
+            type: this.type,
+            x: this.x,
+            y: this.y,
+            patrolPoints: this.patrolPoints,
+            currentPatrolIndex: this.currentPatrolIndex,
+            attackCooldown: this.attackCooldown,
+            state: this.state,
+            attackTarget: null,
+            direction: this.direction
+        };
+    }
+
+    static deserialize(data, gameMap) {
+        const enemy = Object.create(Enemy.prototype);
+        enemy.type = data.type;
+        enemy.config = CONFIG.ENEMY_TYPES[data.type];
+        enemy.x = data.x;
+        enemy.y = data.y;
+        enemy.gameMap = gameMap;
+        enemy.patrolPoints = data.patrolPoints;
+        enemy.currentPatrolIndex = data.currentPatrolIndex;
+        enemy.attackCooldown = data.attackCooldown;
+        enemy.state = data.state;
+        enemy.attackTarget = null;
+        enemy.direction = data.direction;
+        return enemy;
+    }
 }
 
 class EnemyManager {
@@ -247,5 +277,17 @@ class EnemyManager {
 
     reset() {
         this.enemies = [];
+    }
+
+    serialize() {
+        return {
+            enemies: this.enemies.map(e => e.serialize())
+        };
+    }
+
+    static deserialize(data, gameMap) {
+        const manager = Object.create(EnemyManager.prototype);
+        manager.enemies = data.enemies.map(e => Enemy.deserialize(e, gameMap));
+        return manager;
     }
 }

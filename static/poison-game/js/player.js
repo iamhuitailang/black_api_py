@@ -205,4 +205,40 @@ class Player {
     getHpPercent() {
         return (this.hp / this.maxHp) * 100;
     }
+
+    serialize() {
+        return {
+            x: this.x,
+            y: this.y,
+            maxHp: this.maxHp,
+            hp: this.hp,
+            speed: this.speed,
+            antidoteCount: this.antidoteCount,
+            immuneTime: this.immuneTime,
+            poisonBoostTime: this.poisonBoostTime,
+            lastPoisonTick: this.lastPoisonTick,
+            invincibleTime: this.invincibleTime,
+            direction: this.direction,
+            isMoving: this.isMoving,
+            moveInput: this.moveInput
+        };
+    }
+
+    static deserialize(data) {
+        const player = Object.create(Player.prototype);
+        player.x = data.x;
+        player.y = data.y;
+        player.maxHp = data.maxHp;
+        player.hp = data.hp;
+        player.speed = data.speed;
+        player.antidoteCount = data.antidoteCount;
+        player.immuneTime = data.immuneTime;
+        player.poisonBoostTime = data.poisonBoostTime;
+        player.lastPoisonTick = data.lastPoisonTick;
+        player.invincibleTime = data.invincibleTime;
+        player.direction = data.direction;
+        player.isMoving = data.isMoving;
+        player.moveInput = data.moveInput;
+        return player;
+    }
 }
