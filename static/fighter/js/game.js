@@ -11,6 +11,22 @@ const API_BASE = '/api';
 
 async function initGame() {
     try {
+        const activeResponse = await fetch(`${API_BASE}/fighter/activebattle/get`);
+        const activeResult = await activeResponse.json();
+        
+        if (activeResult.code === 0 && activeResult.data) {
+            battleState = activeResult.data;
+            updateUI();
+            updateBattleLog();
+            
+            if (battleState.is_over) {
+                showWinner();
+            } else if (battleState.round > 0) {
+                addLogEntry('恢复上次战斗进度...');
+            }
+            return;
+        }
+
         const response = await fetch(`${API_BASE}/fighter/newbattle/get`);
         const result = await response.json();
         if (result.code === 0) {

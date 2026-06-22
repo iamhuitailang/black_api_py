@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Tuple
 import random
-from app.model.fighter import BattleRecordModel, FistIntentStatsModel
+from app.model.fighter import BattleRecordModel, FistIntentStatsModel, ActiveBattleModel
 
 
 INTENT_GANG = 'gang'
@@ -100,6 +100,21 @@ class FighterBattleBusiness:
     def __init__(self):
         self.battle_model = BattleRecordModel()
         self.intent_stats_model = FistIntentStatsModel()
+        self.active_battle_model = ActiveBattleModel()
+
+    def get_active_battle(self) -> Dict[str, Any]:
+        state = self.active_battle_model.get()
+        if state:
+            return {
+                'code': 0,
+                'message': 'success',
+                'data': state
+            }
+        return {
+            'code': 1,
+            'message': 'no_active_battle',
+            'data': None
+        }
 
     def create_new_battle(self) -> Dict[str, Any]:
         player = Fighter('玩家', is_player=True)
@@ -115,6 +130,8 @@ class FighterBattleBusiness:
             'winner': None,
             'battle_id': None
         }
+        
+        self.active_battle_model.save(battle_state)
         
         return {
             'code': 0,
@@ -285,6 +302,11 @@ class FighterBattleBusiness:
             'winner': winner,
             'battle_id': battle_id
         }
+
+        if is_over:
+            self.active_battle_model.clear()
+        else:
+            self.active_battle_model.save(new_state)
 
         return {
             'code': 0,

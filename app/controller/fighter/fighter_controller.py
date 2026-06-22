@@ -13,6 +13,14 @@ class FighterController:
     def __init__(self):
         self.business = FighterBattleBusiness()
 
+    def ActionFighterActivebattleGet(self, request: Request):
+        """
+        获取当前活跃战斗状态
+        GET /api/fighter/activebattle/get
+        """
+        result = self.business.get_active_battle()
+        return result
+
     def ActionFighterNewbattleGet(self, request: Request):
         """
         创建新战斗

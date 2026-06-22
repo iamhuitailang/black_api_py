@@ -12,7 +12,7 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
-from app.model.fighter import BattleRecordModel, FistIntentStatsModel
+from app.model.fighter import BattleRecordModel, FistIntentStatsModel, ActiveBattleModel
 from app.common.sqlite.db import get_db
 
 
@@ -37,6 +37,7 @@ def init_database():
     ProductModel.create_table()
     BattleRecordModel.create_table()
     FistIntentStatsModel.create_table()
+    ActiveBattleModel.create_table()
     
     migrate_database()
     
