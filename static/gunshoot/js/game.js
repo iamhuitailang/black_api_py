@@ -117,6 +117,18 @@
         if (game.state === GameState.VICTORY) return false;
         if (!now) now = performance.now();
 
+        const aliveEnemies = game.enemies.filter(function (e) { return !e.dead; });
+        const enemyData = aliveEnemies.map(function (e) {
+            return {
+                type: e.type,
+                hp: e.hp,
+                maxHp: e.maxHp,
+                x: e.x,
+                y: e.y,
+                lastAttack: Math.max(0, e.lastAttack - now)
+            };
+        });
+
         const saveData = {
             version: 1,
             timestamp: now,
@@ -155,16 +167,7 @@
                 moveLockedUntil: Math.max(0, game.player.moveLockedUntil - now),
                 invincibleUntil: Math.max(0, game.player.invincibleUntil - now)
             },
-            enemies: game.enemies.filter(function (e) { return !e.dead; }).map(function (e) {
-                return {
-                    type: e.type,
-                    hp: e.hp,
-                    maxHp: e.maxHp,
-                    x: e.x,
-                    y: e.y,
-                    lastAttack: Math.max(0, e.lastAttack - now)
-                };
-            })
+            enemies: enemyData
         };
 
         try {
@@ -172,6 +175,9 @@
             localStorage.setItem(SAVE_KEY, json);
             saveCounter++;
             if (saveCounter % 20 === 0 || reason) {
+                const enemyPosPreview = aliveEnemies.slice(0, 3).map(function (e) {
+                    return e.type + '(' + Math.round(e.x) + ',' + Math.round(e.y) + ')';
+                }).join(' ');
                 console.log(
                     '[存档#' + saveCounter + ']' +
                     (reason ? ' [' + reason + ']' : '') +
@@ -179,7 +185,9 @@
                     ' HP=' + saveData.player.hp +
                     ' 左弹=' + saveData.player.leftGun.ammo +
                     ' 右弹=' + saveData.player.rightGun.ammo +
-                    ' 敌人=' + saveData.enemies.length +
+                    ' 待生成=' + saveData.spawnQueue.length +
+                    ' 存活敌人=' + saveData.enemies.length +
+                    ' [' + enemyPosPreview + ']' +
                     ' 大小=' + (json.length / 1024).toFixed(1) + 'KB'
                 );
             }
@@ -232,15 +240,37 @@
             return false;
         }
 
+        let data;
         try {
-            const data = JSON.parse(raw);
-            const now = performance.now();
-            const timeOffset = now - (data.timestamp || now);
-            const hasNewFormat = typeof data.player.leftGun.lastFireOffset !== 'undefined' ||
-                                 typeof data.spawnTimerElapsed !== 'undefined';
+            data = JSON.parse(raw);
+        } catch (e) {
+            console.error('[读档] JSON 解析失败:', e);
+            clearSavedGame();
+            return false;
+        }
 
-            console.log('[读档] 存档格式=' + (hasNewFormat ? '新(相对时间)' : '旧(绝对时间,兼容)'));
+        if (!data || !data.player) {
+            console.error('[读档] 存档数据损坏: 缺少 player');
+            clearSavedGame();
+            return false;
+        }
 
+        const now = performance.now();
+        const timeOffset = now - (data.timestamp || now);
+        const hasNewFormat = typeof data.player.leftGun.lastFireOffset !== 'undefined' ||
+                             typeof data.spawnTimerElapsed !== 'undefined';
+
+        console.log('[读档] 存档格式=' + (hasNewFormat ? '新(相对时间)' : '旧(绝对时间,兼容)'));
+        console.log('[读档] 原始存档 enemies 数量=' + (data.enemies ? data.enemies.length : 'undefined'));
+        if (data.enemies && data.enemies.length > 0) {
+            console.log('[读档] 前3个敌人位置: ' +
+                data.enemies.slice(0, 3).map(function (e) {
+                    return e.type + '(' + Math.round(e.x) + ',' + Math.round(e.y) + ')';
+                }).join(' ')
+            );
+        }
+
+        try {
             game.state = data.state || GameState.PAUSED;
             game.level = data.level || 1;
             game.wave = data.wave || 0;
@@ -328,28 +358,44 @@
             game.bullets = [];
             game.effects = [];
 
+        } catch (e) {
+            console.error('[读档] 数据恢复阶段失败:', e);
+            console.error(e.stack);
+            clearSavedGame();
+            return false;
+        }
+
+        console.log('[读档] 数据恢复成功, game.enemies.length=' + game.enemies.length);
+        if (game.enemies.length > 0) {
+            console.log('[读档] 恢复后前3个敌人: ' +
+                game.enemies.slice(0, 3).map(function (e) {
+                    return e.type + '(' + Math.round(e.x) + ',' + Math.round(e.y) + ')';
+                }).join(' ')
+            );
+        }
+
+        try {
             updateHUD(now);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGrid();
             game.enemies.forEach(function (enemy) { enemy.draw(ctx); });
             if (game.player) { game.player.draw(ctx, now); }
-
-            console.log(
-                '[读档成功] ' +
-                '波次=' + game.wave +
-                ' HP=' + game.player.hp +
-                ' 左弹=' + game.player.leftGun.ammo +
-                ' 右弹=' + game.player.rightGun.ammo +
-                ' 敌人=' + game.enemies.length +
-                ' 左枪可射=' + (now - game.player.leftGun.lastFire >= CONFIG.LEFT_GUN.fireRate) +
-                ' 右枪可射=' + (now - game.player.rightGun.lastFire >= CONFIG.RIGHT_GUN.fireRate)
-            );
-            return true;
         } catch (e) {
-            console.error('[读档失败]', e);
-            clearSavedGame();
-            return false;
+            console.warn('[读档] UI 刷新阶段出错 (不影响游戏数据):', e);
         }
+
+        console.log(
+            '[读档成功] ' +
+            '波次=' + game.wave +
+            ' HP=' + game.player.hp +
+            ' 左弹=' + game.player.leftGun.ammo +
+            ' 右弹=' + game.player.rightGun.ammo +
+            ' 待生成=' + game.spawnQueue.length +
+            ' 存活敌人=' + game.enemies.length +
+            ' 左枪可射=' + (now - game.player.leftGun.lastFire >= CONFIG.LEFT_GUN.fireRate) +
+            ' 右枪可射=' + (now - game.player.rightGun.lastFire >= CONFIG.RIGHT_GUN.fireRate)
+        );
+        return true;
     }
 
     class Player {
@@ -1236,7 +1282,8 @@
                 btn.onclick = function () { startGame(); };
                 game.state = GameState.PAUSED;
             } else {
-                startGame();
+                document.getElementById('overlay-title').textContent = '⚠ 读档失败';
+                document.getElementById('overlay-message').textContent = '存档已损坏或无法读取，请选择新游戏';
             }
         };
 
@@ -1385,7 +1432,8 @@
                         btn.onclick = function () { startGame(); };
                         game.state = GameState.PAUSED;
                     } else {
-                        startGame();
+                        document.getElementById('overlay-title').textContent = '⚠ 读档失败';
+                        document.getElementById('overlay-message').textContent = '存档已损坏，请点击按钮开始新游戏';
                     }
                 } else {
                     startGame();
