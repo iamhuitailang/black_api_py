@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>长廊狙击 - Corridor Sniper</title>
+    <link rel="stylesheet" href="/static/shooter/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="start-screen" id="startScreen">
+            <h1 class="game-title">长廊狙击</h1>
+            <p class="game-subtitle">CORRIDOR SNIPER</p>
+            <div class="mission-brief">
+                <h3>任务简报</h3>
+                <p>穿越250格长的敌方控制通道</p>
+                <p>利用5个狙击位进行精准打击</p>
+                <p>消灭巡逻兵和伏击者，抵达终点</p>
+            </div>
+            <div class="controls-info">
+                <div class="control-row"><span class="key">A/←</span><span class="action">后退</span></div>
+                <div class="control-row"><span class="key">D/→</span><span class="action">前进</span></div>
+                <div class="control-row"><span class="key">S/↓</span><span class="action">蹲姿/瞄准</span></div>
+                <div class="control-row"><span class="key">SPACE</span><span class="action">射击</span></div>
+                <div class="control-row"><span class="key">R</span><span class="action">换弹</span></div>
+            </div>
+            <div class="player-input">
+                <label for="playerName">代号:</label>
+                <input type="text" id="playerName" placeholder="输入你的代号" maxlength="20" value="新兵001">
+            </div>
+            <button class="start-btn" id="startBtn">开始任务</button>
+        </div>
+
+        <div class="game-wrapper" id="gameWrapper" style="display: none;">
+            <canvas id="gameCanvas" width="1200" height="600"></canvas>
+            
+            <div class="hud">
+                <div class="hud-left">
+                    <div class="health-bar">
+                        <div class="health-label">HP</div>
+                        <div class="health-track">
+                            <div class="health-fill" id="healthFill"></div>
+                        </div>
+                        <div class="health-value" id="healthValue">100</div>
+                    </div>
+                    <div class="position-display">
+                        <span class="pos-label">位置:</span>
+                        <span class="pos-value" id="posValue">0</span>
+                        <span class="pos-unit">/ 250</span>
+                    </div>
+                </div>
+                
+                <div class="hud-center">
+                    <div class="timer-display">
+                        <span class="timer-icon">⏱</span>
+                        <span class="timer-value" id="timerValue">00:00</span>
+                    </div>
+                    <div class="crouch-indicator" id="crouchIndicator">
+                        <span class="crouch-icon">🎯</span>
+                        <span class="crouch-text">蹲姿瞄准</span>
+                    </div>
+                </div>
+                
+                <div class="hud-right">
+                    <div class="ammo-display">
+                        <span class="ammo-current" id="ammoCurrent">12</span>
+                        <span class="ammo-sep">/</span>
+                        <span class="ammo-max">12</span>
+                        <div class="reload-bar" id="reloadBar">
+                            <div class="reload-fill" id="reloadFill"></div>
+                        </div>
+                    </div>
+                    <div class="kill-count">
+                        <span class="kill-icon">💀</span>
+                        <span class="kill-value" id="killValue">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scope-overlay" id="scopeOverlay" style="display: none;">
+                <div class="scope-ring"></div>
+                <div class="scope-crosshairs">
+                    <div class="crosshair-h"></div>
+                    <div class="crosshair-v"></div>
+                    <div class="crosshair-center"></div>
+                </div>
+                <div class="scope-ticks">
+                    <span class="tick" style="top: 10%;">50</span>
+                    <span class="tick" style="top: 30%;">100</span>
+                    <span class="tick" style="top: 50%;">150</span>
+                    <span class="tick" style="top: 70%;">200</span>
+                    <span class="tick" style="top: 90%;">250</span>
+                </div>
+                <div class="scope-scanlines"></div>
+            </div>
+
+            <div class="damage-flash" id="damageFlash"></div>
+            <div class="muzzle-flash" id="muzzleFlash"></div>
+        </div>
+
+        <div class="game-over-screen" id="gameOverScreen" style="display: none;">
+            <h2 class="result-title" id="resultTitle">任务失败</h2>
+            <div class="result-stats">
+                <div class="stat-row">
+                    <span class="stat-label">剩余血量:</span>
+                    <span class="stat-value" id="finalHealth">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">用时:</span>
+                    <span class="stat-value" id="finalTime">00:00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">消灭敌人:</span>
+                    <span class="stat-value" id="finalKills">0</span>
+                </div>
+                <div class="stat-row highlight">
+                    <span class="stat-label">最终得分:</span>
+                    <span class="stat-value score-value" id="finalScore">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">当前排名:</span>
+                    <span class="stat-value rank-value" id="finalRank">-</span>
+                </div>
+            </div>
+            
+            <div class="leaderboard-section">
+                <h3>🏆 排行榜 TOP 10</h3>
+                <div class="leaderboard-list" id="leaderboardList">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="restart-btn" id="restartBtn">再来一次</button>
+                <button class="menu-btn" id="menuBtn">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/shooter/js/game.js"></script>
+</body>
+</html>
