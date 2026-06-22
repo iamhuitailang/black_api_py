@@ -73,6 +73,9 @@
         VICTORY: 'victory'
     };
 
+    const SAVE_KEY = 'gunshoot_save_v1';
+    const AUTOSAVE_INTERVAL = 2000;
+
     const game = {
         state: GameState.MENU,
         level: 1,
@@ -767,6 +770,7 @@
     }
 
     function showGameEnd(victory) {
+        clearSavedGame();
         submitStats(victory);
         const overlay = document.getElementById('status-overlay');
         const title = document.getElementById('overlay-title');
@@ -931,7 +935,159 @@
         document.getElementById('result-stats').classList.add('hidden');
     }
 
+    let lastAutosave = 0;
+
+    function saveGame(now) {
+        if (!game.player) return;
+        if (game.state === GameState.MENU || game.state === GameState.GAME_OVER || game.state === GameState.VICTORY) return;
+
+        const saveData = {
+            timestamp: now,
+            state: game.state,
+            level: game.level,
+            wave: game.wave,
+            waveBreakTimer: game.waveBreakTimer,
+            spawnTimer: game.spawnTimer,
+            totalTime: game.totalTime,
+            stationaryTime: game.stationaryTime,
+            stats: { ...game.stats },
+            spawnQueue: [...game.spawnQueue],
+            player: {
+                x: game.player.x,
+                y: game.player.y,
+                hp: game.player.hp,
+                aimDir: { ...game.player.aimDir },
+                leftGun: { ...game.player.leftGun },
+                rightGun: { ...game.player.rightGun },
+                dualStationaryUntil: Math.max(0, game.player.dualStationaryUntil - now),
+                moveLockedUntil: Math.max(0, game.player.moveLockedUntil - now),
+                invincibleUntil: Math.max(0, game.player.invincibleUntil - now)
+            },
+            enemies: game.enemies.filter(e => !e.dead).map(e => ({
+                type: e.type,
+                hp: e.hp,
+                maxHp: e.maxHp,
+                x: e.x,
+                y: e.y,
+                lastAttack: Math.max(0, e.lastAttack - now)
+            }))
+        };
+
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        } catch (e) {
+            console.warn('存档失败:', e);
+        }
+    }
+
+    function hasSavedGame() {
+        return !!localStorage.getItem(SAVE_KEY);
+    }
+
+    function clearSavedGame() {
+        localStorage.removeItem(SAVE_KEY);
+    }
+
+    function loadGame() {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+
+        try {
+            const data = JSON.parse(raw);
+            const now = performance.now();
+
+            game.state = data.state;
+            game.level = data.level;
+            game.wave = data.wave;
+            game.waveBreakTimer = data.waveBreakTimer;
+            game.spawnTimer = data.spawnTimer + (now - data.timestamp);
+            game.totalTime = data.totalTime;
+            game.stationaryTime = data.stationaryTime;
+            game.stats = { ...data.stats };
+            game.spawnQueue = data.spawnQueue.map(item => ({
+                ...item,
+                delay: Math.max(0, item.delay - (now - data.timestamp))
+            }));
+
+            game.player = new Player();
+            game.player.x = data.player.x;
+            game.player.y = data.player.y;
+            game.player.hp = data.player.hp;
+            game.player.aimDir = { ...data.player.aimDir };
+            game.player.leftGun = { ...data.player.leftGun };
+            game.player.rightGun = { ...data.player.rightGun };
+            game.player.dualStationaryUntil = now + data.player.dualStationaryUntil;
+            game.player.moveLockedUntil = now + data.player.moveLockedUntil;
+            game.player.invincibleUntil = now + data.player.invincibleUntil;
+
+            game.enemies = data.enemies.map(eData => {
+                const config = eData.type === 'light' ? CONFIG.ENEMY_LIGHT : CONFIG.ENEMY_HEAVY;
+                const enemy = new Enemy(config, eData.x, eData.y);
+                enemy.hp = eData.hp;
+                enemy.maxHp = eData.maxHp;
+                enemy.lastAttack = now + eData.lastAttack;
+                return enemy;
+            });
+
+            game.bullets = [];
+            game.effects = [];
+
+            return true;
+        } catch (e) {
+            console.error('读档失败:', e);
+            clearSavedGame();
+            return false;
+        }
+    }
+
+    function showLoadDialog() {
+        const overlay = document.getElementById('status-overlay');
+        const title = document.getElementById('overlay-title');
+        const msg = document.getElementById('overlay-message');
+        const resultDiv = document.getElementById('result-stats');
+        const btn = document.getElementById('overlay-btn');
+
+        title.textContent = '📂 发现未完成的存档';
+        msg.innerHTML = '检测到上次未完成的游戏记录<br>选择是否继续上次进度？';
+
+        resultDiv.classList.add('hidden');
+        overlay.classList.remove('hidden');
+
+        btn.textContent = '继续游戏';
+        btn.classList.remove('hidden');
+        btn.onclick = () => {
+            if (loadGame()) {
+                const newBtn = document.getElementById('new-game-btn');
+                if (newBtn) newBtn.remove();
+                document.getElementById('overlay-title').textContent = '⏸ 已恢复存档';
+                document.getElementById('overlay-message').textContent = '按 空格键 继续游戏';
+                document.getElementById('result-stats').classList.add('hidden');
+                btn.textContent = '重新开始';
+                btn.onclick = () => startGame();
+                game.state = GameState.PAUSED;
+            } else {
+                startGame();
+            }
+        };
+
+        const newBtn = document.createElement('button');
+        newBtn.className = 'btn-primary';
+        newBtn.style.marginLeft = '10px';
+        newBtn.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+        newBtn.textContent = '新游戏';
+        newBtn.id = 'new-game-btn';
+        newBtn.onclick = () => {
+            clearSavedGame();
+            const toRemove = document.getElementById('new-game-btn');
+            if (toRemove) toRemove.remove();
+            btn.onclick = () => startGame();
+            startGame();
+        };
+        btn.parentNode.insertBefore(newBtn, btn.nextSibling);
+    }
+
     function startGame() {
+        clearSavedGame();
         game.state = GameState.PLAYING;
         game.level = 1;
         game.wave = 0;
@@ -969,6 +1125,10 @@
         } else if (game.state === GameState.PAUSED) {
             game.state = GameState.PLAYING;
             document.getElementById('status-overlay').classList.add('hidden');
+            const btn = document.getElementById('overlay-btn');
+            btn.onclick = () => startGame();
+            const newBtn = document.getElementById('new-game-btn');
+            if (newBtn) newBtn.remove();
         }
     }
 
@@ -1014,6 +1174,11 @@
             updateHUD(now);
         }
 
+        if (now - lastAutosave > AUTOSAVE_INTERVAL) {
+            saveGame(now);
+            lastAutosave = now;
+        }
+
         requestAnimationFrame(gameLoop);
     }
 
@@ -1024,7 +1189,23 @@
         if (key === ' ') {
             e.preventDefault();
             if (game.state === GameState.MENU) {
-                startGame();
+                if (hasSavedGame() && !document.getElementById('status-overlay').classList.contains('hidden')
+                    && document.getElementById('overlay-title').textContent.includes('存档')) {
+                    if (loadGame()) {
+                        const newBtn = document.getElementById('new-game-btn');
+                        if (newBtn) newBtn.remove();
+                        document.getElementById('overlay-title').textContent = '⏸ 已恢复存档';
+                        document.getElementById('overlay-message').textContent = '按 空格键 继续游戏';
+                        const btn = document.getElementById('overlay-btn');
+                        btn.textContent = '重新开始';
+                        btn.onclick = () => startGame();
+                        game.state = GameState.PAUSED;
+                    } else {
+                        startGame();
+                    }
+                } else {
+                    startGame();
+                }
             } else if (game.state === GameState.GAME_OVER || game.state === GameState.VICTORY) {
                 startGame();
             } else {
@@ -1052,7 +1233,11 @@
     function init() {
         game.state = GameState.MENU;
         game.player = new Player();
-        showStartScreen();
+        if (hasSavedGame()) {
+            showLoadDialog();
+        } else {
+            showStartScreen();
+        }
         requestAnimationFrame(gameLoop);
     }
 
