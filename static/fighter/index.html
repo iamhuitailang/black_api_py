@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>闯关格斗 - 十层阶梯挑战</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">闯关格斗</h1>
+            <h2 class="game-subtitle">十层阶梯挑战</h2>
+            <div class="start-info">
+                <p>挑战10层阶梯，每层击败守门武者</p>
+                <p>每次获胜解锁新动作</p>
+                <p class="warning">角色血量固定100，不恢复！</p>
+            </div>
+            <div class="player-input">
+                <label>玩家名称:</label>
+                <input type="text" id="player-name-input" value="player" maxlength="20">
+            </div>
+            <button id="start-btn" class="btn btn-primary">开始挑战</button>
+            <button id="view-records-btn" class="btn btn-secondary">查看战斗记录</button>
+        </div>
+
+        <div id="floor-select-screen" class="screen">
+            <div class="floor-header">
+                <h2>选择挑战层级</h2>
+                <div class="player-stats">
+                    <span>玩家: <strong id="player-name-display">player</strong></span>
+                    <span>最高层: <strong id="max-floor-display">1</strong></span>
+                    <span>胜场: <strong id="win-count-display">0</strong></span>
+                </div>
+            </div>
+            <div id="floor-stairs" class="floor-stairs"></div>
+            <div class="action-unlocks">
+                <h3>已解锁动作</h3>
+                <div id="unlocked-actions" class="action-list"></div>
+            </div>
+            <button id="reset-progress-btn" class="btn btn-danger">重置进度</button>
+            <button id="back-to-start-btn" class="btn btn-secondary">返回主菜单</button>
+        </div>
+
+        <div id="battle-screen" class="screen">
+            <div class="battle-top-bar">
+                <div class="floor-info">
+                    <span class="floor-label">第</span>
+                    <span id="current-floor-num" class="floor-num">1</span>
+                    <span class="floor-label">层</span>
+                </div>
+                <div id="battle-timer" class="battle-timer">60</div>
+            </div>
+
+            <div id="battle-arena" class="battle-arena">
+                <div id="player-character" class="character player">
+                    <div class="character-body">
+                        <div class="character-head"></div>
+                        <div class="character-torso"></div>
+                        <div class="character-arm character-arm-left"></div>
+                        <div class="character-arm character-arm-right"></div>
+                        <div class="character-leg character-leg-left"></div>
+                        <div class="character-leg character-leg-right"></div>
+                    </div>
+                    <div class="character-name">玩家</div>
+                    <div class="health-bar-container">
+                        <div class="health-bar player-health">
+                            <div id="player-hp-fill" class="health-fill"></div>
+                        </div>
+                        <span id="player-hp-text" class="hp-text">100/100</span>
+                    </div>
+                    <div class="energy-bar-container">
+                        <div class="energy-bar">
+                            <div id="player-energy-fill" class="energy-fill"></div>
+                        </div>
+                        <span id="player-energy-text" class="energy-text">0/100</span>
+                    </div>
+                    <div id="player-status" class="status-effect"></div>
+                </div>
+
+                <div id="enemy-character" class="character enemy">
+                    <div class="character-body">
+                        <div class="character-head"></div>
+                        <div class="character-torso"></div>
+                        <div class="character-arm character-arm-left"></div>
+                        <div class="character-arm character-arm-right"></div>
+                        <div class="character-leg character-leg-left"></div>
+                        <div class="character-leg character-leg-right"></div>
+                    </div>
+                    <div id="enemy-name" class="character-name">守门武者</div>
+                    <div class="health-bar-container">
+                        <div class="health-bar enemy-health">
+                            <div id="enemy-hp-fill" class="health-fill"></div>
+                        </div>
+                        <span id="enemy-hp-text" class="hp-text">65/65</span>
+                    </div>
+                    <div id="enemy-status" class="status-effect"></div>
+                </div>
+
+                <div id="damage-numbers" class="damage-numbers"></div>
+            </div>
+
+            <div class="battle-log">
+                <div id="battle-log-content" class="battle-log-content"></div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btn-light-attack" class="action-btn" data-action="light_attack">
+                    <span class="action-key">J</span>
+                    <span class="action-name">轻攻</span>
+                    <span class="action-cost">能量+5</span>
+                </button>
+                <button id="btn-heavy-attack" class="action-btn locked" data-action="heavy_attack">
+                    <span class="action-key">K</span>
+                    <span class="action-name">重攻</span>
+                    <span class="action-damage">高伤害</span>
+                </button>
+                <button id="btn-defend" class="action-btn" data-action="defend">
+                    <span class="action-key">L</span>
+                    <span class="action-name">防御</span>
+                    <span class="action-effect">减伤50%</span>
+                </button>
+                <button id="btn-dodge" class="action-btn locked" data-action="dodge">
+                    <span class="action-key">U</span>
+                    <span class="action-name">闪避</span>
+                    <span class="action-effect">躲避攻击</span>
+                </button>
+                <button id="btn-special-attack" class="action-btn locked" data-action="special_attack">
+                    <span class="action-key">I</span>
+                    <span class="action-name">特殊技</span>
+                    <span class="action-cost">能量50</span>
+                </button>
+                <button id="btn-combo" class="action-btn locked" data-action="combo">
+                    <span class="action-key">O</span>
+                    <span class="action-name">连招</span>
+                    <span class="action-cost">能量60</span>
+                </button>
+                <button id="btn-super-armor" class="action-btn locked" data-action="super_armor">
+                    <span class="action-key">P</span>
+                    <span class="action-name">霸体技</span>
+                    <span class="action-cost">能量30</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="battle-result-screen" class="screen">
+            <h2 id="result-title" class="result-title">胜利!</h2>
+            <div id="result-details" class="result-details"></div>
+            <div id="unlock-notification" class="unlock-notification"></div>
+            <button id="continue-btn" class="btn btn-primary">继续</button>
+        </div>
+
+        <div id="records-screen" class="screen">
+            <h2>战斗记录</h2>
+            <div id="records-list" class="records-list"></div>
+            <button id="back-from-records-btn" class="btn btn-secondary">返回</button>
+        </div>
+
+        <div id="action-unlock-modal" class="modal">
+            <div class="modal-content">
+                <h2 id="modal-title">新动作解锁!</h2>
+                <div id="modal-action-info" class="modal-action-info"></div>
+                <button id="modal-close-btn" class="btn btn-primary">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
