@@ -624,8 +624,9 @@ class ParticleSystem {
 }
 
 class Game {
-    static STORAGE_KEY = 'bullet_tower_hunter_save';
-    static STORAGE_BACKUP_KEY = 'bullet_tower_hunter_save_bak';
+    static STORAGE_KEY = 'bullet_tower_hunter_save_v2';
+    static STORAGE_BACKUP_KEY = 'bullet_tower_hunter_save_v2_bak';
+    static STORAGE_VERSION = 2;
     static AUTO_SAVE_INTERVAL = 2000;
 
     constructor() {
@@ -642,6 +643,7 @@ class Game {
         this.lastSavedAt = 0;
         this._lastMoveSaveAt = 0;
         this._savedData = null;
+        this._debugSaveCount = 0;
 
         this.mouseX = 0;
         this.mouseY = 0;
@@ -653,15 +655,24 @@ class Game {
         this.bulletManager = null;
         this.particles = new ParticleSystem();
 
+        this._migrateOldSaves();
         this._init();
         this._setupEvents();
         this._setupSaveEvents();
         window.addEventListener('resize', () => {
             if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
                 this._resizeCanvas();
-                this._saveState();
+                try { this._saveState(false); } catch(_) {}
             }
         });
+    }
+
+    _migrateOldSaves() {
+        try {
+            const oldKeys = ['bullet_tower_hunter_save', 'bullet_tower_hunter_save_bak',
+                             'bullet_tower_hunter_save_v1', 'bullet_tower_hunter_save_v1_bak'];
+            oldKeys.forEach(k => localStorage.removeItem(k));
+        } catch(e) {}
     }
 
     _init() {
@@ -964,10 +975,13 @@ class Game {
 
     _validateSaveData(data) {
         if (!data || !data.state) return false;
+        if (data.version !== Game.STORAGE_VERSION) return false;
         if (data.state === GameState.GAME_OVER || data.state === GameState.MENU) return false;
         if (typeof data.currentStage !== 'number') return false;
         if (typeof data.score !== 'number') return false;
         if (!data.towers || !Array.isArray(data.towers) || data.towers.length !== 5) return false;
+        if (!data.player || typeof data.player.hp !== 'number') return false;
+        if (!data.gun || typeof data.gun.ammo !== 'number') return false;
         return true;
     }
 
@@ -975,23 +989,25 @@ class Game {
         try {
             if (!this.towers || this.towers.length !== 5 || !this.player || !this.gun) return;
             if (this.state === GameState.MENU || this.state === GameState.GAME_OVER) return;
-            if (this.canvas.width <= 0 || this.canvas.height <= 0) return;
 
             const now = Date.now();
-            const W = this.canvas.width;
-            const H = this.canvas.height;
+            let W = this.canvas && this.canvas.width > 0 ? this.canvas.width : window.innerWidth;
+            let H = this.canvas && this.canvas.height > 0 ? this.canvas.height : (window.innerHeight - 70);
+            if (W <= 0) W = 1280;
+            if (H <= 0) H = 720;
 
             const towerStates = this.towers.map(t => ({
                 type: t.type,
-                hits: t.hits,
-                isDestroyed: t.isDestroyed,
-                isDisabled: t.isDisabled,
-                disabledUntil: t.isDisabled ? t.disabledUntil : 0,
+                hits: t.hits || 0,
+                isDestroyed: !!t.isDestroyed,
+                isDisabled: !!t.isDisabled,
+                disabledUntil: t.isDisabled ? (t.disabledUntil || 0) : 0,
                 patternTime: t.patternTime || 0,
                 lastFire: t.lastFire || 0
             }));
 
             const data = {
+                version: Game.STORAGE_VERSION,
                 state: this.state,
                 currentStage: this.currentStage,
                 score: this.score,
@@ -1001,14 +1017,14 @@ class Game {
                 storedHp: this.storedHp,
                 playerName: this.playerName,
                 player: {
-                    xRatio: this.player.x / W,
-                    yRatio: this.player.y / H,
+                    xRatio: Math.max(0.01, Math.min(0.99, this.player.x / W)),
+                    yRatio: Math.max(0.01, Math.min(0.99, this.player.y / H)),
                     hp: this.player.hp
                 },
                 gun: {
                     ammo: this.gun.ammo,
                     maxAmmo: this.gun.maxAmmo,
-                    isReloading: this.gun.isReloading,
+                    isReloading: !!this.gun.isReloading,
                     reloadStart: this.gun.reloadStart || 0
                 },
                 towers: towerStates,
@@ -1017,13 +1033,11 @@ class Game {
 
             const json = JSON.stringify(data);
 
-            const prev = localStorage.getItem(Game.STORAGE_KEY);
-            if (prev) {
-                localStorage.setItem(Game.STORAGE_BACKUP_KEY, prev);
-            }
-
+            localStorage.setItem(Game.STORAGE_BACKUP_KEY, json);
             localStorage.setItem(Game.STORAGE_KEY, json);
+
             this.lastSavedAt = now;
+            this._debugSaveCount++;
         } catch (e) {
             console.warn('保存游戏状态失败:', e);
         }
@@ -1089,25 +1103,29 @@ class Game {
             return;
         }
 
-        const W = this.canvas.width;
-        const H = this.canvas.height;
+        const W = this.canvas.width > 0 ? this.canvas.width : window.innerWidth;
+        const H = this.canvas.height > 0 ? this.canvas.height : (window.innerHeight - 70);
 
         this.player = new Player(this.canvas);
-        if (saved.player) {
-            this.player.hp = saved.player.hp;
-            if (saved.player.xRatio !== undefined && saved.player.yRatio !== undefined) {
-                this.player.x = Math.max(20, Math.min(W - 20, saved.player.xRatio * W));
-                this.player.y = Math.max(20, Math.min(H - 20, saved.player.yRatio * H));
-            }
+        if (saved.player && typeof saved.player.hp === 'number') {
+            this.player.hp = Math.max(0, Math.min(CONFIG.PLAYER.MAX_HP, saved.player.hp));
+            this.storedHp = this.player.hp;
+            const xr = typeof saved.player.xRatio === 'number' ? saved.player.xRatio : 0.5;
+            const yr = typeof saved.player.yRatio === 'number' ? saved.player.yRatio : 0.5;
+            this.player.x = Math.max(20, Math.min(W - 20, xr * W));
+            this.player.y = Math.max(20, Math.min(H - 20, yr * H));
         } else {
             this.player.hp = this.storedHp || CONFIG.PLAYER.MAX_HP;
         }
 
         this.gun = new Gun();
-        if (saved.gun) {
-            this.gun.ammo = saved.gun.ammo;
-            this.gun.isReloading = saved.gun.isReloading;
+        if (saved.gun && typeof saved.gun.ammo === 'number') {
+            this.gun.ammo = Math.max(0, Math.min(this.gun.maxAmmo, saved.gun.ammo));
+            this.gun.isReloading = !!saved.gun.isReloading;
             this.gun.reloadStart = saved.gun.reloadStart || 0;
+            if (this.gun.isReloading && !this.gun.reloadStart) {
+                this.gun.reloadStart = performance.now() - 2000;
+            }
         }
 
         this.bulletManager = new BulletManager(this.canvas);
@@ -1116,10 +1134,11 @@ class Game {
         const positions = this._getStagePositions(this.currentStage, W, H);
         if (saved.towers && saved.towers.length === 5) {
             this.towers = saved.towers.map((ts, i) => {
-                const tower = new Tower(ts.type, positions[i].x, positions[i].y, this.canvas);
-                tower.hits = ts.hits || 0;
-                tower.isDestroyed = ts.isDestroyed || false;
-                tower.isDisabled = ts.isDisabled || false;
+                const pos = positions[i] || { x: W * 0.5, y: H * 0.25 };
+                const tower = new Tower(ts.type, pos.x, pos.y, this.canvas);
+                tower.hits = Math.max(0, Math.min(CONFIG.TOWER.HITS_TO_DESTROY, ts.hits || 0));
+                tower.isDestroyed = !!ts.isDestroyed;
+                tower.isDisabled = !!ts.isDisabled;
                 tower.disabledUntil = ts.disabledUntil || 0;
                 tower.patternTime = ts.patternTime || 0;
                 tower.lastFire = ts.lastFire || 0;
@@ -1131,6 +1150,12 @@ class Game {
 
         this.state = GameState.PLAYING;
         this._updateHUD();
+
+        const sumDestroyed = this.towers.filter(t => t.isDestroyed).length;
+        console.log(`[存档恢复] 关卡=${this.currentStage+1} 血量=${this.player.hp} 弹药=${this.gun.ammo} 已摧毁=${sumDestroyed}/5 分数=${this.score}`);
+
+        setTimeout(() => this._saveState(false), 150);
+
         this._savedData = null;
     }
 
