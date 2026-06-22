@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>毒域闯关 - 12关生存挑战</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="start-screen" class="screen active">
+            <div class="title-container">
+                <h1 class="game-title">毒域闯关</h1>
+                <p class="game-subtitle">12关生存挑战</p>
+            </div>
+            
+            <div class="level-select-container">
+                <h2 class="section-title">选择关卡</h2>
+                <div id="level-grid" class="level-grid"></div>
+            </div>
+
+            <div class="instructions">
+                <h3>操作说明</h3>
+                <p>WASD 或 方向键 移动角色</p>
+                <p>空格键 使用解毒喷雾</p>
+                <p>ESC 暂停游戏</p>
+            </div>
+
+            <div class="stats-panel">
+                <h3>游戏统计</h3>
+                <div class="stat-row">
+                    <span>总通关次数:</span>
+                    <span id="total-completions">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>已解锁关卡:</span>
+                    <span id="unlocked-levels">1</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-container">
+                <div class="top-hud">
+                    <div class="health-container">
+                        <div class="health-label">HP</div>
+                        <div class="health-bar">
+                            <div id="health-fill" class="health-fill"></div>
+                        </div>
+                        <div class="health-text">
+                            <span id="current-hp">120</span> / <span id="max-hp">120</span>
+                        </div>
+                    </div>
+                    
+                    <div class="level-info">
+                        <span>第 <span id="current-level">1</span> 关</span>
+                        <span id="zone-indicator" class="zone-indicator zone-entry">入口区</span>
+                    </div>
+                    
+                    <div class="timer-container">
+                        <span class="timer-icon">⏱</span>
+                        <span id="game-timer">00:00</span>
+                    </div>
+                </div>
+
+                <div class="game-canvas-wrapper">
+                    <canvas id="game-canvas" width="800" height="600"></canvas>
+                    <div id="damage-overlay" class="damage-overlay"></div>
+                    <div id="heal-overlay" class="heal-overlay"></div>
+                </div>
+
+                <div class="bottom-hud">
+                    <div class="purification-progress">
+                        <span>净化站: </span>
+                        <span id="purification-found">0</span> / <span id="purification-total">3</span>
+                    </div>
+                    
+                    <div class="items-container">
+                        <button id="antidote-btn" class="item-btn antidote-btn" title="解毒喷雾 (空格键)">
+                            <span class="item-icon">🧪</span>
+                            <span class="item-count" id="antidote-count">2</span>
+                        </button>
+                    </div>
+                    
+                    <div class="status-effects">
+                        <div id="immune-status" class="status-effect immune hidden">
+                            <span>🛡️</span>
+                            <span class="status-timer" id="immune-timer">0s</span>
+                        </div>
+                        <div id="poison-boost-status" class="status-effect poison-boost hidden">
+                            <span>☠️</span>
+                            <span class="status-timer" id="poison-boost-timer">0s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-controls">
+                    <div class="d-pad">
+                        <button class="d-btn up" data-dir="up">↑</button>
+                        <button class="d-btn left" data-dir="left">←</button>
+                        <button class="d-btn down" data-dir="down">↓</button>
+                        <button class="d-btn right" data-dir="right">→</button>
+                    </div>
+                </div>
+
+                <button id="pause-btn" class="pause-btn">⏸️</button>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="pause-panel">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="game-btn primary">继续游戏</button>
+                <button id="restart-btn" class="game-btn secondary">重新开始</button>
+                <button id="quit-btn" class="game-btn danger">返回主菜单</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen overlay">
+            <div class="result-panel">
+                <h2 id="result-title" class="result-title">通关成功!</h2>
+                <div class="result-stats">
+                    <div class="result-row">
+                        <span>通关用时:</span>
+                        <span id="result-time">00:00</span>
+                    </div>
+                    <div class="result-row">
+                        <span>净化站发现率:</span>
+                        <span id="result-discovery">0%</span>
+                    </div>
+                    <div class="result-row">
+                        <span>死亡次数:</span>
+                        <span id="result-deaths">0</span>
+                    </div>
+                    <div id="best-record" class="result-row best hidden">
+                        <span>🏆 最佳记录!</span>
+                    </div>
+                </div>
+                <div class="result-buttons">
+                    <button id="next-btn" class="game-btn primary">下一关</button>
+                    <button id="replay-btn" class="game-btn secondary">重玩本关</button>
+                    <button id="menu-btn" class="game-btn tertiary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="death-screen" class="screen overlay">
+            <div class="death-panel">
+                <h2 class="death-title">你死了...</h2>
+                <p class="death-message">毒雾吞噬了你</p>
+                <p class="death-hint">本关重新开始</p>
+                <button id="revive-btn" class="game-btn primary">复活继续</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

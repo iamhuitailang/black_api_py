@@ -12,7 +12,9 @@ from app.common import get_router_registry
 from app.model.helloworld import HelloWorldModel
 from app.model.mudan import BannerModel, BannerConfigModel, TabModel, TabDetailModel, CommercialModel, ProductModel
 from app.model.auth import UserModel, TokenModel
+from app.model.poison_game import GameRecordModel, PlayerProgressModel
 from app.common.sqlite.db import get_db
+from fastapi.responses import FileResponse
 
 
 def migrate_database():
@@ -34,6 +36,8 @@ def init_database():
     TabDetailModel.create_table()
     CommercialModel.create_table()
     ProductModel.create_table()
+    GameRecordModel.create_table()
+    PlayerProgressModel.create_table()
     
     migrate_database()
     
@@ -108,11 +112,16 @@ async def health_check():
     }
 
 
+@app.get("/poison-game")
+async def poison_game():
+    return FileResponse("static/poison-game/index.html")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=7050,
         reload=True
     )
