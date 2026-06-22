@@ -115,6 +115,54 @@ const GameState = {
 
 let $ = (id) => document.getElementById(id);
 
+function savePlayerName(name) {
+    try {
+        localStorage.setItem('fighter_player_name', name);
+    } catch (e) {}
+}
+
+function loadSavedPlayerName() {
+    try {
+        return localStorage.getItem('fighter_player_name') || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function saveGameState(screenId) {
+    try {
+        const state = {
+            playerName: GameState.playerName,
+            currentFloor: GameState.currentFloor,
+            maxFloor: GameState.maxFloor,
+            unlockedActions: [...GameState.unlockedActions],
+            totalBattles: GameState.totalBattles,
+            totalWins: GameState.totalWins,
+            currentScreen: screenId || 'start-screen',
+            timestamp: Date.now()
+        };
+        const saved = JSON.stringify(state);
+        localStorage.setItem('fighter_game_state', saved);
+        console.log('💾 游戏状态已保存:', state);
+    } catch (e) {
+        console.error('❌ 保存游戏状态失败:', e);
+    }
+}
+
+function loadGameState() {
+    try {
+        const saved = localStorage.getItem('fighter_game_state');
+        if (saved) {
+            const state = JSON.parse(saved);
+            console.log('📂 读取到保存的游戏状态:', state);
+            return state;
+        }
+    } catch (e) {
+        console.error('❌ 读取游戏状态失败:', e);
+    }
+    return null;
+}
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     $(screenId).classList.add('active');
@@ -141,20 +189,6 @@ async function apiPost(path, body = {}) {
     return await res.json();
 }
 
-function savePlayerName(name) {
-    try {
-        localStorage.setItem('fighter_player_name', name);
-    } catch (e) {}
-}
-
-function loadSavedPlayerName() {
-    try {
-        return localStorage.getItem('fighter_player_name') || '';
-    } catch (e) {
-        return '';
-    }
-}
-
 function getEnemyMaxHP(floor) {
     return 50 + floor * 15;
 }
@@ -170,7 +204,6 @@ function updateFloorDisplay() {
     renderFloorStairs();
     renderUnlockedActions();
 }
-
 function renderFloorStairs() {
     const container = $('floor-stairs');
     container.innerHTML = '';
@@ -706,6 +739,8 @@ async function endBattle(result) {
         GameState.totalBattles = res.data.progress.total_battles;
         GameState.totalWins = res.data.progress.total_wins;
         GameState.unlockedActions = res.data.progress.unlocked_actions;
+        console.log('⚔️ 战斗结束，后端返回最新进度:', res.data.progress);
+        saveGameState('floor-select-screen');
     }
     
     const titleEl = $('result-title');
@@ -752,7 +787,6 @@ async function endBattle(result) {
     }
     
     showScreen('battle-result-screen');
-    saveGameState('floor-select-screen');
 }
 
 function showUnlockModal(actionKey) {
@@ -839,32 +873,6 @@ function validatePlayerName() {
     return name;
 }
 
-function saveGameState(screenId) {
-    try {
-        const state = {
-            playerName: GameState.playerName,
-            currentFloor: GameState.currentFloor,
-            maxFloor: GameState.maxFloor,
-            unlockedActions: GameState.unlockedActions,
-            totalBattles: GameState.totalBattles,
-            totalWins: GameState.totalWins,
-            currentScreen: screenId || 'start-screen',
-            timestamp: Date.now()
-        };
-        localStorage.setItem('fighter_game_state', JSON.stringify(state));
-    } catch (e) {}
-}
-
-function loadGameState() {
-    try {
-        const saved = localStorage.getItem('fighter_game_state');
-        if (saved) {
-            return JSON.parse(saved);
-        }
-    } catch (e) {}
-    return null;
-}
-
 function setupEventListeners() {
     const savedName = loadSavedPlayerName();
     if (savedName) {
@@ -892,6 +900,8 @@ function setupEventListeners() {
             GameState.unlockedActions = res.data.unlocked_actions;
             GameState.totalBattles = res.data.total_battles;
             GameState.totalWins = res.data.total_wins;
+            console.log('👤 玩家登录，加载进度:', res.data);
+            saveGameState('floor-select-screen');
         }
         
         updateFloorDisplay();
@@ -914,7 +924,6 @@ function setupEventListeners() {
     $('continue-btn').addEventListener('click', () => {
         updateFloorDisplay();
         showScreen('floor-select-screen');
-        saveGameState('floor-select-screen');
     });
     
     $('back-from-records-btn').addEventListener('click', () => {
@@ -932,9 +941,10 @@ function setupEventListeners() {
             GameState.unlockedActions = res.data.unlocked_actions;
             GameState.totalBattles = res.data.total_battles;
             GameState.totalWins = res.data.total_wins;
+            console.log('🔄 进度已重置:', res.data);
+            saveGameState('floor-select-screen');
         }
         updateFloorDisplay();
-        saveGameState('floor-select-screen');
     });
     
     $('modal-close-btn').addEventListener('click', () => {
@@ -982,6 +992,23 @@ function setupEventListeners() {
             updateActionButtons();
         }
     }, 100);
+    
+    window.addEventListener('beforeunload', (e) => {
+        if (GameState.playerName && GameState.playerName !== 'player') {
+            const activeScreen = document.querySelector('.screen.active');
+            const screenId = activeScreen ? activeScreen.id : 'start-screen';
+            const saveScreen = screenId === 'battle-screen' ? 'floor-select-screen' : screenId;
+            saveGameState(saveScreen);
+            console.log('💾 页面卸载前自动保存状态');
+        }
+    });
+    
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) {
+            console.log('🔄 页面从缓存恢复，重新加载状态...');
+            location.reload();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -990,7 +1017,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const savedState = loadGameState();
     const savedName = loadSavedPlayerName();
     
+    console.log('🚀 页面加载，开始恢复状态...');
+    
     if (savedState && savedState.playerName) {
+        console.log('📂 从 localStorage 恢复基础状态:', savedState);
         $('player-name-input').value = savedState.playerName;
         GameState.playerName = savedState.playerName;
         GameState.currentFloor = savedState.currentFloor || 1;
@@ -1000,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         GameState.totalWins = savedState.totalWins || 0;
         
         try {
+            console.log('🔄 从后端同步最新进度...');
             const res = await loadPlayerProgress();
             if (res.code === 0 && res.data) {
                 GameState.currentFloor = res.data.current_floor;
@@ -1007,12 +1038,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 GameState.unlockedActions = res.data.unlocked_actions;
                 GameState.totalBattles = res.data.total_battles;
                 GameState.totalWins = res.data.total_wins;
+                console.log('✅ 后端同步完成:', res.data);
+                
+                saveGameState(savedState.currentScreen || 'floor-select-screen');
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('❌ 从后端同步进度失败，使用本地保存的状态:', e);
+        }
         
         const targetScreen = savedState.currentScreen && savedState.currentScreen !== 'battle-screen'
             ? savedState.currentScreen
             : 'floor-select-screen';
+        
+        console.log('🎯 恢复到页面:', targetScreen);
         
         if (targetScreen === 'floor-select-screen') {
             updateFloorDisplay();
@@ -1024,5 +1062,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } else if (savedName) {
         $('player-name-input').value = savedName;
+        console.log('ℹ️ 只恢复了玩家名，没有完整游戏状态');
+    } else {
+        console.log('ℹ️ 没有找到保存的状态，显示开始页面');
     }
 });
