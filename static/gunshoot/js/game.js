@@ -74,7 +74,7 @@
     };
 
     const SAVE_KEY = 'gunshoot_save_v1';
-    const AUTOSAVE_INTERVAL = 2000;
+    const AUTOSAVE_INTERVAL = 500;
 
     const game = {
         state: GameState.MENU,
@@ -102,6 +102,207 @@
             reloadCount: 0
         }
     };
+
+    let lastAutosave = 0;
+    let saveCounter = 0;
+
+    function deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    function saveGame(now, reason) {
+        if (!game.player) return false;
+        if (game.state === GameState.MENU) return false;
+        if (game.state === GameState.GAME_OVER) return false;
+        if (game.state === GameState.VICTORY) return false;
+        if (!now) now = performance.now();
+
+        const saveData = {
+            version: 1,
+            timestamp: now,
+            savedAt: new Date().toISOString(),
+            state: game.state,
+            level: game.level,
+            wave: game.wave,
+            waveBreakTimer: game.waveBreakTimer,
+            spawnTimer: game.spawnTimer,
+            totalTime: game.totalTime,
+            stationaryTime: game.stationaryTime,
+            stats: deepClone(game.stats),
+            spawnQueue: deepClone(game.spawnQueue),
+            player: {
+                x: game.player.x,
+                y: game.player.y,
+                hp: game.player.hp,
+                aimDir: { x: game.player.aimDir.x, y: game.player.aimDir.y },
+                leftGun: deepClone(game.player.leftGun),
+                rightGun: deepClone(game.player.rightGun),
+                dualStationaryUntil: Math.max(0, game.player.dualStationaryUntil - now),
+                moveLockedUntil: Math.max(0, game.player.moveLockedUntil - now),
+                invincibleUntil: Math.max(0, game.player.invincibleUntil - now)
+            },
+            enemies: game.enemies.filter(function (e) { return !e.dead; }).map(function (e) {
+                return {
+                    type: e.type,
+                    hp: e.hp,
+                    maxHp: e.maxHp,
+                    x: e.x,
+                    y: e.y,
+                    lastAttack: Math.max(0, e.lastAttack - now)
+                };
+            })
+        };
+
+        try {
+            const json = JSON.stringify(saveData);
+            localStorage.setItem(SAVE_KEY, json);
+            saveCounter++;
+            if (saveCounter % 20 === 0 || reason) {
+                console.log(
+                    '[存档#' + saveCounter + ']' +
+                    (reason ? ' [' + reason + ']' : '') +
+                    ' 波次=' + saveData.wave +
+                    ' HP=' + saveData.player.hp +
+                    ' 左弹=' + saveData.player.leftGun.ammo +
+                    ' 右弹=' + saveData.player.rightGun.ammo +
+                    ' 敌人=' + saveData.enemies.length +
+                    ' 大小=' + (json.length / 1024).toFixed(1) + 'KB'
+                );
+            }
+            return true;
+        } catch (e) {
+            console.error('[存档失败]', e);
+            return false;
+        }
+    }
+
+    function hasSavedGame() {
+        try {
+            const raw = localStorage.getItem(SAVE_KEY);
+            if (!raw) return false;
+            const data = JSON.parse(raw);
+            return !!(data && data.player && typeof data.player.hp === 'number' && data.player.hp > 0);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function getSavedGameInfo() {
+        try {
+            const raw = localStorage.getItem(SAVE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return {
+                wave: data.wave || 0,
+                hp: data.player ? data.player.hp : 0,
+                leftAmmo: data.player ? data.player.leftGun.ammo : 0,
+                rightAmmo: data.player ? data.player.rightGun.ammo : 0,
+                enemies: data.enemies ? data.enemies.length : 0,
+                totalTime: data.totalTime || 0,
+                savedAt: data.savedAt || ''
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function clearSavedGame() {
+        localStorage.removeItem(SAVE_KEY);
+        console.log('[存档] 已清除');
+    }
+
+    function loadGame() {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) {
+            console.error('[读档] 没有存档数据');
+            return false;
+        }
+
+        try {
+            const data = JSON.parse(raw);
+            const now = performance.now();
+            const timeOffset = now - (data.timestamp || now);
+
+            game.state = data.state || GameState.PAUSED;
+            game.level = data.level || 1;
+            game.wave = data.wave || 0;
+            game.waveBreakTimer = data.waveBreakTimer || 0;
+            game.spawnTimer = (data.spawnTimer || 0) + timeOffset;
+            game.totalTime = data.totalTime || 0;
+            game.stationaryTime = data.stationaryTime || 0;
+            game.stats = Object.assign({
+                dualGunShots: 0,
+                dualGunHits: 0,
+                singleGunShots: 0,
+                singleGunHits: 0,
+                enemiesKilled: 0,
+                totalEnemies: 0,
+                damageDealt: 0,
+                damageTaken: 0,
+                reloadCount: 0
+            }, data.stats || {});
+            game.spawnQueue = (data.spawnQueue || []).map(function (item) {
+                return {
+                    type: item.type,
+                    delay: Math.max(0, (item.delay || 0) - timeOffset)
+                };
+            });
+
+            if (!game.player) game.player = new Player();
+            game.player.x = data.player.x;
+            game.player.y = data.player.y;
+            game.player.hp = data.player.hp;
+            game.player.aimDir = {
+                x: (data.player.aimDir && data.player.aimDir.x) || 1,
+                y: (data.player.aimDir && data.player.aimDir.y) || 0
+            };
+            game.player.leftGun = Object.assign({
+                ammo: CONFIG.LEFT_GUN.magazine,
+                maxAmmo: CONFIG.LEFT_GUN.magazine,
+                lastFire: 0,
+                reloading: false,
+                reloadStart: 0,
+                reloadDuration: CONFIG.LEFT_GUN.reloadTime
+            }, data.player.leftGun || {});
+            game.player.rightGun = Object.assign({
+                ammo: CONFIG.RIGHT_GUN.magazine,
+                maxAmmo: CONFIG.RIGHT_GUN.magazine,
+                lastFire: 0,
+                reloading: false,
+                reloadStart: 0,
+                reloadDuration: CONFIG.RIGHT_GUN.reloadTime
+            }, data.player.rightGun || {});
+            game.player.dualStationaryUntil = now + (data.player.dualStationaryUntil || 0);
+            game.player.moveLockedUntil = now + (data.player.moveLockedUntil || 0);
+            game.player.invincibleUntil = now + (data.player.invincibleUntil || 0);
+
+            game.enemies = (data.enemies || []).map(function (eData) {
+                const config = eData.type === 'light' ? CONFIG.ENEMY_LIGHT : CONFIG.ENEMY_HEAVY;
+                const enemy = new Enemy(config, eData.x, eData.y);
+                enemy.hp = eData.hp;
+                enemy.maxHp = eData.maxHp || (eData.type === 'light' ? 20 : 60);
+                enemy.lastAttack = now + (eData.lastAttack || 0);
+                return enemy;
+            });
+
+            game.bullets = [];
+            game.effects = [];
+
+            console.log(
+                '[读档成功] ' +
+                '波次=' + game.wave +
+                ' HP=' + game.player.hp +
+                ' 左弹=' + game.player.leftGun.ammo +
+                ' 右弹=' + game.player.rightGun.ammo +
+                ' 敌人=' + game.enemies.length
+            );
+            return true;
+        } catch (e) {
+            console.error('[读档失败]', e);
+            clearSavedGame();
+            return false;
+        }
+    }
 
     class Player {
         constructor() {
@@ -197,10 +398,12 @@
         }
 
         updateReloading(now) {
-            [this.leftGun, this.rightGun].forEach(gun => {
+            const self = this;
+            [this.leftGun, this.rightGun].forEach(function (gun) {
                 if (gun.reloading && now >= gun.reloadStart + gun.reloadDuration) {
                     gun.ammo = gun.maxAmmo;
                     gun.reloading = false;
+                    saveGame(now, '换弹完成');
                 }
             });
         }
@@ -215,16 +418,16 @@
                 return;
             }
 
-            if (leftPressed && !dualPressed && this.canFire(this.leftGun, now)) {
+            if (leftPressed && !dualPressed && this.canFire(this.leftGun, CONFIG.LEFT_GUN.fireRate, now)) {
                 this.fireSingle('left', now);
             }
-            if (rightPressed && !dualPressed && this.canFire(this.rightGun, now)) {
+            if (rightPressed && !dualPressed && this.canFire(this.rightGun, CONFIG.RIGHT_GUN.fireRate, now)) {
                 this.fireSingle('right', now);
             }
         }
 
-        canFire(gun, now) {
-            return gun.ammo > 0 && !gun.reloading && (now - gun.lastFire) >= (this.dualFiring ? 50 : 0);
+        canFire(gun, fireRate, now) {
+            return gun.ammo > 0 && !gun.reloading && (now - gun.lastFire) >= fireRate;
         }
 
         canDualFire(now) {
@@ -246,6 +449,7 @@
             game.stats.singleGunShots++;
 
             addMuzzleFlash(this.x, this.y, angle, config.color);
+            saveGame(now, '单枪射击');
         }
 
         fireDual(now) {
@@ -270,6 +474,7 @@
 
             addMuzzleFlash(this.x, this.y, baseAngle - 0.3, CONFIG.LEFT_GUN.color);
             addMuzzleFlash(this.x, this.y, baseAngle + 0.3, CONFIG.RIGHT_GUN.color);
+            saveGame(now, '双枪射击');
         }
 
         spawnBullet(angle, config, side) {
@@ -294,6 +499,7 @@
             game.stats.damageTaken += amount;
             this.invincibleUntil = now + 300;
             addDamageFlash();
+            saveGame(now, '受到伤害');
             if (this.hp <= 0) {
                 this.hp = 0;
                 game.state = GameState.GAME_OVER;
@@ -351,8 +557,8 @@
         }
 
         startReload(now) {
-            const leftEmpty = this.leftGun.ammo === 0 || this.leftGun.ammo < this.leftGun.maxAmmo;
-            const rightEmpty = this.rightGun.ammo === 0 || this.rightGun.ammo < this.rightGun.maxAmmo;
+            const leftEmpty = this.leftGun.ammo < this.leftGun.maxAmmo;
+            const rightEmpty = this.rightGun.ammo < this.rightGun.maxAmmo;
 
             if (!leftEmpty && !rightEmpty) return;
 
@@ -378,6 +584,7 @@
                     game.stats.reloadCount++;
                 }
             }
+            saveGame(now, '开始换弹');
         }
     }
 
@@ -419,7 +626,7 @@
             }
         }
 
-        takeDamage(bullet, player) {
+        takeDamage(bullet, player, now) {
             let damage = bullet.damage;
 
             if (this.type === 'heavy' && this.frontReduction > 0) {
@@ -444,6 +651,7 @@
                 this.dead = true;
                 game.stats.enemiesKilled++;
                 addDeathEffect(this.x, this.y, this.color);
+                saveGame(now, '击杀敌人');
             }
         }
 
@@ -501,7 +709,7 @@
             const R = Math.max(0, (num >> 16) - amt);
             const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
             const B = Math.max(0, (num & 0x0000FF) - amt);
-            return `rgb(${R},${G},${B})`;
+            return 'rgb(' + R + ',' + G + ',' + B + ')';
         }
     }
 
@@ -587,7 +795,7 @@
     }
 
     function drawBullets() {
-        game.bullets.forEach(bullet => {
+        game.bullets.forEach(function (bullet) {
             ctx.beginPath();
             ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
             ctx.fillStyle = bullet.color;
@@ -605,7 +813,7 @@
     }
 
     function drawEffects(dt) {
-        game.effects = game.effects.filter(effect => {
+        game.effects = game.effects.filter(function (effect) {
             effect.life -= dt;
             if (effect.life <= 0) return false;
 
@@ -643,7 +851,8 @@
     }
 
     function updateBullets(dt) {
-        game.bullets = game.bullets.filter(bullet => {
+        const now = performance.now();
+        game.bullets = game.bullets.filter(function (bullet) {
             bullet.x += bullet.vx * dt * 60;
             bullet.y += bullet.vy * dt * 60;
             bullet.life++;
@@ -654,13 +863,14 @@
                 return false;
             }
 
-            for (let enemy of game.enemies) {
+            for (let i = 0; i < game.enemies.length; i++) {
+                const enemy = game.enemies[i];
                 if (enemy.dead) continue;
                 const dx = bullet.x - enemy.x;
                 const dy = bullet.y - enemy.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < bullet.radius + enemy.radius) {
-                    enemy.takeDamage(bullet, game.player);
+                    enemy.takeDamage(bullet, game.player, now);
                     if (bullet.side === 'dual') {
                         game.stats.dualGunHits++;
                     } else {
@@ -686,6 +896,7 @@
 
         game.stats.totalEnemies += waveConfig.light + waveConfig.heavy;
         game.spawnTimer = performance.now();
+        saveGame(performance.now(), '波次生成');
     }
 
     function getSpawnPosition() {
@@ -706,7 +917,8 @@
 
     function updateSpawns(now) {
         const elapsed = now - game.spawnTimer;
-        game.spawnQueue = game.spawnQueue.filter(item => {
+        const beforeLen = game.spawnQueue.length;
+        game.spawnQueue = game.spawnQueue.filter(function (item) {
             if (elapsed >= item.delay) {
                 const config = item.type === 'light' ? CONFIG.ENEMY_LIGHT : CONFIG.ENEMY_HEAVY;
                 const pos = getSpawnPosition();
@@ -715,11 +927,18 @@
             }
             return true;
         });
+        if (beforeLen !== game.spawnQueue.length) {
+            saveGame(now, '敌人生成');
+        }
     }
 
     function updateEnemies(dt, now) {
-        game.enemies.forEach(enemy => enemy.update(dt, game.player, now));
-        game.enemies = game.enemies.filter(enemy => !enemy.dead);
+        game.enemies.forEach(function (enemy) { enemy.update(dt, game.player, now); });
+        const beforeLen = game.enemies.length;
+        game.enemies = game.enemies.filter(function (enemy) { return !enemy.dead; });
+        if (beforeLen !== game.enemies.length) {
+            saveGame(now, '敌人清理');
+        }
     }
 
     function checkWaveProgress(now) {
@@ -739,6 +958,7 @@
                 game.state = GameState.WAVE_BREAK;
                 game.waveBreakTimer = now;
                 showWaveBreak();
+                saveGame(now, '波次间隙');
             }
         }
     }
@@ -758,8 +978,8 @@
         const overlay = document.getElementById('status-overlay');
         const title = document.getElementById('overlay-title');
         const msg = document.getElementById('overlay-message');
-        title.textContent = `第 ${game.wave} 波清除!`;
-        msg.textContent = `准备第 ${game.wave + 1} 波...`;
+        title.textContent = '第 ' + game.wave + ' 波清除!';
+        msg.textContent = '准备第 ' + (game.wave + 1) + ' 波...';
         overlay.classList.remove('hidden');
         document.getElementById('overlay-btn').classList.add('hidden');
         document.getElementById('result-stats').classList.add('hidden');
@@ -791,24 +1011,25 @@
             ? ((game.stationaryTime / game.totalTime) * 100).toFixed(1) + '%'
             : '0%';
 
-        resultDiv.innerHTML = `
-            <div class="result-grade">评分计算中...</div>
-            <div class="result-row"><span class="result-label">关卡</span><span class="result-value">${game.level}</span></div>
-            <div class="result-row"><span class="result-label">波次</span><span class="result-value">${game.wave}/${CONFIG.WAVES}</span></div>
-            <div class="result-row"><span class="result-label">剩余HP</span><span class="result-value">${game.player.hp}/${CONFIG.PLAYER_MAX_HP}</span></div>
-            <div class="result-row"><span class="result-label">总时长</span><span class="result-value">${game.totalTime.toFixed(1)}s</span></div>
-            <div class="result-row"><span class="result-label">击杀敌人</span><span class="result-value">${game.stats.enemiesKilled}/${game.stats.totalEnemies}</span></div>
-            <div class="result-row"><span class="result-label">双枪命中率</span><span class="result-value">${dualRate}</span></div>
-            <div class="result-row"><span class="result-label">单枪命中率</span><span class="result-value">${singleRate}</span></div>
-            <div class="result-row"><span class="result-label">站桩占比</span><span class="result-value">${stationaryRatio}</span></div>
-            <div class="result-row"><span class="result-label">造成伤害</span><span class="result-value">${game.stats.damageDealt}</span></div>
-            <div class="result-row"><span class="result-label">受到伤害</span><span class="result-value">${game.stats.damageTaken}</span></div>
-            <div class="result-row"><span class="result-label">换弹次数</span><span class="result-value">${game.stats.reloadCount}</span></div>
-        `;
+        resultDiv.innerHTML =
+            '<div class="result-grade">评分计算中...</div>' +
+            '<div class="result-row"><span class="result-label">关卡</span><span class="result-value">' + game.level + '</span></div>' +
+            '<div class="result-row"><span class="result-label">波次</span><span class="result-value">' + game.wave + '/' + CONFIG.WAVES + '</span></div>' +
+            '<div class="result-row"><span class="result-label">剩余HP</span><span class="result-value">' + game.player.hp + '/' + CONFIG.PLAYER_MAX_HP + '</span></div>' +
+            '<div class="result-row"><span class="result-label">总时长</span><span class="result-value">' + game.totalTime.toFixed(1) + 's</span></div>' +
+            '<div class="result-row"><span class="result-label">击杀敌人</span><span class="result-value">' + game.stats.enemiesKilled + '/' + game.stats.totalEnemies + '</span></div>' +
+            '<div class="result-row"><span class="result-label">双枪命中率</span><span class="result-value">' + dualRate + '</span></div>' +
+            '<div class="result-row"><span class="result-label">单枪命中率</span><span class="result-value">' + singleRate + '</span></div>' +
+            '<div class="result-row"><span class="result-label">站桩占比</span><span class="result-value">' + stationaryRatio + '</span></div>' +
+            '<div class="result-row"><span class="result-label">造成伤害</span><span class="result-value">' + game.stats.damageDealt + '</span></div>' +
+            '<div class="result-row"><span class="result-label">受到伤害</span><span class="result-value">' + game.stats.damageTaken + '</span></div>' +
+            '<div class="result-row"><span class="result-label">换弹次数</span><span class="result-value">' + game.stats.reloadCount + '</span></div>';
 
         resultDiv.classList.remove('hidden');
         btn.textContent = '再来一局';
         btn.classList.remove('hidden');
+        const newBtn = document.getElementById('new-game-btn');
+        if (newBtn) newBtn.remove();
         overlay.classList.remove('hidden');
     }
 
@@ -840,27 +1061,27 @@
             if (result.code === 0 && result.data) {
                 const gradeEl = document.querySelector('.result-grade');
                 if (gradeEl) {
-                    gradeEl.textContent = `评级: ${result.data.grade} | 分数: ${result.data.score}`;
+                    gradeEl.textContent = '评级: ' + result.data.grade + ' | 分数: ' + result.data.score;
                 }
             }
         } catch (e) {
             console.error('提交统计失败', e);
             const gradeEl = document.querySelector('.result-grade');
             if (gradeEl) {
-                gradeEl.textContent = `已完成（离线）`;
+                gradeEl.textContent = '已完成（离线）';
             }
         }
     }
 
     function updateHUD(now) {
         document.getElementById('stat-level').textContent = game.level;
-        document.getElementById('stat-wave').textContent = `${game.wave}/${CONFIG.WAVES}`;
+        document.getElementById('stat-wave').textContent = game.wave + '/' + CONFIG.WAVES;
         document.getElementById('stat-enemies').textContent = game.enemies.length + game.spawnQueue.length;
         document.getElementById('stat-time').textContent = game.totalTime.toFixed(1) + 's';
 
         const hpRatio = game.player.hp / CONFIG.PLAYER_MAX_HP;
         document.getElementById('hp-fill').style.width = (hpRatio * 100) + '%';
-        document.getElementById('hp-text').textContent = `${game.player.hp}/${CONFIG.PLAYER_MAX_HP}`;
+        document.getElementById('hp-text').textContent = game.player.hp + '/' + CONFIG.PLAYER_MAX_HP;
 
         updateMagazineDisplay(game.player.leftGun, 'left', now);
         updateMagazineDisplay(game.player.rightGun, 'right', now);
@@ -899,15 +1120,11 @@
     }
 
     function updateMagazineDisplay(gun, side, now) {
-        const fillId = side === 'left' ? 'left-mag-fill' : 'right-mag-fill';
-        const textId = side === 'left' ? 'left-mag-text' : 'right-mag-text';
-        const reloadBarId = side === 'left' ? 'left-reload-bar' : 'right-reload-bar';
-        const reloadFillId = side === 'left' ? 'left-reload-fill' : 'right-reload-fill';
-
-        const fill = document.getElementById(fillId);
-        const text = document.getElementById(textId);
-        const reloadBar = document.getElementById(reloadBarId);
-        const reloadFill = document.getElementById(reloadFillId);
+        const sideL = side === 'left';
+        const fill = document.getElementById(sideL ? 'left-mag-fill' : 'right-mag-fill');
+        const text = document.getElementById(sideL ? 'left-mag-text' : 'right-mag-text');
+        const reloadBar = document.getElementById(sideL ? 'left-reload-bar' : 'right-reload-bar');
+        const reloadFill = document.getElementById(sideL ? 'left-reload-fill' : 'right-reload-fill');
 
         if (gun.reloading) {
             fill.style.width = '0%';
@@ -920,7 +1137,7 @@
             reloadBar.classList.add('hidden');
             const ratio = gun.ammo / gun.maxAmmo;
             fill.style.width = (ratio * 100) + '%';
-            text.textContent = `${gun.ammo}/${gun.maxAmmo}`;
+            text.textContent = gun.ammo + '/' + gun.maxAmmo;
         }
     }
 
@@ -933,111 +1150,8 @@
         overlay.classList.remove('hidden');
         document.getElementById('overlay-btn').classList.add('hidden');
         document.getElementById('result-stats').classList.add('hidden');
-    }
-
-    let lastAutosave = 0;
-
-    function saveGame(now) {
-        if (!game.player) return;
-        if (game.state === GameState.MENU || game.state === GameState.GAME_OVER || game.state === GameState.VICTORY) return;
-
-        const saveData = {
-            timestamp: now,
-            state: game.state,
-            level: game.level,
-            wave: game.wave,
-            waveBreakTimer: game.waveBreakTimer,
-            spawnTimer: game.spawnTimer,
-            totalTime: game.totalTime,
-            stationaryTime: game.stationaryTime,
-            stats: { ...game.stats },
-            spawnQueue: [...game.spawnQueue],
-            player: {
-                x: game.player.x,
-                y: game.player.y,
-                hp: game.player.hp,
-                aimDir: { ...game.player.aimDir },
-                leftGun: { ...game.player.leftGun },
-                rightGun: { ...game.player.rightGun },
-                dualStationaryUntil: Math.max(0, game.player.dualStationaryUntil - now),
-                moveLockedUntil: Math.max(0, game.player.moveLockedUntil - now),
-                invincibleUntil: Math.max(0, game.player.invincibleUntil - now)
-            },
-            enemies: game.enemies.filter(e => !e.dead).map(e => ({
-                type: e.type,
-                hp: e.hp,
-                maxHp: e.maxHp,
-                x: e.x,
-                y: e.y,
-                lastAttack: Math.max(0, e.lastAttack - now)
-            }))
-        };
-
-        try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
-        } catch (e) {
-            console.warn('存档失败:', e);
-        }
-    }
-
-    function hasSavedGame() {
-        return !!localStorage.getItem(SAVE_KEY);
-    }
-
-    function clearSavedGame() {
-        localStorage.removeItem(SAVE_KEY);
-    }
-
-    function loadGame() {
-        const raw = localStorage.getItem(SAVE_KEY);
-        if (!raw) return false;
-
-        try {
-            const data = JSON.parse(raw);
-            const now = performance.now();
-
-            game.state = data.state;
-            game.level = data.level;
-            game.wave = data.wave;
-            game.waveBreakTimer = data.waveBreakTimer;
-            game.spawnTimer = data.spawnTimer + (now - data.timestamp);
-            game.totalTime = data.totalTime;
-            game.stationaryTime = data.stationaryTime;
-            game.stats = { ...data.stats };
-            game.spawnQueue = data.spawnQueue.map(item => ({
-                ...item,
-                delay: Math.max(0, item.delay - (now - data.timestamp))
-            }));
-
-            game.player = new Player();
-            game.player.x = data.player.x;
-            game.player.y = data.player.y;
-            game.player.hp = data.player.hp;
-            game.player.aimDir = { ...data.player.aimDir };
-            game.player.leftGun = { ...data.player.leftGun };
-            game.player.rightGun = { ...data.player.rightGun };
-            game.player.dualStationaryUntil = now + data.player.dualStationaryUntil;
-            game.player.moveLockedUntil = now + data.player.moveLockedUntil;
-            game.player.invincibleUntil = now + data.player.invincibleUntil;
-
-            game.enemies = data.enemies.map(eData => {
-                const config = eData.type === 'light' ? CONFIG.ENEMY_LIGHT : CONFIG.ENEMY_HEAVY;
-                const enemy = new Enemy(config, eData.x, eData.y);
-                enemy.hp = eData.hp;
-                enemy.maxHp = eData.maxHp;
-                enemy.lastAttack = now + eData.lastAttack;
-                return enemy;
-            });
-
-            game.bullets = [];
-            game.effects = [];
-
-            return true;
-        } catch (e) {
-            console.error('读档失败:', e);
-            clearSavedGame();
-            return false;
-        }
+        const newBtn = document.getElementById('new-game-btn');
+        if (newBtn) newBtn.remove();
     }
 
     function showLoadDialog() {
@@ -1047,15 +1161,23 @@
         const resultDiv = document.getElementById('result-stats');
         const btn = document.getElementById('overlay-btn');
 
+        const info = getSavedGameInfo();
         title.textContent = '📂 发现未完成的存档';
-        msg.innerHTML = '检测到上次未完成的游戏记录<br>选择是否继续上次进度？';
+        if (info) {
+            msg.innerHTML =
+                '检测到上次游戏进度：<br>' +
+                '<b>波次 ' + info.wave + '/5 | HP ' + info.hp + '/80 | 左弹 ' + info.leftAmmo + ' | 右弹 ' + info.rightAmmo + ' | 敌 ' + info.enemies + '</b><br>' +
+                '选择是否继续上次进度？';
+        } else {
+            msg.innerHTML = '检测到上次未完成的游戏记录<br>选择是否继续上次进度？';
+        }
 
         resultDiv.classList.add('hidden');
         overlay.classList.remove('hidden');
 
         btn.textContent = '继续游戏';
         btn.classList.remove('hidden');
-        btn.onclick = () => {
+        btn.onclick = function () {
             if (loadGame()) {
                 const newBtn = document.getElementById('new-game-btn');
                 if (newBtn) newBtn.remove();
@@ -1063,12 +1185,15 @@
                 document.getElementById('overlay-message').textContent = '按 空格键 继续游戏';
                 document.getElementById('result-stats').classList.add('hidden');
                 btn.textContent = '重新开始';
-                btn.onclick = () => startGame();
+                btn.onclick = function () { startGame(); };
                 game.state = GameState.PAUSED;
             } else {
                 startGame();
             }
         };
+
+        const oldNewBtn = document.getElementById('new-game-btn');
+        if (oldNewBtn) oldNewBtn.remove();
 
         const newBtn = document.createElement('button');
         newBtn.className = 'btn-primary';
@@ -1076,11 +1201,11 @@
         newBtn.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
         newBtn.textContent = '新游戏';
         newBtn.id = 'new-game-btn';
-        newBtn.onclick = () => {
+        newBtn.onclick = function () {
             clearSavedGame();
             const toRemove = document.getElementById('new-game-btn');
             if (toRemove) toRemove.remove();
-            btn.onclick = () => startGame();
+            btn.onclick = function () { startGame(); };
             startGame();
         };
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
@@ -1088,6 +1213,11 @@
 
     function startGame() {
         clearSavedGame();
+        const newBtn = document.getElementById('new-game-btn');
+        if (newBtn) newBtn.remove();
+        const btn = document.getElementById('overlay-btn');
+        btn.onclick = function () { startGame(); };
+
         game.state = GameState.PLAYING;
         game.level = 1;
         game.wave = 0;
@@ -1114,19 +1244,25 @@
     }
 
     function togglePause() {
+        const overlay = document.getElementById('status-overlay');
+        const title = document.getElementById('overlay-title');
+        const msg = document.getElementById('overlay-message');
+        const btn = document.getElementById('overlay-btn');
+
         if (game.state === GameState.PLAYING) {
             game.state = GameState.PAUSED;
-            const overlay = document.getElementById('status-overlay');
-            document.getElementById('overlay-title').textContent = '⏸ 暂停';
-            document.getElementById('overlay-message').textContent = '按 空格键 继续';
+            saveGame(performance.now(), '暂停');
+            title.textContent = '⏸ 暂停';
+            msg.textContent = '按 空格键 继续';
             overlay.classList.remove('hidden');
-            document.getElementById('overlay-btn').classList.add('hidden');
+            btn.classList.add('hidden');
             document.getElementById('result-stats').classList.add('hidden');
+            const newBtn = document.getElementById('new-game-btn');
+            if (newBtn) newBtn.remove();
         } else if (game.state === GameState.PAUSED) {
             game.state = GameState.PLAYING;
-            document.getElementById('status-overlay').classList.add('hidden');
-            const btn = document.getElementById('overlay-btn');
-            btn.onclick = () => startGame();
+            overlay.classList.add('hidden');
+            btn.onclick = function () { startGame(); };
             const newBtn = document.getElementById('new-game-btn');
             if (newBtn) newBtn.remove();
         }
@@ -1146,7 +1282,7 @@
         drawGrid();
 
         if (damageFlashAlpha > 0) {
-            ctx.fillStyle = `rgba(255, 0, 0, ${damageFlashAlpha})`;
+            ctx.fillStyle = 'rgba(255, 0, 0, ' + damageFlashAlpha + ')';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             damageFlashAlpha -= dt * 2;
         }
@@ -1160,11 +1296,11 @@
             checkWaveProgress(now);
         } else if (game.state === GameState.WAVE_BREAK) {
             updateWaveBreak(now);
-            game.player.update(dt, now);
+            if (game.player) game.player.update(dt, now);
         }
 
         drawBullets();
-        game.enemies.forEach(enemy => enemy.draw(ctx));
+        game.enemies.forEach(function (enemy) { enemy.draw(ctx); });
         if (game.player) {
             game.player.draw(ctx, now);
         }
@@ -1182,15 +1318,15 @@
         requestAnimationFrame(gameLoop);
     }
 
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', function (e) {
         const key = e.key;
         game.keys[key] = true;
 
         if (key === ' ') {
             e.preventDefault();
             if (game.state === GameState.MENU) {
-                if (hasSavedGame() && !document.getElementById('status-overlay').classList.contains('hidden')
-                    && document.getElementById('overlay-title').textContent.includes('存档')) {
+                const overlayTitle = document.getElementById('overlay-title').textContent;
+                if (hasSavedGame() && overlayTitle.includes('存档')) {
                     if (loadGame()) {
                         const newBtn = document.getElementById('new-game-btn');
                         if (newBtn) newBtn.remove();
@@ -1198,7 +1334,7 @@
                         document.getElementById('overlay-message').textContent = '按 空格键 继续游戏';
                         const btn = document.getElementById('overlay-btn');
                         btn.textContent = '重新开始';
-                        btn.onclick = () => startGame();
+                        btn.onclick = function () { startGame(); };
                         game.state = GameState.PAUSED;
                     } else {
                         startGame();
@@ -1217,22 +1353,49 @@
             game.player.startReload(performance.now());
         }
 
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(key) !== -1) {
             e.preventDefault();
         }
     });
 
-    document.addEventListener('keyup', (e) => {
+    document.addEventListener('keyup', function (e) {
         game.keys[e.key] = false;
     });
 
-    document.getElementById('overlay-btn').addEventListener('click', () => {
+    document.getElementById('overlay-btn').addEventListener('click', function () {
         startGame();
     });
 
+    window.addEventListener('beforeunload', function (e) {
+        const saved = saveGame(performance.now(), '页面关闭');
+        console.log('[页面关闭前存档] ' + (saved ? '成功' : '跳过'));
+    });
+
+    window.addEventListener('pagehide', function () {
+        saveGame(performance.now(), '页面隐藏');
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            saveGame(performance.now(), '页面切后台');
+        }
+    });
+
     function init() {
+        console.log('=== 双枪战场 初始化 ===');
+        console.log('localStorage 可用: ' + (typeof localStorage !== 'undefined'));
+        const existing = hasSavedGame();
+        console.log('是否存在存档: ' + existing);
+        if (existing) {
+            const info = getSavedGameInfo();
+            if (info) {
+                console.log('存档内容: 波次=' + info.wave + ' HP=' + info.hp + ' 左弹=' + info.leftAmmo + ' 右弹=' + info.rightAmmo + ' 敌人=' + info.enemies);
+            }
+        }
+
         game.state = GameState.MENU;
         game.player = new Player();
+
         if (hasSavedGame()) {
             showLoadDialog();
         } else {
