@@ -625,6 +625,8 @@ class ParticleSystem {
 
 class Game {
     static STORAGE_KEY = 'bullet_tower_hunter_save';
+    static STORAGE_BACKUP_KEY = 'bullet_tower_hunter_save_bak';
+    static AUTO_SAVE_INTERVAL = 2000;
 
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -638,6 +640,8 @@ class Game {
         this.stagesCleared = 0;
         this.storedHp = CONFIG.PLAYER.MAX_HP;
         this.lastSavedAt = 0;
+        this._lastMoveSaveAt = 0;
+        this._savedData = null;
 
         this.mouseX = 0;
         this.mouseY = 0;
@@ -651,21 +655,33 @@ class Game {
 
         this._init();
         this._setupEvents();
+        this._setupSaveEvents();
         window.addEventListener('resize', () => {
             if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
                 this._resizeCanvas();
+                this._saveState();
             }
         });
-        window.addEventListener('beforeunload', () => this._saveState());
-        setInterval(() => {
-            if (this.state === GameState.PLAYING) this._saveState();
-        }, 5000);
     }
 
     _init() {
         this.bulletManager = new BulletManager(this.canvas);
         this.gun = new Gun();
         this._savedData = null;
+    }
+
+    _setupSaveEvents() {
+        window.addEventListener('beforeunload', () => this._saveState(true));
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && (this.state === GameState.PLAYING || this.state === GameState.PAUSED)) {
+                this._saveState(true);
+            }
+        });
+        setInterval(() => {
+            if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+                this._saveState(false);
+            }
+        }, Game.AUTO_SAVE_INTERVAL);
     }
 
     _resizeCanvas() {
@@ -925,23 +941,56 @@ class Game {
     _hasSavedState() {
         try {
             const data = localStorage.getItem(Game.STORAGE_KEY);
-            if (!data) return false;
-            const parsed = JSON.parse(data);
-            return parsed && parsed.state && parsed.state !== GameState.GAME_OVER && parsed.state !== GameState.MENU;
+            if (!data) {
+                const bak = localStorage.getItem(Game.STORAGE_BACKUP_KEY);
+                if (bak) {
+                    localStorage.setItem(Game.STORAGE_KEY, bak);
+                    return this._validateSaveData(JSON.parse(bak));
+                }
+                return false;
+            }
+            return this._validateSaveData(JSON.parse(data));
         } catch (e) {
+            try {
+                const bak = localStorage.getItem(Game.STORAGE_BACKUP_KEY);
+                if (bak) {
+                    localStorage.setItem(Game.STORAGE_KEY, bak);
+                    return this._validateSaveData(JSON.parse(bak));
+                }
+            } catch (_) {}
             return false;
         }
     }
 
-    _saveState() {
+    _validateSaveData(data) {
+        if (!data || !data.state) return false;
+        if (data.state === GameState.GAME_OVER || data.state === GameState.MENU) return false;
+        if (typeof data.currentStage !== 'number') return false;
+        if (typeof data.score !== 'number') return false;
+        if (!data.towers || !Array.isArray(data.towers) || data.towers.length !== 5) return false;
+        return true;
+    }
+
+    _saveState(forceBackup) {
         try {
+            if (!this.towers || this.towers.length !== 5 || !this.player || !this.gun) return;
+            if (this.state === GameState.MENU || this.state === GameState.GAME_OVER) return;
+            if (this.canvas.width <= 0 || this.canvas.height <= 0) return;
+
+            const now = Date.now();
+            const W = this.canvas.width;
+            const H = this.canvas.height;
+
             const towerStates = this.towers.map(t => ({
                 type: t.type,
                 hits: t.hits,
                 isDestroyed: t.isDestroyed,
                 isDisabled: t.isDisabled,
-                disabledUntil: t.isDisabled ? t.disabledUntil : 0
+                disabledUntil: t.isDisabled ? t.disabledUntil : 0,
+                patternTime: t.patternTime || 0,
+                lastFire: t.lastFire || 0
             }));
+
             const data = {
                 state: this.state,
                 currentStage: this.currentStage,
@@ -951,13 +1000,30 @@ class Game {
                 stagesCleared: this.stagesCleared,
                 storedHp: this.storedHp,
                 playerName: this.playerName,
-                player: this.player ? { x: this.player.x, y: this.player.y, hp: this.player.hp } : null,
-                gun: this.gun ? { ammo: this.gun.ammo, isReloading: this.gun.isReloading } : null,
+                player: {
+                    xRatio: this.player.x / W,
+                    yRatio: this.player.y / H,
+                    hp: this.player.hp
+                },
+                gun: {
+                    ammo: this.gun.ammo,
+                    maxAmmo: this.gun.maxAmmo,
+                    isReloading: this.gun.isReloading,
+                    reloadStart: this.gun.reloadStart || 0
+                },
                 towers: towerStates,
-                savedAt: Date.now()
+                savedAt: now
             };
-            localStorage.setItem(Game.STORAGE_KEY, JSON.stringify(data));
-            this.lastSavedAt = Date.now();
+
+            const json = JSON.stringify(data);
+
+            const prev = localStorage.getItem(Game.STORAGE_KEY);
+            if (prev) {
+                localStorage.setItem(Game.STORAGE_BACKUP_KEY, prev);
+            }
+
+            localStorage.setItem(Game.STORAGE_KEY, json);
+            this.lastSavedAt = now;
         } catch (e) {
             console.warn('保存游戏状态失败:', e);
         }
@@ -965,16 +1031,32 @@ class Game {
 
     _loadState(applyToRuntime) {
         try {
-            const raw = localStorage.getItem(Game.STORAGE_KEY);
+            let raw = localStorage.getItem(Game.STORAGE_KEY);
+            if (!raw) {
+                raw = localStorage.getItem(Game.STORAGE_BACKUP_KEY);
+                if (raw) {
+                    localStorage.setItem(Game.STORAGE_KEY, raw);
+                }
+            }
             if (!raw) return false;
+
             const parsed = JSON.parse(raw);
-            if (!parsed || !parsed.state) return false;
-            if (parsed.state === GameState.GAME_OVER || parsed.state === GameState.MENU) return false;
+            if (!this._validateSaveData(parsed)) {
+                const bak = localStorage.getItem(Game.STORAGE_BACKUP_KEY);
+                if (bak) {
+                    const bakParsed = JSON.parse(bak);
+                    if (this._validateSaveData(bakParsed)) {
+                        localStorage.setItem(Game.STORAGE_KEY, bak);
+                        return this._loadState(applyToRuntime);
+                    }
+                }
+                return false;
+            }
 
             this.state = parsed.state;
-            this.currentStage = parsed.currentStage || 0;
-            this.score = parsed.score || 0;
-            this.totalDestroyed = parsed.totalDestroyed || 0;
+            this.currentStage = parsed.currentStage;
+            this.score = parsed.score;
+            this.totalDestroyed = parsed.totalDestroyed;
             this.stageDestroyed = parsed.stageDestroyed || [0, 0, 0];
             this.stagesCleared = parsed.stagesCleared || 0;
             this.storedHp = parsed.storedHp || CONFIG.PLAYER.MAX_HP;
@@ -988,13 +1070,74 @@ class Game {
             return true;
         } catch (e) {
             console.warn('加载游戏状态失败:', e);
+            try {
+                const bak = localStorage.getItem(Game.STORAGE_BACKUP_KEY);
+                if (bak) {
+                    localStorage.setItem(Game.STORAGE_KEY, bak);
+                    return this._loadState(applyToRuntime);
+                }
+            } catch (_) {}
             return false;
         }
+    }
+
+    _rebuildCurrentStage() {
+        this._resizeCanvas();
+        const saved = this._savedData;
+        if (!saved) {
+            this._startStage();
+            return;
+        }
+
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+
+        this.player = new Player(this.canvas);
+        if (saved.player) {
+            this.player.hp = saved.player.hp;
+            if (saved.player.xRatio !== undefined && saved.player.yRatio !== undefined) {
+                this.player.x = Math.max(20, Math.min(W - 20, saved.player.xRatio * W));
+                this.player.y = Math.max(20, Math.min(H - 20, saved.player.yRatio * H));
+            }
+        } else {
+            this.player.hp = this.storedHp || CONFIG.PLAYER.MAX_HP;
+        }
+
+        this.gun = new Gun();
+        if (saved.gun) {
+            this.gun.ammo = saved.gun.ammo;
+            this.gun.isReloading = saved.gun.isReloading;
+            this.gun.reloadStart = saved.gun.reloadStart || 0;
+        }
+
+        this.bulletManager = new BulletManager(this.canvas);
+        this.particles = new ParticleSystem();
+
+        const positions = this._getStagePositions(this.currentStage, W, H);
+        if (saved.towers && saved.towers.length === 5) {
+            this.towers = saved.towers.map((ts, i) => {
+                const tower = new Tower(ts.type, positions[i].x, positions[i].y, this.canvas);
+                tower.hits = ts.hits || 0;
+                tower.isDestroyed = ts.isDestroyed || false;
+                tower.isDisabled = ts.isDisabled || false;
+                tower.disabledUntil = ts.disabledUntil || 0;
+                tower.patternTime = ts.patternTime || 0;
+                tower.lastFire = ts.lastFire || 0;
+                return tower;
+            });
+        } else {
+            this.towers = this._generateTowers();
+        }
+
+        this.state = GameState.PLAYING;
+        this._updateHUD();
+        this._savedData = null;
     }
 
     _clearSavedState() {
         try {
             localStorage.removeItem(Game.STORAGE_KEY);
+            localStorage.removeItem(Game.STORAGE_BACKUP_KEY);
         } catch (e) {}
     }
 
@@ -1053,6 +1196,7 @@ class Game {
             const hit = this.player.takeDamage(CONFIG.PLAYER.DAMAGE);
             if (hit) {
                 this.particles.emit(this.player.x, this.player.y, '#ff6b6b', 8, 4);
+                this._saveState(false);
             }
             return hit;
         });
@@ -1363,7 +1507,12 @@ document.addEventListener('DOMContentLoaded', () => {
             game._resizeCanvas();
             setTimeout(() => {
                 game._resizeCanvas();
+                const wasPaused = game.state === GameState.PAUSED;
                 game._rebuildCurrentStage();
+                if (wasPaused) {
+                    game.state = GameState.PAUSED;
+                    document.getElementById('pause-screen').classList.add('active');
+                }
             }, 100);
         }
     }
