@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹幕塔狩猎 - Bullet Tower Hunter</title>
+    <link rel="stylesheet" href="/static/game/css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">弹幕塔狩猎</h1>
+            <p class="subtitle">Bullet Tower Hunter</p>
+            <div class="game-intro">
+                <h3>游戏说明</h3>
+                <ul>
+                    <li>🎯 狩猎5座弹幕塔，而不是打弹幕</li>
+                    <li>🏃 <strong>WASD</strong> 或 <strong>方向键</strong> 移动角色</li>
+                    <li>🔫 <strong>鼠标点击</strong> 或 <strong>空格</strong> 瞄准射击弹幕塔</li>
+                    <li>🔄 <strong>R键</strong> 手动换弹</li>
+                    <li>💥 每座塔需击中3次永久击毁</li>
+                    <li>⏸️ 击中塔后停发8秒，之后恢复</li>
+                    <li>🎪 共3个弹幕场，场间安全区恢复30血量</li>
+                    <li>❤️ 角色100血量，弹幕伤害5/次</li>
+                </ul>
+                <h4>弹幕塔类型</h4>
+                <div class="tower-types">
+                    <span class="tower-tag tag-linear">直线弹</span>
+                    <span class="tower-tag tag-fan">扇形弹</span>
+                    <span class="tower-tag tag-spiral">旋转弹</span>
+                    <span class="tower-tag tag-tracking">追踪弹</span>
+                    <span class="tower-tag tag-bounce">弹墙反弹</span>
+                </div>
+                <p class="warning">⚠️ 追踪弹威胁最大，优先击毁！</p>
+            </div>
+            <div class="player-input">
+                <label for="player-name">玩家昵称：</label>
+                <input type="text" id="player-name" maxlength="20" placeholder="输入你的昵称" value="猎人">
+            </div>
+            <button id="start-btn" class="btn btn-primary">开始狩猎</button>
+            <button id="show-leaderboard-btn" class="btn btn-secondary">查看排行榜</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="hud">
+                <div class="hud-left">
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" id="hp-bar"></div>
+                        <span id="hp-text">100 / 100</span>
+                    </div>
+                    <div class="ammo-info">
+                        <span class="ammo-icon">🔫</span>
+                        <span id="ammo-text">6 / 6</span>
+                        <span id="reload-text" class="hidden">换弹中...</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="stage-info">
+                        <span id="stage-text">第 1 场 / 共 3 场</span>
+                    </div>
+                    <div class="tower-count">
+                        <span>剩余塔：</span>
+                        <span id="tower-count-text">5</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="score-info">
+                        <span>分数：</span>
+                        <span id="score-text">0</span>
+                    </div>
+                    <button id="pause-btn" class="btn btn-small">暂停</button>
+                </div>
+            </div>
+            <div id="game-area">
+                <canvas id="game-canvas"></canvas>
+                <div id="aim-line" class="aim-line hidden"></div>
+            </div>
+            <div id="tower-legend">
+                <div class="legend-item"><span class="legend-dot linear"></span>直线弹</div>
+                <div class="legend-item"><span class="legend-dot fan"></span>扇形弹</div>
+                <div class="legend-item"><span class="legend-dot spiral"></span>旋转弹</div>
+                <div class="legend-item"><span class="legend-dot tracking"></span>追踪弹</div>
+                <div class="legend-item"><span class="legend-dot bounce"></span>反弹弹</div>
+            </div>
+        </div>
+
+        <div id="safe-zone-screen" class="screen">
+            <div class="safe-zone-content">
+                <h2 class="safe-title">🎪 安全区</h2>
+                <p id="safe-desc">你成功清理了当前弹幕场！</p>
+                <div class="safe-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">当前血量</span>
+                        <span id="safe-hp" class="stat-value">100</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">恢复血量</span>
+                        <span class="stat-value heal">+30</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">本场击毁</span>
+                        <span id="safe-destroyed" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">累计分数</span>
+                        <span id="safe-score" class="stat-value">0</span>
+                    </div>
+                </div>
+                <p id="next-hint">准备好进入下一场了吗？</p>
+                <button id="next-stage-btn" class="btn btn-primary">进入下一场</button>
+            </div>
+        </div>
+
+        <div id="gameover-screen" class="screen">
+            <div class="gameover-content">
+                <h2 id="gameover-title" class="gameover-title">游戏结束</h2>
+                <div class="final-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">最终分数</span>
+                        <span id="final-score" class="stat-value big">0</span>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">第1场击毁</span>
+                            <span id="final-s1" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">第2场击毁</span>
+                            <span id="final-s2" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">第3场击毁</span>
+                            <span id="final-s3" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">总击毁数</span>
+                            <span id="final-total" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">通关场数</span>
+                            <span id="final-cleared" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">剩余血量</span>
+                            <span id="final-hp" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+                    <div id="rank-display" class="rank-display">
+                        <span>本次排名：</span>
+                        <span id="rank-value">-</span>
+                    </div>
+                <div class="gameover-buttons">
+                    <button id="restart-btn" class="btn btn-primary">再来一局</button>
+                    <button id="back-menu-btn" class="btn btn-secondary">返回主菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="leaderboard-screen" class="screen">
+            <h2 class="leaderboard-title">🏆 排行榜</h2>
+            <div class="leaderboard-table-container">
+                <table class="leaderboard-table" id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>玩家</th>
+                            <th>分数</th>
+                            <th>击毁数</th>
+                            <th>通关</th>
+                            <th>剩余血量</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                    </tbody>
+                </table>
+            </div>
+            <button id="back-from-lb-btn" class="btn btn-secondary">返回</button>
+        </div>
+
+        <div id="pause-screen" class="screen overlay">
+            <div class="pause-content">
+                <h2>⏸️ 游戏暂停</h2>
+                <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+                <button id="quit-btn" class="btn btn-secondary">放弃本局</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/game/js/game.js"></script>
+</body>
+</html>
