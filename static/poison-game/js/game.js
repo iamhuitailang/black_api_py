@@ -33,6 +33,29 @@ class Game {
         this.setupEventListeners();
         this.renderLevelSelect();
         this.updateContinueButton();
+
+        if (this.hasSavedGame()) {
+            const restored = this.loadGameState();
+            if (restored) {
+                Effects.reset();
+                this.showScreen('game-screen');
+                this.updateUI();
+
+                if (this.gameState === 'playing') {
+                    this.lastFrameTime = performance.now();
+                    this.gameLoop();
+                    this.startAutoSave();
+                } else if (this.gameState === 'paused') {
+                    this.showScreen('pause-screen', true);
+                } else if (this.gameState === 'dead') {
+                    this.showScreen('death-screen', true);
+                }
+
+                await this.loadProgress();
+                return;
+            }
+        }
+
         await this.loadProgress();
     }
 
@@ -41,8 +64,10 @@ class Game {
             const progressResult = await GameAPI.getProgress();
             if (progressResult && progressResult.code === 0 && progressResult.data) {
                 this.playerProgress = progressResult.data;
-                document.getElementById('unlocked-levels').textContent = this.playerProgress.unlocked_level || 1;
-                document.getElementById('total-completions').textContent = this.playerProgress.total_completions || 0;
+                const unlockedEl = document.getElementById('unlocked-levels');
+                if (unlockedEl) unlockedEl.textContent = this.playerProgress.unlocked_level || 1;
+                const completionsEl = document.getElementById('total-completions');
+                if (completionsEl) completionsEl.textContent = this.playerProgress.total_completions || 0;
             }
         } catch (e) {
             console.error('loadProgress error:', e);
@@ -79,20 +104,22 @@ class Game {
             const saved = localStorage.getItem(SAVE_KEY);
             if (!saved) return false;
             const data = JSON.parse(saved);
-            return data && data.gameState === 'playing' && data.currentLevel >= 1;
+            return data && data.currentLevel >= 1 &&
+                   (data.gameState === 'playing' || data.gameState === 'paused' || data.gameState === 'dead');
         } catch (e) {
             return false;
         }
     }
 
     saveGameState() {
-        if (this.gameState !== 'playing') return;
         if (!this.gameMap || !this.player) return;
+        if (this.gameState !== 'playing' && this.gameState !== 'paused' && this.gameState !== 'dead') return;
 
         try {
             const saveData = {
                 currentLevel: this.currentLevel,
                 gameState: this.gameState,
+                isPaused: this.isPaused,
                 elapsedTime: this.elapsedTime,
                 deathCount: this.deathCount,
                 purificationFound: this.purificationFound,
@@ -118,6 +145,7 @@ class Game {
 
             this.currentLevel = data.currentLevel;
             this.gameState = data.gameState;
+            this.isPaused = data.isPaused || false;
             this.elapsedTime = data.elapsedTime || 0;
             this.deathCount = data.deathCount || 0;
             this.purificationFound = data.purificationFound || 0;
@@ -145,13 +173,14 @@ class Game {
         } catch (e) {
             console.error('clearSavedGame error:', e);
         }
+        this.updateContinueButton();
     }
 
     startAutoSave() {
         this.stopAutoSave();
         this.saveInterval = setInterval(() => {
             this.saveGameState();
-        }, 5000);
+        }, 3000);
     }
 
     stopAutoSave() {
@@ -166,20 +195,23 @@ class Game {
         if (!this.loadGameState()) {
             alert('存档损坏，无法继续游戏');
             this.clearSavedGame();
-            this.updateContinueButton();
             return;
         }
 
         Effects.reset();
 
-        this.gameState = 'playing';
-        this.isPaused = false;
+        if (this.gameState === 'paused') {
+            this.gameState = 'playing';
+            this.isPaused = false;
+        }
 
         this.showScreen('game-screen');
+        this.hideAllOverlays();
         this.updateUI();
         this.lastFrameTime = performance.now();
         this.gameLoop();
         this.startAutoSave();
+        this.saveGameState();
     }
 
     renderLevelSelect() {
@@ -204,7 +236,10 @@ class Game {
 
             btn.innerHTML = `<span>${i}</span>`;
             const level = i;
-            btn.addEventListener('click', () => this.startLevel(level));
+            btn.addEventListener('click', () => {
+                this.clearSavedGame();
+                this.startLevel(level);
+            });
             levelGrid.appendChild(btn);
         }
     }
@@ -257,6 +292,10 @@ class Game {
 
         const continueBtn = document.getElementById('continue-btn');
         if (continueBtn) continueBtn.addEventListener('click', () => this.continueGame());
+
+        window.addEventListener('beforeunload', () => {
+            this.saveGameState();
+        });
     }
 
     handleMobileControl(direction, pressed) {
@@ -356,6 +395,7 @@ class Game {
         this.isPaused = false;
 
         this.showScreen('game-screen');
+        this.hideAllOverlays();
         this.updateUI();
         this.lastFrameTime = performance.now();
         this.gameLoop();
@@ -390,8 +430,11 @@ class Game {
             this.animationFrameId = null;
         }
         this.hideAllOverlays();
+        this.gameMap = null;
+        this.player = null;
+        this.enemyManager = new EnemyManager();
+        Effects.reset();
         this.loadProgress();
-        this.updateContinueButton();
         this.showScreen('start-screen');
     }
 
@@ -409,6 +452,7 @@ class Game {
             this.lastFrameTime = performance.now();
             this.gameLoop();
             this.startAutoSave();
+            this.saveGameState();
         }
     }
 
@@ -508,60 +552,77 @@ class Game {
     updateUI() {
         if (!this.player || !this.gameMap) return;
 
-        document.getElementById('current-hp').textContent = Math.ceil(this.player.hp);
-        document.getElementById('max-hp').textContent = this.player.maxHp;
+        const currentHpEl = document.getElementById('current-hp');
+        if (currentHpEl) currentHpEl.textContent = Math.ceil(this.player.hp);
+        const maxHpEl = document.getElementById('max-hp');
+        if (maxHpEl) maxHpEl.textContent = this.player.maxHp;
 
         const hpPercent = this.player.getHpPercent();
         const healthFill = document.getElementById('health-fill');
-        healthFill.style.width = `${hpPercent}%`;
-
-        if (hpPercent < 30) {
-            healthFill.classList.add('low');
-        } else {
-            healthFill.classList.remove('low');
+        if (healthFill) {
+            healthFill.style.width = `${hpPercent}%`;
+            if (hpPercent < 30) {
+                healthFill.classList.add('low');
+            } else {
+                healthFill.classList.remove('low');
+            }
         }
 
-        document.getElementById('current-level').textContent = this.currentLevel;
-        document.getElementById('antidote-count').textContent = this.player.antidoteCount;
+        const currentLevelEl = document.getElementById('current-level');
+        if (currentLevelEl) currentLevelEl.textContent = this.currentLevel;
+        const antidoteCountEl = document.getElementById('antidote-count');
+        if (antidoteCountEl) antidoteCountEl.textContent = this.player.antidoteCount;
         const antidoteBtn = document.getElementById('antidote-btn');
         if (antidoteBtn) antidoteBtn.disabled = this.player.antidoteCount <= 0;
 
-        document.getElementById('purification-found').textContent = this.purificationFound;
-        document.getElementById('purification-total').textContent = this.purificationTotal;
+        const purificationFoundEl = document.getElementById('purification-found');
+        if (purificationFoundEl) purificationFoundEl.textContent = this.purificationFound;
+        const purificationTotalEl = document.getElementById('purification-total');
+        if (purificationTotalEl) purificationTotalEl.textContent = this.purificationTotal;
 
         const zone = this.gameMap.getZone(this.player.x);
         const zoneIndicator = document.getElementById('zone-indicator');
-        zoneIndicator.className = 'zone-indicator';
-        if (zone === 'entry') {
-            zoneIndicator.classList.add('zone-entry');
-            zoneIndicator.textContent = '入口区';
-        } else if (zone === 'middle') {
-            zoneIndicator.classList.add('zone-middle');
-            zoneIndicator.textContent = '中段';
-        } else {
-            zoneIndicator.classList.add('zone-exit');
-            zoneIndicator.textContent = '出口区';
+        if (zoneIndicator) {
+            zoneIndicator.className = 'zone-indicator';
+            if (zone === 'entry') {
+                zoneIndicator.classList.add('zone-entry');
+                zoneIndicator.textContent = '入口区';
+            } else if (zone === 'middle') {
+                zoneIndicator.classList.add('zone-middle');
+                zoneIndicator.textContent = '中段';
+            } else {
+                zoneIndicator.classList.add('zone-exit');
+                zoneIndicator.textContent = '出口区';
+            }
         }
 
         const minutes = Math.floor(this.elapsedTime / 60);
         const seconds = Math.floor(this.elapsedTime % 60);
-        document.getElementById('game-timer').textContent =
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const gameTimerEl = document.getElementById('game-timer');
+        if (gameTimerEl) {
+            gameTimerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
 
         const immuneStatus = document.getElementById('immune-status');
-        if (this.player.immuneTime > 0) {
-            immuneStatus.classList.remove('hidden');
-            document.getElementById('immune-timer').textContent = `${Math.ceil(this.player.immuneTime)}s`;
-        } else {
-            immuneStatus.classList.add('hidden');
+        if (immuneStatus) {
+            if (this.player.immuneTime > 0) {
+                immuneStatus.classList.remove('hidden');
+                const immuneTimerEl = document.getElementById('immune-timer');
+                if (immuneTimerEl) immuneTimerEl.textContent = `${Math.ceil(this.player.immuneTime)}s`;
+            } else {
+                immuneStatus.classList.add('hidden');
+            }
         }
 
         const poisonBoostStatus = document.getElementById('poison-boost-status');
-        if (this.player.poisonBoostTime > 0) {
-            poisonBoostStatus.classList.remove('hidden');
-            document.getElementById('poison-boost-timer').textContent = `${Math.ceil(this.player.poisonBoostTime)}s`;
-        } else {
-            poisonBoostStatus.classList.add('hidden');
+        if (poisonBoostStatus) {
+            if (this.player.poisonBoostTime > 0) {
+                poisonBoostStatus.classList.remove('hidden');
+                const poisonBoostTimerEl = document.getElementById('poison-boost-timer');
+                if (poisonBoostTimerEl) poisonBoostTimerEl.textContent = `${Math.ceil(this.player.poisonBoostTime)}s`;
+            } else {
+                poisonBoostStatus.classList.add('hidden');
+            }
         }
     }
 
