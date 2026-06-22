@@ -381,4 +381,34 @@ class GameMap {
             ctx.fillRect(entryPx + 2, entryPy + 2, tileSize - 4, tileSize - 4);
         }
     }
+
+    serialize() {
+        return {
+            width: this.width,
+            height: this.height,
+            tiles: this.tiles,
+            walls: this.walls,
+            purificationStations: this.purificationStations,
+            poisonPools: this.poisonPools,
+            explored: this.explored,
+            entry: this.entry,
+            exit: this.exit,
+            levelConfig: this.levelConfig
+        };
+    }
+
+    static deserialize(data) {
+        const map = Object.create(GameMap.prototype);
+        map.width = data.width;
+        map.height = data.height;
+        map.tiles = data.tiles;
+        map.walls = data.walls;
+        map.purificationStations = data.purificationStations;
+        map.poisonPools = data.poisonPools || [];
+        map.explored = data.explored;
+        map.entry = data.entry;
+        map.exit = data.exit;
+        map.levelConfig = data.levelConfig;
+        return map;
+    }
 }
