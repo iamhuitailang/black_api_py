@@ -136,6 +136,20 @@ async function apiPost(path, body = {}) {
     return await res.json();
 }
 
+function savePlayerName(name) {
+    try {
+        localStorage.setItem('fighter_player_name', name);
+    } catch (e) {}
+}
+
+function loadSavedPlayerName() {
+    try {
+        return localStorage.getItem('fighter_player_name') || '';
+    } catch (e) {
+        return '';
+    }
+}
+
 function getEnemyMaxHP(floor) {
     return 50 + floor * 15;
 }
@@ -786,10 +800,41 @@ function showBattleRecords() {
     });
 }
 
+function validatePlayerName() {
+    const name = $('player-name-input').value.trim();
+    const errorEl = $('name-error');
+    const inputEl = $('player-name-input');
+    
+    if (!name) {
+        errorEl.textContent = '请输入玩家名称！';
+        inputEl.classList.add('input-error');
+        inputEl.focus();
+        setTimeout(() => {
+            inputEl.classList.remove('input-error');
+        }, 400);
+        setTimeout(() => {
+            errorEl.textContent = '';
+        }, 2000);
+        return null;
+    }
+    
+    errorEl.textContent = '';
+    inputEl.classList.remove('input-error');
+    return name;
+}
+
 function setupEventListeners() {
+    const savedName = loadSavedPlayerName();
+    if (savedName) {
+        $('player-name-input').value = savedName;
+    }
+    
     $('start-btn').addEventListener('click', async () => {
-        const name = $('player-name-input').value.trim() || 'player';
+        const name = validatePlayerName();
+        if (!name) return;
+        
         GameState.playerName = name;
+        savePlayerName(name);
         
         const res = await loadPlayerProgress();
         if (res.code === 0 && res.data) {
@@ -805,8 +850,11 @@ function setupEventListeners() {
     });
     
     $('view-records-btn').addEventListener('click', () => {
-        const name = $('player-name-input').value.trim() || 'player';
+        const name = validatePlayerName();
+        if (!name) return;
+        
         GameState.playerName = name;
+        savePlayerName(name);
         showBattleRecords();
     });
     
@@ -826,7 +874,7 @@ function setupEventListeners() {
     $('reset-progress-btn').addEventListener('click', async () => {
         if (!confirm('确定要重置所有进度吗？此操作不可撤销！')) return;
         
-        await apiPost('/game/progress/reset', null, { player_name: GameState.playerName });
+        await apiPost('/game/progress/reset?player_name=' + encodeURIComponent(GameState.playerName));
         const res = await loadPlayerProgress();
         if (res.code === 0 && res.data) {
             GameState.currentFloor = res.data.current_floor;
@@ -885,6 +933,28 @@ function setupEventListeners() {
     }, 100);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
+    
+    const savedName = loadSavedPlayerName();
+    if (savedName) {
+        $('player-name-input').value = savedName;
+        GameState.playerName = savedName;
+        
+        try {
+            const res = await loadPlayerProgress();
+            if (res.code === 0 && res.data) {
+                GameState.currentFloor = res.data.current_floor;
+                GameState.maxFloor = res.data.max_floor;
+                GameState.unlockedActions = res.data.unlocked_actions;
+                GameState.totalBattles = res.data.total_battles;
+                GameState.totalWins = res.data.total_wins;
+                
+                if (GameState.maxFloor > 1 || GameState.totalBattles > 0) {
+                    updateFloorDisplay();
+                    showScreen('floor-select-screen');
+                }
+            }
+        } catch (e) {}
+    }
 });

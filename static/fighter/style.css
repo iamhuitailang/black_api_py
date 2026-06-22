@@ -108,6 +108,27 @@ body {
     border-color: #ff6b6b;
 }
 
+.name-error {
+    color: #ff6b6b;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 120px;
+    transition: opacity 0.3s;
+}
+
+.player-input input.input-error {
+    border-color: #ff6b6b;
+    animation: inputShake 0.4s ease-out;
+}
+
+@keyframes inputShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+}
+
 .btn {
     padding: 14px 40px;
     font-size: 18px;
@@ -152,6 +173,12 @@ body {
     background: linear-gradient(180deg, #c92a2a, #a61e1e);
 }
 
+#floor-select-screen {
+    justify-content: flex-start;
+    padding-top: 20px;
+    overflow-y: auto;
+}
+
 .floor-header {
     width: 100%;
     max-width: 900px;
@@ -185,7 +212,26 @@ body {
     display: flex;
     flex-direction: column-reverse;
     gap: 8px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    max-height: 45vh;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 900px;
+    padding-right: 5px;
+}
+
+.floor-stairs::-webkit-scrollbar {
+    width: 6px;
+}
+
+.floor-stairs::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.floor-stairs::-webkit-scrollbar-thumb {
+    background: rgba(255, 212, 59, 0.4);
+    border-radius: 3px;
 }
 
 .floor-step {
