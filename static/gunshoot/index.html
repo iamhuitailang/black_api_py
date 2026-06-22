@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双枪战场 - Dual Gun Shooter</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="game-header">
+            <h1>🎯 双枪战场</h1>
+            <div id="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">关卡</span>
+                    <span class="stat-value" id="stat-level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">波次</span>
+                    <span class="stat-value" id="stat-wave">0/5</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">剩余敌人</span>
+                    <span class="stat-value" id="stat-enemies">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">时间</span>
+                    <span class="stat-value" id="stat-time">0s</span>
+                </div>
+                <div class="stat-item hp-bar-container">
+                    <span class="stat-label">HP</span>
+                    <div class="hp-bar">
+                        <div class="hp-bar-fill" id="hp-fill"></div>
+                        <span class="hp-text" id="hp-text">80/80</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-main">
+            <div id="battlefield-container">
+                <canvas id="battlefield" width="900" height="600"></canvas>
+                <div id="status-overlay" class="hidden">
+                    <div class="overlay-content">
+                        <h2 id="overlay-title">暂停</h2>
+                        <p id="overlay-message">按 空格键 继续</p>
+                        <div id="result-stats" class="hidden"></div>
+                        <button id="overlay-btn" class="btn-primary hidden">再来一局</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="control-panel">
+                <div class="panel-section">
+                    <h3>操作说明</h3>
+                    <div class="key-binding">
+                        <div class="key-row"><span class="key">W A S D</span><span>移动</span></div>
+                        <div class="key-row"><span class="key">← ↑ → ↓</span><span>瞄准方向</span></div>
+                        <div class="key-row"><span class="key">J</span><span>左枪射击（速射）</span></div>
+                        <div class="key-row"><span class="key">L</span><span>右枪射击（重击）</span></div>
+                        <div class="key-row"><span class="key">K</span><span>双枪齐射（站桩）</span></div>
+                        <div class="key-row"><span class="key">R</span><span>换弹（单/双）</span></div>
+                        <div class="key-row"><span class="key">空格</span><span>暂停/开始</span></div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>武器状态</h3>
+                    <div class="weapon-slot weapon-left">
+                        <div class="weapon-header">
+                            <span class="weapon-name">🔫 左枪（速射）</span>
+                            <span class="weapon-dmg">伤害: 8</span>
+                        </div>
+                        <div class="magazine-bar">
+                            <div class="magazine-fill magazine-fill-left" id="left-mag-fill"></div>
+                            <span class="magazine-text" id="left-mag-text">18/18</span>
+                        </div>
+                        <div class="reload-bar hidden" id="left-reload-bar">
+                            <div class="reload-fill" id="left-reload-fill"></div>
+                            <span class="reload-text">换弹中...</span>
+                        </div>
+                    </div>
+
+                    <div class="weapon-slot weapon-right">
+                        <div class="weapon-header">
+                            <span class="weapon-name">💥 右枪（重击）</span>
+                            <span class="weapon-dmg">伤害: 25</span>
+                        </div>
+                        <div class="magazine-bar">
+                            <div class="magazine-fill magazine-fill-right" id="right-mag-fill"></div>
+                            <span class="magazine-text" id="right-mag-text">6/6</span>
+                        </div>
+                        <div class="reload-bar hidden" id="right-reload-bar">
+                            <div class="reload-fill" id="right-reload-fill"></div>
+                            <span class="reload-text">换弹中...</span>
+                        </div>
+                    </div>
+
+                    <div class="status-indicators">
+                        <div class="indicator" id="stationary-indicator">
+                            <span class="indicator-dot"></span>
+                            <span class="indicator-text">站桩中</span>
+                        </div>
+                        <div class="indicator" id="move-lock-indicator">
+                            <span class="indicator-dot"></span>
+                            <span class="indicator-text">移动锁定</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>战斗统计</h3>
+                    <div class="combat-stats">
+                        <div class="stat-row">
+                            <span>双枪命中率</span>
+                            <span id="stat-dual-rate">0%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>单枪命中率</span>
+                            <span id="stat-single-rate">0%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>站桩占比</span>
+                            <span id="stat-stationary">0%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>击杀数</span>
+                            <span id="stat-kills">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>造成伤害</span>
+                            <span id="stat-dmg-dealt">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>受到伤害</span>
+                            <span id="stat-dmg-taken">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>换弹次数</span>
+                            <span id="stat-reloads">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
