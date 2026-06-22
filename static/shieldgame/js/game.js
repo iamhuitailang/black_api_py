@@ -565,6 +565,11 @@ class Enemy {
         }
 
         if (this.hp <= 0) {
+            const timeSinceStart = Date.now() - game._gameStartTimestamp;
+            if (timeSinceStart < 2000) {
+                this.hp = 1;
+                return;
+            }
             game.enemies = game.enemies.filter(e => e !== this);
             game.checkLevelComplete();
         }
@@ -773,6 +778,7 @@ class Game {
         this.gameTime = 0;
         this.lastTime = 0;
         this.animationId = null;
+        this._gameStartTimestamp = 0;
         
         this.totalDamageDealt = 0;
         this.totalDamageTaken = 0;
@@ -797,7 +803,6 @@ class Game {
         this._setupEventListeners();
         this._loadPlayerStats();
         this._createLevelButtons();
-        this._checkResumeGame();
     }
 
     _loadSavedState() {
@@ -821,6 +826,7 @@ class Game {
                 playerName: this.playerName,
                 currentLevel: this.currentLevel,
                 gameTime: this.gameTime,
+                _gameStartTimestamp: this._gameStartTimestamp,
                 totalDamageDealt: this.totalDamageDealt,
                 totalDamageTaken: this.totalDamageTaken,
                 shieldBashCount: this.shieldBashCount,
@@ -868,58 +874,102 @@ class Game {
     }
 
     _checkResumeGame() {
-        if (this._savedState && this._savedState.playerName === this.playerName) {
-            const timeAgo = Math.floor((Date.now() - this._savedState.savedAt) / 1000);
-            if (confirm(`发现未完成的游戏（第${this._savedState.currentLevel}关，${timeAgo}秒前保存），是否继续？`)) {
-                this._resumeGame();
-                return;
-            }
+        if (!this._savedState) return false;
+        if (this._savedState.playerName !== this.playerName) return false;
+        
+        const savedLevel = this._savedState.currentLevel;
+        const savedAt = this._savedState.savedAt || Date.now();
+        const timeAgo = Math.floor((Date.now() - savedAt) / 1000);
+        
+        if (confirm(`发现未完成的游戏（第${savedLevel}关，${timeAgo}秒前保存），是否继续？\n点击"确定"继续进度，点击"取消"重新开始`)) {
+            this._resumeGame();
+            return true;
         }
         this._clearSavedState();
+        return false;
     }
 
     _resumeGame() {
-        if (!this._savedState) return;
+        if (!this._savedState) return false;
         
         const state = this._savedState;
-        this.currentLevel = state.currentLevel;
-        this.gameTime = state.gameTime;
-        this.totalDamageDealt = state.totalDamageDealt;
-        this.totalDamageTaken = state.totalDamageTaken;
-        this.shieldBashCount = state.shieldBashCount;
-        this.shieldSmashCount = state.shieldSmashCount;
-        this.shieldBlockCount = state.shieldBlockCount;
-        this.totalDamageBlocked = state.totalDamageBlocked;
-        this.shieldDurabilityLost = state.shieldDurabilityLost;
-        this.repairedTimes = state.repairedTimes;
-        this.repairedAmount = state.repairedAmount;
-        this.shieldBroken = state.shieldBroken;
+        
+        if (!state.player || state.player.hp <= 0) {
+            console.log('存档数据无效：玩家HP异常');
+            this._clearSavedState();
+            return false;
+        }
+        if (!state.enemies || state.enemies.length === 0) {
+            console.log('存档数据无效：敌人数据异常');
+            this._clearSavedState();
+            return false;
+        }
+        
+        this.currentLevel = state.currentLevel || 1;
+        this.gameTime = state.gameTime || 0;
+        this._gameStartTimestamp = state._gameStartTimestamp || Date.now();
+        this.totalDamageDealt = state.totalDamageDealt || 0;
+        this.totalDamageTaken = state.totalDamageTaken || 0;
+        this.shieldBashCount = state.shieldBashCount || 0;
+        this.shieldSmashCount = state.shieldSmashCount || 0;
+        this.shieldBlockCount = state.shieldBlockCount || 0;
+        this.totalDamageBlocked = state.totalDamageBlocked || 0;
+        this.shieldDurabilityLost = state.shieldDurabilityLost || 0;
+        this.repairedTimes = state.repairedTimes || 0;
+        this.repairedAmount = state.repairedAmount || 0;
+        this.shieldBroken = !!state.shieldBroken;
 
         this.player = new Player(state.player.x, state.player.y);
-        this.player.hp = state.player.hp;
-        this.player.shield = state.player.shield;
-        this.player.shieldBroken = state.player.shieldBroken;
-        this.player.facing = state.player.facing;
+        this.player.hp = Math.max(1, state.player.hp);
+        this.player.shield = Math.max(0, state.player.shield);
+        this.player.shieldBroken = !!state.player.shieldBroken;
+        this.player.facing = state.player.facing || 1;
 
-        this.enemies = state.enemies.map(e => {
-            const enemy = new Enemy(e.x, e.y, e.type);
-            enemy.hp = e.hp;
-            enemy.maxHp = e.maxHp;
-            enemy.facing = e.facing;
-            enemy.stunned = e.stunned;
-            enemy.stunTimer = e.stunTimer;
-            return enemy;
-        });
+        this.enemies = state.enemies
+            .filter(e => e && e.hp > 0 && e.type)
+            .map(e => {
+                const enemy = new Enemy(e.x, e.y, e.type);
+                enemy.hp = Math.max(1, e.hp);
+                enemy.maxHp = e.maxHp || enemy.maxHp;
+                enemy.facing = e.facing || -1;
+                enemy.stunned = !!e.stunned;
+                enemy.stunTimer = e.stunTimer || 0;
+                return enemy;
+            });
+
+        if (this.enemies.length === 0) {
+            console.log('存档恢复后敌人列表为空，重新生成敌人');
+            const levelConfig = LEVEL_CONFIG[this.currentLevel - 1];
+            let xPos = CONFIG.CANVAS_WIDTH - 100;
+            levelConfig.enemies.forEach(enemyGroup => {
+                for (let i = 0; i < enemyGroup.count; i++) {
+                    const enemy = new Enemy(xPos, CONFIG.GROUND_Y - 50, enemyGroup.type);
+                    enemy.facing = -1;
+                    this.enemies.push(enemy);
+                    xPos -= 80 + Math.random() * 40;
+                }
+            });
+        }
 
         this.arrows = [];
-        this.repairPoint = new RepairPoint(state.repairPoint.x, state.repairPoint.y);
-        this.repairPoint.used = state.repairPoint.used;
+        this.repairPoint = new RepairPoint(
+            (state.repairPoint && state.repairPoint.x) || CONFIG.CANVAS_WIDTH / 2 - 20,
+            (state.repairPoint && state.repairPoint.y) || CONFIG.GROUND_Y - 50
+        );
+        if (state.repairPoint) {
+            this.repairPoint.used = !!state.repairPoint.used;
+        }
 
+        this.keys = {};
         this._showScreen('game-screen');
         this.state = GameState.PLAYING;
+        this._gameStartTimestamp = Date.now();
         this.lastTime = performance.now();
         this._updateHUD();
+        this._render();
+        this._saveState();
         this._gameLoop();
+        return true;
     }
 
     _setupEventListeners() {
@@ -941,6 +991,10 @@ class Game {
 
         document.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
+        });
+        
+        window.addEventListener('beforeunload', () => {
+            this._saveState();
         });
 
         document.getElementById('start-btn').addEventListener('click', () => this.startGame());
@@ -1025,19 +1079,26 @@ class Game {
             return;
         }
         
+        const shouldResume = this._checkResumeGame();
+        if (shouldResume) {
+            return;
+        }
+        
         this._clearSavedState();
         this.keys = {};
         this._initLevel();
         
-        if (this.enemies.length === 0) {
+        if (this.enemies.length === 0 || !this.player || this.player.hp <= 0) {
             alert('关卡初始化失败，请重试！');
             return;
         }
         
         this._showScreen('game-screen');
         this.state = GameState.PLAYING;
+        this._gameStartTimestamp = Date.now();
         this.lastTime = performance.now();
         this._saveState();
+        this._render();
         this._gameLoop();
     }
 
@@ -1057,6 +1118,7 @@ class Game {
         this.repairedAmount = 0;
         this.shieldBroken = false;
         this._lastSaveSecond = -1;
+        this._gameStartTimestamp = 0;
 
         const levelConfig = LEVEL_CONFIG[this.currentLevel - 1];
         if (!levelConfig || !levelConfig.enemies) {
@@ -1124,7 +1186,8 @@ class Game {
             this.repairPoint.update();
         }
 
-        if (this.player.hp <= 0) {
+        const timeSinceStart = Date.now() - this._gameStartTimestamp;
+        if (timeSinceStart > 2000 && this.player.hp <= 0) {
             this._gameOver();
         }
     }
@@ -1280,7 +1343,8 @@ class Game {
         if (this.state !== GameState.PLAYING) {
             return;
         }
-        if (this.gameTime < 0.5) {
+        const timeSinceStart = Date.now() - this._gameStartTimestamp;
+        if (timeSinceStart < 2000) {
             return;
         }
         if (this.enemies.length === 0) {
@@ -1373,6 +1437,7 @@ class Game {
         if (this.state === GameState.PLAYING) {
             this.state = GameState.PAUSED;
             cancelAnimationFrame(this.animationId);
+            this._saveState();
             this._showScreen('pause-screen');
         }
     }
@@ -1382,28 +1447,35 @@ class Game {
             this.state = GameState.PLAYING;
             this._hideScreen('pause-screen');
             this.lastTime = performance.now();
+            this._render();
             this._gameLoop();
         }
     }
 
     restartLevel() {
+        this._clearSavedState();
         this._hideAllScreens();
         this._showScreen('game-screen');
         this._initLevel();
         this.state = GameState.PLAYING;
+        this._gameStartTimestamp = Date.now();
         this.lastTime = performance.now();
+        this._render();
         this._gameLoop();
     }
 
     nextLevel() {
         if (this.currentLevel < 8) {
+            this._clearSavedState();
             this.currentLevel++;
             this.selectedLevel = this.currentLevel;
             this._hideAllScreens();
             this._showScreen('game-screen');
             this._initLevel();
             this.state = GameState.PLAYING;
+            this._gameStartTimestamp = Date.now();
             this.lastTime = performance.now();
+            this._render();
             this._gameLoop();
         }
     }
@@ -1411,6 +1483,7 @@ class Game {
     quitToMenu() {
         this.state = GameState.MENU;
         cancelAnimationFrame(this.animationId);
+        this._saveState();
         this._hideAllScreens();
         this._showScreen('start-screen');
         this._loadPlayerStats();
