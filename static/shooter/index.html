@@ -26,7 +26,13 @@
             </div>
             <div class="player-input">
                 <label for="playerName">代号:</label>
-                <input type="text" id="playerName" placeholder="输入你的代号" maxlength="20" value="新兵001">
+                <input type="text" id="playerName" placeholder="请输入你的代号" maxlength="20" required>
+            </div>
+            <div class="input-error" id="inputError" style="display:none;">请输入游戏代号才能开始任务！</div>
+            <div class="resume-section" id="resumeSection" style="display:none;">
+                <div class="resume-info">检测到未完成的游戏进度</div>
+                <button class="resume-btn" id="resumeBtn">继续上次游戏</button>
+                <button class="newgame-btn" id="newgameBtn">重新开始</button>
             </div>
             <button class="start-btn" id="startBtn">开始任务</button>
         </div>

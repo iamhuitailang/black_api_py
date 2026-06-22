@@ -26,6 +26,10 @@ const EnemyType = {
     AMBUSH: 'ambush'
 };
 
+const SAVE_KEY = 'shooter_game_save_v1';
+const SAVE_INTERVAL = 500;
+let lastSaveTime = 0;
+
 const GameState = {
     playerPosition: 0,
     health: 100,
@@ -77,6 +81,10 @@ function init() {
     elements.restartBtn = document.getElementById('restartBtn');
     elements.menuBtn = document.getElementById('menuBtn');
     elements.playerNameInput = document.getElementById('playerName');
+    elements.inputError = document.getElementById('inputError');
+    elements.resumeSection = document.getElementById('resumeSection');
+    elements.resumeBtn = document.getElementById('resumeBtn');
+    elements.newgameBtn = document.getElementById('newgameBtn');
     
     elements.healthFill = document.getElementById('healthFill');
     elements.healthValue = document.getElementById('healthValue');
@@ -100,17 +108,145 @@ function init() {
     elements.leaderboardList = document.getElementById('leaderboardList');
     
     bindEvents();
+    checkSavedGame();
 }
 
 function bindEvents() {
     elements.startBtn.addEventListener('click', startGame);
     elements.restartBtn.addEventListener('click', startGame);
     elements.menuBtn.addEventListener('click', showMenu);
+    elements.resumeBtn.addEventListener('click', resumeGame);
+    elements.newgameBtn.addEventListener('click', () => {
+        clearGameSave();
+        elements.resumeSection.style.display = 'none';
+    });
+    
+    elements.playerNameInput.addEventListener('input', () => {
+        elements.playerNameInput.classList.remove('error');
+        elements.inputError.style.display = 'none';
+    });
     
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     
     canvas.addEventListener('click', handleCanvasClick);
+    
+    window.addEventListener('beforeunload', saveGameState);
+}
+
+function checkSavedGame() {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            if (data && data.playerName && !data.isGameOver) {
+                elements.playerNameInput.value = data.playerName;
+                elements.resumeSection.style.display = 'block';
+                elements.startBtn.style.display = 'none';
+            }
+        } catch (e) {
+            clearGameSave();
+        }
+    }
+}
+
+function saveGameState() {
+    if (GameState.isGameOver) {
+        clearGameSave();
+        return;
+    }
+    
+    try {
+        const saveData = {
+            playerPosition: GameState.playerPosition,
+            health: GameState.health,
+            isCrouching: GameState.isCrouching,
+            isAiming: GameState.isAiming,
+            ammoInClip: GameState.ammoInClip,
+            isReloading: GameState.isReloading,
+            reloadStartTime: GameState.reloadStartTime,
+            gameTime: GameState.gameTime,
+            startTime: GameState.startTime,
+            isGameOver: GameState.isGameOver,
+            availableSnipers: GameState.availableSnipers,
+            sniperUsed: GameState.sniperUsed,
+            enemies: GameState.enemies,
+            bullets: GameState.bullets,
+            enemyBullets: GameState.enemyBullets,
+            kills: GameState.kills,
+            playerName: GameState.playerName,
+            lastDamageTime: GameState.lastDamageTime,
+            cameraOffset: GameState.cameraOffset,
+            savedAt: Date.now()
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+    } catch (e) {
+        console.error('Failed to save game state:', e);
+    }
+}
+
+function clearGameSave() {
+    localStorage.removeItem(SAVE_KEY);
+    elements.resumeSection.style.display = 'none';
+    elements.startBtn.style.display = 'inline-block';
+}
+
+function loadGameState() {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (!saved) return false;
+    
+    try {
+        const data = JSON.parse(saved);
+        if (!data || !data.playerName) return false;
+        
+        GameState.playerPosition = data.playerPosition || 0;
+        GameState.health = data.health || 100;
+        GameState.isCrouching = data.isCrouching || false;
+        GameState.isAiming = data.isAiming || false;
+        GameState.ammoInClip = data.ammoInClip ?? 12;
+        GameState.isReloading = data.isReloading || false;
+        GameState.reloadStartTime = data.reloadStartTime || 0;
+        GameState.gameTime = data.gameTime || 0;
+        GameState.startTime = Date.now() - (data.gameTime || 0) * 1000;
+        GameState.isGameOver = false;
+        GameState.availableSnipers = data.availableSnipers || [true, true, true, true, true];
+        GameState.sniperUsed = data.sniperUsed || [];
+        GameState.enemies = data.enemies || [];
+        GameState.bullets = data.bullets || [];
+        GameState.enemyBullets = data.enemyBullets || [];
+        GameState.kills = data.kills || 0;
+        GameState.playerName = data.playerName || '';
+        GameState.lastDamageTime = data.lastDamageTime || 0;
+        GameState.cameraOffset = data.cameraOffset || 0;
+        
+        return true;
+    } catch (e) {
+        console.error('Failed to load game state:', e);
+        clearGameSave();
+        return false;
+    }
+}
+
+function resumeGame() {
+    if (!loadGameState()) {
+        startGame();
+        return;
+    }
+    
+    elements.startScreen.style.display = 'none';
+    elements.gameOverScreen.style.display = 'none';
+    elements.gameWrapper.style.display = 'block';
+    
+    elements.scopeOverlay.style.display = GameState.isAiming ? 'block' : 'none';
+    elements.crouchIndicator.classList.toggle('active', GameState.isCrouching);
+    if (GameState.isReloading) {
+        elements.reloadBar.classList.add('active');
+    }
+    
+    updateHUD();
+    
+    lastTime = performance.now();
+    gameLoop(lastTime);
 }
 
 function handleKeyDown(e) {
@@ -172,6 +308,16 @@ function handleCanvasClick(e) {
 }
 
 function startGame() {
+    const playerName = elements.playerNameInput.value.trim();
+    if (!playerName) {
+        elements.playerNameInput.classList.add('error');
+        elements.inputError.style.display = 'block';
+        elements.playerNameInput.focus();
+        return;
+    }
+    
+    clearGameSave();
+    
     GameState.playerPosition = 0;
     GameState.health = 100;
     GameState.isCrouching = false;
@@ -190,7 +336,7 @@ function startGame() {
     GameState.enemyBullets = [];
     GameState.kills = 0;
     GameState.score = 0;
-    GameState.playerName = elements.playerNameInput.value.trim() || 'Anonymous';
+    GameState.playerName = playerName;
     GameState.cameraOffset = 0;
     
     keys.left = false;
@@ -207,6 +353,7 @@ function startGame() {
     updateHUD();
     
     lastTime = performance.now();
+    lastSaveTime = 0;
     gameLoop(lastTime);
 }
 
@@ -215,6 +362,11 @@ function showMenu() {
     elements.gameOverScreen.style.display = 'none';
     elements.gameWrapper.style.display = 'none';
     cancelAnimationFrame(animationId);
+    
+    if (!GameState.isGameOver) {
+        saveGameState();
+    }
+    checkSavedGame();
 }
 
 function generateEnemies() {
@@ -347,6 +499,7 @@ function endGame(won) {
     GameState.score = calculateScore();
     
     cancelAnimationFrame(animationId);
+    clearGameSave();
     
     submitScore();
 }
@@ -441,6 +594,11 @@ function gameLoop(currentTime) {
     
     const deltaTime = currentTime - lastTime;
     lastTime = currentTime;
+    
+    if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
+        saveGameState();
+        lastSaveTime = currentTime;
+    }
     
     update(deltaTime);
     render();

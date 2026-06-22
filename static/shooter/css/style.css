@@ -189,6 +189,80 @@ body::before {
     box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
 }
 
+.player-input input.error {
+    border-color: var(--blood-red);
+    box-shadow: 0 0 10px rgba(196, 32, 33, 0.3);
+    animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+.input-error {
+    color: var(--blood-red);
+    font-size: 14px;
+    margin: 10px 0;
+    text-shadow: 0 0 5px rgba(196, 32, 33, 0.5);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.resume-section {
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid var(--scope-green);
+    padding: 15px 20px;
+    margin: 20px auto;
+    max-width: 400px;
+    text-align: center;
+}
+
+.resume-info {
+    color: var(--scope-green);
+    font-size: 14px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.resume-btn, .newgame-btn {
+    padding: 10px 25px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0 5px;
+    transition: all 0.3s;
+    letter-spacing: 2px;
+}
+
+.resume-btn {
+    background: linear-gradient(180deg, var(--scope-green) 0%, var(--scope-green-dim) 100%);
+    color: var(--tactical-black);
+    border: 2px solid var(--scope-green);
+}
+
+.resume-btn:hover {
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+    transform: translateY(-1px);
+}
+
+.newgame-btn {
+    background: linear-gradient(180deg, var(--hud-gray) 0%, var(--tactical-black) 100%);
+    color: var(--text-light);
+    border: 2px solid var(--hud-border);
+}
+
+.newgame-btn:hover {
+    border-color: var(--olive-green);
+    box-shadow: 0 0 10px rgba(61, 74, 62, 0.5);
+}
+
 .start-btn, .restart-btn, .menu-btn {
     background: linear-gradient(180deg, var(--olive-green) 0%, var(--olive-dark) 100%);
     color: white;
@@ -200,6 +274,7 @@ body::before {
     cursor: pointer;
     letter-spacing: 3px;
     transition: all 0.3s;
+    display: inline-block;
     position: relative;
     overflow: hidden;
 }
