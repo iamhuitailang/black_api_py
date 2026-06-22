@@ -8,17 +8,20 @@
           <OpinionDetail :opinion="opinion" :timelines="timelines">
             <template #actions>
               <div v-if="opinion" class="space-y-2">
-                <div class="flex gap-2">
-                  <select v-model="selectedHandler"
-                          class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="">选择工作人员...</option>
-                    <option v-for="s in staffList" :key="s.id" :value="s.id">
-                      {{ s.real_name || s.username }} ({{ s.community || '未分配社区' }})
-                    </option>
-                  </select>
-                  <button @click="handleAssign(opinion.id)" :disabled="!selectedHandler || assigning"
-                          class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm rounded-lg transition">
-                    {{ assigning ? '分配中...' : '分配' }}
+                <div class="space-y-2">
+                  <div class="text-xs text-gray-500 font-medium">分配工作人员（可多选）</div>
+                  <div class="max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                    <label v-for="s in staffList" :key="s.id"
+                           class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+                      <input type="checkbox" :value="s.id" v-model="selectedHandlers"
+                             class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
+                      <span class="text-sm text-gray-700">{{ s.real_name || s.username }}</span>
+                      <span class="text-xs text-gray-400">{{ s.community || '' }}</span>
+                    </label>
+                  </div>
+                  <button @click="handleAssign(opinion.id)" :disabled="!selectedHandlers.length || assigning"
+                          class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm rounded-lg transition">
+                    {{ assigning ? '分配中...' : `分配给 ${selectedHandlers.length} 人` }}
                   </button>
                 </div>
                 <div v-if="opinion.status !== 'escalated'" class="flex gap-2">
@@ -234,7 +237,7 @@ const allStatuses = [
   { key: 'closed', name: '已关闭' }
 ]
 
-const selectedHandler = ref<number | ''>('')
+const selectedHandlers = ref<number[]>([])
 const assigning = ref(false)
 const escalating = ref(false)
 
@@ -256,12 +259,12 @@ onMounted(async () => {
 })
 
 async function handleAssign(id: number) {
-  if (!selectedHandler.value) return
+  if (!selectedHandlers.value.length) return
   assigning.value = true
   try {
-    const res = await opinionApi.assign({ opinion_id: id, handler_id: Number(selectedHandler.value) })
+    const res = await opinionApi.assign({ opinion_id: id, handler_ids: selectedHandlers.value })
     if (res.code === 0) {
-      selectedHandler.value = ''
+      selectedHandlers.value = []
       workspaceRef.value?.loadList()
       workspaceRef.value?.selectOpinion(id)
     } else {

@@ -30,7 +30,7 @@ class RateOpinionRequest(BaseModel):
 
 class AssignOpinionRequest(BaseModel):
     opinion_id: int = Field(..., description="意见ID")
-    handler_id: int = Field(..., description="处理人ID")
+    handler_ids: List[int] = Field(..., description="处理人ID列表")
 
 
 class OpinionController:
@@ -87,6 +87,7 @@ class OpinionController:
                              category: Optional[str] = Query(None),
                              status: Optional[str] = Query(None),
                              keyword: Optional[str] = Query(None),
+                             handler_id: Optional[int] = Query(None),
                              page: int = Query(1, ge=1),
                              page_size: int = Query(20, ge=1, le=100),
                              authorization: Optional[str] = Header(None)):
@@ -104,6 +105,7 @@ class OpinionController:
             category=category,
             status=status,
             keyword=keyword,
+            handler_id=handler_id,
             page=page,
             page_size=page_size
         )
@@ -208,7 +210,7 @@ class OpinionController:
 
     def ActionOpinionAssignPost(self, request: Request, body: AssignOpinionRequest, authorization: Optional[str] = Header(None)):
         """
-        分配意见给工作人员
+        分配意见给工作人员（支持多人）
         POST /api/opinion/assign
         """
         user = self._get_current_user(request, authorization)
@@ -218,7 +220,7 @@ class OpinionController:
             return {'code': 1, 'message': '无权限', 'data': None}
         return self.opinion_business.assign_opinion(
             opinion_id=body.opinion_id,
-            handler_id=body.handler_id,
+            handler_ids=body.handler_ids,
             operator_id=user.get('id'),
             operator_name=user.get('real_name') or user.get('username')
         )

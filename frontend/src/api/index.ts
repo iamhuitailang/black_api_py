@@ -94,7 +94,7 @@ export const opinionApi = {
   create(data: { title: string; category: string; description: string; photos?: string[] }) {
     return request<{ id: number }>('/opinion/create', 'POST', undefined, data)
   },
-  list(params?: { category?: string; status?: string; keyword?: string; page?: number; page_size?: number }) {
+  list(params?: { category?: string; status?: string; keyword?: string; handler_id?: number; page?: number; page_size?: number }) {
     return request<PaginatedList<Opinion>>('/opinion/list/get', 'GET', params)
   },
   pendingList(params?: { page?: number; page_size?: number }) {
@@ -119,7 +119,7 @@ export const opinionApi = {
     fd.append('opinion_id', String(opinion_id))
     return request('/opinion/escalate', 'POST', undefined, fd, true)
   },
-  assign(data: { opinion_id: number; handler_id: number }) {
+  assign(data: { opinion_id: number; handler_ids: number[] }) {
     return request('/opinion/assign', 'POST', undefined, data)
   },
   publicList(params?: { category?: string; page?: number; page_size?: number }) {

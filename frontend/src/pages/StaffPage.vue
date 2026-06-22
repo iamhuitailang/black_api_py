@@ -22,11 +22,11 @@
     <template v-else-if="currentPage === 'my'">
       <OpinionWorkspace ref="workspaceRef" list-title="我的处理任务"
                         :categories="categories" :statuses="statuses"
-                        :fetch-list="opinionApi.list" :fetch-detail="opinionApi.detail">
+                        :fetch-list="fetchMyTasks" :fetch-detail="opinionApi.detail">
         <template #detail="{ opinion, timelines }">
           <OpinionDetail :opinion="opinion" :timelines="timelines">
             <template #actions>
-              <div v-if="opinion && opinion.handler_id === currentUserId && ['claimed', 'processing'].includes(opinion.status)" class="flex gap-2">
+              <div v-if="opinion && ['claimed', 'processing'].includes(opinion.status)" class="flex gap-2">
                 <button @click="openProcess(false)"
                         class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition flex items-center justify-center gap-1">
                   <Wrench class="w-4 h-4" /> 更新进度
@@ -88,6 +88,10 @@ onMounted(async () => {
 
 async function fetchPending(params: any) {
   return opinionApi.pendingList(params)
+}
+
+async function fetchMyTasks(params: any) {
+  return opinionApi.list({ ...params, handler_id: currentUserId })
 }
 
 async function handleClaim(id: number) {

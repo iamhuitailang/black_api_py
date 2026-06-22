@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any, List, Optional
-from app.model.opinion import OpinionModel, OpinionTimelineModel, OpinionRatingModel
+from app.model.opinion import OpinionModel, OpinionTimelineModel, OpinionRatingModel, OpinionHandlerModel
 from app.model.auth import UserModel
 
 
@@ -9,6 +9,7 @@ class OpinionBusiness:
         self.opinion_model = OpinionModel()
         self.timeline_model = OpinionTimelineModel()
         self.rating_model = OpinionRatingModel()
+        self.handler_model = OpinionHandlerModel()
         self.user_model = UserModel()
 
     def _auto_assign_handler(self, category: str) -> Optional[Dict[str, Any]]:
@@ -68,13 +69,15 @@ class OpinionBusiness:
         
         handler = self._auto_assign_handler(category)
         if handler:
-            self.opinion_model.assign_handler(opinion_id, handler['id'], handler.get('real_name') or handler['username'])
+            handler_name = handler.get('real_name') or handler['username']
+            self.opinion_model.assign_handler(opinion_id, handler['id'], handler_name)
+            self.handler_model.add_handler(opinion_id, handler['id'], handler_name)
             self.timeline_model.create(
                 opinion_id=opinion_id,
                 timeline_type=OpinionTimelineModel.TYPE_ASSIGN,
-                content=f'系统自动分配给：{handler.get("real_name") or handler["username"]}',
+                content=f'系统自动分配给：{handler_name}',
                 operator_id=handler['id'],
-                operator_name=handler.get('real_name') or handler['username']
+                operator_name=handler_name
             )
         
         return {'code': 0, 'message': '意见提交成功', 'data': {'id': opinion_id}}
@@ -87,9 +90,13 @@ class OpinionBusiness:
         if user_role == 'resident' and opinion.get('submitter_id') != user_id and opinion.get('is_public') != 1:
             return {'code': 1, 'message': '无权限查看', 'data': None}
         
-        if user_role == 'staff' and opinion.get('handler_id') != user_id and opinion.get('submitter_id') != user_id:
-            if opinion.get('status') != OpinionModel.STATUS_PENDING:
-                return {'code': 1, 'message': '无权限查看', 'data': None}
+        if user_role == 'staff':
+            is_primary = opinion.get('handler_id') == user_id
+            is_submitter = opinion.get('submitter_id') == user_id
+            is_assigned = self.handler_model.is_handler(opinion_id, user_id)
+            if not is_primary and not is_submitter and not is_assigned:
+                if opinion.get('status') != OpinionModel.STATUS_PENDING:
+                    return {'code': 1, 'message': '无权限查看', 'data': None}
         
         opinion = self._format_opinion(opinion)
         
@@ -118,29 +125,67 @@ class OpinionBusiness:
 
     def get_opinion_list(self, user_id: int = None, user_role: str = None, 
                          category: str = None, status: str = None, 
-                         keyword: str = None, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+                         keyword: str = None, handler_id: int = None,
+                         page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         conditions = {}
         
-        if user_role == 'resident':
+        if handler_id:
+            opinion_ids = self.handler_model.get_opinion_ids_by_handler(handler_id)
+            if opinion_ids:
+                result = self._list_by_ids(opinion_ids, conditions, category, status, keyword, page, page_size)
+            else:
+                result = {'items': [], 'total': 0, 'page': page, 'page_size': page_size, 'total_pages': 0}
+        elif user_role == 'resident':
             conditions['submitter_id'] = user_id
+            result = self._build_list_result(conditions, category, status, keyword, page, page_size)
         elif user_role == 'staff':
-            pass
-        elif user_role != 'admin':
+            result = self._build_list_result(conditions, category, status, keyword, page, page_size)
+        elif user_role == 'admin':
+            result = self._build_list_result(conditions, category, status, keyword, page, page_size)
+        else:
             conditions['is_public'] = 1
+            result = self._build_list_result(conditions, category, status, keyword, page, page_size)
         
+        result['items'] = [self._format_opinion(item) for item in result.get('items', [])]
+        return {'code': 0, 'message': 'success', 'data': result}
+
+    def _build_list_result(self, conditions: Dict, category: str, status: str, keyword: str, page: int, page_size: int) -> Dict[str, Any]:
         if category and category in OpinionModel.CATEGORY_MAP:
             conditions['category'] = category
         if status and status in OpinionModel.STATUS_MAP:
             conditions['status'] = status
-        
         if keyword:
-            result = self._search_with_keyword(conditions, keyword, page, page_size)
-        else:
-            result = self.opinion_model.get_list(conditions, page, page_size)
-        
-        result['items'] = [self._format_opinion(item) for item in result.get('items', [])]
-        
-        return {'code': 0, 'message': 'success', 'data': result}
+            return self._search_with_keyword(conditions, keyword, page, page_size)
+        return self.opinion_model.get_list(conditions, page, page_size)
+
+    def _list_by_ids(self, opinion_ids: List[int], conditions: Dict, category: str, status: str, keyword: str, page: int, page_size: int) -> Dict[str, Any]:
+        if not opinion_ids:
+            return {'items': [], 'total': 0, 'page': page, 'page_size': page_size, 'total_pages': 0}
+        id_placeholders = ','.join(['?' for _ in opinion_ids])
+        params = list(opinion_ids)
+        where_clauses = [f"id IN ({id_placeholders})"]
+        if category and category in OpinionModel.CATEGORY_MAP:
+            where_clauses.append("category = ?")
+            params.append(category)
+        if status and status in OpinionModel.STATUS_MAP:
+            where_clauses.append("status = ?")
+            params.append(status)
+        if keyword:
+            where_clauses.append("(title LIKE ? OR description LIKE ?)")
+            params.extend([f'%{keyword}%', f'%{keyword}%'])
+        where_sql = " WHERE " + " AND ".join(where_clauses)
+        count_sql = f"SELECT COUNT(*) as total FROM {OpinionModel.TABLE_NAME}{where_sql}"
+        total = self.opinion_model.db.fetch_one(count_sql, tuple(params))['total']
+        offset = (page - 1) * page_size
+        list_sql = f"SELECT * FROM {OpinionModel.TABLE_NAME}{where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        items = self.opinion_model.db.fetch_all(list_sql, tuple(params + [page_size, offset]))
+        return {
+            'items': items,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total + page_size - 1) // page_size
+        }
 
     def _search_with_keyword(self, conditions: Dict, keyword: str, page: int, page_size: int) -> Dict[str, Any]:
         where_clauses = []
@@ -182,6 +227,7 @@ class OpinionBusiness:
             return {'code': 1, 'message': '该意见已被认领或处理', 'data': None}
         
         self.opinion_model.assign_handler(opinion_id, handler_id, handler_name)
+        self.handler_model.add_handler(opinion_id, handler_id, handler_name)
         
         self.timeline_model.create(
             opinion_id=opinion_id,
@@ -199,7 +245,7 @@ class OpinionBusiness:
         if not opinion:
             return {'code': 1, 'message': '意见不存在', 'data': None}
         
-        if opinion.get('handler_id') != handler_id:
+        if opinion.get('handler_id') != handler_id and not self.handler_model.is_handler(opinion_id, handler_id):
             return {'code': 1, 'message': '无权限处理该意见', 'data': None}
         
         if opinion.get('status') in [OpinionModel.STATUS_RESOLVED, OpinionModel.STATUS_CLOSED]:
@@ -272,27 +318,47 @@ class OpinionBusiness:
         
         return {'code': 0, 'message': '已升级至街道', 'data': None}
 
-    def assign_opinion(self, opinion_id: int, handler_id: int, operator_id: int, operator_name: str) -> Dict[str, Any]:
+    def assign_opinion(self, opinion_id: int, handler_ids: List[int], operator_id: int, operator_name: str) -> Dict[str, Any]:
         opinion = self.opinion_model.get_by_id(opinion_id)
         if not opinion:
             return {'code': 1, 'message': '意见不存在', 'data': None}
         
-        handler = self.user_model.get_by_id(handler_id)
-        if not handler or handler.get('role') != 'staff':
+        if not handler_ids:
+            return {'code': 1, 'message': '请选择至少一位工作人员', 'data': None}
+        
+        handlers = []
+        for hid in handler_ids:
+            handler = self.user_model.get_by_id(hid)
+            if handler and handler.get('role') == 'staff':
+                handlers.append(handler)
+        
+        if not handlers:
             return {'code': 1, 'message': '处理人不存在或不是工作人员', 'data': None}
         
-        handler_name = handler.get('real_name') or handler.get('username')
-        self.opinion_model.assign_handler(opinion_id, handler_id, handler_name)
+        primary_handler = handlers[0]
+        primary_name = primary_handler.get('real_name') or primary_handler.get('username')
+        self.opinion_model.assign_handler(opinion_id, primary_handler['id'], primary_name)
+        
+        self.handler_model.delete_by_opinion_id(opinion_id)
+        for h in handlers:
+            h_name = h.get('real_name') or h.get('username')
+            self.handler_model.add_handler(opinion_id, h['id'], h_name)
+        
+        if len(handlers) == 1:
+            assign_desc = f'管理员分配给：{primary_name}'
+        else:
+            names = [h.get('real_name') or h.get('username') for h in handlers]
+            assign_desc = f'管理员分配给：{"、".join(names)}'
         
         self.timeline_model.create(
             opinion_id=opinion_id,
             timeline_type=OpinionTimelineModel.TYPE_ASSIGN,
-            content=f'管理员分配给：{handler_name}',
+            content=assign_desc,
             operator_id=operator_id,
             operator_name=operator_name
         )
         
-        return {'code': 0, 'message': '分配成功', 'data': None}
+        return {'code': 0, 'message': f'已分配给{len(handlers)}位工作人员', 'data': None}
 
     def check_and_escalate_overdue(self) -> Dict[str, Any]:
         overdue_list = self.opinion_model.get_unclaimed_overdue(5)

@@ -72,6 +72,8 @@ import { X, ImagePlus, MoreHorizontal, Leaf, ShieldCheck, Wrench, Loader } from 
 import type { Category } from '@/types'
 import { opinionApi } from '@/api'
 
+const DRAFT_KEY = 'opinion_draft'
+
 const props = defineProps<{
   visible: boolean
   categories: Category[]
@@ -84,19 +86,47 @@ const emit = defineEmits<{
 
 const categoryIcons: Record<string, any> = { environment: Leaf, security: ShieldCheck, facility: Wrench }
 
-const form = reactive({ title: '', category: 'environment', description: '', photos: [] as string[] })
+function loadDraft() {
+  try {
+    const saved = localStorage.getItem(DRAFT_KEY)
+    if (saved) return JSON.parse(saved)
+  } catch {}
+  return null
+}
+
+function saveDraft() {
+  const data = { title: form.title, category: form.category, description: form.description }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY)
+}
+
+const draft = loadDraft()
+const form = reactive({
+  title: draft?.title || '',
+  category: draft?.category || 'environment',
+  description: draft?.description || '',
+  photos: [] as string[]
+})
 const submitting = ref(false)
 const error = ref('')
 
 watch(() => props.visible, (v) => {
   if (v) {
-    form.title = ''
-    form.category = props.categories[0]?.key || 'environment'
-    form.description = ''
+    const d = loadDraft()
+    form.title = d?.title || ''
+    form.category = d?.category || props.categories[0]?.key || 'environment'
+    form.description = d?.description || ''
     form.photos = []
     error.value = ''
   }
 })
+
+watch(() => [form.title, form.category, form.description], () => {
+  saveDraft()
+}, { deep: true })
 
 async function handleUpload(e: Event) {
   const input = e.target as HTMLInputElement
@@ -126,6 +156,7 @@ async function handleSubmit() {
       photos: form.photos.length ? form.photos : undefined
     })
     if (res.code === 0) {
+      clearDraft()
       emit('success')
       emit('close')
     } else {
