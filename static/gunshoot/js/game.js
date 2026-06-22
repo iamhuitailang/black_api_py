@@ -124,8 +124,8 @@
             state: game.state,
             level: game.level,
             wave: game.wave,
-            waveBreakTimer: game.waveBreakTimer,
-            spawnTimer: game.spawnTimer,
+            waveBreakTimerElapsed: game.waveBreakTimer > 0 ? Math.max(0, now - game.waveBreakTimer) : 0,
+            spawnTimerElapsed: Math.max(0, now - game.spawnTimer),
             totalTime: game.totalTime,
             stationaryTime: game.stationaryTime,
             stats: deepClone(game.stats),
@@ -135,8 +135,22 @@
                 y: game.player.y,
                 hp: game.player.hp,
                 aimDir: { x: game.player.aimDir.x, y: game.player.aimDir.y },
-                leftGun: deepClone(game.player.leftGun),
-                rightGun: deepClone(game.player.rightGun),
+                leftGun: {
+                    ammo: game.player.leftGun.ammo,
+                    maxAmmo: game.player.leftGun.maxAmmo,
+                    lastFireOffset: Math.max(0, now - game.player.leftGun.lastFire),
+                    reloading: game.player.leftGun.reloading,
+                    reloadStartOffset: game.player.leftGun.reloading ? Math.max(0, now - game.player.leftGun.reloadStart) : 0,
+                    reloadDuration: game.player.leftGun.reloadDuration
+                },
+                rightGun: {
+                    ammo: game.player.rightGun.ammo,
+                    maxAmmo: game.player.rightGun.maxAmmo,
+                    lastFireOffset: Math.max(0, now - game.player.rightGun.lastFire),
+                    reloading: game.player.rightGun.reloading,
+                    reloadStartOffset: game.player.rightGun.reloading ? Math.max(0, now - game.player.rightGun.reloadStart) : 0,
+                    reloadDuration: game.player.rightGun.reloadDuration
+                },
                 dualStationaryUntil: Math.max(0, game.player.dualStationaryUntil - now),
                 moveLockedUntil: Math.max(0, game.player.moveLockedUntil - now),
                 invincibleUntil: Math.max(0, game.player.invincibleUntil - now)
@@ -222,12 +236,25 @@
             const data = JSON.parse(raw);
             const now = performance.now();
             const timeOffset = now - (data.timestamp || now);
+            const hasNewFormat = typeof data.player.leftGun.lastFireOffset !== 'undefined' ||
+                                 typeof data.spawnTimerElapsed !== 'undefined';
+
+            console.log('[读档] 存档格式=' + (hasNewFormat ? '新(相对时间)' : '旧(绝对时间,兼容)'));
 
             game.state = data.state || GameState.PAUSED;
             game.level = data.level || 1;
             game.wave = data.wave || 0;
-            game.waveBreakTimer = data.waveBreakTimer || 0;
-            game.spawnTimer = (data.spawnTimer || 0) + timeOffset;
+
+            if (hasNewFormat) {
+                game.waveBreakTimer = (data.waveBreakTimerElapsed || 0) > 0
+                    ? now - (data.waveBreakTimerElapsed || 0) : 0;
+                game.spawnTimer = now - (data.spawnTimerElapsed || 0);
+            } else {
+                game.waveBreakTimer = (data.waveBreakTimer || 0) > 0
+                    ? (data.waveBreakTimer || 0) + timeOffset : 0;
+                game.spawnTimer = (data.spawnTimer || 0) + timeOffset;
+            }
+
             game.totalTime = data.totalTime || 0;
             game.stationaryTime = data.stationaryTime || 0;
             game.stats = Object.assign({
@@ -248,7 +275,7 @@
                 };
             });
 
-            if (!game.player) game.player = new Player();
+            game.player = new Player();
             game.player.x = data.player.x;
             game.player.y = data.player.y;
             game.player.hp = data.player.hp;
@@ -256,29 +283,42 @@
                 x: (data.player.aimDir && data.player.aimDir.x) || 1,
                 y: (data.player.aimDir && data.player.aimDir.y) || 0
             };
-            game.player.leftGun = Object.assign({
-                ammo: CONFIG.LEFT_GUN.magazine,
-                maxAmmo: CONFIG.LEFT_GUN.magazine,
-                lastFire: 0,
-                reloading: false,
-                reloadStart: 0,
-                reloadDuration: CONFIG.LEFT_GUN.reloadTime
-            }, data.player.leftGun || {});
-            game.player.rightGun = Object.assign({
-                ammo: CONFIG.RIGHT_GUN.magazine,
-                maxAmmo: CONFIG.RIGHT_GUN.magazine,
-                lastFire: 0,
-                reloading: false,
-                reloadStart: 0,
-                reloadDuration: CONFIG.RIGHT_GUN.reloadTime
-            }, data.player.rightGun || {});
+
+            var lg = data.player.leftGun || {};
+            game.player.leftGun = {
+                ammo: typeof lg.ammo === 'number' ? lg.ammo : CONFIG.LEFT_GUN.magazine,
+                maxAmmo: typeof lg.maxAmmo === 'number' ? lg.maxAmmo : CONFIG.LEFT_GUN.magazine,
+                reloading: !!lg.reloading,
+                reloadDuration: typeof lg.reloadDuration === 'number' ? lg.reloadDuration : CONFIG.LEFT_GUN.reloadTime,
+                lastFire: hasNewFormat
+                    ? now - (lg.lastFireOffset || 0)
+                    : (typeof lg.lastFire === 'number' ? lg.lastFire + timeOffset : 0),
+                reloadStart: hasNewFormat
+                    ? (lg.reloading ? now - (lg.reloadStartOffset || 0) : 0)
+                    : (typeof lg.reloadStart === 'number' ? lg.reloadStart + timeOffset : 0)
+            };
+
+            var rg = data.player.rightGun || {};
+            game.player.rightGun = {
+                ammo: typeof rg.ammo === 'number' ? rg.ammo : CONFIG.RIGHT_GUN.magazine,
+                maxAmmo: typeof rg.maxAmmo === 'number' ? rg.maxAmmo : CONFIG.RIGHT_GUN.magazine,
+                reloading: !!rg.reloading,
+                reloadDuration: typeof rg.reloadDuration === 'number' ? rg.reloadDuration : CONFIG.RIGHT_GUN.reloadTime,
+                lastFire: hasNewFormat
+                    ? now - (rg.lastFireOffset || 0)
+                    : (typeof rg.lastFire === 'number' ? rg.lastFire + timeOffset : 0),
+                reloadStart: hasNewFormat
+                    ? (rg.reloading ? now - (rg.reloadStartOffset || 0) : 0)
+                    : (typeof rg.reloadStart === 'number' ? rg.reloadStart + timeOffset : 0)
+            };
+
             game.player.dualStationaryUntil = now + (data.player.dualStationaryUntil || 0);
             game.player.moveLockedUntil = now + (data.player.moveLockedUntil || 0);
             game.player.invincibleUntil = now + (data.player.invincibleUntil || 0);
 
             game.enemies = (data.enemies || []).map(function (eData) {
-                const config = eData.type === 'light' ? CONFIG.ENEMY_LIGHT : CONFIG.ENEMY_HEAVY;
-                const enemy = new Enemy(config, eData.x, eData.y);
+                var config = eData.type === 'light' ? CONFIG.ENEMY_LIGHT : CONFIG.ENEMY_HEAVY;
+                var enemy = new Enemy(config, eData.x, eData.y);
                 enemy.hp = eData.hp;
                 enemy.maxHp = eData.maxHp || (eData.type === 'light' ? 20 : 60);
                 enemy.lastAttack = now + (eData.lastAttack || 0);
@@ -288,13 +328,21 @@
             game.bullets = [];
             game.effects = [];
 
+            updateHUD(now);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            game.enemies.forEach(function (enemy) { enemy.draw(ctx); });
+            if (game.player) { game.player.draw(ctx, now); }
+
             console.log(
                 '[读档成功] ' +
                 '波次=' + game.wave +
                 ' HP=' + game.player.hp +
                 ' 左弹=' + game.player.leftGun.ammo +
                 ' 右弹=' + game.player.rightGun.ammo +
-                ' 敌人=' + game.enemies.length
+                ' 敌人=' + game.enemies.length +
+                ' 左枪可射=' + (now - game.player.leftGun.lastFire >= CONFIG.LEFT_GUN.fireRate) +
+                ' 右枪可射=' + (now - game.player.rightGun.lastFire >= CONFIG.RIGHT_GUN.fireRate)
             );
             return true;
         } catch (e) {
