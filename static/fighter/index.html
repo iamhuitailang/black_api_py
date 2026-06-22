@@ -13,7 +13,12 @@
             <p class="subtitle">刚·柔·化 三意相生</p>
         </header>
 
-        <div class="battle-arena">
+        <div class="loading-indicator" id="loading-indicator">
+            <div class="loading-spinner"></div>
+            <p>加载战斗状态中...</p>
+        </div>
+
+        <div class="battle-arena hidden-init" id="battle-arena">
             <div class="fighter-section player-section">
                 <div class="fighter-info">
                     <h2>玩家</h2>
@@ -81,7 +86,7 @@
             </div>
         </div>
 
-        <div class="control-panel">
+        <div class="control-panel hidden-init" id="control-panel">
             <div class="action-buttons">
                 <button class="action-btn light-btn" id="btn-light" onclick="doAction('light')">
                     <span class="btn-icon">👊</span>
@@ -104,7 +109,7 @@
             </button>
         </div>
 
-        <div class="battle-log-section">
+        <div class="battle-log-section hidden-init" id="battle-log-section">
             <h3>战斗日志</h3>
             <div class="battle-log" id="battle-log"></div>
         </div>

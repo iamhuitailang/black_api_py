@@ -16,7 +16,7 @@ async function initGame() {
         
         if (activeResult.code === 0 && activeResult.data) {
             battleState = activeResult.data;
-            updateUI();
+            updateUI(true);
             updateBattleLog();
             
             if (battleState.is_over) {
@@ -24,6 +24,7 @@ async function initGame() {
             } else if (battleState.round > 0) {
                 addLogEntry('恢复上次战斗进度...');
             }
+            showBattleArea();
             return;
         }
 
@@ -31,13 +32,22 @@ async function initGame() {
         const result = await response.json();
         if (result.code === 0) {
             battleState = result.data;
-            updateUI();
+            updateUI(true);
             addLogEntry('战斗开始！双方以化拳意对峙。');
+            showBattleArea();
         }
     } catch (error) {
         console.error('初始化游戏失败:', error);
-        addLogEntry('连接服务器失败，请刷新页面重试。');
+        document.getElementById('loading-indicator').innerHTML = 
+            '<p style="color: #ff6b6b;">连接服务器失败，请刷新页面重试。</p>';
     }
+}
+
+function showBattleArea() {
+    document.getElementById('loading-indicator').style.display = 'none';
+    document.getElementById('battle-arena').classList.remove('hidden-init');
+    document.getElementById('control-panel').classList.remove('hidden-init');
+    document.getElementById('battle-log-section').classList.remove('hidden-init');
 }
 
 async function doAction(action) {
@@ -137,7 +147,7 @@ function playActionAnimations(playerAction, newState, oldState) {
     }
 }
 
-function updateUI() {
+function updateUI(isInitial = false) {
     if (!battleState) return;
 
     const player = battleState.player;
@@ -148,8 +158,23 @@ function updateUI() {
 
     const playerHpPercent = (player.hp / player.max_hp) * 100;
     const enemyHpPercent = (enemy.hp / enemy.max_hp) * 100;
-    document.getElementById('player-hp-bar').style.width = `${playerHpPercent}%`;
-    document.getElementById('enemy-hp-bar').style.width = `${enemyHpPercent}%`;
+    
+    const playerHpBar = document.getElementById('player-hp-bar');
+    const enemyHpBar = document.getElementById('enemy-hp-bar');
+    
+    if (isInitial) {
+        playerHpBar.style.transition = 'none';
+        enemyHpBar.style.transition = 'none';
+    }
+    
+    playerHpBar.style.width = `${playerHpPercent}%`;
+    enemyHpBar.style.width = `${enemyHpPercent}%`;
+    
+    if (isInitial) {
+        void playerHpBar.offsetWidth;
+        playerHpBar.style.transition = '';
+        enemyHpBar.style.transition = '';
+    }
 
     const playerIntentBadge = document.getElementById('player-intent-badge');
     const enemyIntentBadge = document.getElementById('enemy-intent-badge');
@@ -268,6 +293,14 @@ function restartBattle() {
     
     document.getElementById('battle-log').innerHTML = '';
     setButtonsEnabled(true);
+    
+    document.getElementById('battle-arena').classList.add('hidden-init');
+    document.getElementById('control-panel').classList.add('hidden-init');
+    document.getElementById('battle-log-section').classList.add('hidden-init');
+    document.getElementById('loading-indicator').style.display = 'block';
+    document.getElementById('loading-indicator').innerHTML = 
+        '<div class="loading-spinner"></div><p>加载战斗状态中...</p>';
+    
     initGame();
 }
 
