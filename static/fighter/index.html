@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拳意格斗 - Fist Intent Fighter</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>拳意格斗</h1>
+            <p class="subtitle">刚·柔·化 三意相生</p>
+        </header>
+
+        <div class="battle-arena">
+            <div class="fighter-section player-section">
+                <div class="fighter-info">
+                    <h2>玩家</h2>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" id="player-hp-bar"></div>
+                        <span class="hp-text" id="player-hp-text">100/100</span>
+                    </div>
+                    <div class="intent-badge" id="player-intent-badge">化拳意</div>
+                </div>
+                <div class="fighter-character intent-hua" id="player-character">
+                    <div class="character-body"></div>
+                    <div class="character-head"></div>
+                </div>
+                <div class="fighter-stats" id="player-stats">
+                    <div class="stat-row">
+                        <span>攻击加成:</span>
+                        <span id="player-attack-bonus">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>防御加成:</span>
+                        <span id="player-defense-bonus">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>连击:</span>
+                        <span id="player-combo">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vs-section">
+                <div class="vs-text">VS</div>
+                <div class="round-info">
+                    <span>回合: </span>
+                    <span id="round-count">0</span>
+                </div>
+            </div>
+
+            <div class="fighter-section enemy-section">
+                <div class="fighter-stats" id="enemy-stats">
+                    <div class="stat-row">
+                        <span>攻击加成:</span>
+                        <span id="enemy-attack-bonus">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>防御加成:</span>
+                        <span id="enemy-defense-bonus">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>连击:</span>
+                        <span id="enemy-combo">0</span>
+                    </div>
+                </div>
+                <div class="fighter-character intent-hua" id="enemy-character">
+                    <div class="character-body"></div>
+                    <div class="character-head"></div>
+                </div>
+                <div class="fighter-info">
+                    <h2>对手</h2>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" id="enemy-hp-bar"></div>
+                        <span class="hp-text" id="enemy-hp-text">100/100</span>
+                    </div>
+                    <div class="intent-badge" id="enemy-intent-badge">化拳意</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="action-buttons">
+                <button class="action-btn light-btn" id="btn-light" onclick="doAction('light')">
+                    <span class="btn-icon">👊</span>
+                    <span class="btn-label">轻拳</span>
+                    <span class="btn-desc">15伤害 · 快速</span>
+                </button>
+                <button class="action-btn heavy-btn" id="btn-heavy" onclick="doAction('heavy')">
+                    <span class="btn-icon">💥</span>
+                    <span class="btn-label">重拳</span>
+                    <span class="btn-desc">30伤害 · 缓慢</span>
+                </button>
+                <button class="action-btn defend-btn" id="btn-defend" onclick="doAction('defend')">
+                    <span class="btn-icon">🛡️</span>
+                    <span class="btn-label">防御</span>
+                    <span class="btn-desc">减伤 · 反制</span>
+                </button>
+            </div>
+            <button class="restart-btn" id="btn-restart" onclick="restartBattle()" style="display:none;">
+                重新开始
+            </button>
+        </div>
+
+        <div class="battle-log-section">
+            <h3>战斗日志</h3>
+            <div class="battle-log" id="battle-log"></div>
+        </div>
+
+        <div class="intent-guide">
+            <h3>拳意说明</h3>
+            <div class="intent-cards">
+                <div class="intent-card card-gang">
+                    <h4>刚拳意</h4>
+                    <p>攻击 +30%</p>
+                    <p>防御 -20%</p>
+                    <p class="trigger">防御成功时切换</p>
+                </div>
+                <div class="intent-card card-rou">
+                    <h4>柔拳意</h4>
+                    <p>防御 +30%</p>
+                    <p>攻击 -20%</p>
+                    <p class="trigger">攻击命中时切换</p>
+                </div>
+                <div class="intent-card card-hua">
+                    <h4>化拳意</h4>
+                    <p>攻防均衡</p>
+                    <p>命中偷取10%攻防</p>
+                    <p class="trigger">3连击后切换</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
