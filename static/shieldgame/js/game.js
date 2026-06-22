@@ -794,6 +794,7 @@ class Game {
         this.animationId = null;
         this._savedState = null;
         this._lastSaveSecond = -1;
+        this._lastLogSecond = -1;
         
         this._loadSavedState();
         this.init();
@@ -843,7 +844,15 @@ class Game {
                     hp: this.player.hp,
                     shield: this.player.shield,
                     shieldBroken: this.player.shieldBroken,
-                    facing: this.player.facing
+                    facing: this.player.facing,
+                    vx: this.player.vx,
+                    vy: this.player.vy,
+                    onGround: this.player.onGround,
+                    isBlocking: this.player.isBlocking,
+                    isJumping: this.player.isJumping,
+                    isAttacking: this.player.isAttacking,
+                    attackType: this.player.attackType,
+                    invincible: this.player.invincible
                 },
                 enemies: this.enemies.map(e => ({
                     x: e.x,
@@ -853,7 +862,19 @@ class Game {
                     maxHp: e.maxHp,
                     facing: e.facing,
                     stunned: e.stunned,
-                    stunTimer: e.stunTimer
+                    stunTimer: e.stunTimer,
+                    width: e.width,
+                    height: e.height,
+                    damage: e.damage,
+                    speed: e.speed,
+                    attackCooldown: e.attackCooldown,
+                    attackRange: e.attackRange,
+                    isAttacking: e.isAttacking,
+                    attackTimer: e.attackTimer,
+                    color: e.color,
+                    onGround: e.onGround,
+                    vx: e.vx,
+                    vy: e.vy
                 })),
                 repairPoint: {
                     x: this.repairPoint.x,
@@ -863,8 +884,12 @@ class Game {
                 savedAt: Date.now()
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            if (Math.floor(this.gameTime) % 10 === 0 && Math.floor(this.gameTime) !== this._lastLogSecond) {
+                console.log(`[保存存档] 关卡=${this.currentLevel}, 敌人=${this.enemies.length}个, HP=${Math.floor(this.player.hp)}, 游戏时长=${Math.floor(this.gameTime)}s`);
+                this._lastLogSecond = Math.floor(this.gameTime);
+            }
         } catch (e) {
-            console.log('Failed to save state:', e);
+            console.error('Failed to save state:', e);
         }
     }
 
@@ -874,14 +899,33 @@ class Game {
     }
 
     _checkResumeGame() {
-        if (!this._savedState) return false;
-        if (this._savedState.playerName !== this.playerName) return false;
+        if (!this._savedState) {
+            console.log('[检查存档] 无存档数据');
+            return false;
+        }
+        if (this._savedState.playerName !== this.playerName) {
+            console.log(`[检查存档] 玩家名不匹配: 存档=${this._savedState.playerName}, 当前=${this.playerName}`);
+            return false;
+        }
+        if (this._savedState.currentLevel !== this.currentLevel) {
+            console.log(`[检查存档] 关卡不匹配: 存档=${this._savedState.currentLevel}, 当前选中=${this.currentLevel}`);
+            if (!confirm(`发现 ${this._savedState.playerName} 的第${this._savedState.currentLevel}关存档，但当前选择第${this.currentLevel}关。\n点击"确定"继续第${this._savedState.currentLevel}关的进度，点击"取消"重新开始第${this.currentLevel}关`)) {
+                this._clearSavedState();
+                return false;
+            }
+            this.currentLevel = this._savedState.currentLevel;
+            this.selectedLevel = this._savedState.currentLevel;
+        }
         
         const savedLevel = this._savedState.currentLevel;
         const savedAt = this._savedState.savedAt || Date.now();
         const timeAgo = Math.floor((Date.now() - savedAt) / 1000);
+        const enemyCount = this._savedState.enemies ? this._savedState.enemies.length : 0;
+        const playerHp = this._savedState.player ? this._savedState.player.hp : 0;
         
-        if (confirm(`发现未完成的游戏（第${savedLevel}关，${timeAgo}秒前保存），是否继续？\n点击"确定"继续进度，点击"取消"重新开始`)) {
+        console.log(`[检查存档] 玩家=${this.playerName}, 关卡=${savedLevel}, 敌人=${enemyCount}个, 玩家HP=${playerHp}, ${timeAgo}秒前保存`);
+        
+        if (confirm(`发现未完成的游戏：\n玩家：${this._savedState.playerName}\n关卡：第${savedLevel}关\n剩余敌人：${enemyCount}个\n剩余HP：${Math.floor(playerHp)}\n保存时间：${timeAgo}秒前\n\n点击"确定"继续进度，点击"取消"重新开始`)) {
             this._resumeGame();
             return true;
         }
@@ -895,15 +939,24 @@ class Game {
         const state = this._savedState;
         
         if (!state.player || state.player.hp <= 0) {
-            console.log('存档数据无效：玩家HP异常');
+            console.warn('存档数据无效：玩家HP异常', state.player);
             this._clearSavedState();
             return false;
         }
-        if (!state.enemies || state.enemies.length === 0) {
-            console.log('存档数据无效：敌人数据异常');
+        if (!state.enemies || !Array.isArray(state.enemies)) {
+            console.warn('存档数据无效：敌人数据异常', state.enemies);
             this._clearSavedState();
             return false;
         }
+        
+        const levelConfig = LEVEL_CONFIG[(state.currentLevel || 1) - 1];
+        const totalEnemiesConfigured = levelConfig 
+            ? levelConfig.enemies.reduce((sum, e) => sum + e.count, 0) 
+            : state.enemies.length;
+
+        console.log(`[恢复存档] 玩家: ${state.playerName}, 关卡: ${state.currentLevel}`);
+        console.log(`[恢复存档] 配置总敌人数: ${totalEnemiesConfigured}, 存档敌人数: ${state.enemies.length}`);
+        console.log(`[恢复存档] 敌人详情:`, JSON.parse(JSON.stringify(state.enemies)));
         
         this.currentLevel = state.currentLevel || 1;
         this.gameTime = state.gameTime || 0;
@@ -924,22 +977,45 @@ class Game {
         this.player.shield = Math.max(0, state.player.shield);
         this.player.shieldBroken = !!state.player.shieldBroken;
         this.player.facing = state.player.facing || 1;
+        if (state.player.vx !== undefined) this.player.vx = state.player.vx;
+        if (state.player.vy !== undefined) this.player.vy = state.player.vy;
+        if (state.player.onGround !== undefined) this.player.onGround = state.player.onGround;
 
-        this.enemies = state.enemies
-            .filter(e => e && e.hp > 0 && e.type)
-            .map(e => {
+        this.enemies = [];
+        state.enemies.forEach((e, idx) => {
+            if (!e || !e.type) {
+                console.warn(`[恢复存档] 跳过无效敌人 #${idx}:`, e);
+                return;
+            }
+            try {
                 const enemy = new Enemy(e.x, e.y, e.type);
-                enemy.hp = Math.max(1, e.hp);
+                enemy.hp = e.hp > 0 ? e.hp : enemy.maxHp;
                 enemy.maxHp = e.maxHp || enemy.maxHp;
-                enemy.facing = e.facing || -1;
+                enemy.facing = e.facing !== undefined ? e.facing : -1;
                 enemy.stunned = !!e.stunned;
                 enemy.stunTimer = e.stunTimer || 0;
-                return enemy;
-            });
+                if (e.width) enemy.width = e.width;
+                if (e.height) enemy.height = e.height;
+                if (e.damage) enemy.damage = e.damage;
+                if (e.speed) enemy.speed = e.speed;
+                if (e.attackCooldown !== undefined) enemy.attackCooldown = e.attackCooldown;
+                if (e.attackRange) enemy.attackRange = e.attackRange;
+                if (e.isAttacking !== undefined) enemy.isAttacking = e.isAttacking;
+                if (e.attackTimer !== undefined) enemy.attackTimer = e.attackTimer;
+                if (e.color) enemy.color = e.color;
+                if (e.onGround !== undefined) enemy.onGround = e.onGround;
+                if (e.vx !== undefined) enemy.vx = e.vx;
+                if (e.vy !== undefined) enemy.vy = e.vy;
+                this.enemies.push(enemy);
+            } catch (err) {
+                console.error(`[恢复存档] 恢复敌人 #${idx} 出错:`, err, e);
+            }
+        });
+
+        console.log(`[恢复存档] 成功恢复敌人数: ${this.enemies.length}`);
 
         if (this.enemies.length === 0) {
-            console.log('存档恢复后敌人列表为空，重新生成敌人');
-            const levelConfig = LEVEL_CONFIG[this.currentLevel - 1];
+            console.warn('[恢复存档] 敌人列表为空，根据关卡配置重新生成');
             let xPos = CONFIG.CANVAS_WIDTH - 100;
             levelConfig.enemies.forEach(enemyGroup => {
                 for (let i = 0; i < enemyGroup.count; i++) {
@@ -963,7 +1039,7 @@ class Game {
         this.keys = {};
         this._showScreen('game-screen');
         this.state = GameState.PLAYING;
-        this._gameStartTimestamp = Date.now();
+        this._gameStartTimestamp = state._gameStartTimestamp || Date.now();
         this.lastTime = performance.now();
         this._updateHUD();
         this._render();
