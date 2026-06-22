@@ -28,9 +28,13 @@ canvas.width = CFG.W;
 canvas.height = CFG.H;
 
 window.addEventListener('error', (e) => {
-    console.error('Game Error:', e.error || e.message, 'at', e.filename, e.lineno);
+    const errMsg = e.error && e.error.stack 
+        ? (e.error.message + '\n' + e.error.stack)
+        : (e.message || String(e.error));
+    console.error('Game Error:', errMsg);
+    console.error('At:', e.filename, 'line', e.lineno);
     if (gameState === 'paused' || gameState === 'playing') {
-        alert('游戏发生错误，请刷新页面重试。\n错误信息：' + (e.message || e.error));
+        alert('游戏发生错误！\n\n错误信息：' + errMsg + '\n\n请按F12查看控制台详情，或刷新页面重试。');
     }
 });
 
@@ -1017,75 +1021,104 @@ function drawUnlockProgress() {
 }
 
 function updateHUD() {
-    const hpPct = Math.max(0, player.hp / player.maxHp);
-    document.getElementById('hp-bar-inner').style.width = (hpPct * 100) + '%';
-    document.getElementById('hp-text').textContent = Math.max(0, player.hp) + '/' + player.maxHp;
+    const hpBarInner = document.getElementById('hp-bar-inner');
+    const hpText = document.getElementById('hp-text');
+    if (hpBarInner && hpText) {
+        const hpPct = Math.max(0, player.hp / player.maxHp);
+        hpBarInner.style.width = (hpPct * 100) + '%';
+        hpText.textContent = Math.max(0, player.hp) + '/' + player.maxHp;
 
-    const hpBar = document.getElementById('hp-bar-inner');
-    if (hpPct > 0.5) hpBar.style.background = 'linear-gradient(90deg, #22cc44, #44ee66)';
-    else if (hpPct > 0.25) hpBar.style.background = 'linear-gradient(90deg, #ccaa22, #eedd44)';
-    else hpBar.style.background = 'linear-gradient(90deg, #ff2222, #ff6644)';
+        if (hpPct > 0.5) hpBarInner.style.background = 'linear-gradient(90deg, #22cc44, #44ee66)';
+        else if (hpPct > 0.25) hpBarInner.style.background = 'linear-gradient(90deg, #ccaa22, #eedd44)';
+        else hpBarInner.style.background = 'linear-gradient(90deg, #ff2222, #ff6644)';
+    }
 
-    document.getElementById('segment-text').textContent = `第 ${curSeg + 1} 段 / ${CFG.SEGS}`;
+    const segText = document.getElementById('segment-text');
+    if (segText) segText.textContent = `第 ${curSeg + 1} 段 / ${CFG.SEGS}`;
 
-    const elapsed = (performance.now() - gameStartTime) / 1000;
-    const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
-    const secs = Math.floor(elapsed % 60).toString().padStart(2, '0');
-    document.getElementById('timer-text').textContent = `${mins}:${secs}`;
+    const timerText = document.getElementById('timer-text');
+    if (timerText) {
+        const elapsed = (performance.now() - gameStartTime) / 1000;
+        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const secs = Math.floor(elapsed % 60).toString().padStart(2, '0');
+        timerText.textContent = `${mins}:${secs}`;
+    }
 
-    const alive = enemies.filter(e => e.hp > 0).length;
-    document.getElementById('enemy-text').textContent = `敌人: ${alive}`;
+    const enemyText = document.getElementById('enemy-text');
+    if (enemyText) {
+        const alive = enemies.filter(e => e.hp > 0).length;
+        enemyText.textContent = `敌人: ${alive}`;
+    }
 
     for (let i = 0; i < 2; i++) {
         const slotEl = document.getElementById(`slot-${i}`);
+        if (!slotEl) continue;
         const weap = player.weapons[i];
+        const iconEl = document.getElementById(`weapon-icon-${i}`);
+        const nameEl = document.getElementById(`weapon-name-${i}`);
+        const ammoEl = document.getElementById(`weapon-ammo-${i}`);
+        const reloadEl = document.getElementById(`reload-${i}`);
+        const reloadBarEl = document.getElementById(`reload-bar-${i}`);
+
         if (weap) {
             slotEl.classList.remove('empty');
             slotEl.classList.toggle('active', i === player.activeSlot);
-            document.getElementById(`weapon-icon-${i}`).style.background = weap.clr + '33';
-            document.getElementById(`weapon-icon-${i}`).textContent = weap.icon;
-            document.getElementById(`weapon-name-${i}`).textContent = weap.name;
-            document.getElementById(`weapon-ammo-${i}`).textContent = weap.reloading
-                ? '换弹中...' : `${weap.ammo}/${weap.mag}`;
-
-            const reloadEl = document.getElementById(`reload-${i}`);
-            if (weap.reloading) {
-                reloadEl.classList.remove('hidden');
-                const pct = 1 - (weap.reloadTimer / weap.reload);
-                document.getElementById(`reload-bar-${i}`).style.width = (pct * 100) + '%';
-            } else {
-                reloadEl.classList.add('hidden');
+            if (iconEl) {
+                iconEl.style.background = weap.clr + '33';
+                iconEl.textContent = weap.icon;
+            }
+            if (nameEl) nameEl.textContent = weap.name;
+            if (ammoEl) {
+                ammoEl.textContent = weap.reloading
+                    ? '换弹中...' : `${weap.ammo}/${weap.mag}`;
+            }
+            if (reloadEl) {
+                if (weap.reloading) {
+                    reloadEl.classList.remove('hidden');
+                    if (reloadBarEl) {
+                        const pct = 1 - (weap.reloadTimer / weap.reload);
+                        reloadBarEl.style.width = (pct * 100) + '%';
+                    }
+                } else {
+                    reloadEl.classList.add('hidden');
+                }
             }
         } else {
             slotEl.classList.add('empty');
             slotEl.classList.remove('active');
-            document.getElementById(`weapon-icon-${i}`).style.background = '';
-            document.getElementById(`weapon-icon-${i}`).textContent = '';
-            document.getElementById(`weapon-name-${i}`).textContent = '空';
-            document.getElementById(`weapon-ammo-${i}`).textContent = '-';
+            if (iconEl) {
+                iconEl.style.background = '';
+                iconEl.textContent = '';
+            }
+            if (nameEl) nameEl.textContent = '空';
+            if (ammoEl) ammoEl.textContent = '-';
         }
     }
 
     const promptEl = document.getElementById('interact-prompt');
     const promptText = document.getElementById('interact-text');
-    if (nearDoor && !nearDoor.bossDead) {
-        promptEl.classList.remove('hidden');
-        promptText.textContent = '段守未击败，无法解锁！';
-    } else if (nearCrate && !nearCrate.collected) {
-        promptEl.classList.remove('hidden');
-        promptText.textContent = `按 E 拾取 ${WEAPONS[nearCrate.weapon].name}`;
-    } else if (nearDoor && !nearDoor.unlocked) {
-        promptEl.classList.remove('hidden');
-        promptText.textContent = '按 E 解锁安全门';
-    } else {
-        promptEl.classList.add('hidden');
+    if (promptEl && promptText) {
+        if (nearDoor && !nearDoor.bossDead) {
+            promptEl.classList.remove('hidden');
+            promptText.textContent = '段守未击败，无法解锁！';
+        } else if (nearCrate && !nearCrate.collected) {
+            promptEl.classList.remove('hidden');
+            promptText.textContent = `按 E 拾取 ${WEAPONS[nearCrate.weapon].name}`;
+        } else if (nearDoor && !nearDoor.unlocked) {
+            promptEl.classList.remove('hidden');
+            promptText.textContent = '按 E 解锁安全门';
+        } else {
+            promptEl.classList.add('hidden');
+        }
     }
 
     const unlockBar = document.getElementById('door-unlock-bar');
-    if (unlocking && nearDoor) {
-        unlockBar.classList.remove('hidden');
-    } else {
-        unlockBar.classList.add('hidden');
+    if (unlockBar) {
+        if (unlocking && nearDoor) {
+            unlockBar.classList.remove('hidden');
+        } else {
+            unlockBar.classList.add('hidden');
+        }
     }
 }
 
@@ -1245,7 +1278,7 @@ function serializeGameState() {
     if (!player || gameState !== 'playing') return null;
     try {
         const state = {
-            version: 2,
+            version: 3,
             savedAt: Date.now(),
             player: {
                 x: player.x,
@@ -1257,11 +1290,15 @@ function serializeGameState() {
                 maxReached: player.maxReached,
                 facingRight: player.facingRight,
             },
-            cam: { x: player.x - CFG.W * 0.3 },
+            cam: { x: cam.x },
             enemies: enemies.filter(e => e.hp > 0).map(e => ({
                 x: e.x, y: e.y,
                 hp: e.hp, maxHp: e.maxHp,
                 isBoss: e.isBoss,
+                speed: e.speed,
+                dmg: e.dmg,
+                side: e.side,
+                attackCD: e.attackCD,
             })),
             crates: crates.map(c => ({
                 x: c.x, y: c.y,
@@ -1276,10 +1313,10 @@ function serializeGameState() {
                 bossDead: d.bossDead,
             })),
             curSeg: curSeg,
-            enemySpawned: enemySpawned,
-            bossSpawned: bossSpawned,
+            enemySpawned: { ...enemySpawned },
+            bossSpawned: { ...bossSpawned },
             totalEnemiesKilled: totalEnemiesKilled,
-            weaponUseCount: weaponUseCount,
+            weaponUseCount: { ...weaponUseCount },
             segmentTimes: [...segmentTimes],
             elapsed: (performance.now() - gameStartTime) / 1000,
             segElapsed: (performance.now() - segStartTime) / 1000,
@@ -1292,11 +1329,18 @@ function serializeGameState() {
 }
 
 function deserializeGameState(saved) {
-    if (!saved || saved.version !== 2) {
-        console.warn('Incompatible save version, clearing');
+    if (!saved || saved.version !== 3) {
+        console.warn('Incompatible save version (expected 3, got', saved ? saved.version : 'null', '), clearing');
         return false;
     }
     try {
+        console.log('Deserializing game state...');
+        console.log('  Player position:', saved.player.x, saved.player.y);
+        console.log('  Current segment:', saved.curSeg);
+        console.log('  Enemies alive:', saved.enemies.length);
+        console.log('  Crates total:', saved.crates.length);
+        console.log('  Doors total:', saved.doors.length);
+
         initGame();
 
         player.x = saved.player.x;
@@ -1332,11 +1376,14 @@ function deserializeGameState(saved) {
             bossDead: d.bossDead,
         }));
 
-        enemies = saved.enemies.map(e => makeEnemy(
-            e.x, e.y, e.isBoss
-        )).map((e, i) => {
-            e.hp = saved.enemies[i].hp;
-            e.maxHp = saved.enemies[i].maxHp;
+        enemies = saved.enemies.map((se, i) => {
+            const e = makeEnemy(se.x, se.y, se.isBoss);
+            e.hp = se.hp;
+            e.maxHp = se.maxHp;
+            if (se.speed !== undefined) e.speed = se.speed;
+            if (se.dmg !== undefined) e.dmg = se.dmg;
+            if (se.side !== undefined) e.side = se.side;
+            if (se.attackCD !== undefined) e.attackCD = se.attackCD;
             return e;
         });
 
@@ -1349,14 +1396,23 @@ function deserializeGameState(saved) {
         nearCrate = null;
         shakeAmount = 0;
         saveTimer = 0;
+        ePressed = false;
+        mouse.down = false;
 
         const now = performance.now();
         gameStartTime = now - saved.elapsed * 1000;
         segStartTime = now - saved.segElapsed * 1000;
 
+        console.log('✓ Game state deserialized successfully');
+        console.log('  Player HP:', player.hp, '/', player.maxHp);
+        console.log('  Weapons:', player.weapons.filter(w => w).map(w => w.name).join(', '));
+        console.log('  Current segment:', curSeg + 1);
+        console.log('  Total kills:', totalEnemiesKilled);
+
         return true;
     } catch (err) {
-        console.error('Failed to deserialize game state:', err);
+        console.error('✗ Failed to deserialize game state:', err);
+        console.error(err.stack);
         return false;
     }
 }
@@ -1367,7 +1423,8 @@ function saveGame() {
         if (state) {
             const json = JSON.stringify(state);
             localStorage.setItem(SAVE_KEY, json);
-            console.log(`Game saved: ${(json.length / 1024).toFixed(1)} KB`);
+            console.log(`💾 Game saved: ${(json.length / 1024).toFixed(1)} KB, enemies: ${state.enemies.length}`);
+            refreshContinueBtn();
         }
     } catch (e) {
         console.warn('Failed to save game:', e);
@@ -1377,12 +1434,17 @@ function saveGame() {
 function loadGame() {
     try {
         const raw = localStorage.getItem(SAVE_KEY);
-        if (!raw) return false;
+        if (!raw) {
+            console.log('No saved game found');
+            return false;
+        }
         const saved = JSON.parse(raw);
+        console.log('Loading saved game (version', saved.version, ')...');
         if (deserializeGameState(saved)) {
-            console.log('Game loaded successfully from save');
+            console.log('✓ Game loaded successfully');
             return true;
         }
+        console.warn('Failed to load game, clearing save');
         clearSavedGame();
         return false;
     } catch (e) {
@@ -1465,12 +1527,19 @@ function refreshContinueBtn() {
     }
 }
 
+window.addEventListener('beforeunload', () => {
+    if (gameState === 'playing') {
+        saveGame();
+    }
+});
+
 document.getElementById('start-btn').addEventListener('click', () => {
     clearSavedGame();
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     initGame();
     gameState = 'playing';
+    saveTimer = SAVE_INTERVAL - 0.5;
 });
 
 document.getElementById('continue-btn').addEventListener('click', () => {
@@ -1478,8 +1547,9 @@ document.getElementById('continue-btn').addEventListener('click', () => {
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
         gameState = 'playing';
+        saveTimer = SAVE_INTERVAL - 0.5;
     } else {
-        alert('存档损坏或不存在');
+        alert('存档损坏或不存在，请开始新游戏');
         refreshContinueBtn();
     }
 });
@@ -1489,6 +1559,7 @@ document.getElementById('retry-btn').addEventListener('click', () => {
     document.getElementById('gameover-screen').classList.add('hidden');
     initGame();
     gameState = 'playing';
+    saveTimer = SAVE_INTERVAL - 0.5;
 });
 
 document.getElementById('play-again-btn').addEventListener('click', () => {
@@ -1496,6 +1567,7 @@ document.getElementById('play-again-btn').addEventListener('click', () => {
     document.getElementById('victory-screen').classList.add('hidden');
     initGame();
     gameState = 'playing';
+    saveTimer = SAVE_INTERVAL - 0.5;
 });
 
 document.getElementById('submit-score-btn').addEventListener('click', submitScore);
