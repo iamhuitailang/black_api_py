@@ -2,10 +2,25 @@ const Effects = {
     poisonParticles: [],
     damageOverlay: null,
     healOverlay: null,
+    fogCanvas: null,
+    fogCtx: null,
+    fogCanvasWidth: 0,
+    fogCanvasHeight: 0,
 
     init() {
         this.damageOverlay = document.getElementById('damage-overlay');
         this.healOverlay = document.getElementById('heal-overlay');
+    },
+
+    ensureFogCanvas(width, height) {
+        if (!this.fogCanvas || this.fogCanvasWidth !== width || this.fogCanvasHeight !== height) {
+            this.fogCanvas = document.createElement('canvas');
+            this.fogCanvas.width = width;
+            this.fogCanvas.height = height;
+            this.fogCtx = this.fogCanvas.getContext('2d');
+            this.fogCanvasWidth = width;
+            this.fogCanvasHeight = height;
+        }
     },
 
     showDamageOverlay() {
@@ -27,6 +42,32 @@ const Effects = {
             setTimeout(() => {
                 this.healOverlay.classList.remove('active');
             }, 500);
+        }
+    },
+
+    update(deltaTime, gameMap) {
+        if (gameMap) {
+            const tileSize = CONFIG.TILE_SIZE;
+            for (let i = 0; i < 3; i++) {
+                const x = Math.floor(Math.random() * gameMap.width);
+                const y = Math.floor(Math.random() * gameMap.height);
+                if (gameMap.tiles[y] && gameMap.tiles[y][x] === 0) {
+                    const zone = gameMap.getZone(x);
+                    this.generatePoisonParticle(x, y, zone);
+                }
+            }
+        }
+
+        this.poisonParticles = this.poisonParticles.filter(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= deltaTime;
+            p.alpha = (p.life / p.maxLife) * 0.4;
+            return p.life > 0;
+        });
+
+        if (this.poisonParticles.length > 150) {
+            this.poisonParticles = this.poisonParticles.slice(-150);
         }
     },
 
@@ -54,40 +95,17 @@ const Effects = {
         });
     },
 
-    updatePoisonParticles(deltaTime, gameMap) {
-        for (let y = 0; y < gameMap.height; y++) {
-            for (let x = 0; x < gameMap.width; x++) {
-                if (gameMap.tiles[y][x] === 0 && Math.random() < 0.02) {
-                    const zone = gameMap.getZone(x);
-                    this.generatePoisonParticle(x, y, zone);
-                }
-            }
-        }
-
-        this.poisonParticles = this.poisonParticles.filter(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life -= deltaTime;
-            p.alpha = (p.life / p.maxLife) * 0.4;
-            return p.life > 0;
-        });
-
-        if (this.poisonParticles.length > 300) {
-            this.poisonParticles = this.poisonParticles.slice(-300);
-        }
-    },
-
-    renderPoisonFog(ctx, playerX, playerY, gameMap) {
+    render(ctx, playerX, playerY, gameMap) {
         const tileSize = CONFIG.TILE_SIZE;
 
         this.poisonParticles.forEach(p => {
-            const inVision = gameMap.isInVision(
-                p.x / tileSize,
-                p.y / tileSize,
-                playerX,
-                playerY
+            const tileX = p.x / tileSize;
+            const tileY = p.y / tileSize;
+            const dist = Math.sqrt(
+                Math.pow(tileX - playerX, 2) +
+                Math.pow(tileY - playerY, 2)
             );
-            if (inVision) {
+            if (dist <= CONFIG.VISION_RADIUS) {
                 ctx.fillStyle = p.color + p.alpha + ')';
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -123,19 +141,17 @@ const Effects = {
         ctx.fillRect(0, 0, gameMap.width * tileSize, gameMap.height * tileSize);
     },
 
-    renderFogOfWar(ctx, playerX, playerY, gameMap) {
+    renderFog(ctx, playerX, playerY, gameMap) {
         const tileSize = CONFIG.TILE_SIZE;
         const canvasWidth = gameMap.width * tileSize;
         const canvasHeight = gameMap.height * tileSize;
 
-        ctx.save();
+        this.ensureFogCanvas(Math.ceil(canvasWidth), Math.ceil(canvasHeight));
+        const fogCtx = this.fogCtx;
 
-        const fogCanvas = document.createElement('canvas');
-        fogCanvas.width = canvasWidth;
-        fogCanvas.height = canvasHeight;
-        const fogCtx = fogCanvas.getContext('2d');
+        fogCtx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.92)';
         fogCtx.fillRect(0, 0, canvasWidth, canvasHeight);
 
         fogCtx.globalCompositeOperation = 'destination-out';
@@ -143,13 +159,14 @@ const Effects = {
         const gradient = fogCtx.createRadialGradient(
             playerX * tileSize,
             playerY * tileSize,
-            tileSize * 1,
+            tileSize * 0.5,
             playerX * tileSize,
             playerY * tileSize,
             tileSize * CONFIG.VISION_RADIUS
         );
         gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.8)');
+        gradient.addColorStop(0.6, 'rgba(0, 0, 0, 0.9)');
+        gradient.addColorStop(0.85, 'rgba(0, 0, 0, 0.4)');
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         fogCtx.fillStyle = gradient;
@@ -165,10 +182,10 @@ const Effects = {
 
         for (let y = 0; y < gameMap.height; y++) {
             for (let x = 0; x < gameMap.width; x++) {
-                if (gameMap.explored[y][x]) {
+                if (gameMap.explored[y] && gameMap.explored[y][x]) {
                     const inVision = gameMap.isInVision(x + 0.5, y + 0.5, playerX, playerY);
                     if (!inVision) {
-                        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
                         fogCtx.fillRect(
                             x * tileSize,
                             y * tileSize,
@@ -182,23 +199,12 @@ const Effects = {
 
         fogCtx.globalCompositeOperation = 'source-over';
 
-        ctx.drawImage(fogCanvas, 0, 0);
-        ctx.restore();
-    },
-
-    update(deltaTime, gameMap) {
-        this.updatePoisonParticles(deltaTime, gameMap);
-    },
-
-    render(ctx, playerX, playerY, gameMap) {
-        this.renderPoisonFog(ctx, playerX, playerY, gameMap);
-    },
-
-    renderFog(ctx, playerX, playerY, gameMap) {
-        this.renderFogOfWar(ctx, playerX, playerY, gameMap);
+        ctx.drawImage(this.fogCanvas, 0, 0);
     },
 
     reset() {
         this.poisonParticles = [];
+        this.fogCanvas = null;
+        this.fogCtx = null;
     }
 };

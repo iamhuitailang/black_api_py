@@ -25,28 +25,40 @@ class Game {
         this.init();
     }
 
-    init() {
+    async init() {
         Effects.init();
         this.setupEventListeners();
-        this.loadProgress();
+        this.renderLevelSelect();
+        await this.loadProgress();
     }
 
     async loadProgress() {
-        const progressResult = await GameAPI.getProgress();
-        if (progressResult.code === 0 && progressResult.data) {
-            this.playerProgress = progressResult.data;
-            document.getElementById('unlocked-levels').textContent = this.playerProgress.unlocked_level;
-            document.getElementById('total-completions').textContent = this.playerProgress.total_completions;
+        try {
+            const progressResult = await GameAPI.getProgress();
+            if (progressResult && progressResult.code === 0 && progressResult.data) {
+                this.playerProgress = progressResult.data;
+                document.getElementById('unlocked-levels').textContent = this.playerProgress.unlocked_level || 1;
+                document.getElementById('total-completions').textContent = this.playerProgress.total_completions || 0;
+            }
+        } catch (e) {
+            console.error('loadProgress error:', e);
         }
 
-        const completedResult = await GameAPI.getCompletedLevels();
-        this.completedLevels = new Set(completedResult);
+        try {
+            const completedResult = await GameAPI.getCompletedLevels();
+            if (Array.isArray(completedResult)) {
+                this.completedLevels = new Set(completedResult);
+            }
+        } catch (e) {
+            console.error('getCompletedLevels error:', e);
+        }
 
         this.renderLevelSelect();
     }
 
     renderLevelSelect() {
         const levelGrid = document.getElementById('level-grid');
+        if (!levelGrid) return;
         levelGrid.innerHTML = '';
 
         const unlockedLevel = this.playerProgress ? this.playerProgress.unlocked_level : 1;
@@ -65,7 +77,8 @@ class Game {
             }
 
             btn.innerHTML = `<span>${i}</span>`;
-            btn.addEventListener('click', () => this.startLevel(i));
+            const level = i;
+            btn.addEventListener('click', () => this.startLevel(level));
             levelGrid.appendChild(btn);
         }
     }
@@ -94,23 +107,32 @@ class Game {
             });
         });
 
-        document.getElementById('antidote-btn').addEventListener('click', () => this.useAntidote());
-        document.getElementById('pause-btn').addEventListener('click', () => this.togglePause());
+        const antidoteBtn = document.getElementById('antidote-btn');
+        if (antidoteBtn) antidoteBtn.addEventListener('click', () => this.useAntidote());
+        const pauseBtn = document.getElementById('pause-btn');
+        if (pauseBtn) pauseBtn.addEventListener('click', () => this.togglePause());
 
-        document.getElementById('resume-btn').addEventListener('click', () => this.togglePause());
-        document.getElementById('restart-btn').addEventListener('click', () => this.restartLevel());
-        document.getElementById('quit-btn').addEventListener('click', () => this.returnToMenu());
+        const resumeBtn = document.getElementById('resume-btn');
+        if (resumeBtn) resumeBtn.addEventListener('click', () => this.togglePause());
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) restartBtn.addEventListener('click', () => this.restartLevel());
+        const quitBtn = document.getElementById('quit-btn');
+        if (quitBtn) quitBtn.addEventListener('click', () => this.returnToMenu());
 
-        document.getElementById('next-btn').addEventListener('click', () => this.nextLevel());
-        document.getElementById('replay-btn').addEventListener('click', () => this.restartLevel());
-        document.getElementById('menu-btn').addEventListener('click', () => this.returnToMenu());
+        const nextBtn = document.getElementById('next-btn');
+        if (nextBtn) nextBtn.addEventListener('click', () => this.nextLevel());
+        const replayBtn = document.getElementById('replay-btn');
+        if (replayBtn) replayBtn.addEventListener('click', () => this.restartLevel());
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) menuBtn.addEventListener('click', () => this.returnToMenu());
 
-        document.getElementById('revive-btn').addEventListener('click', () => this.restartLevel());
+        const reviveBtn = document.getElementById('revive-btn');
+        if (reviveBtn) reviveBtn.addEventListener('click', () => this.restartLevel());
     }
 
     handleMobileControl(direction, pressed) {
         if (this.gameState !== 'playing' || this.isPaused) return;
-        this.player.setMovement(direction, pressed);
+        if (this.player) this.player.setMovement(direction, pressed);
     }
 
     handleKeyDown(e) {
@@ -120,6 +142,8 @@ class Game {
             }
             return;
         }
+
+        if (!this.player) return;
 
         switch (e.key) {
             case 'ArrowUp':
@@ -158,7 +182,7 @@ class Game {
     }
 
     handleKeyUp(e) {
-        if (this.gameState !== 'playing') return;
+        if (this.gameState !== 'playing' || !this.player) return;
 
         switch (e.key) {
             case 'ArrowUp':
@@ -209,7 +233,7 @@ class Game {
     }
 
     restartLevel() {
-        this.showScreen('game-screen');
+        this.hideAllOverlays();
         this.startLevel(this.currentLevel);
     }
 
@@ -228,6 +252,7 @@ class Game {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
+        this.hideAllOverlays();
         this.loadProgress();
         this.showScreen('start-screen');
     }
@@ -259,16 +284,22 @@ class Game {
         document.getElementById(screenId).classList.remove('active');
     }
 
+    hideAllOverlays() {
+        document.querySelectorAll('.screen.overlay').forEach(s => s.classList.remove('active'));
+    }
+
     useAntidote() {
-        if (this.gameState !== 'playing' || this.isPaused) return;
+        if (this.gameState !== 'playing' || this.isPaused || !this.player) return;
         const btn = document.getElementById('antidote-btn');
-        if (btn.disabled) return;
+        if (btn && btn.disabled) return;
 
         if (this.player.useAntidote()) {
             this.updateUI();
             Effects.showHealOverlay();
-            btn.classList.add('active');
-            setTimeout(() => btn.classList.remove('active'), 500);
+            if (btn) {
+                btn.classList.add('active');
+                setTimeout(() => btn.classList.remove('active'), 500);
+            }
         }
     }
 
@@ -285,6 +316,8 @@ class Game {
     }
 
     update(deltaTime) {
+        if (!this.player || !this.gameMap) return;
+
         this.elapsedTime += deltaTime;
 
         this.player.update(deltaTime, this.gameMap);
@@ -303,17 +336,20 @@ class Game {
         if (this.gameMap.checkExitCollision(this.player.x, this.player.y)) {
             if (this.player.hp > 0) {
                 this.completeLevel();
+                return;
             }
         }
 
         if (this.player.isDead()) {
             this.playerDeath();
+            return;
         }
 
         this.updateUI();
     }
 
     render() {
+        if (!this.gameMap || !this.player) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.gameMap.render(this.ctx, this.player.x, this.player.y);
@@ -324,6 +360,8 @@ class Game {
     }
 
     updateUI() {
+        if (!this.player || !this.gameMap) return;
+
         document.getElementById('current-hp').textContent = Math.ceil(this.player.hp);
         document.getElementById('max-hp').textContent = this.player.maxHp;
 
@@ -339,7 +377,8 @@ class Game {
 
         document.getElementById('current-level').textContent = this.currentLevel;
         document.getElementById('antidote-count').textContent = this.player.antidoteCount;
-        document.getElementById('antidote-btn').disabled = this.player.antidoteCount <= 0;
+        const antidoteBtn = document.getElementById('antidote-btn');
+        if (antidoteBtn) antidoteBtn.disabled = this.player.antidoteCount <= 0;
 
         document.getElementById('purification-found').textContent = this.purificationFound;
         document.getElementById('purification-total').textContent = this.purificationTotal;
@@ -387,20 +426,29 @@ class Game {
             this.animationFrameId = null;
         }
 
-        const submitResult = await GameAPI.submitRecord(
-            this.currentLevel,
-            Math.round(this.elapsedTime * 10) / 10,
-            this.purificationFound,
-            this.purificationTotal,
-            this.deathCount
-        );
+        let submitResult = { code: 1, data: null };
+        try {
+            submitResult = await GameAPI.submitRecord(
+                this.currentLevel,
+                Math.round(this.elapsedTime * 10) / 10,
+                this.purificationFound,
+                this.purificationTotal,
+                this.deathCount
+            );
+        } catch (e) {
+            console.error('submitRecord error:', e);
+        }
 
-        const bestResult = await GameAPI.getBestRecord(this.currentLevel);
         let isBestRecord = false;
-        if (bestResult.code === 0 && bestResult.data && submitResult.data) {
-            if (bestResult.data.id === submitResult.data.id) {
-                isBestRecord = true;
+        try {
+            const bestResult = await GameAPI.getBestRecord(this.currentLevel);
+            if (bestResult.code === 0 && bestResult.data && submitResult.data) {
+                if (bestResult.data.id === submitResult.data.id) {
+                    isBestRecord = true;
+                }
             }
+        } catch (e) {
+            console.error('getBestRecord error:', e);
         }
 
         this.completedLevels.add(this.currentLevel);

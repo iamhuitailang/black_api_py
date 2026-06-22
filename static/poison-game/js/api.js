@@ -14,8 +14,19 @@ const GameAPI = {
         const playerId = this.getPlayerId();
         try {
             const response = await fetch(`${this.baseUrl}/progress/get?player_id=${encodeURIComponent(playerId)}`);
+            if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
-            return data;
+            if (data.code === 0 && data.data) {
+                return data;
+            }
+            return {
+                code: 0,
+                data: {
+                    player_id: playerId,
+                    unlocked_level: 1,
+                    total_completions: 0
+                }
+            };
         } catch (error) {
             console.error('Failed to get progress:', error);
             return {
@@ -37,6 +48,7 @@ const GameAPI = {
         }
         try {
             const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
             return await response.json();
         } catch (error) {
             console.error('Failed to get records:', error);
@@ -50,6 +62,7 @@ const GameAPI = {
             const response = await fetch(
                 `${this.baseUrl}/records/bestget?player_id=${encodeURIComponent(playerId)}&level=${level}`
             );
+            if (!response.ok) throw new Error('Network response was not ok');
             return await response.json();
         } catch (error) {
             console.error('Failed to get best record:', error);
@@ -74,24 +87,30 @@ const GameAPI = {
                     death_count: deathCount
                 })
             });
+            if (!response.ok) throw new Error('Network response was not ok');
             return await response.json();
         } catch (error) {
             console.error('Failed to submit record:', error);
-            return { code: 0, data: null };
+            return { code: 1, data: null };
         }
     },
 
     async getCompletedLevels() {
-        const result = await this.getRecords();
-        if (result.code === 0 && result.data) {
-            const completed = new Set();
-            result.data.forEach(record => {
-                if (record.level) {
-                    completed.add(record.level);
-                }
-            });
-            return Array.from(completed);
+        try {
+            const result = await this.getRecords();
+            if (result.code === 0 && result.data && Array.isArray(result.data)) {
+                const completed = new Set();
+                result.data.forEach(record => {
+                    if (record.level) {
+                        completed.add(record.level);
+                    }
+                });
+                return Array.from(completed);
+            }
+            return [];
+        } catch (error) {
+            console.error('Failed to get completed levels:', error);
+            return [];
         }
-        return [];
     }
 };
