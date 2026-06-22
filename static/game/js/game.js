@@ -665,7 +665,7 @@ class Game {
     _init() {
         this.bulletManager = new BulletManager(this.canvas);
         this.gun = new Gun();
-        this._loadState();
+        this._savedData = null;
     }
 
     _resizeCanvas() {
@@ -744,6 +744,7 @@ class Game {
                 this.playerName = nameInput.value.trim();
                 if (this._loadState(true)) {
                     if (this.state === GameState.SAFE_ZONE) {
+                        this._updateSafeZoneUI();
                         showScreen('safe');
                     } else {
                         showScreen('game');
@@ -878,26 +879,47 @@ class Game {
 
     _rebuildCurrentStage() {
         this._resizeCanvas();
-        if (!this.player) {
-            this.player = new Player(this.canvas);
-        } else {
-            const oldHp = this.player.hp;
-            const oldX = this.player.x;
-            const oldY = this.player.y;
-            this.player = new Player(this.canvas);
-            if (oldHp !== undefined) this.player.hp = oldHp;
-            if (oldX && oldY && oldX > 0 && oldY > 0) {
-                this.player.x = Math.min(Math.max(oldX, 20), this.canvas.width - 20);
-                this.player.y = Math.min(Math.max(oldY, 20), this.canvas.height - 20);
+        const saved = this._savedData;
+
+        this.player = new Player(this.canvas);
+        if (saved && saved.player) {
+            this.player.hp = saved.player.hp;
+            if (saved.player.x > 0 && saved.player.y > 0) {
+                this.player.x = Math.min(Math.max(saved.player.x, 20), this.canvas.width - 20);
+                this.player.y = Math.min(Math.max(saved.player.y, 20), this.canvas.height - 20);
             }
+        } else {
+            this.player.hp = this.storedHp || CONFIG.PLAYER.MAX_HP;
         }
-        if (!this.gun) this.gun = new Gun();
-        if (!this.bulletManager) this.bulletManager = new BulletManager(this.canvas);
-        if (!this.towers || this.towers.length === 0) {
+
+        this.gun = new Gun();
+        if (saved && saved.gun) {
+            this.gun.ammo = saved.gun.ammo;
+            this.gun.isReloading = saved.gun.isReloading;
+        }
+
+        this.bulletManager = new BulletManager(this.canvas);
+        this.particles = new ParticleSystem();
+
+        if (saved && saved.towers && saved.towers.length === 5) {
+            const W = this.canvas.width;
+            const H = this.canvas.height;
+            const positions = this._getStagePositions(this.currentStage, W, H);
+            this.towers = saved.towers.map((ts, i) => {
+                const tower = new Tower(ts.type, positions[i].x, positions[i].y, this.canvas);
+                tower.hits = ts.hits;
+                tower.isDestroyed = ts.isDestroyed;
+                tower.isDisabled = ts.isDisabled;
+                tower.disabledUntil = ts.disabledUntil;
+                return tower;
+            });
+        } else {
             this.towers = this._generateTowers();
         }
-        if (!this.particles) this.particles = new ParticleSystem();
+
+        this.state = GameState.PLAYING;
         this._updateHUD();
+        this._savedData = null;
     }
 
     _hasSavedState() {
@@ -913,6 +935,13 @@ class Game {
 
     _saveState() {
         try {
+            const towerStates = this.towers.map(t => ({
+                type: t.type,
+                hits: t.hits,
+                isDestroyed: t.isDestroyed,
+                isDisabled: t.isDisabled,
+                disabledUntil: t.isDisabled ? t.disabledUntil : 0
+            }));
             const data = {
                 state: this.state,
                 currentStage: this.currentStage,
@@ -924,6 +953,7 @@ class Game {
                 playerName: this.playerName,
                 player: this.player ? { x: this.player.x, y: this.player.y, hp: this.player.hp } : null,
                 gun: this.gun ? { ammo: this.gun.ammo, isReloading: this.gun.isReloading } : null,
+                towers: towerStates,
                 savedAt: Date.now()
             };
             localStorage.setItem(Game.STORAGE_KEY, JSON.stringify(data));
@@ -935,9 +965,9 @@ class Game {
 
     _loadState(applyToRuntime) {
         try {
-            const data = localStorage.getItem(Game.STORAGE_KEY);
-            if (!data) return false;
-            const parsed = JSON.parse(data);
+            const raw = localStorage.getItem(Game.STORAGE_KEY);
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
             if (!parsed || !parsed.state) return false;
             if (parsed.state === GameState.GAME_OVER || parsed.state === GameState.MENU) return false;
 
@@ -949,12 +979,11 @@ class Game {
             this.stagesCleared = parsed.stagesCleared || 0;
             this.storedHp = parsed.storedHp || CONFIG.PLAYER.MAX_HP;
             if (parsed.playerName) this.playerName = parsed.playerName;
+            this._savedData = parsed;
 
             if (applyToRuntime) {
                 const nameInput = document.getElementById('player-name');
-                if (nameInput && !nameInput.value.trim()) {
-                    nameInput.value = this.playerName;
-                }
+                if (nameInput) nameInput.value = this.playerName;
             }
             return true;
         } catch (e) {
@@ -1060,6 +1089,7 @@ class Game {
                     } else if (result === 'disabled') {
                         this.score += CONFIG.TOWER.SCORE_PER_HIT;
                     }
+                    this._saveState();
                     break;
                 }
             }
@@ -1105,6 +1135,25 @@ class Game {
         document.getElementById('game-container').classList.remove('game-active');
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('safe-zone-screen').classList.add('active');
+    }
+
+    _updateSafeZoneUI() {
+        const stage = this.currentStage;
+        const destroyed = this.stageDestroyed[stage] || 0;
+        const hpBeforeHeal = Math.max(0, this.storedHp - CONFIG.SAFE_ZONE_HEAL);
+        document.getElementById('safe-desc').textContent =
+            stage < CONFIG.STAGES - 1
+                ? `你成功清理了第 ${stage + 1} 个弹幕场！`
+                : '恭喜你清理了最后一个弹幕场！';
+        document.getElementById('safe-hp').textContent = hpBeforeHeal;
+        document.getElementById('safe-destroyed').textContent = destroyed;
+        document.getElementById('safe-score').textContent = this.score;
+        document.getElementById('next-hint').textContent =
+            stage < CONFIG.STAGES - 1
+                ? '恢复30点血量，准备好迎接下一场挑战了吗？'
+                : '你完成了所有关卡！查看最终成绩吧。';
+        document.getElementById('next-stage-btn').textContent =
+            stage < CONFIG.STAGES - 1 ? '进入下一场' : '查看成绩';
     }
 
     async _gameOver(victory) {
@@ -1300,4 +1349,22 @@ class Game {
 document.addEventListener('DOMContentLoaded', () => {
     const game = new Game();
     game.loop();
+
+    if (game._hasSavedState() && game._loadState(true)) {
+        if (game.state === GameState.SAFE_ZONE) {
+            game._updateSafeZoneUI();
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('safe-zone-screen').classList.add('active');
+        } else if (game.state === GameState.PLAYING || game.state === GameState.PAUSED) {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            document.body.classList.add('game-active');
+            document.getElementById('game-container').classList.add('game-active');
+            game._resizeCanvas();
+            setTimeout(() => {
+                game._resizeCanvas();
+                game._rebuildCurrentStage();
+            }, 100);
+        }
+    }
 });

@@ -10,21 +10,19 @@ body {
     min-height: 100vh;
     color: #fff;
     overflow-x: hidden;
+    overflow-y: auto;
 }
 
 #game-container {
-    width: 100vw;
+    width: 100%;
     min-height: 100vh;
     position: relative;
 }
 
 .screen {
-    position: absolute;
-    top: 0;
-    left: 0;
+    display: none;
     width: 100%;
     min-height: 100vh;
-    display: none;
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -33,19 +31,22 @@ body {
 
 .screen.active {
     display: flex;
-    position: relative;
 }
 
 #game-screen.screen.active {
-    position: absolute;
-    min-height: 100vh;
     height: 100vh;
+    min-height: 100vh;
     padding: 0;
     overflow: hidden;
 }
 
 #pause-screen.screen.active {
     position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
 }
 
 body.game-active {
