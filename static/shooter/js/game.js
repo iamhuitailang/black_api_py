@@ -108,22 +108,41 @@ function init() {
     elements.leaderboardList = document.getElementById('leaderboardList');
     
     bindEvents();
-    checkSavedGame();
+    
+    if (!tryAutoResumeGame()) {
+        checkSavedGame();
+    }
 }
 
 function bindEvents() {
-    elements.startBtn.addEventListener('click', startGame);
-    elements.restartBtn.addEventListener('click', startGame);
+    elements.startBtn.addEventListener('click', handleStartClick);
+    elements.restartBtn.addEventListener('click', () => {
+        if (GameState.playerName) {
+            startGame(GameState.playerName);
+        } else {
+            showMenu();
+        }
+    });
     elements.menuBtn.addEventListener('click', showMenu);
     elements.resumeBtn.addEventListener('click', resumeGame);
     elements.newgameBtn.addEventListener('click', () => {
         clearGameSave();
         elements.resumeSection.style.display = 'none';
+        elements.startBtn.style.display = 'inline-block';
+        elements.playerNameInput.value = '';
+        elements.playerNameInput.focus();
     });
     
     elements.playerNameInput.addEventListener('input', () => {
         elements.playerNameInput.classList.remove('error');
         elements.inputError.style.display = 'none';
+    });
+    
+    elements.playerNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleStartClick();
+        }
     });
     
     document.addEventListener('keydown', handleKeyDown);
@@ -132,6 +151,38 @@ function bindEvents() {
     canvas.addEventListener('click', handleCanvasClick);
     
     window.addEventListener('beforeunload', saveGameState);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) saveGameState();
+    });
+}
+
+function tryAutoResumeGame() {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (!saved) return false;
+    
+    try {
+        const data = JSON.parse(saved);
+        if (!data || !data.playerName || data.isGameOver) {
+            clearGameSave();
+            return false;
+        }
+        resumeGame();
+        return true;
+    } catch (e) {
+        clearGameSave();
+        return false;
+    }
+}
+
+function handleStartClick() {
+    const playerName = elements.playerNameInput.value.trim();
+    if (!playerName) {
+        elements.playerNameInput.classList.add('error');
+        elements.inputError.style.display = 'block';
+        elements.playerNameInput.focus();
+        return;
+    }
+    startGame();
 }
 
 function checkSavedGame() {
@@ -143,11 +194,14 @@ function checkSavedGame() {
                 elements.playerNameInput.value = data.playerName;
                 elements.resumeSection.style.display = 'block';
                 elements.startBtn.style.display = 'none';
+                return;
             }
         } catch (e) {
             clearGameSave();
         }
     }
+    elements.resumeSection.style.display = 'none';
+    elements.startBtn.style.display = 'inline-block';
 }
 
 function saveGameState() {
@@ -307,13 +361,15 @@ function handleCanvasClick(e) {
     shoot();
 }
 
-function startGame() {
-    const playerName = elements.playerNameInput.value.trim();
+function startGame(playerName) {
     if (!playerName) {
-        elements.playerNameInput.classList.add('error');
-        elements.inputError.style.display = 'block';
-        elements.playerNameInput.focus();
-        return;
+        playerName = elements.playerNameInput.value.trim();
+        if (!playerName) {
+            elements.playerNameInput.classList.add('error');
+            elements.inputError.style.display = 'block';
+            elements.playerNameInput.focus();
+            return;
+        }
     }
     
     clearGameSave();
