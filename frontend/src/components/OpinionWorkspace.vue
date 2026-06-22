@@ -174,5 +174,5 @@ watch([activeCategory, activeStatus], () => {
 
 onMounted(() => loadList())
 
-defineExpose({ loadList, selectOpinion })
+defineExpose({ loadList, selectOpinion, selectedOpinion })
 </script>
